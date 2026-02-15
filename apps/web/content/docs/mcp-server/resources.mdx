@@ -1,0 +1,24 @@
+---
+title: MCP Resources
+description: Reference for mem/ctl MCP resources
+---
+
+# MCP Resources
+
+mem/ctl exposes the following resources via the Model Context Protocol.
+
+## `memory://project/<slug>`
+
+Returns all memories for a project as a JSON array.
+
+**URI Pattern:** `memory://project/<projectSlug>`
+
+**Response:** JSON object containing all project memories.
+
+## `memory://project/<slug>/<key>`
+
+Returns a single memory by key.
+
+**URI Pattern:** `memory://project/<projectSlug>/<memoryKey>`
+
+**Response:** JSON object containing the memory data.

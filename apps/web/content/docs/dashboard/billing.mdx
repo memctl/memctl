@@ -1,0 +1,31 @@
+---
+title: Billing
+description: Billing and subscription management in mem/ctl
+---
+
+# Billing
+
+mem/ctl uses Stripe for billing. Subscriptions are organization-based.
+
+## Plans
+
+| Plan | Price/mo | Projects | Members | Memories/project | API calls/mo |
+|---|---|---|---|---|---|
+| Free | $0 | 2 | 2 | 1,000 | 10,000 |
+| Lite | $5 | 5 | 5 | 5,000 | 50,000 |
+| Pro | $20 | 20 | 15 | 25,000 | 250,000 |
+| Business | $40 | 50 | 50 | 100,000 | 1,000,000 |
+| Better | $80 | 200 | 200 | 500,000 | 5,000,000 |
+| Enterprise | Custom | Unlimited | Unlimited | Unlimited | Unlimited |
+
+## Upgrading
+
+Click "Upgrade" in your billing settings. You'll be redirected to Stripe Checkout. After payment, your plan limits are updated immediately.
+
+## Managing Subscription
+
+Click "Manage subscription" to access the Stripe customer portal, where you can:
+
+- Update payment method
+- View invoices
+- Change or cancel plan

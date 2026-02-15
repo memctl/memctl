@@ -1,0 +1,43 @@
+---
+title: Authentication
+description: API authentication for mem/ctl
+---
+
+# Authentication
+
+The mem/ctl API supports two authentication methods.
+
+## API Tokens
+
+Generate API tokens in your organization's **Tokens** page. Use them as Bearer tokens:
+
+```
+Authorization: Bearer mctl_your_token_here
+```
+
+API tokens are long-lived and suitable for MCP server configuration.
+
+## JWT (Session-based)
+
+For the dashboard and web-based tools:
+
+1. Sign in via GitHub OAuth
+2. A session cookie is set
+3. Generate a short-lived JWT via `POST /api/v1/auth/token`
+
+```bash
+curl -X POST https://memctl.com/api/v1/auth/token \
+  -H "Cookie: your-session-cookie" \
+  -H "Content-Type: application/json" \
+  -d '{"orgId": "your-org-id"}'
+```
+
+Response:
+
+```json
+{
+  "token": "eyJhbG..."
+}
+```
+
+JWTs expire after 1 hour. Session validity is cached for 5 minutes.

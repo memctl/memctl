@@ -1,0 +1,13 @@
+{
+  "title": "mem/ctl",
+  "pages": [
+    "index",
+    "quickstart",
+    "installation",
+    "configuration",
+    "...mcp-server",
+    "...dashboard",
+    "...api",
+    "self-hosting"
+  ]
+}

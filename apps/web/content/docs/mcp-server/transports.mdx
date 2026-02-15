@@ -1,0 +1,32 @@
+---
+title: Transports
+description: MCP transport options for mem/ctl
+---
+
+# Transports
+
+## stdio (Default)
+
+The default transport. Used when running via `npx @memctl/cli` or as a local process. This is the recommended transport for most use cases.
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["@memctl/cli"],
+      "env": {
+        "MEMCTL_TOKEN": "your-token",
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+## Streamable HTTP (Future)
+
+Cloud-hosted mode using Streamable HTTP transport. This will allow connecting to mem/ctl without running a local process.
+
+This transport is planned for a future release.

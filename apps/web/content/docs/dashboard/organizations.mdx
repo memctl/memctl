@@ -1,0 +1,34 @@
+---
+title: Organizations
+description: Managing organizations in mem/ctl
+---
+
+# Organizations
+
+Organizations are the top-level entity in mem/ctl. All projects, members, and billing are scoped to an organization.
+
+## Creating an Organization
+
+Organizations are created during onboarding or via the API. Each organization has:
+
+- **Name** — Display name
+- **Slug** — URL-safe identifier, used in MCP config as `MEMCTL_ORG`
+- **Plan** — Determines limits (projects, members, memories, API calls)
+
+## Roles
+
+| Role | Permissions |
+|---|---|
+| Owner | Full control, billing, delete org |
+| Admin | Manage projects, members, tokens |
+| Member | View projects, use MCP tools |
+
+## Business Details
+
+For tax-deductible purchases, organizations can optionally provide:
+
+- Company name
+- VAT/Tax ID
+- Billing address
+
+These are included on Stripe invoices for accounting purposes.

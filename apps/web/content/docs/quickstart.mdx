@@ -1,0 +1,59 @@
+---
+title: Quickstart
+description: Get started with mem/ctl in 2 minutes
+---
+
+# Quickstart
+
+## 1. Create an Account
+
+Sign up at [memctl.com](https://memctl.com) using your GitHub account.
+
+## 2. Create a Project
+
+After signing up, create your first organization and project in the dashboard.
+
+## 3. Generate an API Token
+
+Go to your organization's **Tokens** page and create a new API token. Copy it — you'll need it next.
+
+## 4. Configure Your Agent
+
+Add mem/ctl to your MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["@memctl/cli"],
+      "env": {
+        "MEMCTL_TOKEN": "mctl_your_token_here",
+        "MEMCTL_ORG": "your-org-slug",
+        "MEMCTL_PROJECT": "your-project-slug"
+      }
+    }
+  }
+}
+```
+
+### Claude Code
+
+Add to `~/.claude/claude_desktop_config.json`
+
+### Cursor
+
+Add to `.cursor/mcp.json` in your project root
+
+## 5. Start Using
+
+Your AI agent now has access to these tools:
+
+- `memory_store` — Store a key-value memory
+- `memory_get` — Retrieve a memory by key
+- `memory_search` — Search memories
+- `memory_list` — List all memories
+- `memory_delete` — Delete a memory
+- `memory_update` — Update a memory
+
+Try asking your agent: "Store a memory with key 'architecture' about our project's tech stack"

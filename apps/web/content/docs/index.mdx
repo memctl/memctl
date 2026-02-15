@@ -1,0 +1,33 @@
+---
+title: Introduction
+description: mem/ctl — shared, persistent memory for AI coding agents
+---
+
+# mem/ctl
+
+**mem/ctl** is a cloud MCP server that gives AI coding agents (Claude Code, Cursor, Windsurf, etc.) shared, persistent memory scoped to projects and organizations.
+
+## Why mem/ctl?
+
+AI coding agents lose context between sessions. They forget decisions, patterns, and project-specific knowledge. **mem/ctl** solves this by providing a shared memory layer that persists across sessions, machines, and IDEs.
+
+## Key Features
+
+- **Shared Memory** — Store project context, decisions, and patterns that every agent on your team can access
+- **Cross-IDE** — Works with any MCP-compatible client: Claude Code, Cursor, Windsurf, and more
+- **Team Sync** — Organization-scoped projects with role-based access control
+- **Open Source** — Apache-2.0 licensed. Self-host or use our cloud
+
+## How It Works
+
+1. Install the MCP server: `npx @memctl/cli`
+2. Configure your AI coding agent with your project credentials
+3. Your agent can now store and retrieve memories via MCP tools
+4. All team members share the same project memories
+
+## Quick Links
+
+- [Quickstart](/docs/quickstart) — Get up and running in 2 minutes
+- [Installation](/docs/installation) — Detailed setup guide
+- [MCP Tools](/docs/mcp-server/tools) — Available MCP tools reference
+- [API Reference](/docs/api/endpoints) — REST API documentation
