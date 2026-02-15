@@ -52,6 +52,12 @@ pnpm install
 pnpm dev
 ```
 
+## Local Docs
+
+- Docker and testing setup: `docs/testing-environment.md`
+- Env examples: `docs/env-examples.md`
+- Docs index: `docs/README.md`
+
 ## Project Structure
 
 ```
