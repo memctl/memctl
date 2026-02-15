@@ -3,7 +3,7 @@ export const PLAN_IDS = [
   "lite",
   "pro",
   "business",
-  "better",
+  "scale",
   "enterprise",
 ] as const;
 
@@ -52,8 +52,8 @@ export const PLANS: Record<
     memoryLimit: 100_000,
     apiCallLimit: 1_000_000,
   },
-  better: {
-    name: "Better",
+  scale: {
+    name: "Scale",
     price: 80,
     projectLimit: 200,
     memberLimit: 200,

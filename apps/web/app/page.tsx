@@ -10,7 +10,7 @@ const PLANS = [
   { name: "Lite", price: "$5", projects: "5", members: "5", memories: "5,000", api: "50,000" },
   { name: "Pro", price: "$20", projects: "20", members: "15", memories: "25,000", api: "250,000" },
   { name: "Business", price: "$40", projects: "50", members: "50", memories: "100,000", api: "1,000,000" },
-  { name: "Better", price: "$80", projects: "200", members: "200", memories: "500,000", api: "5,000,000" },
+  { name: "Scale", price: "$80", projects: "200", members: "200", memories: "500,000", api: "5,000,000" },
   { name: "Enterprise", price: "Custom", projects: "\u221E", members: "\u221E", memories: "\u221E", api: "\u221E" },
 ];
 

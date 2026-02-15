@@ -1,0 +1,49 @@
+services:
+  libsql:
+    image: ghcr.io/tursodatabase/libsql-server:latest
+    ports:
+      - "8080:8080"
+      - "5001:5001"
+    volumes:
+      - libsql-data:/var/lib/sqld
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - web_node_modules:/app/node_modules
+      - web_next:/app/apps/web/.next
+    env_file:
+      - .env
+    environment:
+      - TURSO_DATABASE_URL=http://libsql:8080
+      - TURSO_AUTH_TOKEN=
+    depends_on:
+      libsql:
+        condition: service_healthy
+
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    command: listen --forward-to http://web:3000/api/stripe/webhook
+    env_file:
+      - .env
+    environment:
+      - STRIPE_API_KEY=${STRIPE_SECRET_KEY}
+    depends_on:
+      - web
+    profiles:
+      - tools
+
+volumes:
+  libsql-data:
+  web_node_modules:
+  web_next:

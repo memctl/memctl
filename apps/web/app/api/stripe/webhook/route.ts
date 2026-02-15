@@ -112,7 +112,7 @@ function getPlanFromPriceId(priceId: string): PlanId | null {
     [process.env.STRIPE_LITE_PRICE_ID ?? ""]: "lite",
     [process.env.STRIPE_PRO_PRICE_ID ?? ""]: "pro",
     [process.env.STRIPE_BUSINESS_PRICE_ID ?? ""]: "business",
-    [process.env.STRIPE_BETTER_PRICE_ID ?? ""]: "better",
+    [process.env.STRIPE_SCALE_PRICE_ID ?? ""]: "scale",
   };
   return priceMap[priceId] ?? null;
 }
