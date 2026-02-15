@@ -36,9 +36,9 @@ export const STRIPE_PLANS: Record<
     name: "Business",
     price: 4000,
   },
-  better: {
-    priceId: process.env.STRIPE_BETTER_PRICE_ID ?? "",
-    name: "Better",
+  scale: {
+    priceId: process.env.STRIPE_SCALE_PRICE_ID ?? "",
+    name: "Scale",
     price: 8000,
   },
 };
