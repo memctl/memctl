@@ -139,6 +139,15 @@ docker compose down -v
 docker compose up --build
 ```
 
+If startup install fails with `ERR_PNPM_ENOSPC`, free Docker disk space first (for example by pruning unused images/volumes) and then rerun the commands above.
+
+If startup install fails with `ERR_PNPM_EMFILE` (`too many open files`), ensure you are using the latest `docker-compose.yml` (it sets higher `nofile` limits and a dedicated pnpm store volume), then recreate containers/volumes:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
 ### Out of memory during build
 
 Increase Docker Desktop's memory allocation in **Settings > Resources** (4 GB+ recommended).

@@ -7,7 +7,7 @@ services:
     volumes:
       - libsql-data:/var/lib/sqld
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "printf 'GET /health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' | bash -c 'exec 3<>/dev/tcp/localhost/8080 && cat >&3 && cat <&3' | grep -q '200 OK'"]
       interval: 5s
       timeout: 3s
       retries: 5

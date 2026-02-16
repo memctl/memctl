@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import { RootProvider } from "fumadocs-ui/provider";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "mem/ctl — Shared Memory for AI Coding Agents",
+  title: "memctl — Shared Memory for AI Coding Agents",
   description:
-    "Cloud MCP server that gives AI coding agents shared, persistent memory scoped to projects and organizations.",
+    "Cloud-based context that follows your team across IDEs, machines, and agents. Connect your repo, and every AI tool knows where everything is.",
 };
 
 export default function RootLayout({
@@ -14,9 +16,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="min-h-screen bg-background font-mono text-foreground antialiased">
-        <RootProvider>{children}</RootProvider>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen bg-[var(--landing-bg)] font-sans text-[var(--landing-text)] antialiased">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
