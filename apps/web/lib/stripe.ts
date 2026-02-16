@@ -34,12 +34,12 @@ export const STRIPE_PLANS: Record<
   business: {
     priceId: process.env.STRIPE_BUSINESS_PRICE_ID ?? "",
     name: "Business",
-    price: 4000,
+    price: 5900,
   },
   scale: {
     priceId: process.env.STRIPE_SCALE_PRICE_ID ?? "",
     name: "Scale",
-    price: 8000,
+    price: 14900,
   },
 };
 

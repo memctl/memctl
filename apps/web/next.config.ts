@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  transpilePackages: ["gsap", "@gsap/react"],
 };
 
 const withMDX = createMDX();
