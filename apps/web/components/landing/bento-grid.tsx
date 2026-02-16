@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useState, useEffect } from "react";
+import { motion, useInView } from "motion/react";
 import {
   Brain,
   GitBranch,
@@ -110,6 +112,140 @@ function TimelineViz() {
         <animateTransform attributeName="transform" type="translate" values="0,0;15,0;0,0" dur="4s" repeatCount="indefinite" />
       </g>
     </svg>
+  );
+}
+
+/* ---- Animated Indexing Terminal ---- */
+
+const INDEXING_LINES = [
+  { prefix: "$", text: " memctl index --verbose", color: "text-[#F97316]" },
+  { prefix: "✓", text: " 847 files scanned", color: "text-emerald-500" },
+  { prefix: "✓", text: " 23 modules mapped", color: "text-emerald-500" },
+  { prefix: "✓", text: " 156 cross-file deps found", color: "text-emerald-500" },
+  { prefix: "✓", text: " 42 patterns detected", color: "text-emerald-500" },
+  { prefix: " ", text: " Index complete → 1,068 memories", color: "text-[var(--landing-text-tertiary)]" },
+];
+
+function IndexingTerminal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const [visibleCount, setVisibleCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setVisibleCount(i);
+      if (i >= INDEXING_LINES.length) clearInterval(interval);
+    }, 400);
+    return () => clearInterval(interval);
+  }, [isInView]);
+
+  return (
+    <div ref={ref} className="mt-auto rounded-lg border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-4">
+      <pre className="font-mono text-[11px] leading-[1.7] text-[var(--landing-text-tertiary)]">
+        {INDEXING_LINES.map((line, i) => (
+          <motion.span
+            key={i}
+            className="block"
+            initial={{ opacity: 0, x: -8 }}
+            animate={i < visibleCount ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <span className={line.color}>{line.prefix}</span>
+            {line.text}
+          </motion.span>
+        ))}
+        {/* Blinking cursor on the last visible line */}
+        {visibleCount > 0 && visibleCount < INDEXING_LINES.length && (
+          <motion.span
+            className="inline-block h-3 w-1.5 bg-[#F97316]"
+            animate={{ opacity: [1, 1, 0, 0] }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear", times: [0, 0.49, 0.5, 1] }}
+          />
+        )}
+      </pre>
+    </div>
+  );
+}
+
+/* ---- Animated Version Timeline ---- */
+
+const COMMITS = [
+  { hash: "a3f8c21", msg: "refactor: extract auth module", time: "2m ago" },
+  { hash: "b7e1d04", msg: "feat: add rate limiting", time: "1h ago" },
+  { hash: "c9a2f18", msg: "fix: session timeout handling", time: "3h ago" },
+];
+
+function VersionTimeline() {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const [activeIdx, setActiveIdx] = useState(-1);
+
+  useEffect(() => {
+    if (!isInView) return;
+    let idx = 0;
+    const timeout = setTimeout(() => {
+      setActiveIdx(0);
+      const interval = setInterval(() => {
+        idx = (idx + 1) % COMMITS.length;
+        setActiveIdx(idx);
+      }, 2500);
+      return () => clearInterval(interval);
+    }, COMMITS.length * 200 + 400);
+    return () => clearTimeout(timeout);
+  }, [isInView]);
+
+  return (
+    <div ref={ref} className="mt-auto space-y-2">
+      {COMMITS.map((commit, i) => (
+        <motion.div
+          key={commit.hash}
+          initial={{ opacity: 0, x: -16 }}
+          animate={isInView ? { opacity: 1, x: 0 } : {}}
+          transition={{
+            delay: i * 0.2,
+            duration: 0.4,
+            ease: [0.25, 0.46, 0.45, 0.94],
+          }}
+          className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-all duration-500 ${
+            activeIdx === i
+              ? "border-[#F97316]/30 bg-[#F97316]/[0.04]"
+              : "border-[var(--landing-border)] bg-[var(--landing-code-bg)]"
+          }`}
+        >
+          <span className="font-mono text-[11px] text-[#F97316]">{commit.hash}</span>
+          <span className="flex-1 truncate font-mono text-[11px] text-[var(--landing-text-secondary)]">
+            {commit.msg}
+          </span>
+          <motion.span
+            className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-500"
+            animate={
+              activeIdx === i
+                ? { scale: [1, 1.1, 1] }
+                : {}
+            }
+            transition={{ duration: 0.4 }}
+          >
+            <motion.span
+              className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
+              animate={
+                activeIdx === i
+                  ? { scale: [1, 1.8, 1], opacity: [1, 0.5, 1] }
+                  : { scale: 1, opacity: 0.7 }
+              }
+              transition={{
+                duration: 1.2,
+                repeat: activeIdx === i ? Infinity : 0,
+                ease: "easeInOut",
+              }}
+            />
+            synced
+          </motion.span>
+        </motion.div>
+      ))}
+    </div>
   );
 }
 
@@ -263,17 +399,7 @@ export function BentoGrid() {
           <p className="mb-5 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
             memctl doesn&apos;t just store files. It understands relationships, dependencies, and patterns across your entire codebase.
           </p>
-          {/* Mini indexing output */}
-          <div className="mt-auto rounded-lg border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-4">
-            <pre className="font-mono text-[11px] leading-[1.7] text-[var(--landing-text-tertiary)]">
-              <span className="text-[#F97316]">$</span>{" memctl index --verbose\n"}
-              <span className="text-emerald-500">{"✓"}</span>{" 847 files scanned\n"}
-              <span className="text-emerald-500">{"✓"}</span>{" 23 modules mapped\n"}
-              <span className="text-emerald-500">{"✓"}</span>{" 156 cross-file deps found\n"}
-              <span className="text-emerald-500">{"✓"}</span>{" 42 patterns detected\n"}
-              <span className="text-[var(--landing-text-tertiary)]">{"  Index complete → 1,068 memories"}</span>
-            </pre>
-          </div>
+          <IndexingTerminal />
         </div>
       </ScrollReveal>
 
@@ -292,28 +418,7 @@ export function BentoGrid() {
           <p className="mb-5 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
             Memory updates with your code. When you refactor, memctl knows. No stale context, no outdated suggestions.
           </p>
-          {/* Mini version timeline */}
-          <div className="mt-auto space-y-2">
-            {[
-              { hash: "a3f8c21", msg: "refactor: extract auth module", status: "synced", time: "2m ago" },
-              { hash: "b7e1d04", msg: "feat: add rate limiting", status: "synced", time: "1h ago" },
-              { hash: "c9a2f18", msg: "fix: session timeout handling", status: "synced", time: "3h ago" },
-            ].map((commit) => (
-              <div
-                key={commit.hash}
-                className="flex items-center gap-3 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2"
-              >
-                <span className="font-mono text-[11px] text-[#F97316]">{commit.hash}</span>
-                <span className="flex-1 truncate font-mono text-[11px] text-[var(--landing-text-secondary)]">
-                  {commit.msg}
-                </span>
-                <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-500">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  {commit.status}
-                </span>
-              </div>
-            ))}
-          </div>
+          <VersionTimeline />
         </div>
       </ScrollReveal>
 
