@@ -59,6 +59,11 @@
   --animate-node-pulse: node-pulse 2s ease-in-out infinite;
   --animate-flow-right: flow-right 0.8s linear infinite;
   --animate-flow-left: flow-left 0.8s linear infinite;
+  --animate-envelope-float-in: envelope-float-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-checkmark-draw: checkmark-draw 0.5s ease-out forwards;
+  --animate-confetti-fall: confetti-fall 1s ease-out forwards;
+  --animate-progress-glow: progress-glow 2s ease-in-out infinite;
+  --animate-spin-slow: spin-slow 3s linear infinite;
 }
 
 /* Light theme (default) */
@@ -197,6 +202,31 @@
   to { background-position-x: -14px; }
 }
 
+@keyframes envelope-float-in {
+  0% { opacity: 0; transform: translateY(24px) scale(0.8); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes checkmark-draw {
+  from { stroke-dashoffset: 48; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes confetti-fall {
+  0% { opacity: 1; transform: translate(var(--x, 0), var(--y, 0)) scale(1); }
+  100% { opacity: 0; transform: translate(calc(var(--x, 0) * 3), calc(var(--y, 0) * 3)) scale(0); }
+}
+
+@keyframes progress-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(249, 115, 22, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(249, 115, 22, 0.6), 0 0 32px rgba(249, 115, 22, 0.2); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -270,6 +300,20 @@ body {
 }
 
 .glass-border:hover::before {
+  opacity: 1;
+}
+
+.glass-border-always::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg, rgba(249, 115, 22, 0.3) 0%, transparent 40%);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
   opacity: 1;
 }
 
