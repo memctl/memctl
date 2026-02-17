@@ -174,7 +174,6 @@ const FOOTER_COLS = [
       { label: "Privacy", href: "/privacy" },
       { label: "Terms", href: "/terms" },
       { label: "Security", href: "/security" },
-      { label: "SOC 2", href: "/security#soc2" },
     ],
   },
 ];
@@ -1060,8 +1059,11 @@ export default async function HomePage() {
             </div>
 
             {/* Bottom */}
-            <div className="mt-16 flex items-center justify-between border-t border-[var(--landing-border)] pt-8 text-xs text-[var(--landing-text-tertiary)]">
-              <span>&copy; {new Date().getFullYear()} memctl, Inc.</span>
+            <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-[var(--landing-border)] pt-8 text-xs text-[var(--landing-text-tertiary)] sm:flex-row">
+              <div className="flex flex-col items-center gap-1 sm:items-start">
+                <span>&copy; {new Date().getFullYear()} Mindroot Ltd</span>
+                <span>Mindroot Ltd &middot; Company No. 16543299 &middot; England and Wales</span>
+              </div>
               <ThemeSwitcher />
               <span className="font-mono text-[11px]">
                 Apache-2.0
