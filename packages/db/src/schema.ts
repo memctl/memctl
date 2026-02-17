@@ -165,6 +165,34 @@ export const accounts = sqliteTable("accounts", {
     .$defaultFn(() => new Date()),
 });
 
+export const changelogEntries = sqliteTable("changelog_entries", {
+  id: text("id").primaryKey(),
+  version: text("version").notNull().unique(),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  releaseDate: integer("release_date", { mode: "timestamp" }).notNull(),
+  status: text("status").notNull().default("draft"),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const changelogItems = sqliteTable("changelog_items", {
+  id: text("id").primaryKey(),
+  entryId: text("entry_id")
+    .notNull()
+    .references(() => changelogEntries.id, { onDelete: "cascade" }),
+  category: text("category").notNull(),
+  description: text("description").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
 export const blogPosts = sqliteTable("blog_posts", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
