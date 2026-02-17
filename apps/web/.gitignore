@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Fumadocs (auto-generated)
+.source/
+
 # Next.js
 .next/
 out/
