@@ -19,7 +19,7 @@ services:
     command:
       - sh
       - -lc
-      - pnpm install --frozen-lockfile --config.confirmModulesPurge=false --store-dir=/root/.local/share/pnpm/store --network-concurrency=8 --child-concurrency=4 && pnpm dev --filter @memctl/web
+      - pnpm install --frozen-lockfile --config.confirmModulesPurge=false --store-dir=/root/.local/share/pnpm/store --network-concurrency=8 --child-concurrency=4 && pnpm --filter @memctl/web dev
     ports:
       - "3000:3000"
     ulimits:
