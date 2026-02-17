@@ -17,7 +17,7 @@ export default async function AdminLayout({
   });
 
   if (!session) {
-    redirect("/login");
+    redirect("/admin/login");
   }
 
   const [user] = await db

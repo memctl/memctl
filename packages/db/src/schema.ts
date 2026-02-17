@@ -193,6 +193,19 @@ export const changelogItems = sqliteTable("changelog_items", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
+export const verifications = sqliteTable("verifications", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+});
+
 export const blogPosts = sqliteTable("blog_posts", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
