@@ -6,8 +6,17 @@ import { organizations, organizationMembers } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/dashboard/shared/page-header";
+import { SectionLabel } from "@/components/dashboard/shared/section-label";
 import { BillingActions } from "@/components/dashboard/billing-actions";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default async function BillingPage({
   params,
@@ -46,47 +55,60 @@ export default async function BillingPage({
 
   return (
     <div>
-      <h1 className="mb-6 font-mono text-2xl font-bold">Billing</h1>
+      <PageHeader
+        badge="Billing"
+        title="Billing"
+        description="Manage your subscription and plan."
+      />
 
-      <div className="mb-8 border border-border p-6">
+      {/* Current Plan */}
+      <div className="glass-border-always glow-orange relative mb-8 overflow-hidden rounded-xl bg-[var(--landing-surface)] p-6">
         <div className="flex items-center gap-3">
-          <span className="font-mono text-sm text-muted-foreground">
-            Current plan:
+          <SectionLabel>Current Plan</SectionLabel>
+          <span className="rounded-md bg-[#F97316]/10 px-2.5 py-0.5 font-mono text-xs font-bold text-[#F97316]">
+            {currentPlan.name}
           </span>
-          <Badge>{currentPlan.name}</Badge>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-4 font-mono text-sm md:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
-            <div className="text-muted-foreground">Projects</div>
-            <div className="text-lg font-bold">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+              Projects
+            </p>
+            <p className="mt-1 font-mono text-lg font-bold text-[var(--landing-text)]">
               {currentPlan.projectLimit === Infinity
                 ? "Unlimited"
                 : currentPlan.projectLimit}
-            </div>
+            </p>
           </div>
           <div>
-            <div className="text-muted-foreground">Members</div>
-            <div className="text-lg font-bold">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+              Members
+            </p>
+            <p className="mt-1 font-mono text-lg font-bold text-[var(--landing-text)]">
               {currentPlan.memberLimit === Infinity
                 ? "Unlimited"
                 : currentPlan.memberLimit}
-            </div>
+            </p>
           </div>
           <div>
-            <div className="text-muted-foreground">Memories/project</div>
-            <div className="text-lg font-bold">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+              Memories/project
+            </p>
+            <p className="mt-1 font-mono text-lg font-bold text-[var(--landing-text)]">
               {currentPlan.memoryLimit === Infinity
                 ? "Unlimited"
                 : currentPlan.memoryLimit.toLocaleString()}
-            </div>
+            </p>
           </div>
           <div>
-            <div className="text-muted-foreground">API calls/mo</div>
-            <div className="text-lg font-bold">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+              API calls/mo
+            </p>
+            <p className="mt-1 font-mono text-lg font-bold text-[var(--landing-text)]">
               {currentPlan.apiCallLimit === Infinity
                 ? "Unlimited"
                 : currentPlan.apiCallLimit.toLocaleString()}
-            </div>
+            </p>
           </div>
         </div>
       </div>
@@ -97,53 +119,80 @@ export default async function BillingPage({
         hasSubscription={!!org.stripeSubscriptionId}
       />
 
-      <div className="mt-8 overflow-x-auto">
-        <table className="w-full border-collapse border border-border font-mono text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted">
-              <th className="border-r border-border px-4 py-3 text-left">Plan</th>
-              <th className="border-r border-border px-4 py-3 text-right">Price/mo</th>
-              <th className="border-r border-border px-4 py-3 text-right">Projects</th>
-              <th className="border-r border-border px-4 py-3 text-right">Members</th>
-              <th className="border-r border-border px-4 py-3 text-right">Memories</th>
-              <th className="px-4 py-3 text-right">API calls</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(PLANS).map(([id, plan]) => (
-              <tr
-                key={id}
-                className={`border-b border-border ${id === org.planId ? "bg-muted" : ""}`}
-              >
-                <td className="border-r border-border px-4 py-3 font-bold">
-                  {plan.name}
-                  {id === org.planId && (
-                    <span className="ml-2 text-primary">(current)</span>
-                  )}
-                </td>
-                <td className="border-r border-border px-4 py-3 text-right text-muted-foreground">
-                  {plan.price === -1 ? "Custom" : `$${plan.price}`}
-                </td>
-                <td className="border-r border-border px-4 py-3 text-right text-muted-foreground">
-                  {plan.projectLimit === Infinity ? "Unlimited" : plan.projectLimit}
-                </td>
-                <td className="border-r border-border px-4 py-3 text-right text-muted-foreground">
-                  {plan.memberLimit === Infinity ? "Unlimited" : plan.memberLimit}
-                </td>
-                <td className="border-r border-border px-4 py-3 text-right text-muted-foreground">
-                  {plan.memoryLimit === Infinity
-                    ? "Unlimited"
-                    : plan.memoryLimit.toLocaleString()}
-                </td>
-                <td className="px-4 py-3 text-right text-muted-foreground">
-                  {plan.apiCallLimit === Infinity
-                    ? "Unlimited"
-                    : plan.apiCallLimit.toLocaleString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Plan Comparison */}
+      <div className="mt-8">
+        <SectionLabel>All Plans</SectionLabel>
+        <div className="dash-card mt-3 overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Plan
+                </TableHead>
+                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Price/mo
+                </TableHead>
+                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Projects
+                </TableHead>
+                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Members
+                </TableHead>
+                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Memories
+                </TableHead>
+                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  API Calls
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(PLANS).map(([id, plan]) => {
+                const isCurrent = id === org.planId;
+                return (
+                  <TableRow
+                    key={id}
+                    className={`border-[var(--landing-border)] ${
+                      isCurrent
+                        ? "border-l-2 border-l-[#F97316] bg-[#F97316]/5"
+                        : ""
+                    }`}
+                  >
+                    <TableCell className="font-mono text-sm font-bold text-[var(--landing-text)]">
+                      {plan.name}
+                      {isCurrent && (
+                        <span className="ml-2 text-[#F97316]">(current)</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-[var(--landing-text-secondary)]">
+                      {plan.price === -1 ? "Custom" : `$${plan.price}`}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-[var(--landing-text-secondary)]">
+                      {plan.projectLimit === Infinity
+                        ? "Unlimited"
+                        : plan.projectLimit}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-[var(--landing-text-secondary)]">
+                      {plan.memberLimit === Infinity
+                        ? "Unlimited"
+                        : plan.memberLimit}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-[var(--landing-text-secondary)]">
+                      {plan.memoryLimit === Infinity
+                        ? "Unlimited"
+                        : plan.memoryLimit.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm text-[var(--landing-text-secondary)]">
+                      {plan.apiCallLimit === Infinity
+                        ? "Unlimited"
+                        : plan.apiCallLimit.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );

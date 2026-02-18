@@ -520,6 +520,30 @@ body {
   accent-color: #F97316;
 }
 
+/* ---- Dashboard utilities ---- */
+
+.dash-card {
+  background: var(--landing-surface);
+  border: 1px solid var(--landing-border);
+  border-radius: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dash-card:hover {
+  border-color: var(--landing-border-hover);
+}
+
+.sidebar-active-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+  background: #F97316;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

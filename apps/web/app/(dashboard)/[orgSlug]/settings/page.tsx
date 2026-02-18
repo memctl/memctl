@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { organizations, organizationMembers } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { OrgSettingsForm } from "@/components/dashboard/org-settings-form";
+import { PageHeader } from "@/components/dashboard/shared/page-header";
 
 export default async function OrgSettingsPage({
   params,
@@ -41,7 +42,7 @@ export default async function OrgSettingsPage({
 
   return (
     <div className="max-w-2xl">
-      <h1 className="mb-6 font-mono text-2xl font-bold">Organization Settings</h1>
+      <PageHeader badge="Settings" title="Organization Settings" />
       <OrgSettingsForm
         orgSlug={orgSlug}
         initialName={org.name}

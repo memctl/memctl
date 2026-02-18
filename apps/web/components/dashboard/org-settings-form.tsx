@@ -5,13 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
 
 interface OrgSettingsFormProps {
   orgSlug: string;
@@ -48,64 +41,85 @@ export function OrgSettingsForm({
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>General</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* General */}
+      <div className="dash-card glass-border relative p-6">
+        <h2 className="mb-4 font-mono text-sm font-bold text-[var(--landing-text)]">
+          General
+        </h2>
+        <div className="space-y-4">
           <div>
-            <Label>Organization Name</Label>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Organization Name
+            </Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="mt-1 border-[var(--landing-border)] bg-[var(--landing-surface)] text-[var(--landing-text)] focus:border-[#F97316] focus:ring-[#F97316]"
             />
           </div>
           <div>
-            <Label>Slug</Label>
-            <Input value={orgSlug} disabled />
-            <p className="mt-1 font-mono text-xs text-muted-foreground">
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Slug
+            </Label>
+            <Input
+              value={orgSlug}
+              disabled
+              className="mt-1 border-[var(--landing-border)] bg-[var(--landing-surface-2)] font-mono text-[var(--landing-text-tertiary)]"
+            />
+            <p className="mt-1 font-mono text-[11px] text-[var(--landing-text-tertiary)]">
               Cannot be changed
             </p>
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-[#F97316] text-white hover:bg-[#FB923C]"
+          >
             {saving ? "Saving..." : "Save"}
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Business Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="font-mono text-xs text-muted-foreground">
-            Optional. For tax-deductible purchases and proper invoicing.
-          </p>
+      {/* Business Details */}
+      <div className="dash-card glass-border relative p-6">
+        <h2 className="mb-2 font-mono text-sm font-bold text-[var(--landing-text)]">
+          Business Details
+        </h2>
+        <p className="mb-4 text-xs text-[var(--landing-text-tertiary)]">
+          Optional. For tax-deductible purchases and proper invoicing.
+        </p>
+        <div className="space-y-4">
           <div>
-            <Label>Company Name</Label>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Company Name
+            </Label>
             <Input
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="Acme Inc."
+              className="mt-1 border-[var(--landing-border)] bg-[var(--landing-surface)] text-[var(--landing-text)] focus:border-[#F97316] focus:ring-[#F97316]"
             />
           </div>
           <div>
-            <Label>VAT / Tax ID</Label>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              VAT / Tax ID
+            </Label>
             <Input
               value={taxId}
               onChange={(e) => setTaxId(e.target.value)}
               placeholder="EU123456789"
+              className="mt-1 border-[var(--landing-border)] bg-[var(--landing-surface)] text-[var(--landing-text)] focus:border-[#F97316] focus:ring-[#F97316]"
             />
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-[#F97316] text-white hover:bg-[#FB923C]"
+          >
             {saving ? "Saving..." : "Save"}
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

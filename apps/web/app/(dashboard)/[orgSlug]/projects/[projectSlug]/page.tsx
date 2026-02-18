@@ -9,7 +9,20 @@ import {
   organizationMembers,
 } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/dashboard/shared/page-header";
+import { SectionLabel } from "@/components/dashboard/shared/section-label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Settings, Brain, Copy } from "lucide-react";
+import { CopyMcpConfig } from "./copy-mcp-config";
 
 export default async function ProjectDetailPage({
   params,
@@ -60,81 +73,108 @@ export default async function ProjectDetailPage({
     .where(eq(memories.projectId, project.id))
     .limit(100);
 
+  const mcpConfig = JSON.stringify(
+    {
+      mcpServers: {
+        memctl: {
+          command: "npx",
+          args: ["@memctl/cli"],
+          env: {
+            MEMCTL_TOKEN: "<your-token>",
+            MEMCTL_ORG: orgSlug,
+            MEMCTL_PROJECT: projectSlug,
+          },
+        },
+      },
+    },
+    null,
+    2,
+  );
+
   return (
     <div>
-      <div className="mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="font-mono text-2xl font-bold">{project.name}</h1>
-          <Badge variant="outline">{memoryList.length} memories</Badge>
-        </div>
-        {project.description && (
-          <p className="mt-1 font-mono text-sm text-muted-foreground">
-            {project.description}
-          </p>
-        )}
-      </div>
+      <PageHeader
+        badge="Project"
+        title={project.name}
+        description={project.description ?? undefined}
+      >
+        <span className="rounded-md bg-[#F97316]/10 px-2.5 py-1 font-mono text-xs font-medium text-[#F97316]">
+          {memoryList.length} memories
+        </span>
+        <Link href={`/${orgSlug}/projects/${projectSlug}/settings`}>
+          <Button
+            variant="outline"
+            className="gap-2 border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
+          >
+            <Settings className="h-4 w-4" />
+            Settings
+          </Button>
+        </Link>
+      </PageHeader>
 
-      <div className="mb-4">
-        <h2 className="font-mono text-sm font-bold uppercase tracking-widest text-primary">
-          MCP Configuration
-        </h2>
-        <div className="mt-2 border border-border bg-muted p-4 font-mono text-xs">
-          <pre>
-            {JSON.stringify(
-              {
-                mcpServers: {
-                  memctl: {
-                    command: "npx",
-                    args: ["@memctl/cli"],
-                    env: {
-                      MEMCTL_TOKEN: "<your-token>",
-                      MEMCTL_ORG: orgSlug,
-                      MEMCTL_PROJECT: projectSlug,
-                    },
-                  },
-                },
-              },
-              null,
-              2,
-            )}
+      {/* MCP Configuration */}
+      <div className="mb-8">
+        <SectionLabel>MCP Configuration</SectionLabel>
+        <div className="glass-border-always relative mt-3 overflow-hidden rounded-xl bg-[var(--landing-code-bg)] p-5">
+          <CopyMcpConfig config={mcpConfig} />
+          <pre className="overflow-x-auto font-mono text-xs leading-relaxed text-[var(--landing-text-secondary)]">
+            {mcpConfig}
           </pre>
         </div>
       </div>
 
+      {/* Memories Table */}
       <div>
-        <h2 className="mb-3 font-mono text-sm font-bold uppercase tracking-widest text-primary">
-          Memories
-        </h2>
+        <SectionLabel>Memories</SectionLabel>
         {memoryList.length === 0 ? (
-          <div className="border border-border p-8 text-center">
-            <p className="font-mono text-sm text-muted-foreground">
-              No memories stored yet. Use the MCP server to store memories.
+          <div className="dash-card mt-3 flex flex-col items-center justify-center py-12 text-center">
+            <Brain className="mb-3 h-8 w-8 text-[var(--landing-text-tertiary)]" />
+            <p className="mb-1 font-mono text-sm font-medium text-[var(--landing-text)]">
+              No memories stored yet
+            </p>
+            <p className="text-xs text-[var(--landing-text-tertiary)]">
+              Use the MCP server to store memories.
             </p>
           </div>
         ) : (
-          <div className="border border-border">
-            {memoryList.map((memory, i) => (
-              <div
-                key={memory.id}
-                className={`p-4 ${i < memoryList.length - 1 ? "border-b border-border" : ""}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="font-mono text-sm font-bold text-primary">
-                    {memory.key}
-                  </div>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {memory.updatedAt
-                      ? new Date(memory.updatedAt).toLocaleDateString()
-                      : ""}
-                  </div>
-                </div>
-                <p className="mt-1 whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-                  {memory.content.length > 200
-                    ? memory.content.slice(0, 200) + "..."
-                    : memory.content}
-                </p>
-              </div>
-            ))}
+          <div className="dash-card mt-3 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
+                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                    Key
+                  </TableHead>
+                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                    Content
+                  </TableHead>
+                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                    Updated
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {memoryList.map((memory) => (
+                  <TableRow
+                    key={memory.id}
+                    className="border-[var(--landing-border)]"
+                  >
+                    <TableCell className="font-mono text-sm font-medium text-[#F97316]">
+                      {memory.key}
+                    </TableCell>
+                    <TableCell className="max-w-md truncate font-mono text-xs text-[var(--landing-text-secondary)]">
+                      {memory.content.length > 200
+                        ? memory.content.slice(0, 200) + "..."
+                        : memory.content}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-[var(--landing-text-tertiary)]">
+                      {memory.updatedAt
+                        ? memory.updatedAt.toLocaleDateString()
+                        : ""}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

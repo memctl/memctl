@@ -22,11 +22,11 @@ export default async function DashboardLayout({
   const { orgSlug } = await params;
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-[var(--landing-bg)]">
       <Sidebar orgSlug={orgSlug} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header user={session.user} />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <Header user={session.user} orgSlug={orgSlug} />
+        <main className="flex-1 overflow-auto p-8">{children}</main>
       </div>
     </div>
   );

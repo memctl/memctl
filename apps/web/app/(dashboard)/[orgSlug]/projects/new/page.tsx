@@ -5,13 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { PageHeader } from "@/components/dashboard/shared/page-header";
 
 export default function NewProjectPage() {
   const params = useParams();
@@ -64,15 +58,14 @@ export default function NewProjectPage() {
 
   return (
     <div className="max-w-md">
-      <h1 className="mb-6 font-mono text-2xl font-bold">New Project</h1>
+      <PageHeader badge="New" title="New Project" />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create a project</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="dash-card glass-border relative p-6">
+        <div className="space-y-4">
           <div>
-            <Label>Project Name</Label>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Project Name
+            </Label>
             <Input
               value={name}
               onChange={(e) => {
@@ -80,37 +73,46 @@ export default function NewProjectPage() {
                 setSlug(slugify(e.target.value));
               }}
               placeholder="My App"
+              className="mt-1 border-[var(--landing-border)] bg-[var(--landing-surface)] text-[var(--landing-text)] focus:border-[#F97316] focus:ring-[#F97316]"
             />
           </div>
           <div>
-            <Label>Slug</Label>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Slug
+            </Label>
             <Input
               value={slug}
               onChange={(e) => setSlug(slugify(e.target.value))}
               placeholder="my-app"
+              className="mt-1 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-[var(--landing-text)] focus:border-[#F97316] focus:ring-[#F97316]"
             />
-            <p className="mt-1 font-mono text-xs text-muted-foreground">
+            <p className="mt-1 font-mono text-[11px] text-[var(--landing-text-tertiary)]">
               Used in MCP config as MEMCTL_PROJECT
             </p>
           </div>
           <div>
-            <Label>Description (optional)</Label>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Description (optional)
+            </Label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What is this project about?"
+              className="mt-1 border-[var(--landing-border)] bg-[var(--landing-surface)] text-[var(--landing-text)] focus:border-[#F97316] focus:ring-[#F97316]"
             />
           </div>
           {error && (
-            <p className="font-mono text-xs text-destructive">{error}</p>
+            <p className="font-mono text-xs text-red-500">{error}</p>
           )}
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleCreate} disabled={saving || !name || !slug}>
+          <Button
+            onClick={handleCreate}
+            disabled={saving || !name || !slug}
+            className="w-full bg-[#F97316] text-white hover:bg-[#FB923C]"
+          >
             {saving ? "Creating..." : "Create Project"}
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

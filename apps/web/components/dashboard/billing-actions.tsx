@@ -55,6 +55,7 @@ export function BillingActions({
           <Button
             onClick={() => handleUpgrade("lite")}
             disabled={loading !== null}
+            className="bg-[#F97316] text-white hover:bg-[#FB923C]"
           >
             {loading === "lite" ? "..." : "Upgrade to Lite — $5/mo"}
           </Button>
@@ -62,6 +63,7 @@ export function BillingActions({
             variant="outline"
             onClick={() => handleUpgrade("pro")}
             disabled={loading !== null}
+            className="border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
           >
             {loading === "pro" ? "..." : "Upgrade to Pro — $20/mo"}
           </Button>
@@ -72,6 +74,7 @@ export function BillingActions({
           variant="outline"
           onClick={handleManage}
           disabled={loading !== null}
+          className="border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
         >
           {loading === "manage" ? "..." : "Manage subscription"}
         </Button>

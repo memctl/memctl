@@ -5,97 +5,86 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  FolderOpen,
-  BarChart3,
   Users,
-  Key,
-  CreditCard,
-  Settings,
+  Building2,
+  FileText,
+  History,
+  Mail,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-
-interface SidebarProps {
-  orgSlug: string;
-}
 
 const navItems: {
   label: string;
   icon: LucideIcon;
-  href: (s: string) => string;
-  match?: (pathname: string, orgSlug: string) => boolean;
+  href: string;
+  match?: (pathname: string) => boolean;
 }[] = [
   {
     label: "Overview",
     icon: LayoutDashboard,
-    href: (s) => `/${s}`,
-    match: (p, s) => p === `/${s}`,
+    href: "/admin",
+    match: (p) => p === "/admin",
   },
   {
-    label: "Projects",
-    icon: FolderOpen,
-    href: (s) => `/${s}/projects`,
-    match: (p, s) => p.startsWith(`/${s}/projects`),
-  },
-  {
-    label: "Usage",
-    icon: BarChart3,
-    href: (s) => `/${s}/usage`,
-  },
-  {
-    label: "Members",
+    label: "Users",
     icon: Users,
-    href: (s) => `/${s}/members`,
+    href: "/admin/users",
+    match: (p) => p.startsWith("/admin/users"),
   },
   {
-    label: "Tokens",
-    icon: Key,
-    href: (s) => `/${s}/tokens`,
+    label: "Organizations",
+    icon: Building2,
+    href: "/admin/organizations",
+    match: (p) => p.startsWith("/admin/organizations"),
   },
   {
-    label: "Billing",
-    icon: CreditCard,
-    href: (s) => `/${s}/billing`,
+    label: "Blog",
+    icon: FileText,
+    href: "/admin/blog",
+    match: (p) => p.startsWith("/admin/blog"),
   },
   {
-    label: "Settings",
-    icon: Settings,
-    href: (s) => `/${s}/settings`,
+    label: "Changelog",
+    icon: History,
+    href: "/admin/changelog",
+    match: (p) => p.startsWith("/admin/changelog"),
+  },
+  {
+    label: "Emails",
+    icon: Mail,
+    href: "/admin/emails/preview",
+    match: (p) => p.startsWith("/admin/emails"),
   },
 ];
 
-export function Sidebar({ orgSlug }: SidebarProps) {
+export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
     <nav className="flex w-60 flex-col border-r border-[var(--landing-border)] bg-[var(--landing-surface)]">
       {/* Logo */}
       <div className="border-b border-[var(--landing-border)] p-5">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/admin" className="flex items-center gap-2">
           <span className="font-mono text-lg font-bold text-[var(--landing-text)]">
             mem<span className="text-[#F97316] glow-text">/</span>ctl
           </span>
+          <span className="rounded bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-[#F97316]">
+            Admin
+          </span>
         </Link>
-      </div>
-
-      {/* Org slug chip */}
-      <div className="border-b border-[var(--landing-border)] px-5 py-3">
-        <span className="inline-flex items-center rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1 font-mono text-[11px] uppercase tracking-widest text-[var(--landing-text-secondary)]">
-          {orgSlug}
-        </span>
       </div>
 
       {/* Navigation */}
       <div className="flex flex-1 flex-col gap-0.5 p-3">
         {navItems.map((item) => {
-          const href = item.href(orgSlug);
           const isActive = item.match
-            ? item.match(pathname, orgSlug)
-            : pathname === href;
+            ? item.match(pathname)
+            : pathname === item.href;
 
           return (
             <Link
               key={item.label}
-              href={href}
+              href={item.href}
               className={cn(
                 "relative flex items-center gap-3 rounded-lg px-3 py-2.5 font-mono text-sm transition-colors",
                 isActive
