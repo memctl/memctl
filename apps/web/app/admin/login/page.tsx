@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { AuthBackground } from "@/components/auth/auth-background";
-import { TypingTagline } from "@/components/auth/typing-tagline";
+import { Navbar } from "@/components/landing/navbar";
+import { ThemeSwitcher } from "@/components/landing/theme-switcher";
 
 const BLOCKED_PREFIXES = ["team@", "noreply@", "hello@", "info@", "support@"];
 
@@ -57,77 +58,29 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen bg-[var(--landing-bg)]">
+    <div className="relative flex min-h-screen flex-col bg-[var(--landing-bg)]">
       <AuthBackground />
+      <Navbar />
 
-      {/* Left branding panel — desktop only */}
-      <div className="relative z-10 hidden w-1/2 flex-col justify-center px-16 lg:flex">
-        <div className="animate-fade-in-up max-w-md">
-          <div className="mb-4 flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-[var(--landing-text)]">
+      {/* Main content — upper-center positioning */}
+      <main className="relative z-10 flex flex-1 flex-col items-center px-6 pt-[12vh] sm:pt-[16vh]">
+        {/* Branding above card */}
+        <div className="mb-6 text-center">
+          <div className="mb-1 flex items-center justify-center gap-3">
+            <h1 className="text-2xl font-bold text-[var(--landing-text)]">
               <span className="text-[#F97316]">&#9656;</span> memctl
             </h1>
             <span className="rounded bg-[#F97316]/10 px-2.5 py-1 font-mono text-xs font-medium text-[#F97316]">
               Admin
             </span>
           </div>
-          <div className="mb-8" style={{ animationDelay: "100ms" }}>
-            <TypingTagline text="admin access --memctl.com" />
-          </div>
-
-          {/* Admin terminal */}
-          <div
-            className="animate-fade-in-up mb-10 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-4 font-mono text-xs"
-            style={{ animationDelay: "200ms" }}
-          >
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-[#F97316]">$</span> memctl admin
-              --authenticate
-            </p>
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-green-500">&#10003;</span> Magic link sent
-            </p>
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-yellow-500">&#9679;</span> Waiting for
-              verification&hellip;
-            </p>
-          </div>
-
-          {/* Admin feature badges */}
-          <div
-            className="animate-fade-in-up flex gap-3"
-            style={{ animationDelay: "350ms" }}
-          >
-            {["User management", "Analytics", "System config"].map((feat) => (
-              <span
-                key={feat}
-                className="rounded-full border border-[var(--landing-border)] bg-[var(--landing-surface)] px-3 py-1 text-xs text-[var(--landing-text-tertiary)]"
-              >
-                {feat}
-              </span>
-            ))}
-          </div>
+          <p className="text-sm text-[var(--landing-text-tertiary)]">
+            Give your agents a memory
+          </p>
         </div>
-      </div>
 
-      {/* Right panel — form / success */}
-      <div className="relative z-10 flex flex-1 items-center justify-center px-6 lg:w-1/2">
+        {/* Login card */}
         <div className="w-full max-w-sm">
-          {/* Mobile-only compact header */}
-          <div className="mb-6 text-center lg:hidden">
-            <div className="mb-1 flex items-center justify-center gap-2">
-              <h1 className="text-2xl font-bold text-[var(--landing-text)]">
-                <span className="text-[#F97316]">&#9656;</span> memctl
-              </h1>
-              <span className="rounded bg-[#F97316]/10 px-2 py-0.5 font-mono text-[11px] font-medium text-[#F97316]">
-                Admin
-              </span>
-            </div>
-            <p className="text-sm text-[var(--landing-text-tertiary)]">
-              Admin access for @memctl.com
-            </p>
-          </div>
-
           <AnimatePresence mode="wait">
             {sent ? (
               /* ── Success state ── */
@@ -272,6 +225,25 @@ export default function AdminLoginPage() {
                   </button>
                 </form>
 
+                {/* Terms/Privacy consent */}
+                <p className="mt-4 text-center text-xs text-[var(--landing-text-tertiary)]">
+                  By signing in, you agree to our{" "}
+                  <Link
+                    href="/terms"
+                    className="text-[#F97316] transition-colors hover:text-[#FB923C]"
+                  >
+                    Terms
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/privacy"
+                    className="text-[#F97316] transition-colors hover:text-[#FB923C]"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
+
                 <div className="mt-6 border-t border-[var(--landing-border)] pt-4 text-center">
                   <Link
                     href="/login"
@@ -284,15 +256,30 @@ export default function AdminLoginPage() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Footer */}
-          <p className="mt-6 text-center text-[11px] leading-relaxed text-[var(--landing-text-tertiary)]">
-            Mindroot Ltd &middot; Company No. 16543299
-            <br />
-            71-75 Shelton Street, London, WC2H 9JQ
-          </p>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
+        <div className="mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--landing-text-tertiary)] sm:flex-row lg:px-8">
+          <span>&copy; 2026 Mindroot Ltd</span>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/privacy"
+              className="transition-colors hover:text-[var(--landing-text-secondary)]"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/terms"
+              className="transition-colors hover:text-[var(--landing-text-secondary)]"
+            >
+              Terms
+            </Link>
+            <ThemeSwitcher />
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

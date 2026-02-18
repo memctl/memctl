@@ -3,71 +3,29 @@
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { AuthBackground } from "@/components/auth/auth-background";
-import { TypingTagline } from "@/components/auth/typing-tagline";
+import { Navbar } from "@/components/landing/navbar";
+import { ThemeSwitcher } from "@/components/landing/theme-switcher";
 
 export default function LoginPage() {
   return (
-    <div className="relative flex min-h-screen bg-[var(--landing-bg)]">
+    <div className="relative flex min-h-screen flex-col bg-[var(--landing-bg)]">
       <AuthBackground />
+      <Navbar />
 
-      {/* Left branding panel — desktop only */}
-      <div className="relative z-10 hidden w-1/2 flex-col justify-center px-16 lg:flex">
-        <div className="animate-fade-in-up max-w-md">
-          <h1 className="mb-4 text-3xl font-bold text-[var(--landing-text)]">
+      {/* Main content — upper-center positioning */}
+      <main className="relative z-10 flex flex-1 flex-col items-center px-6 pt-[12vh] sm:pt-[16vh]">
+        {/* Branding above card */}
+        <div className="mb-6 text-center">
+          <h1 className="mb-1 text-2xl font-bold text-[var(--landing-text)]">
             <span className="text-[#F97316]">&#9656;</span> memctl
           </h1>
-          <div className="mb-8" style={{ animationDelay: "100ms" }}>
-            <TypingTagline text="give your agents a memory" />
-          </div>
-
-          {/* Mini terminal */}
-          <div
-            className="animate-fade-in-up mb-10 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-4 font-mono text-xs"
-            style={{ animationDelay: "200ms" }}
-          >
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-[#F97316]">$</span> memctl connect
-            </p>
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-green-500">&#10003;</span> Authenticated via
-              GitHub
-            </p>
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-green-500">&#10003;</span> Memory store
-              online &mdash; 3ms latency
-            </p>
-          </div>
-
-          {/* Works-with badges */}
-          <div
-            className="animate-fade-in-up flex gap-3"
-            style={{ animationDelay: "350ms" }}
-          >
-            {["Claude Code", "Cursor", "VS Code"].map((tool) => (
-              <span
-                key={tool}
-                className="rounded-full border border-[var(--landing-border)] bg-[var(--landing-surface)] px-3 py-1 text-xs text-[var(--landing-text-tertiary)]"
-              >
-                {tool}
-              </span>
-            ))}
-          </div>
+          <p className="text-sm text-[var(--landing-text-tertiary)]">
+            Give your agents a memory
+          </p>
         </div>
-      </div>
 
-      {/* Right panel — login card */}
-      <div className="relative z-10 flex flex-1 items-center justify-center px-6 lg:w-1/2">
+        {/* Login card */}
         <div className="w-full max-w-sm">
-          {/* Mobile-only compact header */}
-          <div className="mb-6 text-center lg:hidden">
-            <h1 className="mb-1 text-2xl font-bold text-[var(--landing-text)]">
-              <span className="text-[#F97316]">&#9656;</span> memctl
-            </h1>
-            <p className="text-sm text-[var(--landing-text-tertiary)]">
-              Give your agents a memory
-            </p>
-          </div>
-
           <div className="glass-border-always glow-orange animate-fade-in-up relative rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-8">
             <h2 className="mb-1 text-center text-lg font-semibold text-[var(--landing-text)]">
               Sign in
@@ -115,6 +73,25 @@ export default function LoginPage() {
               We only request your email address.
             </p>
 
+            {/* Terms/Privacy consent */}
+            <p className="mt-4 text-center text-xs text-[var(--landing-text-tertiary)]">
+              By signing in, you agree to our{" "}
+              <Link
+                href="/terms"
+                className="text-[#F97316] transition-colors hover:text-[#FB923C]"
+              >
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                className="text-[#F97316] transition-colors hover:text-[#FB923C]"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </p>
+
             {/* Admin link */}
             <div className="mt-6 border-t border-[var(--landing-border)] pt-4 text-center">
               <Link
@@ -126,32 +103,30 @@ export default function LoginPage() {
               </Link>
             </div>
           </div>
+        </div>
+      </main>
 
-          {/* Footer */}
-          <div className="mt-6 text-center">
-            <div className="mb-2 flex items-center justify-center gap-3 text-xs text-[var(--landing-text-tertiary)]">
-              <Link
-                href="/privacy"
-                className="transition-colors hover:text-[var(--landing-text-secondary)]"
-              >
-                Privacy
-              </Link>
-              <span>&middot;</span>
-              <Link
-                href="/terms"
-                className="transition-colors hover:text-[var(--landing-text-secondary)]"
-              >
-                Terms
-              </Link>
-            </div>
-            <p className="text-[11px] leading-relaxed text-[var(--landing-text-tertiary)]">
-              Mindroot Ltd &middot; Company No. 16543299
-              <br />
-              71-75 Shelton Street, London, WC2H 9JQ
-            </p>
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
+        <div className="mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--landing-text-tertiary)] sm:flex-row lg:px-8">
+          <span>&copy; 2026 Mindroot Ltd</span>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/privacy"
+              className="transition-colors hover:text-[var(--landing-text-secondary)]"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/terms"
+              className="transition-colors hover:text-[var(--landing-text-secondary)]"
+            >
+              Terms
+            </Link>
+            <ThemeSwitcher />
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
