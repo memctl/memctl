@@ -19,6 +19,7 @@ import { BeforeAfter } from "@/components/landing/before-after";
 import { FeatureShowcase } from "@/components/landing/feature-showcase";
 import { TrustBar } from "@/components/landing/trust-bar";
 import { CopyCommand } from "@/components/copy-command";
+import { NoiseTexture } from "@/components/landing/noise-texture";
 
 const STEPS = [
   {
@@ -210,21 +211,40 @@ export default async function HomePage() {
   const ghStats = await getGitHubStats();
 
   return (
-    <div className="landing-default-typography min-h-screen bg-[var(--landing-bg)] text-[var(--landing-text)] selection:bg-orange-500/20">
+    <div className="landing-default-typography min-h-screen overflow-x-hidden bg-[var(--landing-bg)] text-[var(--landing-text)] selection:bg-orange-500/20">
       <AnnouncementBanner />
       <Navbar />
 
       {/* ================================================================
           SECTION 1 - Hero
           ================================================================ */}
-      <section className="relative">
-        {/* Subtle dot grid texture */}
+      <section className="relative overflow-hidden">
+        {/* Film grain noise — canvas-based, visible */}
+        <NoiseTexture opacity={0.045} />
+
+        {/* Warm radial glow pools */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-[10%] top-[15%] h-[500px] w-[600px] rounded-full bg-[#F97316]/[0.05] blur-[120px]" />
+          <div className="absolute -right-[5%] top-[30%] h-[400px] w-[500px] rounded-full bg-[#FB923C]/[0.04] blur-[100px]" />
+          <div className="absolute bottom-0 left-[30%] h-[300px] w-[400px] rounded-full bg-[#F97316]/[0.03] blur-[80px]" />
+        </div>
+
+        {/* Subtle scan lines */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          className="pointer-events-none absolute inset-0 opacity-[0.025]"
           style={{
             backgroundImage:
-              "radial-gradient(circle, var(--landing-border) 0.8px, transparent 0.8px)",
-            backgroundSize: "28px 28px",
+              "repeating-linear-gradient(0deg, var(--landing-text) 0px, transparent 1px, transparent 3px)",
+          }}
+        />
+
+        {/* Fine grid — barely visible, gives depth */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "linear-gradient(var(--landing-border) 1px, transparent 1px), linear-gradient(90deg, var(--landing-border) 1px, transparent 1px)",
+            backgroundSize: "80px 80px",
           }}
         />
 
@@ -238,14 +258,14 @@ export default async function HomePage() {
               </div>
 
               <h1 className="animate-fade-in-up text-[clamp(2.75rem,6.5vw,5rem)] font-extrabold leading-[1.05] [animation-delay:100ms]">
-                Give your agents
+                Persistent context
                 <br />
-                <span className="text-[#F97316]">a memory</span>
+                <span className="text-[#F97316]">for every agent</span>
               </h1>
 
               <p className="animate-fade-in-up mt-5 max-w-[520px] text-[clamp(1rem,2vw,1.2rem)] leading-[1.65] text-[var(--landing-text-secondary)] [animation-delay:200ms]">
-                memctl gives your AI agents persistent, branch-aware context.
-                Connected to your repos for indexing, synced across every agent
+                Give your AI coding agents shared, branch-aware memory.
+                Connected to your repos, synced across every IDE and tool
                 via MCP. Every session picks up where the last one left off.
               </p>
 
@@ -928,7 +948,7 @@ export default async function HomePage() {
               </h2>
               <p className="mx-auto mt-4 max-w-lg text-lg text-[var(--landing-text-secondary)]">
                 Connect your first repo and let your agents remember everything.
-                One command to get started.
+                One command to start.
               </p>
 
               <div className="mt-8 flex justify-center">

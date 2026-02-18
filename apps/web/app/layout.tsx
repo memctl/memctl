@@ -5,7 +5,10 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "memctl — Shared Memory for AI Coding Agents",
+  title: {
+    template: "%s · memctl",
+    default: "Shared Memory for AI Coding Agents · memctl",
+  },
   description:
     "Cloud-based context that follows your team across IDEs, machines, and agents. Connect your repo, and every AI tool knows where everything is.",
 };
