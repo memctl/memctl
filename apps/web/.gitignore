@@ -1,0 +1,23 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Fumadocs (auto-generated)
+.source/
+
+# Next.js
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Debug
+npm-debug.log*
+
+# OS
+.DS_Store
+
+# Turbo
+.turbo/

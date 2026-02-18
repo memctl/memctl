@@ -4,8 +4,13 @@ let _db: Database | null = null;
 
 export function getDb(): Database {
   if (!_db) {
+    const dbUrl =
+      process.env.TURSO_DATABASE_URL?.trim() ||
+      process.env.DATABASE_URL?.trim() ||
+      "http://libsql:8080";
+
     _db = createDb(
-      process.env.TURSO_DATABASE_URL,
+      dbUrl,
       process.env.TURSO_AUTH_TOKEN,
     );
   }

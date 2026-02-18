@@ -7,6 +7,7 @@ export const users = sqliteTable("users", {
   avatarUrl: text("avatar_url"),
   githubId: text("github_id").unique(),
   onboardingCompleted: integer("onboarding_completed", { mode: "boolean" }).default(false),
+  isAdmin: integer("is_admin", { mode: "boolean" }).default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -156,6 +157,67 @@ export const accounts = sqliteTable("accounts", {
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const changelogEntries = sqliteTable("changelog_entries", {
+  id: text("id").primaryKey(),
+  version: text("version").notNull().unique(),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  releaseDate: integer("release_date", { mode: "timestamp" }).notNull(),
+  status: text("status").notNull().default("draft"),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const changelogItems = sqliteTable("changelog_items", {
+  id: text("id").primaryKey(),
+  entryId: text("entry_id")
+    .notNull()
+    .references(() => changelogEntries.id, { onDelete: "cascade" }),
+  category: text("category").notNull(),
+  description: text("description").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const verifications = sqliteTable("verifications", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+});
+
+export const blogPosts = sqliteTable("blog_posts", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  excerpt: text("excerpt"),
+  content: text("content").notNull(),
+  coverImageUrl: text("cover_image_url"),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => users.id),
+  status: text("status").notNull().default("draft"),
+  publishedAt: integer("published_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
