@@ -67,6 +67,9 @@
   --animate-progress-glow: progress-glow 2s ease-in-out infinite;
   --animate-spin-slow: spin-slow 3s linear infinite;
   --animate-border-spin: border-glow-rotate 4s linear infinite;
+  --animate-blob-1: blob-drift-1 20s ease-in-out infinite alternate;
+  --animate-blob-2: blob-drift-2 25s ease-in-out infinite alternate;
+  --animate-blob-3: blob-drift-3 18s ease-in-out infinite alternate;
 }
 
 /* Light theme (default) */
@@ -242,6 +245,24 @@
   to { --border-angle: 360deg; }
 }
 
+@keyframes blob-drift-1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(50px, 30px) scale(1.05); }
+  100% { transform: translate(-20px, 60px) scale(0.97); }
+}
+
+@keyframes blob-drift-2 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(-40px, 25px) scale(1.08); }
+  100% { transform: translate(30px, -30px) scale(0.94); }
+}
+
+@keyframes blob-drift-3 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(25px, -20px) scale(1.06); }
+  100% { transform: translate(-15px, 15px) scale(0.98); }
+}
+
 /* ---- tailwindcss-animate utilities ---- */
 
 @keyframes enter {
@@ -312,6 +333,7 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  overflow-x: hidden;
 }
 
 /* ---- Utilities ---- */
@@ -346,7 +368,6 @@ body {
 .glow-text {
   text-shadow: 0 0 20px rgba(249, 115, 22, 0.35), 0 0 40px rgba(249, 115, 22, 0.12);
 }
-
 
 .cursor-blink {
   animation: blink 1.2s step-end infinite;

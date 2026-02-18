@@ -23,6 +23,12 @@ out/
 .DS_Store
 Thumbs.db
 
+# AI tools
+.claude/
+.cursor/
+.aider*
+.copilot/
+
 # Debug
 npm-debug.log*
 pnpm-debug.log*

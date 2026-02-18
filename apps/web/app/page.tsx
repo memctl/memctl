@@ -211,7 +211,7 @@ export default async function HomePage() {
   const ghStats = await getGitHubStats();
 
   return (
-    <div className="landing-default-typography min-h-screen overflow-x-hidden bg-[var(--landing-bg)] text-[var(--landing-text)] selection:bg-orange-500/20">
+    <div className="landing-default-typography min-h-screen bg-[var(--landing-bg)] text-[var(--landing-text)] selection:bg-orange-500/20">
       <AnnouncementBanner />
       <Navbar />
 
@@ -219,36 +219,33 @@ export default async function HomePage() {
           SECTION 1 - Hero
           ================================================================ */}
       <section className="relative overflow-hidden">
-        {/* Film grain noise — canvas-based, visible */}
-        <NoiseTexture opacity={0.045} />
-
-        {/* Warm radial glow pools */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-[10%] top-[15%] h-[500px] w-[600px] rounded-full bg-[#F97316]/[0.05] blur-[120px]" />
-          <div className="absolute -right-[5%] top-[30%] h-[400px] w-[500px] rounded-full bg-[#FB923C]/[0.04] blur-[100px]" />
-          <div className="absolute bottom-0 left-[30%] h-[300px] w-[400px] rounded-full bg-[#F97316]/[0.03] blur-[80px]" />
-        </div>
-
-        {/* Subtle scan lines */}
+        {/* ── Layer 1: Diagonal wash from left ── */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.025]"
+          className="pointer-events-none absolute -left-[15%] top-[15%] h-[100%] w-[70%]"
           style={{
-            backgroundImage:
-              "repeating-linear-gradient(0deg, var(--landing-text) 0px, transparent 1px, transparent 3px)",
+            background:
+              "linear-gradient(125deg, rgba(249,115,22,0.2) 0%, rgba(249,115,22,0.15) 40%, transparent 75%)",
+            filter: "blur(80px)",
+            transform: "skewX(-14deg)",
           }}
+          aria-hidden="true"
         />
 
-        {/* Fine grid — barely visible, gives depth */}
+        {/* ── Layer 2: Noise grain ── */}
+        <NoiseTexture opacity={0.15} className="z-[1]" />
+
+        {/* ── Layer 3: Edge fade ── */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          className="pointer-events-none absolute inset-0 z-[2]"
           style={{
-            backgroundImage:
-              "linear-gradient(var(--landing-border) 1px, transparent 1px), linear-gradient(90deg, var(--landing-border) 1px, transparent 1px)",
-            backgroundSize: "80px 80px",
+            background:
+              "radial-gradient(ellipse 80% 70% at 35% 45%, transparent 40%, var(--landing-bg) 100%)",
           }}
+          aria-hidden="true"
         />
 
-        <div className="relative mx-auto max-w-[1600px] px-6 pb-20 pt-24 lg:px-8 lg:pb-28 lg:pt-36">
+        {/* ── Layer 4: Content ── */}
+        <div className="relative z-10 mx-auto max-w-[1600px] px-6 pb-20 pt-24 lg:px-8 lg:pb-28 lg:pt-36">
           <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
             {/* Left - Copy */}
             <div>
@@ -294,6 +291,15 @@ export default async function HomePage() {
             </ScrollParallax>
           </div>
         </div>
+
+        {/* ── Layer 5: Bottom fade ── */}
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[11] h-48"
+          style={{
+            background: "linear-gradient(to top, var(--landing-bg), transparent)",
+          }}
+          aria-hidden="true"
+        />
       </section>
 
       {/* ================================================================
