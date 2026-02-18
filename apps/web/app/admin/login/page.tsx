@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { AuthBackground } from "@/components/auth/auth-background";
-import { Navbar } from "@/components/landing/navbar";
 import { ThemeSwitcher } from "@/components/landing/theme-switcher";
 
 const BLOCKED_PREFIXES = ["team@", "noreply@", "hello@", "info@", "support@"];
@@ -67,16 +66,14 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-[var(--landing-bg)]">
+    <div className="relative flex min-h-screen items-center justify-center bg-[var(--landing-bg)] p-3 sm:p-5 lg:p-8">
       <AuthBackground />
-      <Navbar />
 
-      <main className="relative z-10 flex flex-1 flex-col">
-        {/* Login section — centers in remaining space above the bottom strip */}
-        <div className="flex flex-1 flex-col items-center justify-center px-6">
-          {/* Branding */}
-          <div className="mb-6 text-center">
-            <div className="mb-1 flex items-center justify-center gap-3">
+      <div className="relative z-10 w-full max-w-[1100px]">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4 lg:gap-3.5">
+          {/* ── Branding ── */}
+          <div className="animate-fade-in-up order-1 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 md:order-2 lg:order-1 lg:p-7">
+            <div className="mb-2 flex items-center gap-3">
               <h1 className="text-2xl font-bold text-[var(--landing-text)]">
                 <span className="text-[#F97316]">&#9656;</span> memctl
               </h1>
@@ -84,13 +81,16 @@ export default function AdminLoginPage() {
                 Admin
               </span>
             </div>
-            <p className="text-sm text-[var(--landing-text-tertiary)]">
-              Give your agents a memory
+            <p className="text-sm leading-relaxed text-[var(--landing-text-tertiary)]">
+              Persistent, branch-aware context for AI coding agents.
             </p>
           </div>
 
-          {/* Login card */}
-          <div className="w-full max-w-sm">
+          {/* ── Login card ── */}
+          <div
+            className="animate-fade-in-up order-2 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7 glass-border-always glow-orange md:order-1 md:col-span-2 lg:order-2 lg:col-span-2 lg:p-8"
+            style={{ animationDelay: "50ms" }}
+          >
             <AnimatePresence mode="wait">
               {sent ? (
                 /* ── Success state ── */
@@ -99,11 +99,9 @@ export default function AdminLoginPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="glass-border-always glow-orange relative rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-8 text-center"
+                  className="text-center"
                 >
-                  {/* Envelope with float-in animation */}
                   <div className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center">
-                    {/* Pulsing ring */}
                     <div className="absolute inset-0 animate-pulse rounded-full bg-[#F97316]/10" />
                     <div className="animate-envelope-float-in flex h-14 w-14 items-center justify-center rounded-full bg-[#F97316]/10">
                       <svg
@@ -163,7 +161,6 @@ export default function AdminLoginPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="glass-border-always glow-orange relative rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-8"
                 >
                   <h2 className="mb-1 text-center text-lg font-semibold text-[var(--landing-text)]">
                     Admin sign in
@@ -235,7 +232,6 @@ export default function AdminLoginPage() {
                     </button>
                   </form>
 
-                  {/* Terms/Privacy consent */}
                   <p className="mt-4 text-center text-xs text-[var(--landing-text-tertiary)]">
                     By signing in, you agree to our{" "}
                     <Link
@@ -269,29 +265,76 @@ export default function AdminLoginPage() {
               )}
             </AnimatePresence>
           </div>
-        </div>
 
-        {/* Works-with & trust strip */}
-        <div className="border-t border-[var(--landing-border)] px-6 py-12 lg:px-8">
-          <div className="mx-auto max-w-2xl">
-            <p className="mb-5 text-center font-mono text-[11px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          {/* ── Testimonial ── */}
+          <div
+            className="animate-fade-in-up order-5 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 md:order-3 lg:order-3 lg:p-7"
+            style={{ animationDelay: "100ms" }}
+          >
+            <p className="mb-4 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
+              &ldquo;We switched from maintaining CLAUDE.md files manually to
+              memctl. It&rsquo;s night and day.&rdquo;
+            </p>
+            <div>
+              <p className="text-xs font-medium text-[var(--landing-text)]">
+                Priya Sharma
+              </p>
+              <p className="text-xs text-[var(--landing-text-tertiary)]">
+                Staff Engineer
+              </p>
+            </div>
+          </div>
+
+          {/* ── Terminal demo ── */}
+          <div
+            className="animate-fade-in-up order-3 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5 font-mono text-xs md:order-4 lg:order-4 lg:col-span-2 lg:p-6"
+            style={{ animationDelay: "150ms" }}
+          >
+            <div className="mb-3 flex items-center gap-1.5">
+              <div className="h-2.5 w-2.5 rounded-full bg-[var(--landing-text-tertiary)]/20" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[var(--landing-text-tertiary)]/20" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[var(--landing-text-tertiary)]/20" />
+            </div>
+            <p className="text-[var(--landing-text-tertiary)]">
+              <span className="text-[#F97316]">$</span> memctl admin
+              --authenticate
+            </p>
+            <p className="text-[var(--landing-text-tertiary)]">
+              <span className="text-green-500">&#10003;</span> Magic link sent
+            </p>
+            <p className="text-[var(--landing-text-tertiary)]">
+              <span className="text-yellow-500">&#9679;</span> Waiting for
+              verification&hellip;
+            </p>
+            <p className="text-[var(--landing-text-tertiary)]">
+              <span className="text-green-500">&#10003;</span> Admin session
+              active
+            </p>
+          </div>
+
+          {/* ── Integrations + trust ── */}
+          <div
+            className="animate-fade-in-up order-4 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-5 md:order-5 lg:order-5 lg:col-span-2 lg:p-6"
+            style={{ animationDelay: "200ms" }}
+          >
+            <p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Works with your tools
             </p>
-            <div className="mb-8 flex flex-wrap items-center justify-center gap-2.5">
+            <div className="mb-4 flex flex-wrap gap-2">
               {TOOLS.map((tool) => (
                 <span
                   key={tool}
-                  className="rounded-full border border-[var(--landing-border)] bg-[var(--landing-surface)] px-3.5 py-1.5 text-xs text-[var(--landing-text-tertiary)]"
+                  className="rounded-full border border-[var(--landing-border)] bg-[var(--landing-bg)] px-3 py-1 text-xs text-[var(--landing-text-tertiary)]"
                 >
                   {tool}
                 </span>
               ))}
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-[var(--landing-text-tertiary)]">
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-[var(--landing-text-tertiary)]">
               <span className="flex items-center gap-1.5">
                 <svg
-                  width="14"
-                  height="14"
+                  width="12"
+                  height="12"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -302,12 +345,12 @@ export default function AdminLoginPage() {
                   <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
-                Encrypted at rest
+                Encrypted
               </span>
               <span className="flex items-center gap-1.5">
                 <svg
-                  width="14"
-                  height="14"
+                  width="12"
+                  height="12"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -317,12 +360,12 @@ export default function AdminLoginPage() {
                 >
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
-                SOC 2 compliant
+                SOC 2
               </span>
               <span className="flex items-center gap-1.5">
                 <svg
-                  width="14"
-                  height="14"
+                  width="12"
+                  height="12"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -334,34 +377,32 @@ export default function AdminLoginPage() {
                   <path d="m6 8-4 4 4 4" />
                   <path d="m14.5 4-5 16" />
                 </svg>
-                Open source core
+                Open source
               </span>
             </div>
           </div>
-        </div>
-      </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
-        <div className="mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--landing-text-tertiary)] sm:flex-row lg:px-8">
-          <span>&copy; 2026 Mindroot Ltd</span>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/privacy"
-              className="transition-colors hover:text-[var(--landing-text-secondary)]"
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/terms"
-              className="transition-colors hover:text-[var(--landing-text-secondary)]"
-            >
-              Terms
-            </Link>
-            <ThemeSwitcher />
+          {/* ── Footer ── */}
+          <div className="order-6 col-span-full flex flex-col items-center justify-between gap-3 px-2 py-3 text-xs text-[var(--landing-text-tertiary)] sm:flex-row">
+            <span>&copy; 2026 Mindroot Ltd</span>
+            <div className="flex items-center gap-6">
+              <Link
+                href="/privacy"
+                className="transition-colors hover:text-[var(--landing-text-secondary)]"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/terms"
+                className="transition-colors hover:text-[var(--landing-text-secondary)]"
+              >
+                Terms
+              </Link>
+              <ThemeSwitcher />
+            </div>
           </div>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
