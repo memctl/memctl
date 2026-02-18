@@ -23,7 +23,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { authClient } from "@/lib/auth-client";
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 interface HeaderProps {
   user: {
@@ -32,20 +32,24 @@ interface HeaderProps {
     image?: string | null;
   };
   orgSlug: string;
+  orgName?: string;
 }
 
-function buildBreadcrumbs(pathname: string, orgSlug: string) {
+function buildBreadcrumbs(pathname: string, orgSlug: string, orgName?: string) {
   const segments = pathname.split("/").filter(Boolean);
-  // Remove orgSlug from the start
+  // Remove "org" and orgSlug from the start
+  if (segments[0] === "org") {
+    segments.shift();
+  }
   if (segments[0] === orgSlug) {
     segments.shift();
   }
 
   const crumbs: { label: string; href?: string }[] = [
-    { label: orgSlug, href: `/${orgSlug}` },
+    { label: orgName ?? orgSlug, href: `/org/${orgSlug}` },
   ];
 
-  let currentPath = `/${orgSlug}`;
+  let currentPath = `/org/${orgSlug}`;
   for (const seg of segments) {
     currentPath += `/${seg}`;
     crumbs.push({
@@ -57,10 +61,10 @@ function buildBreadcrumbs(pathname: string, orgSlug: string) {
   return crumbs;
 }
 
-export function Header({ user, orgSlug }: HeaderProps) {
+export function Header({ user, orgSlug, orgName }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const crumbs = buildBreadcrumbs(pathname, orgSlug);
+  const crumbs = buildBreadcrumbs(pathname, orgSlug, orgName);
 
   const initials = user.name
     ? user.name
@@ -118,7 +122,7 @@ export function Header({ user, orgSlug }: HeaderProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-56 border-[var(--landing-border)] bg-[var(--landing-surface)]"
+            className="w-56 rounded-xl border-[var(--landing-border)] bg-[var(--landing-surface)]"
           >
             <div className="px-3 py-2">
               <p className="text-sm font-medium text-[var(--landing-text)]">
