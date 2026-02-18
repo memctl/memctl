@@ -49,7 +49,7 @@ export default function NewProjectPage() {
         return;
       }
 
-      router.push(`/${orgSlug}/projects/${slug}`);
+      router.push(`/org/${orgSlug}/projects/${slug}`);
     } catch {
       setError("Something went wrong");
       setSaving(false);

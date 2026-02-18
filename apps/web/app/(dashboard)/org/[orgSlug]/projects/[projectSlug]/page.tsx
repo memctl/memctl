@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -9,6 +10,30 @@ import {
   organizationMembers,
 } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ orgSlug: string; projectSlug: string }>;
+}): Promise<Metadata> {
+  const { orgSlug, projectSlug } = await params;
+
+  const [org] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
+
+  if (!org) return { title: "Project" };
+
+  const [project] = await db
+    .select({ name: projects.name })
+    .from(projects)
+    .where(and(eq(projects.orgId, org.id), eq(projects.slug, projectSlug)))
+    .limit(1);
+
+  return { title: project?.name ?? "Project" };
+}
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
@@ -65,7 +90,7 @@ export default async function ProjectDetailPage({
     )
     .limit(1);
 
-  if (!project) redirect(`/${orgSlug}`);
+  if (!project) redirect(`/org/${orgSlug}`);
 
   const memoryList = await db
     .select()
@@ -101,7 +126,7 @@ export default async function ProjectDetailPage({
         <span className="rounded-md bg-[#F97316]/10 px-2.5 py-1 font-mono text-xs font-medium text-[#F97316]">
           {memoryList.length} memories
         </span>
-        <Link href={`/${orgSlug}/projects/${projectSlug}/settings`}>
+        <Link href={`/org/${orgSlug}/projects/${projectSlug}/settings`}>
           <Button
             variant="outline"
             className="gap-2 border-[var(--landing-border)] text-[var(--landing-text-secondary)]"

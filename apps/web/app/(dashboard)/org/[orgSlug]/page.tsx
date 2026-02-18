@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = { title: "Overview" };
 import { db } from "@/lib/db";
 import {
   organizations,
@@ -139,19 +142,19 @@ export default async function OrgDashboardPage({
       label: "New Project",
       description: "Create a new project",
       icon: FolderOpen,
-      href: `/${orgSlug}/projects/new`,
+      href: `/org/${orgSlug}/projects/new`,
     },
     {
       label: "Create Token",
       description: "Generate an API token",
       icon: Key,
-      href: `/${orgSlug}/tokens`,
+      href: `/org/${orgSlug}/tokens`,
     },
     {
       label: "Invite Member",
       description: "Add a team member",
       icon: Users,
-      href: `/${orgSlug}/members`,
+      href: `/org/${orgSlug}/members`,
     },
   ];
 

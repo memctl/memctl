@@ -70,7 +70,7 @@ export default function LoginPage() {
     try {
       const res = await authClient.signIn.social({
         provider: "github",
-        callbackURL: "/onboarding",
+        callbackURL: "/org",
       });
 
       if (res?.error) {
@@ -136,7 +136,7 @@ export default function LoginPage() {
 
             {DEV_AUTH_BYPASS_ENABLED && (
               <Link
-                href={`/${DEV_AUTH_BYPASS_ORG_SLUG}`}
+                href={`/org/${DEV_AUTH_BYPASS_ORG_SLUG}`}
                 className="mt-3 flex w-full items-center justify-center rounded-lg border border-dashed border-[#F97316]/40 bg-[#F97316]/5 px-4 py-2.5 text-sm font-medium text-[#F97316] transition-colors hover:bg-[#F97316]/10"
               >
                 Continue with Dev Bypass

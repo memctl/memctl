@@ -134,7 +134,7 @@ export function Header({ user, orgSlug, orgName }: HeaderProps) {
             </div>
             <DropdownMenuSeparator className="bg-[var(--landing-border)]" />
             <DropdownMenuItem
-              className="gap-2 text-sm text-[var(--landing-text-secondary)]"
+              className="gap-2 rounded-lg text-sm text-[var(--landing-text-secondary)] transition-colors hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
               onClick={async () => {
                 await authClient.signOut();
                 router.push("/");

@@ -180,7 +180,7 @@ async function getSessionWithDevBypass(
   if (bypassSession && !_devBypassLogged) {
     const config = getDevBypassConfig();
     console.log(
-      `[DEV AUTH BYPASS] Active as ${config.userEmail}. Open /${config.orgSlug}`,
+      `[DEV AUTH BYPASS] Active as ${config.userEmail}. Open /org/${config.orgSlug}`,
     );
     _devBypassLogged = true;
   }

@@ -38,12 +38,8 @@
   /* Brand colors (constant across themes) */
   --color-primary: #F97316;
   --color-primary-foreground: #FFFFFF;
-  --color-accent: #1A1A1A;
-  --color-accent-foreground: #F5F5F5;
   --color-destructive: #EF4444;
   --color-destructive-foreground: #F5F5F5;
-  --color-popover: #111111;
-  --color-popover-foreground: #F5F5F5;
   --color-ring: #F97316;
 
   --radius: 8px;
@@ -85,6 +81,10 @@
   --color-card-foreground: #171717;
   --color-border: #E5E5E5;
   --color-input: #E5E5E5;
+  --color-accent: #F5F5F5;
+  --color-accent-foreground: #171717;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #171717;
   /* Landing-page specific tokens */
   --landing-bg: #FAFAFA;
   --landing-surface: #FFFFFF;
@@ -110,6 +110,10 @@
   --color-card-foreground: #F5F5F5;
   --color-border: #1E1E1E;
   --color-input: #1E1E1E;
+  --color-accent: #1A1A1A;
+  --color-accent-foreground: #F5F5F5;
+  --color-popover: #111111;
+  --color-popover-foreground: #F5F5F5;
   --landing-bg: #0A0A0A;
   --landing-surface: #111111;
   --landing-surface-2: #1A1A1A;
@@ -237,6 +241,57 @@
 @keyframes border-glow-rotate {
   to { --border-angle: 360deg; }
 }
+
+/* ---- tailwindcss-animate utilities ---- */
+
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0)
+      scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1))
+      rotate(var(--tw-enter-rotate, 0));
+  }
+}
+
+@keyframes exit {
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0)
+      scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1))
+      rotate(var(--tw-exit-rotate, 0));
+  }
+}
+
+.animate-in {
+  animation-name: enter;
+  animation-duration: 150ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  --tw-enter-opacity: 0;
+  --tw-enter-scale: 1;
+  --tw-enter-rotate: 0;
+  --tw-enter-translate-x: 0;
+  --tw-enter-translate-y: 0;
+}
+
+.animate-out {
+  animation-name: exit;
+  animation-duration: 100ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  --tw-exit-opacity: 0;
+  --tw-exit-scale: 1;
+  --tw-exit-rotate: 0;
+  --tw-exit-translate-x: 0;
+  --tw-exit-translate-y: 0;
+}
+
+.fade-in-0 { --tw-enter-opacity: 0; }
+.fade-out-0 { --tw-exit-opacity: 0; }
+.zoom-in-95 { --tw-enter-scale: 0.95; }
+.zoom-out-95 { --tw-exit-scale: 0.95; }
+.slide-in-from-top-2 { --tw-enter-translate-y: -0.5rem; }
+.slide-in-from-bottom-2 { --tw-enter-translate-y: 0.5rem; }
+.slide-in-from-left-2 { --tw-enter-translate-x: -0.5rem; }
+.slide-in-from-right-2 { --tw-enter-translate-x: 0.5rem; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
@@ -531,6 +586,29 @@ body {
 
 .dash-card:hover {
   border-color: var(--landing-border-hover);
+}
+
+/* Collapsible animation */
+[data-slot="collapsible-content"] {
+  overflow: hidden;
+}
+
+[data-slot="collapsible-content"][data-state="open"] {
+  animation: collapsible-open 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-slot="collapsible-content"][data-state="closed"] {
+  animation: collapsible-closed 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes collapsible-open {
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-collapsible-content-height); opacity: 1; }
+}
+
+@keyframes collapsible-closed {
+  from { height: var(--radix-collapsible-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
 }
 
 .sidebar-active-indicator {

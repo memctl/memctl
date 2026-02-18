@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = { title: "Usage" };
 import { db } from "@/lib/db";
 import {
   organizations,

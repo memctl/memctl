@@ -62,8 +62,8 @@ export async function POST(
     customerId: org.stripeCustomerId,
     priceId: STRIPE_PLANS[planId].priceId,
     orgSlug: slug,
-    successUrl: `${appUrl}/${slug}/billing?success=true`,
-    cancelUrl: `${appUrl}/${slug}/billing?canceled=true`,
+    successUrl: `${appUrl}/org/${slug}/billing?success=true`,
+    cancelUrl: `${appUrl}/org/${slug}/billing?canceled=true`,
   });
 
   return NextResponse.json({ url: checkoutSession.url });

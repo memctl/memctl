@@ -6,7 +6,7 @@ import {
   organizations,
   organizationMembers,
 } from "@memctl/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { projectCreateSchema } from "@memctl/shared/validators";
 import { headers } from "next/headers";
@@ -53,12 +53,37 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Not a member" }, { status: 403 });
   }
 
-  const projectList = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.orgId, org.id));
+  // Pagination
+  const pageParam = parseInt(req.nextUrl.searchParams.get("page") ?? "1", 10);
+  const perPageParam = parseInt(req.nextUrl.searchParams.get("per_page") ?? "20", 10);
+  const page = Math.max(1, pageParam);
+  const perPage = Math.max(1, Math.min(100, perPageParam));
+  const offset = (page - 1) * perPage;
 
-  return NextResponse.json({ projects: projectList });
+  const [totalResult, projectList] = await Promise.all([
+    db
+      .select({ value: count() })
+      .from(projects)
+      .where(eq(projects.orgId, org.id)),
+    db
+      .select()
+      .from(projects)
+      .where(eq(projects.orgId, org.id))
+      .limit(perPage)
+      .offset(offset),
+  ]);
+
+  const total = totalResult[0]?.value ?? 0;
+
+  return NextResponse.json({
+    projects: projectList,
+    pagination: {
+      page,
+      perPage,
+      total,
+      totalPages: Math.ceil(total / perPage),
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {

@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = { title: "Settings" };
 import { db } from "@/lib/db";
 import { organizations, organizationMembers } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -38,7 +41,7 @@ export default async function OrgSettingsPage({
     )
     .limit(1);
 
-  if (!member || member.role === "member") redirect(`/${orgSlug}`);
+  if (!member || member.role === "member") redirect(`/org/${orgSlug}`);
 
   return (
     <div className="max-w-2xl">

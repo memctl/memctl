@@ -119,60 +119,63 @@ export function Sidebar({
       </div>
 
       {/* Org Switcher */}
-      <div className="border-b border-[var(--landing-border)] px-3 py-3">
+      <div className="border-b border-[var(--landing-border)] px-3 py-2.5">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-[var(--landing-surface-2)] focus:outline-none">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F97316] text-sm font-bold text-white">
+            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--landing-surface-2)] focus:outline-none">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#F97316] text-[11px] font-bold text-white">
                 {currentOrg.name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate font-mono text-sm font-medium text-[var(--landing-text)]">
-                    {currentOrg.name}
-                  </span>
-                  <Badge
-                    variant="secondary"
-                    className="shrink-0 rounded-md bg-[var(--landing-surface-2)] px-1.5 py-0 text-[10px] text-[var(--landing-text-tertiary)]"
-                  >
-                    {getPlanLabel(currentOrg.planId)}
-                  </Badge>
-                </div>
+                <span className="block truncate font-mono text-[13px] font-medium text-[var(--landing-text)]">
+                  {currentOrg.name}
+                </span>
+                <span className="block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                  {getPlanLabel(currentOrg.planId)}
+                </span>
               </div>
-              <ChevronsUpDown className="h-4 w-4 shrink-0 text-[var(--landing-text-tertiary)]" />
+              <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-[var(--landing-text-tertiary)]" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start"
             side="bottom"
+            sideOffset={6}
             className="w-[232px] rounded-xl border-[var(--landing-border)] bg-[var(--landing-surface)]"
           >
             {userOrgs.map((org) => (
-              <DropdownMenuItem key={org.slug} asChild>
+              <DropdownMenuItem
+                key={org.slug}
+                asChild
+                className="rounded-lg transition-colors hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
+              >
                 <Link
                   href={`/org/${org.slug}`}
-                  className="flex items-center gap-3"
+                  className="flex items-center gap-2.5"
                 >
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#F97316]/10 text-xs font-bold text-[#F97316]">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#F97316]/10 text-[10px] font-bold text-[#F97316]">
                     {org.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="flex-1 truncate font-mono text-sm text-[var(--landing-text)]">
                     {org.name}
                   </span>
                   {org.slug === orgSlug && (
-                    <Check className="h-4 w-4 shrink-0 text-[#F97316]" />
+                    <Check className="h-3.5 w-3.5 shrink-0 text-[#F97316]" />
                   )}
                 </Link>
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator className="bg-[var(--landing-border)]" />
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem
+              asChild
+              className="rounded-lg transition-colors hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
+            >
               <Link
                 href="/onboarding"
-                className="flex items-center gap-3"
+                className="flex items-center gap-2.5"
               >
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[var(--landing-surface-2)]">
-                  <Plus className="h-3.5 w-3.5 text-[var(--landing-text-tertiary)]" />
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--landing-surface-2)]">
+                  <Plus className="h-3 w-3 text-[var(--landing-text-tertiary)]" />
                 </div>
                 <span className="font-mono text-sm text-[var(--landing-text-secondary)]">
                   Create Organization
