@@ -51,7 +51,7 @@ export default function LoginPage() {
           </div>
 
           {/* ── Login card — rotating orange border ── */}
-          <div className="animate-scale-in order-2 overflow-hidden rounded-xl glow-border-spin glass-border-always p-7 md:order-1 md:col-span-2 lg:order-2 lg:col-span-2 lg:p-8 [animation-delay:100ms]">
+          <div className="animate-scale-in order-2 overflow-hidden rounded-xl glow-border-spin p-7 md:order-1 md:col-span-2 lg:order-2 lg:col-span-2 lg:p-8 [animation-delay:100ms]">
             <h2 className="mb-1 text-center text-lg font-semibold text-[var(--landing-text)]">
               Sign in
             </h2>
