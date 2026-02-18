@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { AuthBackground } from "@/components/auth/auth-background";
+import { TerminalLines } from "@/components/auth/terminal-lines";
 import { ThemeSwitcher } from "@/components/landing/theme-switcher";
 
 const BLOCKED_PREFIXES = ["team@", "noreply@", "hello@", "info@", "support@"];
@@ -16,6 +17,25 @@ const TOOLS = [
   "GitHub Copilot",
   "Windsurf",
   "Neovim",
+];
+
+const TERMINAL_LINES = [
+  {
+    prefix: "$ ",
+    prefixColor: "text-[#F97316]",
+    text: "memctl admin --authenticate",
+  },
+  { prefix: "\u2713 ", prefixColor: "text-green-500", text: "Magic link sent" },
+  {
+    prefix: "\u25CF ",
+    prefixColor: "text-yellow-500",
+    text: "Waiting for verification\u2026",
+  },
+  {
+    prefix: "\u2713 ",
+    prefixColor: "text-green-500",
+    text: "Admin session active",
+  },
 ];
 
 function validateEmail(email: string): string | null {
@@ -72,10 +92,13 @@ export default function AdminLoginPage() {
       <div className="relative z-10 w-full max-w-[1100px]">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4 lg:gap-3.5">
           {/* ── Branding ── */}
-          <div className="animate-fade-in-up order-1 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 md:order-2 lg:order-1 lg:p-7">
+          <div className="animate-slide-in-left order-1 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 md:order-2 lg:order-1 lg:p-7">
             <div className="mb-2 flex items-center gap-3">
               <h1 className="text-2xl font-bold text-[var(--landing-text)]">
-                <span className="text-[#F97316]">&#9656;</span> memctl
+                <span className="animate-pulse-glow inline-block text-[#F97316]">
+                  &#9656;
+                </span>{" "}
+                memctl
               </h1>
               <span className="rounded bg-[#F97316]/10 px-2.5 py-1 font-mono text-xs font-medium text-[#F97316]">
                 Admin
@@ -86,11 +109,8 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          {/* ── Login card ── */}
-          <div
-            className="animate-fade-in-up order-2 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7 glass-border-always glow-orange md:order-1 md:col-span-2 lg:order-2 lg:col-span-2 lg:p-8"
-            style={{ animationDelay: "50ms" }}
-          >
+          {/* ── Login card — rotating orange border ── */}
+          <div className="animate-scale-in order-2 overflow-hidden rounded-xl glow-border-spin glass-border-always p-7 md:order-1 md:col-span-2 lg:order-2 lg:col-span-2 lg:p-8 [animation-delay:100ms]">
             <AnimatePresence mode="wait">
               {sent ? (
                 /* ── Success state ── */
@@ -267,13 +287,13 @@ export default function AdminLoginPage() {
           </div>
 
           {/* ── Testimonial ── */}
-          <div
-            className="animate-fade-in-up order-5 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 md:order-3 lg:order-3 lg:p-7"
-            style={{ animationDelay: "100ms" }}
-          >
+          <div className="animate-slide-in-right order-5 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 md:order-3 lg:order-3 lg:p-7 [animation-delay:200ms]">
+            <span className="animate-float mb-2 block text-3xl leading-none text-[#F97316]/20 [animation-delay:1s]">
+              &ldquo;
+            </span>
             <p className="mb-4 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
-              &ldquo;We switched from maintaining CLAUDE.md files manually to
-              memctl. It&rsquo;s night and day.&rdquo;
+              We switched from maintaining CLAUDE.md files manually to memctl.
+              It&rsquo;s night and day.
             </p>
             <div>
               <p className="text-xs font-medium text-[var(--landing-text)]">
@@ -285,46 +305,27 @@ export default function AdminLoginPage() {
             </div>
           </div>
 
-          {/* ── Terminal demo ── */}
-          <div
-            className="animate-fade-in-up order-3 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5 font-mono text-xs md:order-4 lg:order-4 lg:col-span-2 lg:p-6"
-            style={{ animationDelay: "150ms" }}
-          >
+          {/* ── Terminal demo — live typing loop ── */}
+          <div className="animate-fade-in-up order-3 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5 font-mono text-xs md:order-4 lg:order-4 lg:col-span-2 lg:p-6 [animation-delay:300ms]">
             <div className="mb-3 flex items-center gap-1.5">
-              <div className="h-2.5 w-2.5 rounded-full bg-[var(--landing-text-tertiary)]/20" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[var(--landing-text-tertiary)]/20" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[var(--landing-text-tertiary)]/20" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]/80" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]/80" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[#28C840]/80" />
             </div>
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-[#F97316]">$</span> memctl admin
-              --authenticate
-            </p>
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-green-500">&#10003;</span> Magic link sent
-            </p>
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-yellow-500">&#9679;</span> Waiting for
-              verification&hellip;
-            </p>
-            <p className="text-[var(--landing-text-tertiary)]">
-              <span className="text-green-500">&#10003;</span> Admin session
-              active
-            </p>
+            <TerminalLines lines={TERMINAL_LINES} />
           </div>
 
           {/* ── Integrations + trust ── */}
-          <div
-            className="animate-fade-in-up order-4 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-5 md:order-5 lg:order-5 lg:col-span-2 lg:p-6"
-            style={{ animationDelay: "200ms" }}
-          >
+          <div className="animate-fade-in-up order-4 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-5 md:order-5 lg:order-5 lg:col-span-2 lg:p-6 [animation-delay:400ms]">
             <p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Works with your tools
             </p>
             <div className="mb-4 flex flex-wrap gap-2">
-              {TOOLS.map((tool) => (
+              {TOOLS.map((tool, i) => (
                 <span
                   key={tool}
-                  className="rounded-full border border-[var(--landing-border)] bg-[var(--landing-bg)] px-3 py-1 text-xs text-[var(--landing-text-tertiary)]"
+                  className="animate-scale-in rounded-full border border-[var(--landing-border)] bg-[var(--landing-bg)] px-3 py-1 text-xs text-[var(--landing-text-tertiary)] transition-all hover:-translate-y-0.5 hover:border-[#F97316]/30 hover:text-[var(--landing-text-secondary)]"
+                  style={{ animationDelay: `${550 + i * 60}ms` }}
                 >
                   {tool}
                 </span>
@@ -383,7 +384,7 @@ export default function AdminLoginPage() {
           </div>
 
           {/* ── Footer ── */}
-          <div className="order-6 col-span-full flex flex-col items-center justify-between gap-3 px-2 py-3 text-xs text-[var(--landing-text-tertiary)] sm:flex-row">
+          <div className="animate-fade-in-up order-6 col-span-full flex flex-col items-center justify-between gap-3 px-2 py-3 text-xs text-[var(--landing-text-tertiary)] sm:flex-row [animation-delay:550ms]">
             <span>&copy; 2026 Mindroot Ltd</span>
             <div className="flex items-center gap-6">
               <Link

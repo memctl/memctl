@@ -24,6 +24,12 @@
   font-display: swap;
 }
 
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
 @theme {
   /* Fonts */
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -64,6 +70,7 @@
   --animate-confetti-fall: confetti-fall 1s ease-out forwards;
   --animate-progress-glow: progress-glow 2s ease-in-out infinite;
   --animate-spin-slow: spin-slow 3s linear infinite;
+  --animate-border-spin: border-glow-rotate 4s linear infinite;
 }
 
 /* Light theme (default) */
@@ -227,6 +234,10 @@
   to { transform: rotate(360deg); }
 }
 
+@keyframes border-glow-rotate {
+  to { --border-angle: 360deg; }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -259,6 +270,22 @@ body {
 
 .glow-orange {
   box-shadow: 0 0 40px rgba(249, 115, 22, 0.15), 0 0 80px rgba(249, 115, 22, 0.05);
+}
+
+.glow-border-spin {
+  --border-angle: 0deg;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--landing-surface), var(--landing-surface)) padding-box,
+    conic-gradient(
+      from var(--border-angle),
+      var(--landing-border) 0%,
+      rgba(249, 115, 22, 0.7) 8%,
+      rgba(251, 146, 60, 0.5) 16%,
+      var(--landing-border) 28%,
+      var(--landing-border) 100%
+    ) border-box;
+  animation: border-glow-rotate 4s linear infinite;
 }
 
 .glow-text {
