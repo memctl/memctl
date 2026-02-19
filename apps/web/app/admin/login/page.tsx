@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[var(--landing-bg)] p-3 sm:p-5 lg:p-8">
+    <div className="relative box-border flex min-h-[100dvh] items-center justify-center bg-[var(--landing-bg)] p-3 sm:p-5 lg:p-8">
       <AuthBackground />
 
       <div className="relative z-10 w-full max-w-[1100px]">

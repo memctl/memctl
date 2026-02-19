@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @font-face {
   font-family: "JetBrains Mono";
@@ -38,12 +39,8 @@
   /* Brand colors (constant across themes) */
   --color-primary: #F97316;
   --color-primary-foreground: #FFFFFF;
-  --color-accent: #1A1A1A;
-  --color-accent-foreground: #F5F5F5;
   --color-destructive: #EF4444;
   --color-destructive-foreground: #F5F5F5;
-  --color-popover: #111111;
-  --color-popover-foreground: #F5F5F5;
   --color-ring: #F97316;
 
   --radius: 8px;
@@ -71,6 +68,9 @@
   --animate-progress-glow: progress-glow 2s ease-in-out infinite;
   --animate-spin-slow: spin-slow 3s linear infinite;
   --animate-border-spin: border-glow-rotate 4s linear infinite;
+  --animate-blob-1: blob-drift-1 20s ease-in-out infinite alternate;
+  --animate-blob-2: blob-drift-2 25s ease-in-out infinite alternate;
+  --animate-blob-3: blob-drift-3 18s ease-in-out infinite alternate;
 }
 
 /* Light theme (default) */
@@ -85,6 +85,10 @@
   --color-card-foreground: #171717;
   --color-border: #E5E5E5;
   --color-input: #E5E5E5;
+  --color-accent: #F5F5F5;
+  --color-accent-foreground: #171717;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #171717;
   /* Landing-page specific tokens */
   --landing-bg: #FAFAFA;
   --landing-surface: #FFFFFF;
@@ -110,6 +114,10 @@
   --color-card-foreground: #F5F5F5;
   --color-border: #1E1E1E;
   --color-input: #1E1E1E;
+  --color-accent: #1A1A1A;
+  --color-accent-foreground: #F5F5F5;
+  --color-popover: #111111;
+  --color-popover-foreground: #F5F5F5;
   --landing-bg: #0A0A0A;
   --landing-surface: #111111;
   --landing-surface-2: #1A1A1A;
@@ -238,14 +246,24 @@
   to { --border-angle: 360deg; }
 }
 
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+@keyframes blob-drift-1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(50px, 30px) scale(1.05); }
+  100% { transform: translate(-20px, 60px) scale(0.97); }
 }
+
+@keyframes blob-drift-2 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(-40px, 25px) scale(1.08); }
+  100% { transform: translate(30px, -30px) scale(0.94); }
+}
+
+@keyframes blob-drift-3 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(25px, -20px) scale(1.06); }
+  100% { transform: translate(-15px, 15px) scale(0.98); }
+}
+
 
 /* ---- Base ---- */
 
@@ -257,6 +275,7 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  overflow-x: hidden;
 }
 
 /* ---- Utilities ---- */
@@ -518,6 +537,74 @@ body {
 .blog-prose input[type="checkbox"] {
   margin-right: 0.5em;
   accent-color: #F97316;
+}
+
+/* ---- Dashboard utilities ---- */
+
+.dash-card {
+  background: var(--landing-surface);
+  border: 1px solid var(--landing-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.dark .dash-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dash-card:hover {
+  border-color: var(--landing-border-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.dark .dash-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.dash-card-interactive:hover {
+  transform: translateY(-1px);
+}
+
+/* Collapsible animation */
+[data-slot="collapsible-content"] {
+  overflow: hidden;
+}
+
+[data-slot="collapsible-content"][data-state="open"] {
+  animation: collapsible-open 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-slot="collapsible-content"][data-state="closed"] {
+  animation: collapsible-closed 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes collapsible-open {
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-collapsible-content-height); opacity: 1; }
+}
+
+@keyframes collapsible-closed {
+  from { height: var(--radix-collapsible-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
+}
+
+.sidebar-active-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+  background: #F97316;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
+  animation: sidebar-indicator-in 300ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes sidebar-indicator-in {
+  from { opacity: 0; height: 0; }
+  to { opacity: 1; height: 60%; }
 }
 
 /* Scrollbar */

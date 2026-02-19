@@ -5,20 +5,52 @@ description: Reference for mem/ctl MCP resources
 
 # MCP Resources
 
-mem/ctl exposes the following resources via the Model Context Protocol.
+mem/ctl exposes project memory resources and structured agent-context resources.
+
+## Memory resources
 
 ## `memory://project/<slug>`
 
-Returns all memories for a project as a JSON array.
-
-**URI Pattern:** `memory://project/<projectSlug>`
-
-**Response:** JSON object containing all project memories.
+Returns project memories (paginated by server defaults).
 
 ## `memory://project/<slug>/<key>`
 
 Returns a single memory by key.
 
-**URI Pattern:** `memory://project/<projectSlug>/<memoryKey>`
+## `memory://capacity`
 
-**Response:** JSON object containing the memory data.
+Returns memory capacity status:
+
+- `used`
+- `limit`
+- `isFull`
+- `usageRatio`
+
+## Agent context resources
+
+## `agent://functionalities`
+
+Returns the full functionality catalog grouped by type, including:
+
+- counts and items per type
+- current git branch data
+- memory status
+
+## `agent://functionalities/<type>`
+
+Returns detailed items for one functionality type.
+
+Valid types:
+
+- `coding_style`
+- `folder_structure`
+- `file_map`
+- `architecture`
+- `workflow`
+- `testing`
+- `branch_plan`
+- `constraints`
+
+## `agent://branch/current`
+
+Returns current git branch details and the saved branch plan memory (if one exists).

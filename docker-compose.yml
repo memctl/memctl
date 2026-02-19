@@ -37,6 +37,8 @@ services:
       - TURSO_DATABASE_URL=http://libsql:8080
       - TURSO_AUTH_TOKEN=
       - PNPM_STORE_DIR=/root/.local/share/pnpm/store
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
     depends_on:
       libsql:
         condition: service_healthy

@@ -5,23 +5,208 @@ import { getDb } from "./db";
 import { isValidAdminEmail, sendEmail } from "./email";
 import { AdminMagicLinkEmail } from "@/emails/admin-magic-link";
 import { WelcomeEmail } from "@/emails/welcome";
-import { users } from "@memctl/db/schema";
-import { eq } from "drizzle-orm";
+import { users, organizations, organizationMembers } from "@memctl/db/schema";
+import { and, eq } from "drizzle-orm";
 
-let _auth: ReturnType<typeof betterAuth> | null = null;
+type AuthInstance = ReturnType<typeof betterAuth>;
+type GetSessionArgs = Parameters<AuthInstance["api"]["getSession"]>[0];
+type SessionResult = Awaited<ReturnType<AuthInstance["api"]["getSession"]>>;
+
+let _auth: AuthInstance | null = null;
+let _apiProxy: AuthInstance["api"] | null = null;
+let _devBypassLogged = false;
+
+export function getAuthInstance(): AuthInstance {
+  if (!_auth) _auth = createAuth();
+  return _auth;
+}
+
+function isDevAuthBypassEnabled() {
+  return (
+    process.env.NODE_ENV === "development" &&
+    (process.env.DEV_AUTH_BYPASS === "true" ||
+      process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true")
+  );
+}
+
+function getDevBypassConfig() {
+  return {
+    userId: process.env.DEV_AUTH_BYPASS_USER_ID ?? "dev-auth-user",
+    userName: process.env.DEV_AUTH_BYPASS_USER_NAME ?? "Dev User",
+    userEmail:
+      process.env.DEV_AUTH_BYPASS_USER_EMAIL ?? "dev@local.memctl.test",
+    orgId: process.env.DEV_AUTH_BYPASS_ORG_ID ?? "dev-auth-org",
+    orgName: process.env.DEV_AUTH_BYPASS_ORG_NAME ?? "Dev Organization",
+    orgSlug:
+      process.env.DEV_AUTH_BYPASS_ORG_SLUG ??
+      process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS_ORG_SLUG ??
+      "dev-org",
+    asAdmin: process.env.DEV_AUTH_BYPASS_ADMIN === "true",
+  };
+}
+
+async function ensureDevBypassSession(): Promise<SessionResult> {
+  if (!isDevAuthBypassEnabled()) return null;
+
+  const db = getDb();
+  const config = getDevBypassConfig();
+  const now = new Date();
+
+  let [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, config.userId))
+    .limit(1);
+
+  if (!user) {
+    try {
+      await db.insert(users).values({
+        id: config.userId,
+        name: config.userName,
+        email: config.userEmail,
+        isAdmin: config.asAdmin,
+        onboardingCompleted: true,
+      });
+    } catch {
+      // Ignore races/uniques and re-select below.
+    }
+  }
+
+  [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, config.userId))
+    .limit(1);
+
+  if (!user) {
+    [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, config.userEmail))
+      .limit(1);
+  }
+
+  if (!user) return null;
+
+  if (!!user.isAdmin !== config.asAdmin) {
+    await db
+      .update(users)
+      .set({ isAdmin: config.asAdmin })
+      .where(eq(users.id, user.id));
+  }
+
+  let [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, config.orgSlug))
+    .limit(1);
+
+  if (!org) {
+    try {
+      await db.insert(organizations).values({
+        id: config.orgId,
+        name: config.orgName,
+        slug: config.orgSlug,
+        ownerId: user.id,
+      });
+    } catch {
+      // Ignore races/uniques and re-select below.
+    }
+
+    [org] = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.slug, config.orgSlug))
+      .limit(1);
+  }
+
+  if (!org) return null;
+
+  const [membership] = await db
+    .select()
+    .from(organizationMembers)
+    .where(
+      and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, user.id),
+      ),
+    )
+    .limit(1);
+
+  if (!membership) {
+    try {
+      await db.insert(organizationMembers).values({
+        id: `dev-member-${org.id}-${user.id}`,
+        orgId: org.id,
+        userId: user.id,
+        role: "owner",
+      });
+    } catch {
+      // Ignore races/uniques.
+    }
+  }
+
+  return {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      image: user.avatarUrl,
+      createdAt: user.createdAt ?? now,
+      updatedAt: user.updatedAt ?? now,
+    },
+    session: {
+      id: "dev-auth-bypass-session",
+      userId: user.id,
+      token: "dev-auth-bypass-token",
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      ipAddress: "127.0.0.1",
+      userAgent: "dev-auth-bypass",
+      createdAt: now,
+      updatedAt: now,
+    },
+  } as SessionResult;
+}
+
+async function getSessionWithDevBypass(
+  args: GetSessionArgs,
+): Promise<SessionResult> {
+  const authInstance = getAuthInstance();
+
+  const session = await authInstance.api.getSession(args);
+  if (session || !isDevAuthBypassEnabled()) return session;
+
+  const bypassSession = await ensureDevBypassSession();
+  if (bypassSession && !_devBypassLogged) {
+    const config = getDevBypassConfig();
+    console.log(
+      `[DEV AUTH BYPASS] Active as ${config.userEmail}. Open /org/${config.orgSlug}`,
+    );
+    _devBypassLogged = true;
+  }
+
+  return bypassSession;
+}
 
 function createAuth() {
+  const githubClientId = process.env.GITHUB_CLIENT_ID?.trim();
+  const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
+  const socialProviders =
+    githubClientId && githubClientSecret
+      ? {
+          github: {
+            clientId: githubClientId,
+            clientSecret: githubClientSecret,
+            scope: ["user:email"],
+          },
+        }
+      : {};
+
   return betterAuth({
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
     }),
-    socialProviders: {
-      github: {
-        clientId: process.env.GITHUB_CLIENT_ID!,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-        scope: ["user:email"],
-      },
-    },
+    socialProviders,
     session: {
       cookieCache: {
         enabled: true,
@@ -35,6 +220,13 @@ function createAuth() {
           const validation = isValidAdminEmail(email);
           if (!validation.valid) {
             throw new Error(validation.error);
+          }
+
+          if (process.env.NODE_ENV === "development" && !process.env.RESEND_API_KEY) {
+            console.log("\n[DEV MAGIC LINK] ------------------------------");
+            console.log(`   Email: ${email}`);
+            console.log(`   URL:   ${url}`);
+            console.log("-----------------------------------------------\n");
           }
 
           await sendEmail({
@@ -76,8 +268,22 @@ function createAuth() {
 
 export const auth = new Proxy({} as ReturnType<typeof betterAuth>, {
   get(_, prop) {
-    if (!_auth) _auth = createAuth();
-    return (_auth as unknown as Record<string | symbol, unknown>)[prop];
+    const authInstance = getAuthInstance();
+    if (prop === "api") {
+      if (_apiProxy) return _apiProxy;
+
+      _apiProxy = new Proxy(authInstance.api, {
+        get(apiTarget, apiProp) {
+          if (apiProp === "getSession") {
+            return getSessionWithDevBypass;
+          }
+          return Reflect.get(apiTarget as object, apiProp);
+        },
+      });
+
+      return _apiProxy;
+    }
+    return (authInstance as unknown as Record<string | symbol, unknown>)[prop];
   },
 });
 

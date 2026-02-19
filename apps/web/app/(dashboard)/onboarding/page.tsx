@@ -164,7 +164,7 @@ export default function OnboardingPage() {
 
       next();
       setTimeout(() => {
-        router.push(`/${orgSlug}`);
+        router.push(`/org/${orgSlug}`);
       }, 2000);
     } catch {
       setError("Something went wrong");
@@ -360,13 +360,13 @@ export default function OnboardingPage() {
                       Slug
                     </label>
                     <div className="flex items-stretch overflow-hidden rounded-lg border border-[var(--landing-border)] focus-within:border-[#F97316]/50 focus-within:ring-2 focus-within:ring-[#F97316]/20">
-                      <span className="flex items-center bg-[var(--landing-surface-2)] px-3 font-mono text-xs text-[var(--landing-text-tertiary)]">
-                        memctl.com/
+                      <span className="flex shrink-0 items-center bg-[var(--landing-surface-2)] px-2.5 font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+                        memctl.com/org/
                       </span>
                       <input
                         value={orgSlug}
                         onChange={(e) => setOrgSlug(slugify(e.target.value))}
-                        className="w-full bg-[var(--landing-bg)] px-3 py-2.5 font-mono text-sm text-[var(--landing-text)] focus:outline-none"
+                        className="min-w-0 flex-1 bg-[var(--landing-bg)] px-2.5 py-2.5 font-mono text-sm text-[var(--landing-text)] focus:outline-none"
                       />
                     </div>
                     <p className="mt-1.5 font-mono text-xs text-[var(--landing-text-tertiary)]">

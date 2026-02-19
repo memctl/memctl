@@ -1,32 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import {
-  memories,
-  projects,
-  organizations,
-} from "@memctl/db/schema";
+import { memories } from "@memctl/db/schema";
 import { eq, and, like } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { memoryStoreSchema } from "@memctl/shared/validators";
-
-async function resolveProject(orgSlug: string, projectSlug: string) {
-  const [org] = await db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.slug, orgSlug))
-    .limit(1);
-
-  if (!org) return null;
-
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(and(eq(projects.orgId, org.id), eq(projects.slug, projectSlug)))
-    .limit(1);
-
-  return project ?? null;
-}
+import { getOrgMemoryCapacity, resolveOrgAndProject } from "./capacity-utils";
 
 export async function GET(req: NextRequest) {
   const authResult = await authenticateRequest(req);
@@ -39,10 +18,11 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const project = await resolveProject(orgSlug, projectSlug);
-  if (!project) {
+  const context = await resolveOrgAndProject(orgSlug, projectSlug);
+  if (!context) {
     return jsonError("Project not found", 404);
   }
+  const { project } = context;
 
   const url = new URL(req.url);
   const query = url.searchParams.get("q");
@@ -107,10 +87,11 @@ export async function POST(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const project = await resolveProject(orgSlug, projectSlug);
-  if (!project) {
+  const context = await resolveOrgAndProject(orgSlug, projectSlug);
+  if (!context) {
     return jsonError("Project not found", 404);
   }
+  const { org, project } = context;
 
   const body = await req.json().catch(() => null);
   const parsed = memoryStoreSchema.safeParse(body);
@@ -140,6 +121,17 @@ export async function POST(req: NextRequest) {
       .where(eq(memories.id, existing.id));
 
     return NextResponse.json({ memory: { ...existing, content, updatedAt: new Date() } });
+  }
+
+  const capacity = await getOrgMemoryCapacity(org.id, org.planId);
+  if (capacity.isFull) {
+    const limitText = Number.isFinite(capacity.limit) ? capacity.limit : "∞";
+    return NextResponse.json(
+      {
+        error: `Memory limit reached (${capacity.used}/${limitText}). Delete existing memories before storing new ones.`,
+      },
+      { status: 409 },
+    );
   }
 
   const id = generateId();

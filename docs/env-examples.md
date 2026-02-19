@@ -46,10 +46,25 @@ STRIPE_BUSINESS_PRICE_ID=price_xxx
 STRIPE_SCALE_PRICE_ID=price_xxx
 ```
 
+## Example 3: Local testing without GitHub OAuth
+
+```env
+# Keep database/app values same as Example 1, then set:
+DEV_AUTH_BYPASS=true
+NEXT_PUBLIC_DEV_AUTH_BYPASS=true
+DEV_AUTH_BYPASS_ORG_SLUG=dev-org
+NEXT_PUBLIC_DEV_AUTH_BYPASS_ORG_SLUG=dev-org
+DEV_AUTH_BYPASS_USER_EMAIL=dev@local.memctl.test
+DEV_AUTH_BYPASS_USER_NAME=Dev User
+DEV_AUTH_BYPASS_ADMIN=false
+```
+
+Use this for dashboard testing when you do not want to configure GitHub OAuth credentials locally.
+
 ## Copy/paste quick bootstrap
 
 ```bash
-cp .env.docker .env
+cp .env.example .env
 # edit .env
 docker compose up -d
 docker compose exec web pnpm db:push

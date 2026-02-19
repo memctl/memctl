@@ -56,12 +56,16 @@ export async function POST(req: NextRequest) {
     createdAt: now,
   });
 
-  // Create Stripe customer
-  const customer = await stripe.customers.create({
-    email: session.user.email,
-    name: orgName,
-    metadata: { orgSlug },
-  });
+  // Create Stripe customer (skip if Stripe is not configured)
+  let stripeCustomerId: string | null = null;
+  if (process.env.STRIPE_SECRET_KEY) {
+    const customer = await stripe.customers.create({
+      email: session.user.email,
+      name: orgName,
+      metadata: { orgSlug },
+    });
+    stripeCustomerId = customer.id;
+  }
 
   // Create org
   const orgId = generateId();
@@ -71,7 +75,7 @@ export async function POST(req: NextRequest) {
     slug: orgSlug,
     ownerId: session.user.id,
     planId: "free",
-    stripeCustomerId: customer.id,
+    stripeCustomerId,
     projectLimit: 2,
     memberLimit: 2,
     createdAt: now,

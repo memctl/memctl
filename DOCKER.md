@@ -9,11 +9,12 @@ Run the memctl monorepo locally with Docker Compose — no manual Node, pnpm, or
 ## Quick Start
 
 ```bash
-# 1. Copy the Docker env template
-cp .env.docker .env
+# 1. Copy the env template
+cp .env.example .env
 
 # 2. Fill in your credentials (see sections below)
-#    At minimum: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, BETTER_AUTH_SECRET
+#    At minimum: BETTER_AUTH_SECRET + one auth mode
+#    (GitHub OAuth creds OR DEV_AUTH_BYPASS=true + NEXT_PUBLIC_DEV_AUTH_BYPASS=true)
 
 # 3. Start the dev stack
 docker compose up

@@ -13,10 +13,16 @@ Practical project documentation for local development and testing.
 If you only need to start local testing quickly:
 
 ```bash
-cp .env.docker .env
-# Fill: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, BETTER_AUTH_SECRET
+cp .env.example .env
+# Fill: BETTER_AUTH_SECRET
+# Then choose one auth mode:
+#   - GitHub OAuth: GITHUB_CLIENT_ID + GITHUB_CLIENT_SECRET
+#   - No-GitHub local: DEV_AUTH_BYPASS=true + NEXT_PUBLIC_DEV_AUTH_BYPASS=true
 # Optional for Stripe tests: STRIPE_SECRET_KEY
 
 docker compose up -d
 docker compose exec web pnpm db:push
 ```
+
+For dashboard/admin testing details (OAuth, admin access options), see:
+- [Testing Environment Setup](./testing-environment.md)

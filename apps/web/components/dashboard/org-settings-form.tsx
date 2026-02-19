@@ -5,13 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
 
 interface OrgSettingsFormProps {
   orgSlug: string;
@@ -47,65 +40,82 @@ export function OrgSettingsForm({
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>General</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="space-y-8">
+      <section className="space-y-4">
+        <h2 className="text-sm font-medium text-[var(--landing-text)]">
+          General
+        </h2>
+        <div className="space-y-4">
           <div>
-            <Label>Organization Name</Label>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Organization Name
+            </Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] text-[var(--landing-text)]"
             />
           </div>
           <div>
-            <Label>Slug</Label>
-            <Input value={orgSlug} disabled />
-            <p className="mt-1 font-mono text-xs text-muted-foreground">
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Slug
+            </Label>
+            <Input
+              value={orgSlug}
+              disabled
+              className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)]"
+            />
+            <p className="mt-1 text-xs text-[var(--landing-text-tertiary)]">
               Cannot be changed
             </p>
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Business Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="font-mono text-xs text-muted-foreground">
-            Optional. For tax-deductible purchases and proper invoicing.
+      <div className="border-t border-[var(--landing-border)]" />
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-sm font-medium text-[var(--landing-text)]">
+            Business Details
+          </h2>
+          <p className="mt-0.5 text-xs text-[var(--landing-text-tertiary)]">
+            For tax-deductible purchases and invoicing.
           </p>
+        </div>
+        <div className="space-y-4">
           <div>
-            <Label>Company Name</Label>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Company Name
+            </Label>
             <Input
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="Acme Inc."
+              className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] text-[var(--landing-text)]"
             />
           </div>
           <div>
-            <Label>VAT / Tax ID</Label>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              VAT / Tax ID
+            </Label>
             <Input
               value={taxId}
               onChange={(e) => setTaxId(e.target.value)}
               placeholder="EU123456789"
+              className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] text-[var(--landing-text)]"
             />
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </section>
+
+      <Button
+        onClick={handleSave}
+        disabled={saving}
+        className="bg-[#F97316] text-white hover:bg-[#EA580C]"
+      >
+        {saving ? "Saving..." : "Save changes"}
+      </Button>
     </div>
   );
 }

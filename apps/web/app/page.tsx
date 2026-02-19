@@ -19,6 +19,7 @@ import { BeforeAfter } from "@/components/landing/before-after";
 import { FeatureShowcase } from "@/components/landing/feature-showcase";
 import { TrustBar } from "@/components/landing/trust-bar";
 import { CopyCommand } from "@/components/copy-command";
+import { NoiseTexture } from "@/components/landing/noise-texture";
 
 const STEPS = [
   {
@@ -217,18 +218,34 @@ export default async function HomePage() {
       {/* ================================================================
           SECTION 1 - Hero
           ================================================================ */}
-      <section className="relative">
-        {/* Subtle dot grid texture */}
+      <section className="relative overflow-hidden">
+        {/* ── Layer 1: Diagonal wash from left ── */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          className="pointer-events-none absolute -left-[15%] top-[15%] h-[100%] w-[70%]"
           style={{
-            backgroundImage:
-              "radial-gradient(circle, var(--landing-border) 0.8px, transparent 0.8px)",
-            backgroundSize: "28px 28px",
+            background:
+              "linear-gradient(125deg, rgba(249,115,22,0.2) 0%, rgba(249,115,22,0.15) 40%, transparent 75%)",
+            filter: "blur(80px)",
+            transform: "skewX(-14deg)",
           }}
+          aria-hidden="true"
         />
 
-        <div className="relative mx-auto max-w-[1600px] px-6 pb-20 pt-24 lg:px-8 lg:pb-28 lg:pt-36">
+        {/* ── Layer 2: Noise grain ── */}
+        <NoiseTexture opacity={0.3} size={128} className="z-[1]" />
+
+        {/* ── Layer 3: Edge fade ── */}
+        <div
+          className="pointer-events-none absolute inset-0 z-[2]"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 70% at 35% 45%, transparent 40%, var(--landing-bg) 100%)",
+          }}
+          aria-hidden="true"
+        />
+
+        {/* ── Layer 4: Content ── */}
+        <div className="relative z-10 mx-auto max-w-[1600px] px-6 pb-20 pt-24 lg:px-8 lg:pb-28 lg:pt-36">
           <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
             {/* Left - Copy */}
             <div>
@@ -238,14 +255,14 @@ export default async function HomePage() {
               </div>
 
               <h1 className="animate-fade-in-up text-[clamp(2.75rem,6.5vw,5rem)] font-extrabold leading-[1.05] [animation-delay:100ms]">
-                Give your agents
+                Persistent context
                 <br />
-                <span className="text-[#F97316]">a memory</span>
+                <span className="text-[#F97316]">for every agent</span>
               </h1>
 
               <p className="animate-fade-in-up mt-5 max-w-[520px] text-[clamp(1rem,2vw,1.2rem)] leading-[1.65] text-[var(--landing-text-secondary)] [animation-delay:200ms]">
-                memctl gives your AI agents persistent, branch-aware context.
-                Connected to your repos for indexing, synced across every agent
+                Give your AI coding agents shared, branch-aware memory.
+                Connected to your repos, synced across every IDE and tool
                 via MCP. Every session picks up where the last one left off.
               </p>
 
@@ -274,6 +291,15 @@ export default async function HomePage() {
             </ScrollParallax>
           </div>
         </div>
+
+        {/* ── Layer 5: Bottom fade ── */}
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[11] h-48"
+          style={{
+            background: "linear-gradient(to top, var(--landing-bg), transparent)",
+          }}
+          aria-hidden="true"
+        />
       </section>
 
       {/* ================================================================
@@ -928,7 +954,7 @@ export default async function HomePage() {
               </h2>
               <p className="mx-auto mt-4 max-w-lg text-lg text-[var(--landing-text-secondary)]">
                 Connect your first repo and let your agents remember everything.
-                One command to get started.
+                One command to start.
               </p>
 
               <div className="mt-8 flex justify-center">

@@ -1,38 +1,94 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronRight } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface HeaderProps {
-  user: {
-    name: string;
-    email: string;
-    image?: string | null;
-  };
+  orgSlug: string;
+  orgName?: string;
 }
 
-export function Header({ user }: HeaderProps) {
-  const router = useRouter();
+function buildBreadcrumbs(pathname: string, orgSlug: string, orgName?: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments[0] === "org") {
+    segments.shift();
+  }
+  if (segments[0] === orgSlug) {
+    segments.shift();
+  }
+
+  const crumbs: { label: string; href?: string }[] = [
+    { label: orgName ?? orgSlug, href: `/org/${orgSlug}` },
+  ];
+
+  if (segments.length === 0) {
+    crumbs.push({ label: "Overview", href: `/org/${orgSlug}` });
+  } else {
+    let currentPath = `/org/${orgSlug}`;
+    for (const seg of segments) {
+      currentPath += `/${seg}`;
+      crumbs.push({
+        label: seg.charAt(0).toUpperCase() + seg.slice(1),
+        href: currentPath,
+      });
+    }
+  }
+
+  return crumbs;
+}
+
+export function Header({ orgSlug, orgName }: HeaderProps) {
+  const pathname = usePathname();
+  const crumbs = buildBreadcrumbs(pathname, orgSlug, orgName);
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border px-6">
-      <div />
-      <div className="flex items-center gap-4">
-        <span className="font-mono text-xs text-muted-foreground">
-          {user.email}
+    <header className="flex shrink-0 items-center bg-[var(--landing-bg)] px-8 py-6">
+      <Link href="/" className="flex shrink-0 items-center gap-2 px-2">
+        <span className="font-mono text-sm font-bold text-[var(--landing-text)]">
+          mem<span className="text-[#F97316]">/</span>ctl
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={async () => {
-            await authClient.signOut();
-            router.push("/");
-          }}
-        >
-          Sign out
-        </Button>
-      </div>
+      </Link>
+      <Separator orientation="vertical" className="mx-3 data-[orientation=vertical]:h-4 bg-[var(--landing-border)]" />
+      <Breadcrumb>
+        <BreadcrumbList className="text-sm">
+          {crumbs.map((crumb, i) => {
+            const isLast = i === crumbs.length - 1;
+            return (
+              <span key={`${crumb.href ?? crumb.label}-${i}`} className="contents">
+                {i > 0 && (
+                  <BreadcrumbSeparator className="text-[var(--landing-text-tertiary)]">
+                    <ChevronRight className="size-3.5" />
+                  </BreadcrumbSeparator>
+                )}
+                <BreadcrumbItem>
+                  {isLast ? (
+                    <BreadcrumbPage className="font-medium text-[var(--landing-text)]">
+                      {crumb.label}
+                    </BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink
+                      href={crumb.href}
+                      className="text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text)]"
+                    >
+                      {crumb.label}
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+              </span>
+            );
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
     </header>
   );
 }

@@ -2,6 +2,8 @@ import { render } from "@react-email/components";
 import { AdminMagicLinkEmail } from "@/emails/admin-magic-link";
 import { WelcomeEmail } from "@/emails/welcome";
 import Link from "next/link";
+import { PageHeader } from "@/components/dashboard/shared/page-header";
+import { SectionLabel } from "@/components/dashboard/shared/section-label";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -48,38 +50,23 @@ export default async function EmailPreviewPage({
   const html = await getEmailHtml(selected);
 
   return (
-    <div className="min-h-screen bg-[var(--landing-bg)] text-[var(--landing-text)]">
-      <div className="border-b border-[var(--landing-border)] px-6 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold">
-              <span className="text-[#F97316]">&#9656;</span> Email Previews
-            </h1>
-            <p className="text-xs text-[var(--landing-text-tertiary)]">
-              Preview transactional email templates
-            </p>
-          </div>
-          <Link
-            href="/admin"
-            className="text-sm text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text-secondary)]"
-          >
-            &larr; Back to Admin
-          </Link>
-        </div>
-      </div>
+    <div>
+      <PageHeader
+        badge="Emails"
+        title="Email Previews"
+        description="Preview transactional email templates"
+      />
 
-      <div className="mx-auto flex max-w-6xl gap-6 px-6 py-6">
+      <div className="flex gap-6">
         {/* Template list */}
         <div className="w-56 shrink-0">
-          <p className="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-            Templates
-          </p>
-          <nav className="space-y-1">
+          <SectionLabel>Templates</SectionLabel>
+          <nav className="mt-3 space-y-1">
             {templates.map((t) => (
               <Link
                 key={t.slug}
                 href={`?template=${t.slug}`}
-                className={`block rounded-md px-3 py-2 text-sm transition-colors ${
+                className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
                   selected === t.slug
                     ? "bg-[#F97316]/10 text-[#F97316]"
                     : "text-[var(--landing-text-secondary)] hover:bg-[var(--landing-surface-2)]"
@@ -95,9 +82,9 @@ export default async function EmailPreviewPage({
         </div>
 
         {/* Preview pane */}
-        <div className="flex-1 overflow-hidden rounded-lg border border-[var(--landing-border)]">
-          <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-surface)] px-4 py-2">
-            <span className="text-xs text-[var(--landing-text-tertiary)]">
+        <div className="dash-card flex-1 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-4 py-2">
+            <span className="font-mono text-xs text-[var(--landing-text-tertiary)]">
               {templates.find((t) => t.slug === selected)?.name ?? "Preview"}
             </span>
             <span className="rounded bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
