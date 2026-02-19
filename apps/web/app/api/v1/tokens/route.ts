@@ -5,6 +5,7 @@ import {
   apiTokens,
   organizations,
   organizationMembers,
+  users,
 } from "@memctl/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
@@ -43,25 +44,51 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Organization not found" }, { status: 404 });
   }
 
+  // Check membership and get role
+  const [member] = await db
+    .select()
+    .from(organizationMembers)
+    .where(
+      and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, session.user.id),
+      ),
+    )
+    .limit(1);
+
+  if (!member) {
+    return NextResponse.json({ error: "Not a member" }, { status: 403 });
+  }
+
+  const showAll = req.nextUrl.searchParams.get("all") === "true";
+  const isOwner = member.role === "owner";
+
+  // Owner can view all org tokens; others see only their own
+  const whereConditions =
+    showAll && isOwner
+      ? and(eq(apiTokens.orgId, org.id), isNull(apiTokens.revokedAt))
+      : and(
+          eq(apiTokens.orgId, org.id),
+          eq(apiTokens.userId, session.user.id),
+          isNull(apiTokens.revokedAt),
+        );
+
   const tokens = await db
     .select({
       id: apiTokens.id,
       name: apiTokens.name,
+      userId: apiTokens.userId,
       lastUsedAt: apiTokens.lastUsedAt,
       expiresAt: apiTokens.expiresAt,
       createdAt: apiTokens.createdAt,
       revokedAt: apiTokens.revokedAt,
+      userName: users.name,
     })
     .from(apiTokens)
-    .where(
-      and(
-        eq(apiTokens.orgId, org.id),
-        eq(apiTokens.userId, session.user.id),
-        isNull(apiTokens.revokedAt),
-      ),
-    );
+    .leftJoin(users, eq(apiTokens.userId, users.id))
+    .where(whereConditions);
 
-  return NextResponse.json({ tokens });
+  return NextResponse.json({ tokens, role: member.role });
 }
 
 export async function POST(req: NextRequest) {
@@ -147,10 +174,55 @@ export async function DELETE(req: NextRequest) {
   }
 
   const tokenId = req.nextUrl.searchParams.get("id");
+  const orgSlug = req.nextUrl.searchParams.get("org");
   if (!tokenId) {
     return NextResponse.json({ error: "Token ID required" }, { status: 400 });
   }
 
+  // If org is provided, check if user is owner (can revoke any token)
+  if (orgSlug) {
+    const [org] = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.slug, orgSlug))
+      .limit(1);
+
+    if (org) {
+      const [member] = await db
+        .select()
+        .from(organizationMembers)
+        .where(
+          and(
+            eq(organizationMembers.orgId, org.id),
+            eq(organizationMembers.userId, session.user.id),
+          ),
+        )
+        .limit(1);
+
+      if (member?.role === "owner") {
+        const [token] = await db
+          .select()
+          .from(apiTokens)
+          .where(
+            and(eq(apiTokens.id, tokenId), eq(apiTokens.orgId, org.id)),
+          )
+          .limit(1);
+
+        if (!token) {
+          return NextResponse.json({ error: "Token not found" }, { status: 404 });
+        }
+
+        await db
+          .update(apiTokens)
+          .set({ revokedAt: new Date() })
+          .where(eq(apiTokens.id, tokenId));
+
+        return NextResponse.json({ revoked: true });
+      }
+    }
+  }
+
+  // Default: user can only revoke their own tokens
   const [token] = await db
     .select()
     .from(apiTokens)
