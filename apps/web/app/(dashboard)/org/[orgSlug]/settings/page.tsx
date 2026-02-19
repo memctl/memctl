@@ -45,7 +45,7 @@ export default async function OrgSettingsPage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader badge="Settings" title="Organization Settings" />
+      <PageHeader title="Settings" description="Manage your organization." />
       <OrgSettingsForm
         orgSlug={orgSlug}
         initialName={org.name}

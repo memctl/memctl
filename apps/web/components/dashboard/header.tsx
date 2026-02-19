@@ -1,19 +1,9 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { ThemeSwitcher } from "@/components/landing/theme-switcher";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronRight } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,22 +12,14 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { authClient } from "@/lib/auth-client";
-import { LogOut } from "lucide-react";
 
 interface HeaderProps {
-  user: {
-    name: string;
-    email: string;
-    image?: string | null;
-  };
   orgSlug: string;
   orgName?: string;
 }
 
 function buildBreadcrumbs(pathname: string, orgSlug: string, orgName?: string) {
   const segments = pathname.split("/").filter(Boolean);
-  // Remove "org" and orgSlug from the start
   if (segments[0] === "org") {
     segments.shift();
   }
@@ -61,33 +43,32 @@ function buildBreadcrumbs(pathname: string, orgSlug: string, orgName?: string) {
   return crumbs;
 }
 
-export function Header({ user, orgSlug, orgName }: HeaderProps) {
+export function Header({ orgSlug, orgName }: HeaderProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const crumbs = buildBreadcrumbs(pathname, orgSlug, orgName);
 
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : user.email[0].toUpperCase();
-
   return (
-    <header className="flex h-14 items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-surface)]/80 px-6 backdrop-blur-xl">
-      {/* Breadcrumb */}
+    <header className="flex shrink-0 items-center bg-[var(--landing-bg)] px-8 py-6">
+      <Link href="/" className="flex shrink-0 items-center gap-2 px-2">
+        <span className="font-mono text-sm font-bold text-[var(--landing-text)]">
+          mem<span className="text-[#F97316]">/</span>ctl
+        </span>
+      </Link>
+      <Separator orientation="vertical" className="mx-3 data-[orientation=vertical]:h-4 bg-[var(--landing-border)]" />
       <Breadcrumb>
-        <BreadcrumbList className="font-mono text-xs">
+        <BreadcrumbList className="text-sm">
           {crumbs.map((crumb, i) => {
             const isLast = i === crumbs.length - 1;
             return (
               <span key={crumb.href} className="contents">
-                {i > 0 && <BreadcrumbSeparator>/</BreadcrumbSeparator>}
+                {i > 0 && (
+                  <BreadcrumbSeparator className="text-[var(--landing-text-tertiary)]">
+                    <ChevronRight className="size-3.5" />
+                  </BreadcrumbSeparator>
+                )}
                 <BreadcrumbItem>
                   {isLast ? (
-                    <BreadcrumbPage className="text-[var(--landing-text)]">
+                    <BreadcrumbPage className="font-medium text-[var(--landing-text)]">
                       {crumb.label}
                     </BreadcrumbPage>
                   ) : (
@@ -104,48 +85,6 @@ export function Header({ user, orgSlug, orgName }: HeaderProps) {
           })}
         </BreadcrumbList>
       </Breadcrumb>
-
-      {/* Right side */}
-      <div className="flex items-center gap-3">
-        <ThemeSwitcher />
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[#F97316]">
-              <Avatar className="h-8 w-8 border border-[var(--landing-border)]">
-                {user.image && <AvatarImage src={user.image} alt={user.name} />}
-                <AvatarFallback className="bg-[var(--landing-surface-2)] font-mono text-xs text-[var(--landing-text-secondary)]">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="w-56 rounded-xl border-[var(--landing-border)] bg-[var(--landing-surface)]"
-          >
-            <div className="px-3 py-2">
-              <p className="text-sm font-medium text-[var(--landing-text)]">
-                {user.name}
-              </p>
-              <p className="font-mono text-xs text-[var(--landing-text-tertiary)]">
-                {user.email}
-              </p>
-            </div>
-            <DropdownMenuSeparator className="bg-[var(--landing-border)]" />
-            <DropdownMenuItem
-              className="gap-2 rounded-lg text-sm text-[var(--landing-text-secondary)] transition-colors hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
-              onClick={async () => {
-                await authClient.signOut();
-                router.push("/");
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
     </header>
   );
 }

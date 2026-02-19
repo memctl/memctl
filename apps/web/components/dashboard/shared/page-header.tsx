@@ -6,7 +6,6 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({
-  badge,
   title,
   description,
   children,
@@ -14,12 +13,7 @@ export function PageHeader({
   return (
     <div className="mb-8 flex items-start justify-between">
       <div>
-        {badge && (
-          <span className="mb-2 inline-block font-mono text-[11px] font-medium uppercase tracking-widest text-[#F97316]">
-            {badge}
-          </span>
-        )}
-        <h1 className="font-mono text-2xl font-bold text-[var(--landing-text)]">
+        <h1 className="text-xl font-semibold text-[var(--landing-text)]">
           {title}
         </h1>
         {description && (

@@ -194,7 +194,7 @@ export default async function OrgDashboardPage({
         <div className="mt-3 grid gap-4 sm:grid-cols-3">
           {quickActions.map((action) => (
             <Link key={action.label} href={action.href}>
-              <div className="dash-card glass-border relative flex items-center gap-4 p-4 transition-all hover:border-[#F97316]/30">
+              <div className="dash-card dash-card-interactive glass-border relative flex items-center gap-4 p-4 transition-all hover:border-[#F97316]/30">
                 <div className="rounded-lg bg-[#F97316]/10 p-2.5">
                   <action.icon className="h-5 w-5 text-[#F97316]" />
                 </div>

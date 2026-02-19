@@ -120,14 +120,14 @@ export default async function DashboardLayout({
         userOrgs={userOrgs}
         projects={sidebarProjects}
         totalProjectCount={totalProjectCount}
+        user={session.user}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header
-          user={session.user}
           orgSlug={orgSlug}
           orgName={currentOrg.name}
         />
-        <main className="flex-1 overflow-auto p-8">{children}</main>
+        <main className="flex-1 overflow-auto bg-[var(--landing-bg)] p-8">{children}</main>
       </div>
     </div>
   );

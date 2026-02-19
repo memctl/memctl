@@ -6,15 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
-import { SectionLabel } from "@/components/dashboard/shared/section-label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Key, Copy, Check } from "lucide-react";
 
 interface Token {
@@ -76,121 +67,95 @@ export default function TokensPage() {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-2xl">
       <PageHeader
-        badge="Authentication"
         title="API Tokens"
-        description="Manage API tokens for MCP server authentication."
+        description="Manage tokens for MCP server authentication."
       />
 
-      {/* Create Token */}
-      <div className="dash-card glass-border relative mb-8 p-6">
-        <h2 className="mb-4 font-mono text-sm font-bold text-[var(--landing-text)]">
-          Create Token
-        </h2>
-        <div className="space-y-4">
-          <div>
-            <Label className="text-xs text-[var(--landing-text-secondary)]">
-              Token Name
-            </Label>
-            <Input
-              value={newTokenName}
-              onChange={(e) => setNewTokenName(e.target.value)}
-              placeholder="e.g. Claude Code"
-              className="mt-1 border-[var(--landing-border)] bg-[var(--landing-surface)] text-[var(--landing-text)] focus:border-[#F97316] focus:ring-[#F97316]"
-            />
-          </div>
-          <Button
-            onClick={handleCreate}
-            disabled={loading || !newTokenName}
-            className="bg-[#F97316] text-white hover:bg-[#FB923C]"
-          >
-            {loading ? "Creating..." : "Create Token"}
-          </Button>
-
-          {createdToken && (
-            <div className="glass-border-always glow-orange relative overflow-hidden rounded-xl bg-[var(--landing-code-bg)] p-4">
-              <p className="mb-2 font-mono text-xs font-medium text-[#F97316]">
-                Copy this token now. It won&apos;t be shown again.
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 break-all font-mono text-xs text-[var(--landing-text)]">
-                  {createdToken}
-                </code>
-                <button
-                  onClick={handleCopy}
-                  className="shrink-0 rounded-md border border-[var(--landing-border)] p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[#F97316]"
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-[#F97316]" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+      <div className="flex items-end gap-3">
+        <div className="flex-1">
+          <Label className="text-xs text-[var(--landing-text-secondary)]">
+            Token name
+          </Label>
+          <Input
+            value={newTokenName}
+            onChange={(e) => setNewTokenName(e.target.value)}
+            placeholder="e.g. Claude Code"
+            className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] text-[var(--landing-text)]"
+          />
         </div>
+        <Button
+          onClick={handleCreate}
+          disabled={loading || !newTokenName}
+          className="bg-[#F97316] text-white hover:bg-[#EA580C]"
+        >
+          {loading ? "Creating..." : "Create token"}
+        </Button>
       </div>
 
-      {/* Active Tokens */}
-      <SectionLabel>Active Tokens</SectionLabel>
-      <div className="dash-card mt-3 overflow-hidden">
+      {createdToken && (
+        <div className="mt-4 rounded-lg border border-[#F97316]/20 bg-[#F97316]/5 p-4">
+          <p className="text-xs font-medium text-[#F97316]">
+            Copy this token now. It won&apos;t be shown again.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <code className="flex-1 break-all text-xs text-[var(--landing-text)]">
+              {createdToken}
+            </code>
+            <button
+              onClick={handleCopy}
+              className="shrink-0 rounded-md p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[#F97316]"
+            >
+              {copied ? (
+                <Check className="size-4 text-[#F97316]" />
+              ) : (
+                <Copy className="size-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-10">
+        <h2 className="text-sm font-medium text-[var(--landing-text)]">
+          Active tokens
+        </h2>
         {tokens.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Key className="mb-3 h-8 w-8 text-[var(--landing-text-tertiary)]" />
-            <p className="font-mono text-sm text-[var(--landing-text-tertiary)]">
+          <div className="mt-6 flex flex-col items-center py-12 text-center">
+            <Key className="mb-3 size-6 text-[var(--landing-text-tertiary)]" />
+            <p className="text-sm text-[var(--landing-text-tertiary)]">
               No tokens yet
             </p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                  Name
-                </TableHead>
-                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                  Created
-                </TableHead>
-                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                  Last Used
-                </TableHead>
-                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tokens.map((token) => (
-                <TableRow
-                  key={token.id}
-                  className="border-[var(--landing-border)]"
-                >
-                  <TableCell className="font-mono text-sm font-medium text-[var(--landing-text)]">
+          <div className="mt-4 divide-y divide-[var(--landing-border)]">
+            {tokens.map((token) => (
+              <div
+                key={token.id}
+                className="flex items-center justify-between py-4"
+              >
+                <div>
+                  <p className="text-sm font-medium text-[var(--landing-text)]">
                     {token.name}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-[var(--landing-text-tertiary)]">
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--landing-text-tertiary)]">
+                    Created{" "}
                     {new Date(token.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-[var(--landing-text-tertiary)]">
                     {token.lastUsedAt
-                      ? new Date(token.lastUsedAt).toLocaleDateString()
-                      : "Never"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleRevoke(token.id)}
-                    >
-                      Revoke
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                      ? ` · Last used ${new Date(token.lastUsedAt).toLocaleDateString()}`
+                      : " · Never used"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleRevoke(token.id)}
+                  className="text-xs text-[var(--landing-text-tertiary)] transition-colors hover:text-red-500"
+                >
+                  Revoke
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

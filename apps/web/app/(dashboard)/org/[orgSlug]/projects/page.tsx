@@ -132,7 +132,7 @@ export default async function ProjectsPage({
                 key={project.id}
                 href={`/org/${orgSlug}/projects/${project.slug}`}
               >
-                <div className="dash-card glass-border relative p-5 transition-all hover:border-[#F97316]/30">
+                <div className="dash-card dash-card-interactive glass-border relative p-5 transition-all hover:border-[#F97316]/30">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
                       <h3 className="font-mono text-sm font-bold text-[var(--landing-text)]">

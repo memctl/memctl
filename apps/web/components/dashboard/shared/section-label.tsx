@@ -4,8 +4,8 @@ interface SectionLabelProps {
 
 export function SectionLabel({ children }: SectionLabelProps) {
   return (
-    <span className="font-mono text-[11px] uppercase tracking-widest text-[#F97316]">
+    <h2 className="text-sm font-medium text-[var(--landing-text)]">
       {children}
-    </span>
+    </h2>
   );
 }
