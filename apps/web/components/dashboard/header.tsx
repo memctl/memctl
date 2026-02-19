@@ -64,7 +64,7 @@ export function Header({ orgSlug, orgName }: HeaderProps) {
           {crumbs.map((crumb, i) => {
             const isLast = i === crumbs.length - 1;
             return (
-              <span key={crumb.href} className="contents">
+              <span key={`${crumb.href ?? crumb.label}-${i}`} className="contents">
                 {i > 0 && (
                   <BreadcrumbSeparator className="text-[var(--landing-text-tertiary)]">
                     <ChevronRight className="size-3.5" />
