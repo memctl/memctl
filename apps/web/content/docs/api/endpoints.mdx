@@ -42,6 +42,8 @@ POST /memories
 }
 ```
 
+Returns `409` when project/organization memory capacity is full.
+
 ### Get Memory
 
 ```
@@ -67,6 +69,23 @@ PATCH /memories/:key
 
 ```
 DELETE /memories/:key
+```
+
+### Memory Capacity
+
+```
+GET /memories/capacity
+```
+
+Returns:
+
+```json
+{
+  "used": 123,
+  "limit": 500,
+  "isFull": false,
+  "usageRatio": 0.246
+}
 ```
 
 ## Organizations

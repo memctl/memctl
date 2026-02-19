@@ -57,6 +57,15 @@ export class ApiClient {
     return this.request("GET", `/memories?limit=${limit}&offset=${offset}`);
   }
 
+  async getMemoryCapacity() {
+    return this.request<{
+      used: number;
+      limit: number;
+      isFull: boolean;
+      usageRatio: number | null;
+    }>("GET", "/memories/capacity");
+  }
+
   async deleteMemory(key: string) {
     return this.request("DELETE", `/memories/${encodeURIComponent(key)}`);
   }

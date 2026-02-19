@@ -31,9 +31,9 @@ export function NoiseTexture({
     const d = imageData.data;
 
     for (let i = 0; i < d.length; i += 4) {
-      // Random value with slight bias toward extremes for more contrast
+      // Stronger contrast: push values harder toward black/white
       const raw = Math.random();
-      const pushed = raw < 0.5 ? raw * 0.7 : 1 - (1 - raw) * 0.7;
+      const pushed = raw < 0.5 ? raw * 0.4 : 1 - (1 - raw) * 0.4;
       const v = pushed * 255;
 
       // Slight warm tint (adds 5-8% more to red channel)

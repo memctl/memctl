@@ -5,70 +5,49 @@ description: Reference for all mem/ctl MCP tools
 
 # MCP Tools
 
-mem/ctl exposes the following tools via the Model Context Protocol.
+mem/ctl exposes memory CRUD tools plus structured agent-context tools that can replace static `AGENTS.md` / `CLAUDE.md` guidance.
 
-## memory_store
+## Memory tools
 
-Store a key-value memory for the current project. If a memory with the same key exists, it will be updated.
+| Tool | Description |
+|---|---|
+| `memory_store` | Store a key-value memory (upsert by key) |
+| `memory_get` | Retrieve a memory by key |
+| `memory_search` | Search memories by key/content |
+| `memory_list` | List memories with pagination |
+| `memory_delete` | Delete a memory by key |
+| `memory_update` | Update content and/or metadata |
+| `memory_capacity` | Return memory usage, plan limit, and full/available status |
 
-**Parameters:**
+## Agent functionality tools
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `key` | string | Yes | Unique key for the memory (max 256 chars) |
-| `content` | string | Yes | Content to store (max 65,536 chars) |
-| `metadata` | object | No | Optional metadata object |
+These tools provide typed, queryable project guidance for AI agents:
 
-## memory_get
+| Type | Purpose |
+|---|---|
+| `coding_style` | Naming, formatting, review rules |
+| `folder_structure` | Repository layout and domain boundaries |
+| `file_map` | Where to find key files/features |
+| `architecture` | System design and module responsibilities |
+| `workflow` | Branch/PR/deploy process |
+| `testing` | Test expectations and locations |
+| `branch_plan` | What to implement on a branch |
+| `constraints` | Hard limits and non-goals |
 
-Retrieve a single memory by its key.
+| Tool | Description |
+|---|---|
+| `agent_functionality_list` | List available types and saved items, with memory status and current branch |
+| `agent_functionality_get` | Get detailed items for a type, or one specific item |
+| `agent_functionality_set` | Create/update structured functionality data |
+| `agent_functionality_delete` | Delete a structured functionality item |
+| `branch_context_get` | Get branch metadata and branch plan memory |
+| `branch_context_set` | Save what should be implemented on a branch |
+| `branch_context_delete` | Delete a branch plan memory |
 
-**Parameters:**
+## Memory full behavior
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `key` | string | Yes | Key of the memory to retrieve |
+When plan memory capacity is full:
 
-## memory_search
-
-Search memories by query string. Searches both keys and content.
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `query` | string | Yes | Search query |
-| `limit` | number | No | Max results (default: 20, max: 100) |
-
-## memory_list
-
-List all memories for the current project.
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `limit` | number | No | Max results (default: 100, max: 100) |
-| `offset` | number | No | Pagination offset (default: 0) |
-
-## memory_delete
-
-Delete a memory by its key.
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `key` | string | Yes | Key of the memory to delete |
-
-## memory_update
-
-Update an existing memory's content or metadata.
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `key` | string | Yes | Key of the memory to update |
-| `content` | string | No | New content |
-| `metadata` | object | No | New metadata |
+- `memory_store`, `agent_functionality_set`, and `branch_context_set` will return an error.
+- The error message tells the agent to delete unused memories first.
+- Use `memory_capacity` to check current usage and limit.

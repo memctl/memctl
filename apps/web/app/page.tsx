@@ -232,7 +232,7 @@ export default async function HomePage() {
         />
 
         {/* ── Layer 2: Noise grain ── */}
-        <NoiseTexture opacity={0.15} className="z-[1]" />
+        <NoiseTexture opacity={0.3} size={128} className="z-[1]" />
 
         {/* ── Layer 3: Edge fade ── */}
         <div
