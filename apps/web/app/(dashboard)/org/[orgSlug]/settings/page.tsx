@@ -44,14 +44,16 @@ export default async function OrgSettingsPage({
   if (!member || member.role === "member") redirect(`/org/${orgSlug}`);
 
   return (
-    <div className="max-w-2xl">
+    <div className="mx-auto max-w-2xl">
       <PageHeader title="Settings" description="Manage your organization." />
-      <OrgSettingsForm
-        orgSlug={orgSlug}
-        initialName={org.name}
-        initialCompanyName={org.companyName ?? ""}
-        initialTaxId={org.taxId ?? ""}
-      />
+      <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+        <OrgSettingsForm
+          orgSlug={orgSlug}
+          initialName={org.name}
+          initialCompanyName={org.companyName ?? ""}
+          initialTaxId={org.taxId ?? ""}
+        />
+      </div>
     </div>
   );
 }

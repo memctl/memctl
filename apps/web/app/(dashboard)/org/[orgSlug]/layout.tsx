@@ -127,7 +127,7 @@ export default async function DashboardLayout({
           orgSlug={orgSlug}
           orgName={currentOrg.name}
         />
-        <main className="flex-1 overflow-auto bg-[var(--landing-bg)] p-8">{children}</main>
+        <main className="flex-1 overflow-auto bg-[var(--landing-bg)] px-8 py-6">{children}</main>
       </div>
     </div>
   );

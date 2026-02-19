@@ -57,57 +57,62 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="max-w-md">
-      <PageHeader title="New project" />
+    <div className="mx-auto max-w-lg">
+      <PageHeader
+        title="New project"
+        description="Create a project to organize your memories and API access."
+      />
 
-      <div className="space-y-4">
-        <div>
-          <Label className="text-xs text-[var(--landing-text-secondary)]">
-            Project name
-          </Label>
-          <Input
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setSlug(slugify(e.target.value));
-            }}
-            placeholder="My App"
-            className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] text-[var(--landing-text)]"
-          />
+      <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+        <div className="space-y-4">
+          <div>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Project name
+            </Label>
+            <Input
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setSlug(slugify(e.target.value));
+              }}
+              placeholder="My App"
+              className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] text-[var(--landing-text)]"
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Slug
+            </Label>
+            <Input
+              value={slug}
+              onChange={(e) => setSlug(slugify(e.target.value))}
+              placeholder="my-app"
+              className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] font-mono text-[var(--landing-text)]"
+            />
+            <p className="mt-1 text-xs text-[var(--landing-text-tertiary)]">
+              Used in MCP config as MEMCTL_PROJECT
+            </p>
+          </div>
+          <div>
+            <Label className="text-xs text-[var(--landing-text-secondary)]">
+              Description
+            </Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this project about?"
+              className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] text-[var(--landing-text)]"
+            />
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <Button
+            onClick={handleCreate}
+            disabled={saving || !name || !slug}
+            className="w-full bg-[#F97316] text-white hover:bg-[#EA580C]"
+          >
+            {saving ? "Creating..." : "Create project"}
+          </Button>
         </div>
-        <div>
-          <Label className="text-xs text-[var(--landing-text-secondary)]">
-            Slug
-          </Label>
-          <Input
-            value={slug}
-            onChange={(e) => setSlug(slugify(e.target.value))}
-            placeholder="my-app"
-            className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] font-mono text-[var(--landing-text)]"
-          />
-          <p className="mt-1 text-xs text-[var(--landing-text-tertiary)]">
-            Used in MCP config as MEMCTL_PROJECT
-          </p>
-        </div>
-        <div>
-          <Label className="text-xs text-[var(--landing-text-secondary)]">
-            Description
-          </Label>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What is this project about?"
-            className="mt-1.5 border-[var(--landing-border)] bg-[var(--landing-bg)] text-[var(--landing-text)]"
-          />
-        </div>
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        <Button
-          onClick={handleCreate}
-          disabled={saving || !name || !slug}
-          className="w-full bg-[#F97316] text-white hover:bg-[#EA580C]"
-        >
-          {saving ? "Creating..." : "Create project"}
-        </Button>
       </div>
     </div>
   );

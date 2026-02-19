@@ -31,13 +31,17 @@ function buildBreadcrumbs(pathname: string, orgSlug: string, orgName?: string) {
     { label: orgName ?? orgSlug, href: `/org/${orgSlug}` },
   ];
 
-  let currentPath = `/org/${orgSlug}`;
-  for (const seg of segments) {
-    currentPath += `/${seg}`;
-    crumbs.push({
-      label: seg.charAt(0).toUpperCase() + seg.slice(1),
-      href: currentPath,
-    });
+  if (segments.length === 0) {
+    crumbs.push({ label: "Overview", href: `/org/${orgSlug}` });
+  } else {
+    let currentPath = `/org/${orgSlug}`;
+    for (const seg of segments) {
+      currentPath += `/${seg}`;
+      crumbs.push({
+        label: seg.charAt(0).toUpperCase() + seg.slice(1),
+        href: currentPath,
+      });
+    }
   }
 
   return crumbs;

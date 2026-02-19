@@ -59,7 +59,7 @@ export default async function BillingPage({
     val === Infinity ? "Unlimited" : val.toLocaleString();
 
   return (
-    <div className="max-w-3xl">
+    <div className="mx-auto max-w-4xl">
       <PageHeader
         title="Billing"
         description="Manage your subscription and plan."

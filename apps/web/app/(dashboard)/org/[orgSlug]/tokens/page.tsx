@@ -67,7 +67,7 @@ export default function TokensPage() {
   };
 
   return (
-    <div className="max-w-2xl">
+    <div className="mx-auto max-w-2xl">
       <PageHeader
         title="API Tokens"
         description="Manage tokens for MCP server authentication."
