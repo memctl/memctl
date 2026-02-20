@@ -48,7 +48,25 @@ export default async function OrgSettingsPage({
     )
     .limit(1);
 
-  if (!member || member.role === "member") redirect(`/org/${orgSlug}`);
+  if (!member) redirect("/");
+
+  if (member.role === "member") {
+    return (
+      <div className="mx-auto max-w-4xl">
+        <PageHeader title="Settings" description="Manage your organization." />
+        <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <h2 className="mb-2 font-mono text-base font-semibold text-[var(--landing-text)]">
+              You don&apos;t have permission to view this page.
+            </h2>
+            <p className="text-sm text-[var(--landing-text-tertiary)]">
+              Contact your organization owner or admin.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [[projectCount], [memberCount]] = await Promise.all([
     db

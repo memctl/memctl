@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug);
+  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
   if (!context) return jsonError("Project not found", 404);
 
   const url = new URL(req.url);

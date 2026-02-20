@@ -87,4 +87,12 @@ export const memberInviteSchema = z.object({
   role: z.enum(ORG_ROLES).default("member"),
 });
 
+export const memberRoleUpdateSchema = z.object({
+  role: z.enum(["admin", "member"]),
+});
+
+export const projectAssignmentSchema = z.object({
+  projectIds: z.array(z.string().min(1)).default([]),
+});
+
 export const planIdSchema = z.enum(PLAN_IDS);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, jsonError } from "@/lib/api-middleware";
+import { authenticateRequest, requireOrgMembership, checkProjectAccess, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, organizations, projects } from "@memctl/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
@@ -31,6 +31,9 @@ export async function GET(req: NextRequest) {
   const org = await resolveOrg(orgSlug);
   if (!org) return jsonError("Organization not found", 404);
 
+  const role = await requireOrgMembership(authResult.userId, org.id);
+  if (!role) return jsonError("Not a member", 403);
+
   const { searchParams } = new URL(req.url);
   const slugA = searchParams.get("project_a");
   const slugB = searchParams.get("project_b");
@@ -58,6 +61,14 @@ export async function GET(req: NextRequest) {
 
   if (!projectA) return jsonError(`Project '${slugA}' not found in org`, 404);
   if (!projectB) return jsonError(`Project '${slugB}' not found in org`, 404);
+
+  // Check access to both projects for members
+  const [hasAccessA, hasAccessB] = await Promise.all([
+    checkProjectAccess(authResult.userId, projectA.id, role),
+    checkProjectAccess(authResult.userId, projectB.id, role),
+  ]);
+  if (!hasAccessA) return jsonError(`Project '${slugA}' not found in org`, 404);
+  if (!hasAccessB) return jsonError(`Project '${slugB}' not found in org`, 404);
 
   // Load non-archived memories from each project
   const [memoriesA, memoriesB] = await Promise.all([

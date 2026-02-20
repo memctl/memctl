@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { memories, organizations, projects } from "@memctl/db/schema";
+import { memories, organizations, organizationMembers, projectMembers, projects } from "@memctl/db/schema";
 import { PLAN_IDS, PLANS, type PlanId } from "@memctl/shared/constants";
 import { and, count, eq, inArray, isNull } from "drizzle-orm";
 
@@ -10,6 +10,7 @@ function isPlanId(value: string): value is PlanId {
 export async function resolveOrgAndProject(
   orgSlug: string,
   projectSlug: string,
+  userId?: string,
 ) {
   const [org] = await db
     .select()
@@ -26,6 +27,39 @@ export async function resolveOrgAndProject(
     .limit(1);
 
   if (!project) return null;
+
+  // If userId provided, check project-level access for members
+  if (userId) {
+    const [member] = await db
+      .select()
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.orgId, org.id),
+          eq(organizationMembers.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (!member) return null;
+
+    // Owner/admin bypass project-level checks
+    if (member.role === "member") {
+      const [assignment] = await db
+        .select()
+        .from(projectMembers)
+        .where(
+          and(
+            eq(projectMembers.projectId, project.id),
+            eq(projectMembers.userId, userId),
+          ),
+        )
+        .limit(1);
+
+      if (!assignment) return null;
+    }
+  }
+
   return { org, project };
 }
 

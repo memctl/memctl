@@ -1,28 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, memoryVersions, projects, organizations } from "@memctl/db/schema";
+import { memories, memoryVersions } from "@memctl/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { memoryUpdateSchema } from "@memctl/shared/validators";
 import { generateId } from "@/lib/utils";
-
-async function resolveProject(orgSlug: string, projectSlug: string) {
-  const [org] = await db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.slug, orgSlug))
-    .limit(1);
-
-  if (!org) return null;
-
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(and(eq(projects.orgId, org.id), eq(projects.slug, projectSlug)))
-    .limit(1);
-
-  return project ?? null;
-}
+import { resolveOrgAndProject } from "../capacity-utils";
 
 export async function GET(
   req: NextRequest,
@@ -39,8 +22,9 @@ export async function GET(
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const project = await resolveProject(orgSlug, projectSlug);
-  if (!project) return jsonError("Project not found", 404);
+  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  if (!context) return jsonError("Project not found", 404);
+  const { project } = context;
 
   const [memory] = await db
     .select()
@@ -82,8 +66,9 @@ export async function PATCH(
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const project = await resolveProject(orgSlug, projectSlug);
-  if (!project) return jsonError("Project not found", 404);
+  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  if (!context) return jsonError("Project not found", 404);
+  const { project } = context;
 
   const body = await req.json().catch(() => null);
   const parsed = memoryUpdateSchema.safeParse(body);
@@ -152,8 +137,9 @@ export async function DELETE(
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const project = await resolveProject(orgSlug, projectSlug);
-  if (!project) return jsonError("Project not found", 404);
+  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  if (!context) return jsonError("Project not found", 404);
+  const { project } = context;
 
   const decodedKey = decodeURIComponent(key);
   const [existing] = await db

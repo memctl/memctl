@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 import {
   organizations,
   organizationMembers,
+  projectMembers,
+  projects,
   users,
 } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -25,6 +27,8 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar";
+import { MemberRowActions } from "@/components/dashboard/members/member-row-actions";
+import { Shield, ShieldAlert, Lock } from "lucide-react";
 
 const roleBadgeStyles: Record<string, string> = {
   owner:
@@ -68,10 +72,37 @@ export default async function MembersPage({
 
   if (!currentMember) redirect("/");
 
+  const isManager =
+    currentMember.role === "owner" || currentMember.role === "admin";
+
+  // Show access denied for regular members
+  if (!isManager) {
+    return (
+      <div>
+        <PageHeader badge="Team" title="Members" />
+        <div className="dash-card flex flex-col items-center justify-center py-16 text-center">
+          <Lock className="mb-4 h-10 w-10 text-[var(--landing-text-tertiary)]" />
+          <h2 className="mb-2 font-mono text-base font-semibold text-[var(--landing-text)]">
+            You don&apos;t have permission to view this page.
+          </h2>
+          <p className="text-sm text-[var(--landing-text-tertiary)]">
+            Contact your organization owner or admin.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const members = await db
     .select()
     .from(organizationMembers)
     .where(eq(organizationMembers.orgId, org.id));
+
+  // Fetch all org projects for assignment UI
+  const orgProjects = await db
+    .select({ id: projects.id, name: projects.name, slug: projects.slug })
+    .from(projects)
+    .where(eq(projects.orgId, org.id));
 
   const memberUsers = await Promise.all(
     members.map(async (m) => {
@@ -80,9 +111,42 @@ export default async function MembersPage({
         .from(users)
         .where(eq(users.id, m.userId))
         .limit(1);
-      return { ...m, user };
+
+      const assignments = await db
+        .select({ projectId: projectMembers.projectId })
+        .from(projectMembers)
+        .where(eq(projectMembers.userId, m.userId));
+
+      return {
+        ...m,
+        user: user ?? null,
+        projectIds: assignments.map((a) => a.projectId),
+      };
     }),
   );
+
+  // Serialize dates for client components
+  const serializedMembers = memberUsers.map((m) => ({
+    id: m.id,
+    userId: m.userId,
+    role: m.role,
+    createdAt: m.createdAt.toISOString(),
+    user: m.user
+      ? {
+          id: m.user.id,
+          name: m.user.name,
+          email: m.user.email,
+          avatarUrl: m.user.avatarUrl,
+        }
+      : null,
+    projectIds: m.projectIds,
+  }));
+
+  const serializedProjects = orgProjects.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+  }));
 
   return (
     <div>
@@ -106,8 +170,12 @@ export default async function MembersPage({
                 Role
               </TableHead>
               <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                Projects
+              </TableHead>
+              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Joined
               </TableHead>
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -120,6 +188,11 @@ export default async function MembersPage({
                     .toUpperCase()
                     .slice(0, 2)
                 : "?";
+
+              const projectCount = member.projectIds.length;
+              const isOwnerOrAdmin =
+                member.role === "owner" || member.role === "admin";
+
               return (
                 <TableRow
                   key={member.id}
@@ -155,8 +228,30 @@ export default async function MembersPage({
                       {member.role}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    {isOwnerOrAdmin ? (
+                      <span className="font-mono text-xs text-[var(--landing-text-tertiary)]">
+                        All projects
+                      </span>
+                    ) : (
+                      <span className="font-mono text-xs text-[var(--landing-text-secondary)]">
+                        {projectCount}{" "}
+                        {projectCount === 1 ? "project" : "projects"}
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="font-mono text-xs text-[var(--landing-text-tertiary)]">
                     {member.createdAt.toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <MemberRowActions
+                      member={serializedMembers.find(
+                        (sm) => sm.id === member.id,
+                      )!}
+                      currentUserId={session.user.id}
+                      orgSlug={orgSlug}
+                      projects={serializedProjects}
+                    />
                   </TableCell>
                 </TableRow>
               );

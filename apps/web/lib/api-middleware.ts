@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyJwt, getCachedSession, setCachedSession } from "./jwt";
 import { db } from "./db";
-import { sessions, organizationMembers } from "@memctl/db/schema";
-import { eq, and } from "drizzle-orm";
+import { sessions, organizationMembers, projectMembers, projects } from "@memctl/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 
 export interface AuthContext {
   userId: string;
@@ -83,6 +83,57 @@ export async function requireOrgMembership(
     .limit(1);
 
   return member?.role ?? null;
+}
+
+export async function checkProjectAccess(
+  userId: string,
+  projectId: string,
+  orgRole: string,
+): Promise<boolean> {
+  if (orgRole === "owner" || orgRole === "admin") return true;
+
+  const [assignment] = await db
+    .select()
+    .from(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.userId, userId),
+      ),
+    )
+    .limit(1);
+
+  return !!assignment;
+}
+
+export async function getAccessibleProjectIds(
+  userId: string,
+  orgId: string,
+  orgRole: string,
+): Promise<string[] | null> {
+  if (orgRole === "owner" || orgRole === "admin") return null; // null = all projects
+
+  const orgProjects = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.orgId, orgId));
+
+  if (orgProjects.length === 0) return [];
+
+  const assignments = await db
+    .select({ projectId: projectMembers.projectId })
+    .from(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.userId, userId),
+        inArray(
+          projectMembers.projectId,
+          orgProjects.map((p) => p.id),
+        ),
+      ),
+    );
+
+  return assignments.map((a) => a.projectId);
 }
 
 export function jsonError(message: string, status: number) {

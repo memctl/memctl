@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug);
+  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
   if (!context) return jsonError("Project not found", 404);
 
   const body = await req.json().catch(() => null);

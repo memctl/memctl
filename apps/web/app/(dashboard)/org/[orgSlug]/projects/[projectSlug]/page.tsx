@@ -8,6 +8,7 @@ import {
   projects,
   memories,
   organizationMembers,
+  projectMembers,
 } from "@memctl/db/schema";
 import { eq, and, isNull, desc } from "drizzle-orm";
 import Link from "next/link";
@@ -75,6 +76,8 @@ export default async function ProjectDetailPage({
 
   if (!member) redirect("/");
 
+  const isMember = member.role === "member";
+
   const [project] = await db
     .select()
     .from(projects)
@@ -84,6 +87,22 @@ export default async function ProjectDetailPage({
     .limit(1);
 
   if (!project) redirect(`/org/${orgSlug}`);
+
+  // Check project-level access for members
+  if (isMember) {
+    const [assignment] = await db
+      .select()
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.projectId, project.id),
+          eq(projectMembers.userId, session.user.id),
+        ),
+      )
+      .limit(1);
+
+    if (!assignment) redirect(`/org/${orgSlug}`);
+  }
 
   const memoryList = await db
     .select()
@@ -139,15 +158,17 @@ export default async function ProjectDetailPage({
             </span>
           )}
         </div>
-        <Link href={`/org/${orgSlug}/projects/${projectSlug}/settings`}>
-          <Button
-            variant="outline"
-            className="gap-2 border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
-          >
-            <Settings className="h-4 w-4" />
-            Settings
-          </Button>
-        </Link>
+        {!isMember && (
+          <Link href={`/org/${orgSlug}/projects/${projectSlug}/settings`}>
+            <Button
+              variant="outline"
+              className="gap-2 border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </Link>
+        )}
       </PageHeader>
 
       {/* MCP Configuration */}

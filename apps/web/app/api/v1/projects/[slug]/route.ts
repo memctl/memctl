@@ -5,6 +5,7 @@ import {
   projects,
   organizations,
   organizationMembers,
+  projectMembers,
   memories,
 } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -61,6 +62,24 @@ export async function GET(
 
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  // Check project-level access for members
+  if (member.role === "member") {
+    const [assignment] = await db
+      .select()
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.projectId, project.id),
+          eq(projectMembers.userId, session.user.id),
+        ),
+      )
+      .limit(1);
+
+    if (!assignment) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
   }
 
   return NextResponse.json({ project });
@@ -191,7 +210,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  // Delete all memories first
+  // Delete project assignments (also handled by CASCADE)
+  await db.delete(projectMembers).where(eq(projectMembers.projectId, project.id));
+  // Delete all memories
   await db.delete(memories).where(eq(memories.projectId, project.id));
   // Then the project
   await db.delete(projects).where(eq(projects.id, project.id));

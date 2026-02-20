@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, jsonError } from "@/lib/api-middleware";
+import { authenticateRequest, requireOrgMembership, getAccessibleProjectIds, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, organizations, projects } from "@memctl/db/schema";
 import { eq, and, isNull, or, like } from "drizzle-orm";
@@ -31,6 +31,11 @@ export async function GET(req: NextRequest) {
   const org = await resolveOrg(orgSlug);
   if (!org) return jsonError("Organization not found", 404);
 
+  const role = await requireOrgMembership(authResult.userId, org.id);
+  if (!role) return jsonError("Not a member", 403);
+
+  const accessibleIds = await getAccessibleProjectIds(authResult.userId, org.id, role);
+
   const { searchParams } = new URL(req.url);
   const query = searchParams.get("q") ?? "";
   const limit = Math.min(Number(searchParams.get("limit") ?? "50"), 200);
@@ -39,11 +44,16 @@ export async function GET(req: NextRequest) {
     return jsonError("Query parameter 'q' is required", 400);
   }
 
-  // Get all projects in org
-  const orgProjects = await db
+  // Get all projects in org, filtered by access
+  let orgProjects = await db
     .select({ id: projects.id, slug: projects.slug, name: projects.name })
     .from(projects)
     .where(eq(projects.orgId, org.id));
+
+  if (accessibleIds !== null) {
+    const idSet = new Set(accessibleIds);
+    orgProjects = orgProjects.filter((p) => idSet.has(p.id));
+  }
 
   if (orgProjects.length === 0) {
     return NextResponse.json({ results: [], projectsSearched: 0, totalMatches: 0 });

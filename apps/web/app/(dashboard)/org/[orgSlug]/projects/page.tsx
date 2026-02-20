@@ -10,8 +10,9 @@ import {
   projects,
   memories,
   organizationMembers,
+  projectMembers,
 } from "@memctl/db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
@@ -64,18 +65,68 @@ export default async function ProjectsPage({
 
   if (!member) redirect("/");
 
+  const isMember = member.role === "member";
+
+  // For members, get accessible project IDs
+  let accessibleIds: string[] | null = null;
+  if (isMember) {
+    const assignments = await db
+      .select({ projectId: projectMembers.projectId })
+      .from(projectMembers)
+      .where(eq(projectMembers.userId, session.user.id));
+
+    const orgProjectIds = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.orgId, org.id));
+
+    const orgIdSet = new Set(orgProjectIds.map((p) => p.id));
+    accessibleIds = assignments
+      .map((a) => a.projectId)
+      .filter((id) => orgIdSet.has(id));
+  }
+
+  const projectFilter = accessibleIds !== null
+    ? accessibleIds.length > 0
+      ? and(eq(projects.orgId, org.id), inArray(projects.id, accessibleIds))
+      : undefined
+    : eq(projects.orgId, org.id);
+
+  // If member has no access, short-circuit
+  if (accessibleIds !== null && accessibleIds.length === 0) {
+    return (
+      <div>
+        <PageHeader
+          badge="Projects"
+          title="Projects"
+          description="0 projects assigned"
+        >
+          <Button disabled className="gap-2 cursor-not-allowed opacity-40">
+            <Plus className="h-4 w-4" />
+            New Project
+          </Button>
+        </PageHeader>
+        <EmptyState
+          icon={FolderOpen}
+          title="No projects assigned"
+          description="Contact your organization owner or admin to get access to projects."
+        />
+      </div>
+    );
+  }
+
   // Parallel: get paginated projects + total count
   const [projectList, totalResult] = await Promise.all([
     db
       .select()
       .from(projects)
-      .where(eq(projects.orgId, org.id))
+      .where(projectFilter)
       .limit(perPage)
       .offset(offset),
     db
       .select({ value: count() })
       .from(projects)
-      .where(eq(projects.orgId, org.id)),
+      .where(projectFilter),
   ]);
 
   const total = totalResult[0]?.value ?? 0;
@@ -101,28 +152,40 @@ export default async function ProjectsPage({
       <PageHeader
         badge="Projects"
         title="Projects"
-        description={`${total} / ${org.projectLimit} projects`}
+        description={isMember ? `${total} projects assigned` : `${total} / ${org.projectLimit} projects`}
       >
-        <Link href={`/org/${orgSlug}/projects/new`}>
-          <Button className="gap-2 bg-[#F97316] text-white hover:bg-[#FB923C]">
+        {isMember ? (
+          <Button disabled className="gap-2 cursor-not-allowed opacity-40">
             <Plus className="h-4 w-4" />
             New Project
           </Button>
-        </Link>
+        ) : (
+          <Link href={`/org/${orgSlug}/projects/new`}>
+            <Button className="gap-2 bg-[#F97316] text-white hover:bg-[#FB923C]">
+              <Plus className="h-4 w-4" />
+              New Project
+            </Button>
+          </Link>
+        )}
       </PageHeader>
 
       {total === 0 ? (
         <EmptyState
           icon={FolderOpen}
-          title="No projects yet"
-          description="Create your first project to start storing memories for your AI coding agents."
+          title={isMember ? "No projects assigned" : "No projects yet"}
+          description={isMember
+            ? "Contact your organization owner or admin to get access to projects."
+            : "Create your first project to start storing memories for your AI coding agents."
+          }
         >
-          <Link href={`/org/${orgSlug}/projects/new`}>
-            <Button className="gap-2 bg-[#F97316] text-white hover:bg-[#FB923C]">
-              <Plus className="h-4 w-4" />
-              Create your first project
-            </Button>
-          </Link>
+          {!isMember && (
+            <Link href={`/org/${orgSlug}/projects/new`}>
+              <Button className="gap-2 bg-[#F97316] text-white hover:bg-[#FB923C]">
+                <Plus className="h-4 w-4" />
+                Create your first project
+              </Button>
+            </Link>
+          )}
         </EmptyState>
       ) : (
         <>
