@@ -605,4 +605,58 @@ export class ApiClient {
       newVersion: number;
     }>("POST", "/memories/rollback", { key, steps });
   }
+
+  // ── Cross-Project Org Search ────────────────────────────────────
+
+  async searchOrgMemories(query: string, limit = 50) {
+    const params = new URLSearchParams({
+      q: query,
+      limit: String(limit),
+    });
+    return this.request<{
+      results: Array<{
+        key: string;
+        contentPreview: string;
+        projectSlug: string;
+        projectName: string;
+        priority: number | null;
+        tags: string[] | null;
+        accessCount: number;
+        updatedAt: unknown;
+      }>;
+      grouped: Record<string, Array<{
+        key: string;
+        contentPreview: string;
+        projectSlug: string;
+        projectName: string;
+      }>>;
+      projectsSearched: number;
+      totalMatches: number;
+    }>("GET", `/memories/search-org?${params}`);
+  }
+
+  // ── Cross-Project Context Diff ──────────────────────────────────
+
+  async orgContextDiff(projectA: string, projectB: string) {
+    const params = new URLSearchParams({
+      project_a: projectA,
+      project_b: projectB,
+    });
+    return this.request<{
+      projectA: string;
+      projectB: string;
+      onlyInA: Array<{ key: string; priority: number | null }>;
+      onlyInB: Array<{ key: string; priority: number | null }>;
+      common: Array<{ key: string; contentMatch: boolean }>;
+      stats: {
+        totalA: number;
+        totalB: number;
+        onlyInA: number;
+        onlyInB: number;
+        common: number;
+        contentMatches: number;
+        contentDiffers: number;
+      };
+    }>("GET", `/memories/org-diff?${params}`);
+  }
 }

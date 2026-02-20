@@ -12,6 +12,7 @@ import {
   getAllContextTypeInfo,
   getAllContextTypeSlugs,
   getBranchInfo,
+  getCustomContextTypes,
   invalidateCustomTypesCache,
   listAllMemories,
   normalizeAgentContextId,
@@ -4967,6 +4968,723 @@ exit 0
         );
       } catch (error) {
         return errorResponse("Error scoring memory quality", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY DEPENDENCY GRAPH (Batch 2 – Feature 1)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_graph",
+    "Build a dependency graph from relatedKeys across all memories. Returns nodes, edges, connected clusters, orphans, and cycles.",
+    {},
+    async () => {
+      try {
+        const allMemories = await listAllMemories(client);
+
+        // Build adjacency list
+        const adjacency: Record<string, string[]> = {};
+        const allKeys = new Set<string>();
+
+        for (const mem of allMemories) {
+          allKeys.add(mem.key);
+          let related: string[] = [];
+          if (mem.relatedKeys) {
+            try { related = JSON.parse(mem.relatedKeys as string); } catch { /* skip */ }
+          }
+          adjacency[mem.key] = related.filter((k) => k !== mem.key);
+        }
+
+        // Build undirected edges for cluster detection
+        const nodes = Array.from(allKeys);
+        const edges: Array<{ from: string; to: string }> = [];
+        const undirected: Record<string, Set<string>> = {};
+
+        for (const key of nodes) {
+          undirected[key] = new Set();
+        }
+
+        for (const [from, tos] of Object.entries(adjacency)) {
+          for (const to of tos) {
+            if (allKeys.has(to)) {
+              edges.push({ from, to });
+              undirected[from]!.add(to);
+              undirected[to]!.add(from);
+            }
+          }
+        }
+
+        // BFS to find connected components
+        const visited = new Set<string>();
+        const clusters: string[][] = [];
+
+        for (const node of nodes) {
+          if (visited.has(node)) continue;
+          const neighbors = undirected[node];
+          if (!neighbors || neighbors.size === 0) continue;
+
+          const cluster: string[] = [];
+          const queue = [node];
+          visited.add(node);
+
+          while (queue.length > 0) {
+            const current = queue.shift()!;
+            cluster.push(current);
+            for (const neighbor of undirected[current] ?? []) {
+              if (!visited.has(neighbor)) {
+                visited.add(neighbor);
+                queue.push(neighbor);
+              }
+            }
+          }
+
+          clusters.push(cluster);
+        }
+
+        // Orphans: nodes with no edges
+        const orphans = nodes.filter((n) => !visited.has(n));
+
+        // DFS 3-color cycle detection on directed graph
+        const WHITE = 0, GRAY = 1, BLACK = 2;
+        const color: Record<string, number> = {};
+        for (const n of nodes) color[n] = WHITE;
+        const cycles: string[][] = [];
+
+        function dfs(node: string, path: string[]) {
+          color[node] = GRAY;
+          path.push(node);
+
+          for (const neighbor of adjacency[node] ?? []) {
+            if (!allKeys.has(neighbor)) continue;
+            if (color[neighbor] === GRAY) {
+              // Found cycle — extract from where neighbor appears in path
+              const cycleStart = path.indexOf(neighbor);
+              if (cycleStart >= 0) {
+                cycles.push(path.slice(cycleStart));
+              }
+            } else if (color[neighbor] === WHITE) {
+              dfs(neighbor, path);
+            }
+          }
+
+          path.pop();
+          color[node] = BLACK;
+        }
+
+        for (const node of nodes) {
+          if (color[node] === WHITE) {
+            dfs(node, []);
+          }
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              totalNodes: nodes.length,
+              totalEdges: edges.length,
+              clusters: clusters.map((c, i) => ({ id: i, size: c.length, keys: c })),
+              orphans,
+              cycles,
+              adjacency,
+              hint: cycles.length > 0
+                ? `Found ${cycles.length} cycle(s) in memory relationships. Review for circular dependencies.`
+                : orphans.length > 0
+                  ? `${orphans.length} memories have no relationships. Consider linking them or archiving unused ones.`
+                  : "Memory graph is healthy with no cycles.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error building memory graph", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BRANCH MERGE RECONCILIATION (Batch 2 – Feature 2)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_branch_merge",
+    "After merging a branch, promote branch-specific memories to global or archive them. Finds memories with branch:<name> tag.",
+    {
+      branch: z.string().describe("Branch name whose memories to reconcile"),
+      action: z
+        .enum(["promote", "archive"])
+        .describe("'promote' removes branch tag (making memory global), 'archive' archives all branch memories"),
+      dryRun: z
+        .boolean()
+        .default(false)
+        .describe("Preview changes without applying them"),
+    },
+    async ({ branch, action, dryRun }) => {
+      try {
+        const rateCheck = checkRateLimit();
+        if (!rateCheck.allowed && !dryRun) {
+          return errorResponse("Rate limit exceeded", rateCheck.warning!);
+        }
+
+        const allMemories = await listAllMemories(client);
+        const branchTag = `branch:${branch}`;
+
+        // Find memories with this branch tag
+        const branchMemories = allMemories.filter((mem) => {
+          if (!mem.tags) return false;
+          try {
+            const tags = JSON.parse(mem.tags as string) as string[];
+            return tags.includes(branchTag);
+          } catch {
+            return false;
+          }
+        });
+
+        if (branchMemories.length === 0) {
+          return textResponse(
+            JSON.stringify({
+              branch,
+              action,
+              found: 0,
+              affected: 0,
+              message: `No memories found with tag "${branchTag}".`,
+            }, null, 2),
+          );
+        }
+
+        if (dryRun) {
+          return textResponse(
+            JSON.stringify({
+              branch,
+              action,
+              dryRun: true,
+              found: branchMemories.length,
+              keys: branchMemories.map((m) => m.key),
+              message: `Would ${action} ${branchMemories.length} memories with tag "${branchTag}".`,
+            }, null, 2),
+          );
+        }
+
+        let affected = 0;
+
+        if (action === "promote") {
+          // Remove branch tag from each memory
+          for (const mem of branchMemories) {
+            let tags: string[] = [];
+            try { tags = JSON.parse(mem.tags as string); } catch { /* skip */ }
+            const newTags = tags.filter((t) => t !== branchTag);
+            await client.updateMemory(mem.key, undefined, undefined, { tags: newTags });
+            writeCallCount++;
+            affected++;
+          }
+        } else {
+          // Archive all branch memories via batch
+          const keys = branchMemories.map((m) => m.key);
+          const result = await client.batchMutate(keys, "archive") as { affected: number };
+          writeCallCount++;
+          affected = result.affected;
+        }
+
+        const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
+
+        return textResponse(
+          JSON.stringify({
+            branch,
+            action,
+            found: branchMemories.length,
+            affected,
+            keys: branchMemories.map((m) => m.key),
+            message: `${action === "promote" ? "Promoted" : "Archived"} ${affected} memories from branch "${branch}".${rateWarn}`,
+          }, null, 2),
+        );
+      } catch (error) {
+        return errorResponse("Error reconciling branch memories", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY SCHEMA VALIDATION (Batch 2 – Feature 3)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_validate_schema",
+    "Validate memory content against custom context type schemas. Checks required fields and property types for JSON content, or heading structure for markdown content.",
+    {
+      type: z
+        .string()
+        .optional()
+        .describe("Only validate memories of this context type"),
+      key: z
+        .string()
+        .optional()
+        .describe("Only validate a specific memory key"),
+    },
+    async ({ type, key }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+        const customTypes = await getCustomContextTypes(client);
+
+        // Filter to types that have schemas
+        const typesWithSchemas = customTypes.filter((t) => t.schema);
+        if (typesWithSchemas.length === 0) {
+          return textResponse(
+            JSON.stringify({
+              validated: 0,
+              valid: 0,
+              invalid: 0,
+              issues: [],
+              hint: "No custom context types with schemas defined. Create types with schemas via context_type_create.",
+            }, null, 2),
+          );
+        }
+
+        const entries = extractAgentContextEntries(allMemories);
+
+        // Filter entries by type/key if specified
+        let filtered = entries;
+        if (type) {
+          filtered = filtered.filter((e) => e.type === type);
+        }
+        if (key) {
+          filtered = filtered.filter((e) => e.key === key);
+        }
+
+        const issues: Array<{
+          key: string;
+          type: string;
+          errors: string[];
+        }> = [];
+
+        for (const entry of filtered) {
+          const ctType = typesWithSchemas.find((t) => t.slug === entry.type);
+          if (!ctType || !ctType.schema) continue;
+
+          let schema: Record<string, unknown>;
+          try {
+            schema = JSON.parse(ctType.schema);
+          } catch {
+            continue;
+          }
+
+          const content = entry.content;
+          const entryErrors: string[] = [];
+
+          // Try JSON validation first
+          const requiredFields = (schema.required as string[]) ?? [];
+          const properties = (schema.properties as Record<string, { type?: string }>) ?? {};
+
+          let parsed: Record<string, unknown> | null = null;
+          try {
+            parsed = JSON.parse(content);
+          } catch {
+            // Not JSON — try markdown heading validation
+            if (Object.keys(properties).length > 0) {
+              const headings = content.match(/^#{1,6}\s+(.+)$/gm)?.map((h) =>
+                h.replace(/^#{1,6}\s+/, "").trim().toLowerCase(),
+              ) ?? [];
+
+              for (const req of requiredFields) {
+                if (!headings.some((h) => h.includes(req.toLowerCase()))) {
+                  entryErrors.push(`Missing required section heading: "${req}"`);
+                }
+              }
+            }
+          }
+
+          if (parsed && typeof parsed === "object") {
+            // Check required fields
+            for (const req of requiredFields) {
+              if (!(req in parsed) || parsed[req] === null || parsed[req] === undefined) {
+                entryErrors.push(`Missing required field: "${req}"`);
+              }
+            }
+
+            // Check property types
+            for (const [prop, def] of Object.entries(properties)) {
+              if (prop in parsed && def.type) {
+                const actual = Array.isArray(parsed[prop]) ? "array" : typeof parsed[prop];
+                if (actual !== def.type) {
+                  entryErrors.push(`Field "${prop}" should be ${def.type}, got ${actual}`);
+                }
+              }
+            }
+          }
+
+          if (entryErrors.length > 0) {
+            issues.push({ key: entry.key, type: entry.type, errors: entryErrors });
+          }
+        }
+
+        const validated = filtered.filter((e) =>
+          typesWithSchemas.some((t) => t.slug === e.type),
+        ).length;
+
+        return textResponse(
+          JSON.stringify(
+            {
+              validated,
+              valid: validated - issues.length,
+              invalid: issues.length,
+              issues,
+              schemasChecked: typesWithSchemas.map((t) => t.slug),
+              hint: issues.length > 0
+                ? `${issues.length} memories have schema violations. Update their content to match the schema.`
+                : "All validated memories conform to their schemas.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error validating memory schemas", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SESSION CLAIMS – ADVISORY LOCKS (Batch 2 – Feature 4)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "session_claim",
+    "Claim memory keys for the current session (advisory lock). Other agents can see which keys are claimed. Non-blocking — doesn't prevent writes.",
+    {
+      sessionId: z.string().describe("Unique session identifier"),
+      keys: z.array(z.string()).describe("Memory keys this session intends to work on"),
+      ttlMinutes: z
+        .number()
+        .default(30)
+        .describe("How long the claim lasts (minutes, default 30)"),
+    },
+    async ({ sessionId, keys, ttlMinutes }) => {
+      try {
+        const rateCheck = checkRateLimit();
+        if (!rateCheck.allowed) {
+          return errorResponse("Rate limit exceeded", rateCheck.warning!);
+        }
+        writeCallCount++;
+
+        const claimKey = `agent/claims/${sessionId}`;
+        const expiresAt = Date.now() + ttlMinutes * 60 * 1000;
+
+        await client.storeMemory(
+          claimKey,
+          JSON.stringify(keys),
+          { sessionId, claimedAt: Date.now() },
+          {
+            tags: ["session-claim"],
+            expiresAt,
+            priority: 0,
+          },
+        );
+
+        const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
+
+        return textResponse(
+          JSON.stringify({
+            sessionId,
+            claimKey,
+            keys,
+            expiresAt: new Date(expiresAt).toISOString(),
+            ttlMinutes,
+            message: `Claimed ${keys.length} key(s) for session ${sessionId}. Expires in ${ttlMinutes} minutes.${rateWarn}`,
+          }, null, 2),
+        );
+      } catch (error) {
+        return errorResponse("Error creating session claim", error);
+      }
+    },
+  );
+
+  server.tool(
+    "session_claims_check",
+    "Check which memory keys are currently claimed by other sessions. Reports conflicts with your intended keys.",
+    {
+      keys: z.array(z.string()).describe("Memory keys you want to check for conflicts"),
+      excludeSession: z
+        .string()
+        .optional()
+        .describe("Exclude claims from this session ID"),
+    },
+    async ({ keys, excludeSession }) => {
+      try {
+        const result = await client.searchMemories("agent/claims/", 100, {
+          tags: "session-claim",
+        }) as { memories?: Array<{ key: string; content?: string; expiresAt?: unknown; metadata?: unknown }> };
+
+        const claims = result.memories ?? [];
+        const now = Date.now();
+        const keysToCheck = new Set(keys);
+
+        const activeClaims: Array<{
+          sessionId: string;
+          claimedKeys: string[];
+          expiresAt: string;
+          conflicts: string[];
+        }> = [];
+
+        for (const claim of claims) {
+          // Check expiry
+          const expiresAt = claim.expiresAt ? new Date(claim.expiresAt as string).getTime() : 0;
+          if (expiresAt && expiresAt < now) continue;
+
+          // Extract session ID from key
+          const sessionId = claim.key.replace("agent/claims/", "");
+          if (excludeSession && sessionId === excludeSession) continue;
+
+          let claimedKeys: string[] = [];
+          try {
+            claimedKeys = JSON.parse(claim.content ?? "[]");
+          } catch { continue; }
+
+          const conflicts = claimedKeys.filter((k) => keysToCheck.has(k));
+
+          activeClaims.push({
+            sessionId,
+            claimedKeys,
+            expiresAt: expiresAt ? new Date(expiresAt).toISOString() : "unknown",
+            conflicts,
+          });
+        }
+
+        const allConflicts = activeClaims.flatMap((c) => c.conflicts);
+        const uniqueConflicts = [...new Set(allConflicts)];
+
+        return textResponse(
+          JSON.stringify(
+            {
+              checkedKeys: keys,
+              activeSessions: activeClaims.length,
+              conflicts: uniqueConflicts,
+              details: activeClaims.filter((c) => c.conflicts.length > 0),
+              hint: uniqueConflicts.length > 0
+                ? `${uniqueConflicts.length} key(s) claimed by other sessions: ${uniqueConflicts.join(", ")}. Coordinate before modifying.`
+                : "No conflicts found. Safe to proceed.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error checking session claims", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SMART ARCHIVAL SUGGESTIONS (Batch 2 – Feature 5)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_sunset",
+    "Score memories for archival based on git history correlation, access patterns, feedback, and branch status. Returns sorted suggestions for cleanup.",
+    {
+      limit: z
+        .number()
+        .default(20)
+        .describe("Maximum suggestions to return"),
+    },
+    async ({ limit }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+
+        // Get list of current git branches
+        let currentBranches = new Set<string>();
+        try {
+          const { stdout } = await execFileAsync("git", ["branch", "--format=%(refname:short)"]);
+          currentBranches = new Set(stdout.trim().split("\n").filter(Boolean));
+        } catch { /* not in a git repo, skip branch scoring */ }
+
+        // Get list of files currently tracked in git
+        let trackedFiles = new Set<string>();
+        try {
+          const { stdout } = await execFileAsync("git", ["ls-files"]);
+          trackedFiles = new Set(stdout.trim().split("\n").filter(Boolean));
+        } catch { /* not in a git repo */ }
+
+        const now = Date.now();
+        const suggestions: Array<{
+          key: string;
+          score: number;
+          reasons: string[];
+          priority: number;
+          lastAccessedAt: string | null;
+        }> = [];
+
+        for (const mem of allMemories) {
+          if (mem.archivedAt) continue;
+
+          let score = 0;
+          const reasons: string[] = [];
+
+          // Check branch tag — is the branch deleted?
+          let tags: string[] = [];
+          try { tags = JSON.parse(mem.tags as string ?? "[]"); } catch { /* skip */ }
+          const branchTag = tags.find((t) => t.startsWith("branch:"));
+          if (branchTag) {
+            const branchName = branchTag.replace("branch:", "");
+            if (currentBranches.size > 0 && !currentBranches.has(branchName)) {
+              score += 40;
+              reasons.push(`Branch "${branchName}" no longer exists`);
+            }
+          }
+
+          // Check file references — are referenced files deleted?
+          const content = mem.content ?? "";
+          const fileRefs = content.match(/(?:^|\s)([\w./\-]+\.\w{1,10})/gm) ?? [];
+          const missingFiles = fileRefs
+            .map((f) => f.trim())
+            .filter((f) => trackedFiles.size > 0 && !trackedFiles.has(f) && f.includes("/"));
+          if (missingFiles.length > 0) {
+            score += 30;
+            reasons.push(`References ${missingFiles.length} file(s) no longer in repo`);
+          }
+
+          // Never accessed
+          const lastAccess = mem.lastAccessedAt ? new Date(mem.lastAccessedAt as string).getTime() : 0;
+          if (!lastAccess && mem.accessCount === 0) {
+            score += 25;
+            reasons.push("Never accessed");
+          } else if (lastAccess) {
+            const daysSince = (now - lastAccess) / 86_400_000;
+            if (daysSince > 90) {
+              score += 20;
+              reasons.push(`Not accessed in ${Math.round(daysSince)} days`);
+            }
+          }
+
+          // Negative feedback
+          const helpful = mem.helpfulCount ?? 0;
+          const unhelpful = mem.unhelpfulCount ?? 0;
+          if (unhelpful > helpful && (helpful + unhelpful) >= 2) {
+            score += 20;
+            reasons.push(`Negative feedback (${helpful} helpful, ${unhelpful} unhelpful)`);
+          }
+
+          // Low priority + old
+          const priority = mem.priority ?? 0;
+          const createdAt = mem.createdAt ? new Date(mem.createdAt as string).getTime() : 0;
+          if (priority === 0 && createdAt && (now - createdAt) / 86_400_000 > 60) {
+            score += 10;
+            reasons.push("Low priority and older than 60 days");
+          }
+
+          if (score > 0) {
+            suggestions.push({
+              key: mem.key,
+              score,
+              reasons,
+              priority,
+              lastAccessedAt: lastAccess ? new Date(lastAccess).toISOString() : null,
+            });
+          }
+        }
+
+        suggestions.sort((a, b) => b.score - a.score);
+        const results = suggestions.slice(0, limit);
+
+        return textResponse(
+          JSON.stringify(
+            {
+              totalMemories: allMemories.length,
+              suggestions: results.length,
+              items: results,
+              hint: results.length > 0
+                ? `${results.length} memories are candidates for archival. Use memory_archive or memory_branch_merge to clean up.`
+                : "No archival candidates found. Memory garden is well-maintained.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error generating archival suggestions", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CROSS-PROJECT ORG SEARCH (Batch 2 – Feature 6)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_search_org",
+    "Search memories across all projects in your organization. Useful for discovering knowledge from other projects.",
+    {
+      query: z.string().describe("Search query to match against keys and content"),
+      limit: z
+        .number()
+        .default(50)
+        .describe("Maximum results to return (max 200)"),
+    },
+    async ({ query, limit }) => {
+      try {
+        const result = await client.searchOrgMemories(query, Math.min(limit, 200));
+
+        const projectsWithResults = Object.keys(result.grouped ?? {}).length;
+
+        return textResponse(
+          JSON.stringify(
+            {
+              ...result,
+              projectsWithResults,
+              hint: result.totalMatches > 0
+                ? `Found ${result.totalMatches} matches across ${projectsWithResults} project(s) (searched ${result.projectsSearched}).`
+                : `No matches for "${query}" across ${result.projectsSearched} project(s).`,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error searching org memories", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CROSS-PROJECT CONTEXT DIFF (Batch 2 – Feature 7)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "org_context_diff",
+    "Compare memories between two projects in the same org. Shows what's unique to each and what's shared (with content match status).",
+    {
+      projectA: z.string().describe("Slug of first project"),
+      projectB: z.string().describe("Slug of second project"),
+    },
+    async ({ projectA, projectB }) => {
+      try {
+        const result = await client.orgContextDiff(projectA, projectB);
+
+        const hints: string[] = [];
+        if (result.stats.onlyInA > 0) {
+          hints.push(`${result.stats.onlyInA} memories unique to ${projectA}`);
+        }
+        if (result.stats.onlyInB > 0) {
+          hints.push(`${result.stats.onlyInB} memories unique to ${projectB}`);
+        }
+        if (result.stats.contentDiffers > 0) {
+          hints.push(`${result.stats.contentDiffers} shared keys have different content — review for alignment`);
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              ...result,
+              hint: hints.length > 0
+                ? hints.join(". ") + "."
+                : `Projects ${projectA} and ${projectB} are fully aligned.`,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error computing org context diff", error);
       }
     },
   );
