@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, unique } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, unique, index } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -107,23 +107,35 @@ export const memories = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
   },
-  (table) => [unique().on(table.projectId, table.key)],
+  (table) => [
+    unique().on(table.projectId, table.key),
+    index("memories_project_updated").on(table.projectId, table.updatedAt),
+    index("memories_project_archived").on(table.projectId, table.archivedAt),
+    index("memories_project_priority").on(table.projectId, table.priority),
+    index("memories_project_created").on(table.projectId, table.createdAt),
+  ],
 );
 
-export const memoryVersions = sqliteTable("memory_versions", {
-  id: text("id").primaryKey(),
-  memoryId: text("memory_id")
-    .notNull()
-    .references(() => memories.id, { onDelete: "cascade" }),
-  version: integer("version").notNull(),
-  content: text("content").notNull(),
-  metadata: text("metadata"),
-  changedBy: text("changed_by").references(() => users.id),
-  changeType: text("change_type").notNull(), // "created" | "updated" | "restored"
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
+export const memoryVersions = sqliteTable(
+  "memory_versions",
+  {
+    id: text("id").primaryKey(),
+    memoryId: text("memory_id")
+      .notNull()
+      .references(() => memories.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    content: text("content").notNull(),
+    metadata: text("metadata"),
+    changedBy: text("changed_by").references(() => users.id),
+    changeType: text("change_type").notNull(), // "created" | "updated" | "restored"
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("memory_versions_memory_version").on(table.memoryId, table.version),
+  ],
+);
 
 export const contextTypes = sqliteTable(
   "context_types",
@@ -244,18 +256,24 @@ export const webhookConfigs = sqliteTable("webhook_configs", {
     .$defaultFn(() => new Date()),
 });
 
-export const webhookEvents = sqliteTable("webhook_events", {
-  id: text("id").primaryKey(),
-  webhookConfigId: text("webhook_config_id")
-    .notNull()
-    .references(() => webhookConfigs.id, { onDelete: "cascade" }),
-  eventType: text("event_type").notNull(),
-  payload: text("payload").notNull(), // JSON
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  dispatchedAt: integer("dispatched_at", { mode: "timestamp" }),
-});
+export const webhookEvents = sqliteTable(
+  "webhook_events",
+  {
+    id: text("id").primaryKey(),
+    webhookConfigId: text("webhook_config_id")
+      .notNull()
+      .references(() => webhookConfigs.id, { onDelete: "cascade" }),
+    eventType: text("event_type").notNull(),
+    payload: text("payload").notNull(), // JSON
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    dispatchedAt: integer("dispatched_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    index("webhook_events_undispatched").on(table.webhookConfigId, table.dispatchedAt),
+  ],
+);
 
 export const apiTokens = sqliteTable("api_tokens", {
   id: text("id").primaryKey(),

@@ -9,6 +9,7 @@ export class ApiClient {
   private cache: MemoryCache;
   private localCache: LocalCache;
   private isOffline = false;
+  private inflight = new Map<string, Promise<unknown>>();
 
   constructor(config: {
     baseUrl: string;
@@ -31,13 +32,8 @@ export class ApiClient {
   /** Attempt to reach the API. Returns true if online. */
   async ping(): Promise<boolean> {
     try {
-      const res = await fetch(`${this.baseUrl}/memories/freshness`, {
+      const res = await fetch(`${this.baseUrl}/health`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          "X-Org-Slug": this.org,
-          "X-Project-Slug": this.project,
-        },
         signal: AbortSignal.timeout(5_000),
       });
       this.isOffline = !res.ok;
@@ -76,6 +72,15 @@ export class ApiClient {
       const storedEtag = this.cache.getEtag(cacheKey);
       if (storedEtag) {
         headers["If-None-Match"] = storedEtag;
+      }
+    }
+
+    // Send If-Match for optimistic concurrency on PATCH/DELETE
+    if (method === "PATCH" || method === "DELETE") {
+      const getKey = `GET:${path}`;
+      const storedEtag = this.cache.getEtag(getKey);
+      if (storedEtag) {
+        headers["If-Match"] = storedEtag;
       }
     }
 
@@ -145,6 +150,13 @@ export class ApiClient {
     } catch {
       // Non-critical — don't fail the request
     }
+  }
+
+  // ── Batch Operations ────────────────────────────────────────
+  async batch(operations: Array<{ method: string; path: string; body?: unknown }>) {
+    return this.request<{
+      results: Array<{ status: number; body: unknown }>;
+    }>("POST", "/batch", { operations });
   }
 
   // ── Memory CRUD ──────────────────────────────────────────────

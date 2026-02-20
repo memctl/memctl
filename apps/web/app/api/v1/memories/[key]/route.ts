@@ -101,6 +101,15 @@ export async function PATCH(
 
   if (!existing) return jsonError("Memory not found", 404);
 
+  // Optimistic concurrency: check If-Match header
+  const ifMatch = req.headers.get("if-match");
+  if (ifMatch) {
+    const currentEtag = generateETag(JSON.stringify({ memory: existing }));
+    if (ifMatch !== currentEtag) {
+      return jsonError("Conflict: memory has been modified since last read", 409);
+    }
+  }
+
   // Save version before updating
   const [latestVersion] = await db
     .select({ version: memoryVersions.version })
@@ -185,6 +194,15 @@ export async function DELETE(
     .limit(1);
 
   if (!existing) return jsonError("Memory not found", 404);
+
+  // Optimistic concurrency: check If-Match header
+  const ifMatch = req.headers.get("if-match");
+  if (ifMatch) {
+    const currentEtag = generateETag(JSON.stringify({ memory: existing }));
+    if (ifMatch !== currentEtag) {
+      return jsonError("Conflict: memory has been modified since last read", 409);
+    }
+  }
 
   await db.delete(memories).where(eq(memories.id, existing.id));
 
