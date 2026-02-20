@@ -7,14 +7,14 @@ description: MCP transport options for mem/ctl
 
 ## stdio (Default)
 
-The default transport. Used when running via `npx @memctl/cli` or as a local process. This is the recommended transport for most use cases.
+The default transport. Used when running via `npx memctl` or as a local process. This is the recommended transport for most use cases.
 
 ```json
 {
   "mcpServers": {
     "memctl": {
       "command": "npx",
-      "args": ["@memctl/cli"],
+      "args": ["memctl"],
       "env": {
         "MEMCTL_TOKEN": "your-token",
         "MEMCTL_ORG": "your-org",

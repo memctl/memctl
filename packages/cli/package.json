@@ -1,5 +1,5 @@
 {
-  "name": "@memctl/cli",
+  "name": "memctl",
   "version": "0.1.0",
   "description": "MCP server for memctl — shared, persistent memory for AI coding agents",
   "type": "module",

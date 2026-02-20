@@ -1,6 +1,6 @@
 # Phase 5 — MCP Server Package
 
-- [x] Scaffold @memctl/cli package
+- [x] Scaffold memctl package
 - [x] Implement MCP tools (store, get, search, list, delete, update)
 - [x] Implement MCP resources
 - [x] API client (HTTP → cloud backend, JWT auth)

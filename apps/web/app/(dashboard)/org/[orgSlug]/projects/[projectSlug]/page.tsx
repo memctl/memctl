@@ -100,7 +100,7 @@ export default async function ProjectDetailPage({
       mcpServers: {
         memctl: {
           command: "npx",
-          args: ["@memctl/cli"],
+          args: ["memctl"],
           env: {
             MEMCTL_TOKEN: "<your-token>",
             MEMCTL_ORG: orgSlug,

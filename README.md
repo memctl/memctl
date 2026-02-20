@@ -13,7 +13,7 @@ mem/ctl is a cloud MCP server that gives AI coding agents (Claude Code, Cursor, 
   "mcpServers": {
     "memctl": {
       "command": "npx",
-      "args": ["@memctl/cli"],
+      "args": ["memctl"],
       "env": {
         "MEMCTL_TOKEN": "<your-token>",
         "MEMCTL_ORG": "<org-slug>",
@@ -67,7 +67,7 @@ pnpm dev
 memctl/
 ├── apps/web/          # Next.js app (dashboard + landing + docs)
 ├── packages/
-│   ├── mcp-server/    # @memctl/cli npm package
+│   ├── mcp-server/    # memctl npm package
 │   ├── db/            # Shared Drizzle schema + client
 │   └── shared/        # Shared types, constants, validators
 ├── plans/             # Implementation task tracker
