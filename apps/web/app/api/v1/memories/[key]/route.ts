@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, jsonError } from "@/lib/api-middleware";
+import { authenticateRequest, jsonError, checkRateLimit } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, memoryVersions } from "@memctl/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { memoryUpdateSchema } from "@memctl/shared/validators";
 import { generateId } from "@/lib/utils";
 import { resolveOrgAndProject } from "../capacity-utils";
+import { generateETag, checkConditional } from "@/lib/etag";
+import { generateEmbedding } from "@/lib/embeddings";
+import { dispatchWebhooks } from "@/lib/webhook-dispatch";
 
 export async function GET(
   req: NextRequest,
@@ -48,7 +51,20 @@ export async function GET(
     .where(eq(memories.id, memory.id))
     .then(() => {}, () => {});
 
-  return NextResponse.json({ memory });
+  const body = JSON.stringify({ memory });
+  const etag = generateETag(body);
+
+  if (checkConditional(req, etag)) {
+    return new NextResponse(null, { status: 304, headers: { ETag: etag } });
+  }
+
+  return new NextResponse(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      ETag: etag,
+    },
+  });
 }
 
 export async function PATCH(
@@ -117,6 +133,24 @@ export async function PATCH(
 
   await db.update(memories).set(updates).where(eq(memories.id, existing.id));
 
+  // Regenerate embedding if content changed (fire-and-forget)
+  if (parsed.data.content || parsed.data.tags) {
+    const text = `${decodedKey} ${parsed.data.content ?? existing.content} ${parsed.data.tags?.join(" ") ?? ""}`;
+    generateEmbedding(text).then((emb) => {
+      if (emb) {
+        db.update(memories)
+          .set({ embedding: JSON.stringify(Array.from(emb)) })
+          .where(eq(memories.id, existing.id))
+          .then(() => {}, () => {});
+      }
+    }).catch(() => {});
+  }
+
+  // Dispatch webhooks (fire-and-forget)
+  dispatchWebhooks(project.id, [
+    { type: "memory.updated", payload: { key: decodedKey, projectId: project.id } },
+  ]).catch(() => {});
+
   return NextResponse.json({
     memory: { ...existing, ...updates },
   });
@@ -153,6 +187,11 @@ export async function DELETE(
   if (!existing) return jsonError("Memory not found", 404);
 
   await db.delete(memories).where(eq(memories.id, existing.id));
+
+  // Dispatch webhooks (fire-and-forget)
+  dispatchWebhooks(project.id, [
+    { type: "memory.deleted", payload: { key: decodedKey, projectId: project.id } },
+  ]).catch(() => {});
 
   return NextResponse.json({ deleted: true });
 }

@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, jsonError } from "@/lib/api-middleware";
+import { authenticateRequest, jsonError, checkRateLimit } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, memoryVersions, projects } from "@memctl/db/schema";
 import { eq, and, like, isNull, inArray, desc, or } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { memoryStoreSchema } from "@memctl/shared/validators";
 import { getOrgMemoryCapacity, resolveOrgAndProject } from "./capacity-utils";
-import { ensureFts, ftsSearch } from "@/lib/fts";
+import { ensureFts, ftsSearch, vectorSearch, mergeSearchResults } from "@/lib/fts";
+import { generateETag, checkConditional } from "@/lib/etag";
+import { generateEmbedding } from "@/lib/embeddings";
+import { dispatchWebhooks } from "@/lib/webhook-dispatch";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   const authResult = await authenticateRequest(req);
@@ -175,12 +179,58 @@ export async function GET(req: NextRequest) {
     results = scored.map((s) => s.memory);
   }
 
-  return NextResponse.json({ memories: results });
+  // Hybrid search: run vector search in parallel when query is provided
+  if (query && results.length > 0) {
+    try {
+      const vectorIds = await vectorSearch(project.id, query, limit);
+      if (vectorIds && vectorIds.length > 0) {
+        const ftsIds = results.map((r) => r.id);
+        const mergedIds = mergeSearchResults(ftsIds, vectorIds, limit);
+
+        // Fetch any vector-only results not already in results
+        const existingIds = new Set(results.map((r) => r.id));
+        const missingIds = mergedIds.filter((id) => !existingIds.has(id));
+
+        if (missingIds.length > 0) {
+          const extra = await db
+            .select()
+            .from(memories)
+            .where(inArray(memories.id, missingIds));
+          results.push(...extra);
+        }
+
+        // Reorder by merged ranking
+        const idOrder = new Map(mergedIds.map((id, i) => [id, i]));
+        results.sort((a, b) => (idOrder.get(a.id) ?? 999) - (idOrder.get(b.id) ?? 999));
+        results = results.slice(0, limit);
+      }
+    } catch {
+      // Vector search failed — continue with keyword results only
+    }
+  }
+
+  const body = JSON.stringify({ memories: results });
+  const etag = generateETag(body);
+
+  if (checkConditional(req, etag)) {
+    return new NextResponse(null, { status: 304, headers: { ETag: etag } });
+  }
+
+  return new NextResponse(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      ETag: etag,
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {
   const authResult = await authenticateRequest(req);
   if (authResult instanceof NextResponse) return authResult;
+
+  const rateLimitRes = await checkRateLimit(authResult);
+  if (rateLimitRes) return rateLimitRes;
 
   const orgSlug = req.headers.get("x-org-slug");
   const projectSlug = req.headers.get("x-project-slug");
@@ -255,6 +305,23 @@ export async function POST(req: NextRequest) {
       .set(updates)
       .where(eq(memories.id, existing.id));
 
+    // Generate embedding async (fire-and-forget)
+    generateEmbedding(
+      `${key} ${content} ${tags?.join(" ") ?? ""}`,
+    ).then((emb) => {
+      if (emb) {
+        db.update(memories)
+          .set({ embedding: JSON.stringify(Array.from(emb)) })
+          .where(eq(memories.id, existing.id))
+          .then(() => {}, () => {});
+      }
+    }).catch(() => {});
+
+    // Dispatch webhooks (fire-and-forget)
+    dispatchWebhooks(project.id, [
+      { type: "memory.updated", payload: { key, projectId: project.id } },
+    ]).catch(() => {});
+
     return NextResponse.json({ memory: { ...existing, ...updates } });
   }
 
@@ -299,6 +366,23 @@ export async function POST(req: NextRequest) {
     changeType: "created",
     createdAt: now,
   });
+
+  // Generate embedding async (fire-and-forget)
+  generateEmbedding(
+    `${key} ${content} ${tags?.join(" ") ?? ""}`,
+  ).then((emb) => {
+    if (emb) {
+      db.update(memories)
+        .set({ embedding: JSON.stringify(Array.from(emb)) })
+        .where(eq(memories.id, id))
+        .then(() => {}, () => {});
+    }
+  }).catch(() => {});
+
+  // Dispatch webhooks (fire-and-forget)
+  dispatchWebhooks(project.id, [
+    { type: "memory.created", payload: { key, projectId: project.id } },
+  ]).catch(() => {});
 
   return NextResponse.json(
     {

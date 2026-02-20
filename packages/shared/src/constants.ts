@@ -21,6 +21,8 @@ export const PLANS: Record<
     /** Hard org-wide ceiling (generous, acts as abuse prevention) */
     memoryLimitOrg: number;
     apiCallLimit: number;
+    /** Per-minute API rate limit (sliding window) */
+    apiRatePerMinute: number;
   }
 > = {
   free: {
@@ -31,6 +33,7 @@ export const PLANS: Record<
     memoryLimitPerProject: 200,
     memoryLimitOrg: 500,
     apiCallLimit: 5_000,
+    apiRatePerMinute: 60,
   },
   lite: {
     name: "Lite",
@@ -40,6 +43,7 @@ export const PLANS: Record<
     memoryLimitPerProject: 1_000,
     memoryLimitOrg: 10_000,
     apiCallLimit: 50_000,
+    apiRatePerMinute: 300,
   },
   pro: {
     name: "Pro",
@@ -49,6 +53,7 @@ export const PLANS: Record<
     memoryLimitPerProject: 5_000,
     memoryLimitOrg: 100_000,
     apiCallLimit: 500_000,
+    apiRatePerMinute: 1_000,
   },
   business: {
     name: "Business",
@@ -58,6 +63,7 @@ export const PLANS: Record<
     memoryLimitPerProject: 10_000,
     memoryLimitOrg: 500_000,
     apiCallLimit: 2_000_000,
+    apiRatePerMinute: 3_000,
   },
   scale: {
     name: "Scale",
@@ -67,6 +73,7 @@ export const PLANS: Record<
     memoryLimitPerProject: 25_000,
     memoryLimitOrg: 2_000_000,
     apiCallLimit: 10_000_000,
+    apiRatePerMinute: 10_000,
   },
   enterprise: {
     name: "Enterprise",
@@ -76,6 +83,7 @@ export const PLANS: Record<
     memoryLimitPerProject: Infinity,
     memoryLimitOrg: Infinity,
     apiCallLimit: Infinity,
+    apiRatePerMinute: Infinity,
   },
 };
 

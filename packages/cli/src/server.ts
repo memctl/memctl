@@ -107,5 +107,30 @@ export function createServer(config: {
   registerResources(server, client);
   registerPrompts(server);
 
+  // Connection status resource
+  server.resource(
+    "connection_status",
+    "memctl://connection-status",
+    "Current API connection status (online/offline)",
+    async () => ({
+      contents: [
+        {
+          uri: "memctl://connection-status",
+          text: JSON.stringify(client.getConnectionStatus()),
+          mimeType: "application/json",
+        },
+      ],
+    }),
+  );
+
+  // Attempt API ping on startup — enter offline mode if unreachable
+  client.ping().then((online) => {
+    if (!online) {
+      process.stderr.write(
+        "[memctl] Warning: API unreachable — running in offline mode with local cache\n",
+      );
+    }
+  }).catch(() => {});
+
   return server;
 }

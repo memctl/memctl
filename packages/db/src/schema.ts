@@ -98,6 +98,7 @@ export const memories = sqliteTable(
     lastAccessedAt: integer("last_accessed_at", { mode: "timestamp" }),
     helpfulCount: integer("helpful_count").notNull().default(0),
     unhelpfulCount: integer("unhelpful_count").notNull().default(0),
+    embedding: text("embedding"), // JSON-serialized Float32Array (nullable for backward compat)
     createdBy: text("created_by").references(() => users.id),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -241,6 +242,19 @@ export const webhookConfigs = sqliteTable("webhook_configs", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
+});
+
+export const webhookEvents = sqliteTable("webhook_events", {
+  id: text("id").primaryKey(),
+  webhookConfigId: text("webhook_config_id")
+    .notNull()
+    .references(() => webhookConfigs.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(),
+  payload: text("payload").notNull(), // JSON
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  dispatchedAt: integer("dispatched_at", { mode: "timestamp" }),
 });
 
 export const apiTokens = sqliteTable("api_tokens", {

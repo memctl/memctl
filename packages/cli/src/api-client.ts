@@ -1,8 +1,14 @@
+import { MemoryCache } from "./cache.js";
+import { LocalCache } from "./local-cache.js";
+
 export class ApiClient {
   private baseUrl: string;
   private token: string;
   private org: string;
   private project: string;
+  private cache: MemoryCache;
+  private localCache: LocalCache;
+  private isOffline = false;
 
   constructor(config: {
     baseUrl: string;
@@ -14,6 +20,32 @@ export class ApiClient {
     this.token = config.token;
     this.org = config.org;
     this.project = config.project;
+    this.cache = new MemoryCache(30_000);
+    this.localCache = new LocalCache(config.org, config.project);
+  }
+
+  getConnectionStatus(): { online: boolean } {
+    return { online: !this.isOffline };
+  }
+
+  /** Attempt to reach the API. Returns true if online. */
+  async ping(): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/memories/freshness`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "X-Org-Slug": this.org,
+          "X-Project-Slug": this.project,
+        },
+        signal: AbortSignal.timeout(5_000),
+      });
+      this.isOffline = !res.ok;
+      return res.ok;
+    } catch {
+      this.isOffline = true;
+      return false;
+    }
   }
 
   private async request<T>(
@@ -21,24 +53,98 @@ export class ApiClient {
     path: string,
     body?: unknown,
   ): Promise<T> {
+    const cacheKey = `${method}:${path}`;
+
+    // For GET requests, check in-memory cache first
+    if (method === "GET") {
+      const cached = this.cache.get(cacheKey);
+      if (cached) {
+        return cached.data as T;
+      }
+    }
+
     const url = `${this.baseUrl}${path}`;
-    const res = await fetch(url, {
-      method,
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        "Content-Type": "application/json",
-        "X-Org-Slug": this.org,
-        "X-Project-Slug": this.project,
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.token}`,
+      "Content-Type": "application/json",
+      "X-Org-Slug": this.org,
+      "X-Project-Slug": this.project,
+    };
+
+    // Send If-None-Match for ETag revalidation on GET
+    if (method === "GET") {
+      const storedEtag = this.cache.getEtag(cacheKey);
+      if (storedEtag) {
+        headers["If-None-Match"] = storedEtag;
+      }
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (err) {
+      // Network error — try offline fallback for GET requests
+      this.isOffline = true;
+      if (method === "GET") {
+        const offline = this.localCache.getByPath(path);
+        if (offline !== null) return offline as T;
+      }
+      throw err;
+    }
+
+    this.isOffline = false;
+
+    // Handle 304 Not Modified — return cached data
+    if (res.status === 304) {
+      this.cache.touch(cacheKey);
+      const entry = this.cache.get(cacheKey);
+      if (entry) return entry.data as T;
+      // Fallback: re-fetch if cache was cleared between calls
+    }
 
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`API error ${res.status}: ${text}`);
     }
 
-    return res.json() as Promise<T>;
+    const data = await res.json() as T;
+
+    // Cache GET responses with ETag
+    if (method === "GET") {
+      const etag = res.headers.get("etag") ?? undefined;
+      this.cache.set(cacheKey, data, etag);
+
+      // Sync to local cache in background for offline support
+      if (path.startsWith("/memories")) {
+        this.syncToLocalCache(data);
+      }
+    }
+
+    // Invalidate cache on mutations
+    if (method === "POST" || method === "PATCH" || method === "DELETE") {
+      this.cache.invalidatePrefix("GET:/memories");
+    }
+
+    return data;
+  }
+
+  private syncToLocalCache(data: unknown): void {
+    try {
+      if (data && typeof data === "object") {
+        const obj = data as Record<string, unknown>;
+        if (Array.isArray(obj.memories)) {
+          this.localCache.sync(obj.memories as Array<Record<string, unknown>>);
+        } else if (obj.memory && typeof obj.memory === "object") {
+          this.localCache.sync([obj.memory as Record<string, unknown>]);
+        }
+      }
+    } catch {
+      // Non-critical — don't fail the request
+    }
   }
 
   // ── Memory CRUD ──────────────────────────────────────────────
