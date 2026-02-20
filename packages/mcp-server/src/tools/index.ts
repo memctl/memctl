@@ -3,16 +3,18 @@ import { z } from "zod";
 import type { ApiClient } from "../api-client.js";
 import {
   AGENT_CONTEXT_TYPE_INFO,
-  AGENT_CONTEXT_TYPES,
+  BUILTIN_AGENT_CONTEXT_TYPES,
   buildAgentContextKey,
   buildBranchPlanKey,
   extractAgentContextEntries,
+  getAllContextTypeInfo,
+  getAllContextTypeSlugs,
   getBranchInfo,
+  invalidateCustomTypesCache,
   listAllMemories,
   normalizeAgentContextId,
+  parseAgentsMd,
 } from "../agent-context.js";
-
-const agentContextTypeSchema = z.enum(AGENT_CONTEXT_TYPES);
 
 function textResponse(text: string) {
   return { content: [{ type: "text" as const, text }] };
@@ -35,7 +37,117 @@ function toFiniteLimitText(limit: number) {
   return Number.isFinite(limit) ? String(limit) : "unlimited";
 }
 
+function formatCapacityGuidance(capacity: {
+  used: number;
+  limit: number;
+  orgUsed: number;
+  orgLimit: number;
+  isFull: boolean;
+  isSoftFull: boolean;
+  isApproaching: boolean;
+}) {
+  if (capacity.isFull) {
+    return `Organization memory limit reached (${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}). Delete or archive unused memories before storing new ones.`;
+  }
+  if (capacity.isSoftFull) {
+    return `Project soft limit reached (${capacity.used}/${toFiniteLimitText(capacity.limit)}). Consider archiving old memories. Org: ${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}.`;
+  }
+  if (capacity.isApproaching) {
+    return `Approaching project limit (${capacity.used}/${toFiniteLimitText(capacity.limit)}). Org: ${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}.`;
+  }
+  return `Memory available. Project: ${capacity.used}/${toFiniteLimitText(capacity.limit)}, Org: ${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}.`;
+}
+
 export function registerTools(server: McpServer, client: ApiClient) {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BOOTSTRAP — single-call context loader
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "agent_bootstrap",
+    "Load all agent context in a single call: all functionality entries, branch plan, memory capacity, and custom types. Use this at the start of every session instead of calling multiple tools.",
+    {
+      includeContent: z
+        .boolean()
+        .default(true)
+        .describe("Include full content of each entry"),
+      types: z
+        .array(z.string())
+        .optional()
+        .describe("Only include these types (omit for all)"),
+    },
+    async ({ includeContent, types }) => {
+      try {
+        const [allMemories, branchInfo, capacity, allTypeInfo] = await Promise.all([
+          listAllMemories(client),
+          getBranchInfo(),
+          client.getMemoryCapacity().catch(() => null),
+          getAllContextTypeInfo(client),
+        ]);
+
+        const entries = extractAgentContextEntries(allMemories);
+        const allTypeSlugs = Object.keys(allTypeInfo);
+        const selectedTypes = types ?? allTypeSlugs;
+
+        // Group entries by type
+        const functionalityTypes = selectedTypes.map((type) => {
+          const typeInfo = allTypeInfo[type];
+          const typeEntries = entries.filter((e) => e.type === type);
+
+          return {
+            type,
+            label: typeInfo?.label ?? type,
+            description: typeInfo?.description ?? "",
+            count: typeEntries.length,
+            items: typeEntries.map((entry) => ({
+              id: entry.id,
+              title: entry.title,
+              key: entry.key,
+              priority: entry.priority,
+              tags: entry.tags,
+              updatedAt: entry.updatedAt,
+              content: includeContent ? entry.content : undefined,
+            })),
+          };
+        });
+
+        // Get branch plan if on a branch
+        let branchPlan = null;
+        if (branchInfo?.branch) {
+          const planKey = buildBranchPlanKey(branchInfo.branch);
+          branchPlan = await client.getMemory(planKey).catch(() => null);
+        }
+
+        const memoryStatus = capacity
+          ? {
+              ...capacity,
+              guidance: formatCapacityGuidance(capacity),
+            }
+          : null;
+
+        return textResponse(
+          JSON.stringify(
+            {
+              functionalityTypes,
+              currentBranch: branchInfo,
+              branchPlan,
+              memoryStatus,
+              availableTypes: allTypeSlugs,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error bootstrapping agent context", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY CRUD
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   server.tool(
     "memory_store",
     "Store a key-value memory for the current project",
@@ -46,10 +158,25 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .record(z.unknown())
         .optional()
         .describe("Optional metadata object"),
+      priority: z
+        .number()
+        .int()
+        .min(0)
+        .max(100)
+        .optional()
+        .describe("Priority (0-100, higher = more important)"),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe("Tags for categorization and filtering"),
+      expiresAt: z
+        .number()
+        .optional()
+        .describe("Unix timestamp when this memory should expire"),
     },
-    async ({ key, content, metadata }) => {
+    async ({ key, content, metadata, priority, tags, expiresAt }) => {
       try {
-        await client.storeMemory(key, content, metadata);
+        await client.storeMemory(key, content, metadata, { priority, tags, expiresAt });
         return textResponse(`Memory stored with key: ${key}`);
       } catch (error) {
         if (hasMemoryFullError(error)) {
@@ -81,9 +208,9 @@ export function registerTools(server: McpServer, client: ApiClient) {
 
   server.tool(
     "memory_search",
-    "Search memories by query string",
+    "Search memories using full-text search with optional tag and sort filters",
     {
-      query: z.string().describe("Search query"),
+      query: z.string().describe("Search query (uses FTS5 full-text search)"),
       limit: z
         .number()
         .int()
@@ -91,10 +218,26 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .max(100)
         .default(20)
         .describe("Maximum results to return"),
+      tags: z
+        .string()
+        .optional()
+        .describe("Comma-separated tags to filter by"),
+      sort: z
+        .enum(["updated", "priority", "created"])
+        .optional()
+        .describe("Sort order"),
+      includeArchived: z
+        .boolean()
+        .default(false)
+        .describe("Include archived memories"),
     },
-    async ({ query, limit }) => {
+    async ({ query, limit, tags, sort, includeArchived }) => {
       try {
-        const results = await client.searchMemories(query, limit);
+        const results = await client.searchMemories(query, limit, {
+          tags,
+          sort,
+          includeArchived,
+        });
         return textResponse(JSON.stringify(results, null, 2));
       } catch (error) {
         return errorResponse("Error searching memories", error);
@@ -119,10 +262,26 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .min(0)
         .default(0)
         .describe("Offset for pagination"),
+      sort: z
+        .enum(["updated", "priority", "created"])
+        .default("updated")
+        .describe("Sort order"),
+      tags: z
+        .string()
+        .optional()
+        .describe("Comma-separated tags to filter by"),
+      includeArchived: z
+        .boolean()
+        .default(false)
+        .describe("Include archived memories"),
     },
-    async ({ limit, offset }) => {
+    async ({ limit, offset, sort, tags, includeArchived }) => {
       try {
-        const results = await client.listMemories(limit, offset);
+        const results = await client.listMemories(limit, offset, {
+          sort,
+          tags,
+          includeArchived,
+        });
         return textResponse(JSON.stringify(results, null, 2));
       } catch (error) {
         return errorResponse("Error listing memories", error);
@@ -148,7 +307,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
 
   server.tool(
     "memory_update",
-    "Update an existing memory",
+    "Update an existing memory (creates a version snapshot before updating)",
     {
       key: z.string().describe("Key of the memory to update"),
       content: z.string().optional().describe("New content"),
@@ -156,10 +315,21 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .record(z.unknown())
         .optional()
         .describe("New metadata object"),
+      priority: z
+        .number()
+        .int()
+        .min(0)
+        .max(100)
+        .optional()
+        .describe("New priority"),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe("New tags"),
     },
-    async ({ key, content, metadata }) => {
+    async ({ key, content, metadata, priority, tags }) => {
       try {
-        await client.updateMemory(key, content, metadata);
+        await client.updateMemory(key, content, metadata, { priority, tags });
         return textResponse(`Memory updated: ${key}`);
       } catch (error) {
         return errorResponse("Error updating memory", error);
@@ -169,20 +339,16 @@ export function registerTools(server: McpServer, client: ApiClient) {
 
   server.tool(
     "memory_capacity",
-    "Return memory usage/limit and whether memory is full",
+    "Return memory usage/limit for the current project and organization. Project limits are soft (warning), org limits are hard (blocking).",
     {},
     async () => {
       try {
         const capacity = await client.getMemoryCapacity();
-        const guidance = capacity.isFull
-          ? "Memory is full. Delete unused memories before adding new ones."
-          : "Memory has available capacity.";
-
         return textResponse(
           JSON.stringify(
             {
               ...capacity,
-              guidance,
+              guidance: formatCapacityGuidance(capacity),
             },
             null,
             2,
@@ -194,13 +360,127 @@ export function registerTools(server: McpServer, client: ApiClient) {
     },
   );
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BULK OPERATIONS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_bulk_get",
+    "Retrieve multiple memories by keys in a single request (up to 50 keys)",
+    {
+      keys: z
+        .array(z.string())
+        .min(1)
+        .max(50)
+        .describe("Array of memory keys to retrieve"),
+    },
+    async ({ keys }) => {
+      try {
+        const result = await client.bulkGetMemories(keys);
+        return textResponse(JSON.stringify(result, null, 2));
+      } catch (error) {
+        return errorResponse("Error bulk-retrieving memories", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VERSIONING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_history",
+    "View version history of a memory (shows previous content snapshots)",
+    {
+      key: z.string().describe("Key of the memory"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(10)
+        .describe("Maximum versions to return"),
+    },
+    async ({ key, limit }) => {
+      try {
+        const result = await client.getMemoryVersions(key, limit);
+        return textResponse(JSON.stringify(result, null, 2));
+      } catch (error) {
+        return errorResponse("Error retrieving memory history", error);
+      }
+    },
+  );
+
+  server.tool(
+    "memory_restore",
+    "Restore a memory to a previous version (current content is saved as a new version first)",
+    {
+      key: z.string().describe("Key of the memory"),
+      version: z.number().int().min(1).describe("Version number to restore"),
+    },
+    async ({ key, version }) => {
+      try {
+        const result = await client.restoreMemoryVersion(key, version);
+        return textResponse(
+          JSON.stringify(result, null, 2),
+        );
+      } catch (error) {
+        return errorResponse("Error restoring memory version", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ARCHIVE & CAPACITY OPTIMIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_archive",
+    "Archive or unarchive a memory. Archived memories are hidden from normal listings and don't count toward capacity.",
+    {
+      key: z.string().describe("Key of the memory"),
+      archive: z.boolean().describe("true to archive, false to unarchive"),
+    },
+    async ({ key, archive }) => {
+      try {
+        await client.archiveMemory(key, archive);
+        return textResponse(
+          `Memory ${archive ? "archived" : "unarchived"}: ${key}`,
+        );
+      } catch (error) {
+        return errorResponse("Error archiving memory", error);
+      }
+    },
+  );
+
+  server.tool(
+    "memory_cleanup",
+    "Delete all expired memories (past their expiresAt date) to free capacity",
+    {},
+    async () => {
+      try {
+        const result = await client.cleanupExpired();
+        return textResponse(
+          `Cleanup complete: ${result.cleaned} expired memories removed.`,
+        );
+      } catch (error) {
+        return errorResponse("Error cleaning up expired memories", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGENT FUNCTIONALITY (structured context)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   server.tool(
     "agent_functionality_list",
-    "List agent functionality types and saved context entries (replacement for AGENTS.md/CLAUDE.md style guidance)",
+    "List agent functionality types and saved context entries (replacement for AGENTS.md/CLAUDE.md style guidance). Supports both built-in and custom types.",
     {
-      type: agentContextTypeSchema
+      type: z
+        .string()
         .optional()
-        .describe("Optional type filter"),
+        .describe("Optional type filter (built-in or custom slug)"),
       includeContentPreview: z
         .boolean()
         .default(false)
@@ -215,16 +495,18 @@ export function registerTools(server: McpServer, client: ApiClient) {
     },
     async ({ type, includeContentPreview, limitPerType }) => {
       try {
-        const [allMemories, branchInfo] = await Promise.all([
+        const [allMemories, branchInfo, allTypeInfo] = await Promise.all([
           listAllMemories(client),
           getBranchInfo(),
+          getAllContextTypeInfo(client),
         ]);
         const entries = extractAgentContextEntries(allMemories);
         const capacity = await client.getMemoryCapacity().catch(() => null);
 
-        const selectedTypes = type ? [type] : AGENT_CONTEXT_TYPES;
+        const selectedTypes = type ? [type] : Object.keys(allTypeInfo);
 
         const result = selectedTypes.map((entryType) => {
+          const typeInfo = allTypeInfo[entryType];
           const items = entries
             .filter((entry) => entry.type === entryType)
             .slice(0, limitPerType)
@@ -232,6 +514,8 @@ export function registerTools(server: McpServer, client: ApiClient) {
               id: entry.id,
               title: entry.title,
               key: entry.key,
+              priority: entry.priority,
+              tags: entry.tags,
               updatedAt: entry.updatedAt,
               preview: includeContentPreview
                 ? entry.content.slice(0, 240)
@@ -240,8 +524,8 @@ export function registerTools(server: McpServer, client: ApiClient) {
 
           return {
             type: entryType,
-            label: AGENT_CONTEXT_TYPE_INFO[entryType].label,
-            description: AGENT_CONTEXT_TYPE_INFO[entryType].description,
+            label: typeInfo?.label ?? entryType,
+            description: typeInfo?.description ?? "",
             count: entries.filter((entry) => entry.type === entryType).length,
             items,
           };
@@ -250,9 +534,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
         const memoryStatus = capacity
           ? {
               ...capacity,
-              guidance: capacity.isFull
-                ? `Memory is full (${capacity.used}/${toFiniteLimitText(capacity.limit)}). Delete unused entries before storing new ones.`
-                : `Memory available (${capacity.used}/${toFiniteLimitText(capacity.limit)}).`,
+              guidance: formatCapacityGuidance(capacity),
             }
           : null;
 
@@ -277,7 +559,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
     "agent_functionality_get",
     "Get detailed functionality data for one type or one specific item",
     {
-      type: agentContextTypeSchema.describe("Functionality type"),
+      type: z.string().describe("Functionality type (built-in or custom slug)"),
       id: z
         .string()
         .min(1)
@@ -302,17 +584,21 @@ export function registerTools(server: McpServer, client: ApiClient) {
           (entry) => entry.type === type,
         );
 
+        const typeInfo = await getAllContextTypeInfo(client);
+
         return textResponse(
           JSON.stringify(
             {
               type,
-              label: AGENT_CONTEXT_TYPE_INFO[type].label,
-              description: AGENT_CONTEXT_TYPE_INFO[type].description,
+              label: typeInfo[type]?.label ?? type,
+              description: typeInfo[type]?.description ?? "",
               count: entries.length,
               items: entries.map((entry) => ({
                 id: entry.id,
                 title: entry.title,
                 key: entry.key,
+                priority: entry.priority,
+                tags: entry.tags,
                 metadata: entry.metadata,
                 updatedAt: entry.updatedAt,
                 content: includeContent ? entry.content : undefined,
@@ -332,7 +618,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
     "agent_functionality_set",
     "Create or update structured agent functionality data",
     {
-      type: agentContextTypeSchema.describe("Functionality type"),
+      type: z.string().describe("Functionality type (built-in or custom slug)"),
       id: z
         .string()
         .min(1)
@@ -349,8 +635,19 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .record(z.unknown())
         .optional()
         .describe("Optional metadata object"),
+      priority: z
+        .number()
+        .int()
+        .min(0)
+        .max(100)
+        .optional()
+        .describe("Priority (0-100, higher = more important)"),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe("Tags for categorization"),
     },
-    async ({ type, id, title, content, metadata }) => {
+    async ({ type, id, title, content, metadata, priority, tags }) => {
       try {
         const normalizedId = normalizeAgentContextId(id);
         if (!normalizedId) {
@@ -361,19 +658,24 @@ export function registerTools(server: McpServer, client: ApiClient) {
         }
 
         const key = buildAgentContextKey(type, normalizedId);
-        await client.storeMemory(key, content, {
-          ...metadata,
-          scope: "agent_functionality",
-          type,
-          id: normalizedId,
-          title: title ?? normalizedId,
-          updatedByTool: "agent_functionality_set",
-          updatedAt: new Date().toISOString(),
-        });
+        await client.storeMemory(
+          key,
+          content,
+          {
+            ...metadata,
+            scope: "agent_functionality",
+            type,
+            id: normalizedId,
+            title: title ?? normalizedId,
+            updatedByTool: "agent_functionality_set",
+            updatedAt: new Date().toISOString(),
+          },
+          { priority, tags },
+        );
 
         const capacity = await client.getMemoryCapacity().catch(() => null);
         const message = capacity
-          ? `Functionality saved: ${key} (memory ${capacity.used}/${toFiniteLimitText(capacity.limit)})`
+          ? `Functionality saved: ${key} (project: ${capacity.used}/${toFiniteLimitText(capacity.limit)})`
           : `Functionality saved: ${key}`;
 
         return textResponse(message);
@@ -393,7 +695,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
     "agent_functionality_delete",
     "Delete a structured agent functionality item",
     {
-      type: agentContextTypeSchema.describe("Functionality type"),
+      type: z.string().describe("Functionality type (built-in or custom slug)"),
       id: z
         .string()
         .min(1)
@@ -411,17 +713,305 @@ export function registerTools(server: McpServer, client: ApiClient) {
     },
   );
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SMART RETRIEVAL — file-path-aware context
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "agent_context_for",
+    "Get relevant agent context for specific files you're about to modify. Returns matching entries from architecture, coding_style, testing, constraints, and file_map based on file path patterns.",
+    {
+      filePaths: z
+        .array(z.string())
+        .min(1)
+        .max(50)
+        .describe("File paths you're about to modify"),
+      types: z
+        .array(z.string())
+        .optional()
+        .describe("Only search these types (default: all)"),
+    },
+    async ({ filePaths, types }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+        const entries = extractAgentContextEntries(allMemories);
+
+        const relevantTypes = types ?? [
+          "architecture",
+          "coding_style",
+          "testing",
+          "constraints",
+          "file_map",
+          "folder_structure",
+        ];
+
+        // Build search terms from file paths
+        const searchTerms: string[] = [];
+        for (const fp of filePaths) {
+          const parts = fp.split("/").filter(Boolean);
+          searchTerms.push(...parts);
+          // Also add file extension
+          const ext = fp.split(".").pop();
+          if (ext) searchTerms.push(ext);
+        }
+        const searchTermsLower = [...new Set(searchTerms.map((t) => t.toLowerCase()))];
+
+        // Score each entry by relevance to the file paths
+        const scored = entries
+          .filter((e) => relevantTypes.includes(e.type))
+          .map((entry) => {
+            const searchableText = `${entry.title} ${entry.content} ${entry.tags.join(" ")}`.toLowerCase();
+            let score = entry.priority;
+
+            for (const term of searchTermsLower) {
+              if (searchableText.includes(term)) {
+                score += 10;
+              }
+            }
+
+            // Exact file path match gets a big boost
+            for (const fp of filePaths) {
+              if (searchableText.includes(fp.toLowerCase())) {
+                score += 50;
+              }
+            }
+
+            return { entry, score };
+          })
+          .filter((s) => s.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 20);
+
+        return textResponse(
+          JSON.stringify(
+            {
+              filePaths,
+              relevantContext: scored.map((s) => ({
+                type: s.entry.type,
+                id: s.entry.id,
+                title: s.entry.title,
+                relevanceScore: s.score,
+                priority: s.entry.priority,
+                tags: s.entry.tags,
+                content: s.entry.content,
+              })),
+              totalMatches: scored.length,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error retrieving context for files", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGENTS.MD IMPORT
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "agents_md_import",
+    "Import an AGENTS.md / CLAUDE.md file into structured agent functionality entries. Parses markdown headings and maps them to the appropriate context types.",
+    {
+      content: z
+        .string()
+        .min(1)
+        .describe("The full text content of the AGENTS.md / CLAUDE.md file"),
+      dryRun: z
+        .boolean()
+        .default(false)
+        .describe("If true, returns parsed sections without storing them"),
+      overwrite: z
+        .boolean()
+        .default(false)
+        .describe("If true, overwrite existing entries with the same key"),
+    },
+    async ({ content, dryRun, overwrite }) => {
+      try {
+        const sections = parseAgentsMd(content);
+
+        if (dryRun) {
+          return textResponse(
+            JSON.stringify(
+              {
+                dryRun: true,
+                sections: sections.map((s) => ({
+                  type: s.type,
+                  id: s.id,
+                  title: s.title,
+                  contentLength: s.content.length,
+                  key: buildAgentContextKey(s.type, s.id),
+                })),
+                totalSections: sections.length,
+              },
+              null,
+              2,
+            ),
+          );
+        }
+
+        const results: Array<{ key: string; status: string }> = [];
+
+        for (const section of sections) {
+          const key = buildAgentContextKey(section.type, section.id);
+
+          if (!overwrite) {
+            // Check if exists
+            try {
+              await client.getMemory(key);
+              results.push({ key, status: "skipped (exists)" });
+              continue;
+            } catch {
+              // Doesn't exist, proceed
+            }
+          }
+
+          try {
+            await client.storeMemory(key, section.content, {
+              scope: "agent_functionality",
+              type: section.type,
+              id: normalizeAgentContextId(section.id),
+              title: section.title,
+              importedFrom: "agents_md",
+              updatedByTool: "agents_md_import",
+              updatedAt: new Date().toISOString(),
+            });
+            results.push({ key, status: "imported" });
+          } catch (error) {
+            results.push({
+              key,
+              status: `error: ${error instanceof Error ? error.message : String(error)}`,
+            });
+          }
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              imported: results.filter((r) => r.status === "imported").length,
+              skipped: results.filter((r) => r.status.startsWith("skipped")).length,
+              errors: results.filter((r) => r.status.startsWith("error")).length,
+              details: results,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error importing agents.md", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CUSTOM CONTEXT TYPES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "context_type_create",
+    "Create a custom agent context type beyond the built-in ones (coding_style, architecture, etc.)",
+    {
+      slug: z
+        .string()
+        .min(1)
+        .max(64)
+        .describe("Unique slug for the type (e.g., 'api_conventions')"),
+      label: z.string().min(1).max(128).describe("Human-readable label"),
+      description: z
+        .string()
+        .min(1)
+        .max(512)
+        .describe("Description of what this type covers"),
+    },
+    async ({ slug, label, description }) => {
+      try {
+        // Prevent overriding built-in types
+        if ((BUILTIN_AGENT_CONTEXT_TYPES as readonly string[]).includes(slug)) {
+          return errorResponse(
+            "Error creating context type",
+            `"${slug}" is a built-in type and cannot be overridden.`,
+          );
+        }
+
+        await client.createContextType({ slug, label, description });
+        invalidateCustomTypesCache();
+        return textResponse(
+          `Custom context type created: ${slug} ("${label}")`,
+        );
+      } catch (error) {
+        return errorResponse("Error creating context type", error);
+      }
+    },
+  );
+
+  server.tool(
+    "context_type_list",
+    "List all available context types (both built-in and custom)",
+    {},
+    async () => {
+      try {
+        const allTypeInfo = await getAllContextTypeInfo(client);
+        const builtinSlugs = new Set(BUILTIN_AGENT_CONTEXT_TYPES as readonly string[]);
+
+        const types = Object.entries(allTypeInfo).map(([slug, info]) => ({
+          slug,
+          label: info.label,
+          description: info.description,
+          isBuiltin: builtinSlugs.has(slug),
+        }));
+
+        return textResponse(JSON.stringify({ types }, null, 2));
+      } catch (error) {
+        return errorResponse("Error listing context types", error);
+      }
+    },
+  );
+
+  server.tool(
+    "context_type_delete",
+    "Delete a custom context type (built-in types cannot be deleted)",
+    {
+      slug: z.string().describe("Slug of the custom type to delete"),
+    },
+    async ({ slug }) => {
+      try {
+        if ((BUILTIN_AGENT_CONTEXT_TYPES as readonly string[]).includes(slug)) {
+          return errorResponse(
+            "Error deleting context type",
+            `"${slug}" is a built-in type and cannot be deleted.`,
+          );
+        }
+
+        await client.deleteContextType(slug);
+        invalidateCustomTypesCache();
+        return textResponse(`Custom context type deleted: ${slug}`);
+      } catch (error) {
+        return errorResponse("Error deleting context type", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BRANCH CONTEXT (enhanced)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   server.tool(
     "branch_context_get",
-    "Get current branch information and branch implementation plan",
+    "Get current branch information, implementation plan, and related context entries",
     {
       branch: z
         .string()
         .min(1)
         .optional()
         .describe("Branch name (defaults to current git branch)"),
+      includeRelatedContext: z
+        .boolean()
+        .default(false)
+        .describe("Also return agent context entries that mention this branch"),
     },
-    async ({ branch }) => {
+    async ({ branch, includeRelatedContext }) => {
       try {
         const currentBranchInfo = await getBranchInfo();
         const selectedBranch = branch ?? currentBranchInfo?.branch;
@@ -436,6 +1026,64 @@ export function registerTools(server: McpServer, client: ApiClient) {
         const key = buildBranchPlanKey(selectedBranch);
         const branchPlan = await client.getMemory(key).catch(() => null);
 
+        let relatedContext: Array<{
+          type: string;
+          id: string;
+          title: string;
+          relevanceScore: number;
+        }> = [];
+
+        if (includeRelatedContext) {
+          const allMemories = await listAllMemories(client);
+          const entries = extractAgentContextEntries(allMemories);
+          const branchTerms = selectedBranch
+            .split(/[-_/]/)
+            .filter((t) => t.length > 2)
+            .map((t) => t.toLowerCase());
+
+          relatedContext = entries
+            .filter((e) => e.type !== "branch_plan")
+            .map((entry) => {
+              const text = `${entry.title} ${entry.content}`.toLowerCase();
+              let score = 0;
+              for (const term of branchTerms) {
+                if (text.includes(term)) score += 10;
+              }
+              if (text.includes(selectedBranch.toLowerCase())) score += 50;
+              return { entry, score };
+            })
+            .filter((s) => s.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10)
+            .map((s) => ({
+              type: s.entry.type,
+              id: s.entry.id,
+              title: s.entry.title,
+              relevanceScore: s.score,
+            }));
+        }
+
+        // Parse branch plan metadata for status tracking
+        let planStatus = null;
+        if (branchPlan && typeof branchPlan === "object") {
+          const plan = branchPlan as { memory?: { metadata?: string } };
+          if (plan.memory?.metadata) {
+            try {
+              const meta = typeof plan.memory.metadata === "string"
+                ? JSON.parse(plan.memory.metadata)
+                : plan.memory.metadata;
+              planStatus = {
+                status: meta.planStatus ?? "active",
+                checklist: meta.checklist ?? null,
+                completedItems: meta.completedItems ?? null,
+                totalItems: meta.totalItems ?? null,
+              };
+            } catch {
+              // ignore parse errors
+            }
+          }
+        }
+
         return textResponse(
           JSON.stringify(
             {
@@ -443,6 +1091,8 @@ export function registerTools(server: McpServer, client: ApiClient) {
               selectedBranch,
               branchPlanKey: key,
               branchPlan,
+              planStatus,
+              relatedContext: includeRelatedContext ? relatedContext : undefined,
             },
             null,
             2,
@@ -456,7 +1106,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
 
   server.tool(
     "branch_context_set",
-    "Set what needs to be implemented for a branch",
+    "Set what needs to be implemented for a branch, with optional status and checklist tracking",
     {
       branch: z
         .string()
@@ -468,8 +1118,21 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .record(z.unknown())
         .optional()
         .describe("Optional metadata object"),
+      status: z
+        .enum(["planning", "in_progress", "review", "merged"])
+        .optional()
+        .describe("Plan status"),
+      checklist: z
+        .array(
+          z.object({
+            item: z.string(),
+            done: z.boolean(),
+          }),
+        )
+        .optional()
+        .describe("Checklist of implementation items"),
     },
-    async ({ branch, content, metadata }) => {
+    async ({ branch, content, metadata, status, checklist }) => {
       try {
         const currentBranchInfo = await getBranchInfo();
         const selectedBranch = branch ?? currentBranchInfo?.branch;
@@ -482,17 +1145,33 @@ export function registerTools(server: McpServer, client: ApiClient) {
         }
 
         const key = buildBranchPlanKey(selectedBranch);
+        const completedItems = checklist
+          ? checklist.filter((c) => c.done).length
+          : undefined;
+        const totalItems = checklist ? checklist.length : undefined;
+
         await client.storeMemory(key, content, {
           ...metadata,
           scope: "agent_functionality",
           type: "branch_plan",
           branch: selectedBranch,
           title: `Branch plan: ${selectedBranch}`,
+          planStatus: status ?? "in_progress",
+          checklist: checklist ?? undefined,
+          completedItems,
+          totalItems,
           updatedByTool: "branch_context_set",
           updatedAt: new Date().toISOString(),
         });
 
-        return textResponse(`Branch context saved: ${key}`);
+        const statusMsg = status ? ` [${status}]` : "";
+        const checklistMsg = checklist
+          ? ` (${completedItems}/${totalItems} items done)`
+          : "";
+
+        return textResponse(
+          `Branch context saved: ${key}${statusMsg}${checklistMsg}`,
+        );
       } catch (error) {
         if (hasMemoryFullError(error)) {
           return errorResponse(

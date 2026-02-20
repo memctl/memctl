@@ -18,16 +18,20 @@ export async function GET(req: NextRequest) {
     return jsonError("Project not found", 404);
   }
 
-  const capacity = await getOrgMemoryCapacity(context.org.id, context.org.planId);
-  const usageRatio =
-    Number.isFinite(capacity.limit) && capacity.limit > 0
-      ? Math.min(1, capacity.used / capacity.limit)
-      : null;
+  const capacity = await getOrgMemoryCapacity(
+    context.org.id,
+    context.org.planId,
+    context.project.id,
+  );
 
   return NextResponse.json({
     used: capacity.used,
     limit: capacity.limit,
+    orgUsed: capacity.orgUsed,
+    orgLimit: capacity.orgLimit,
     isFull: capacity.isFull,
-    usageRatio,
+    isSoftFull: capacity.isSoftFull,
+    isApproaching: capacity.isApproaching,
+    usageRatio: capacity.usageRatio,
   });
 }

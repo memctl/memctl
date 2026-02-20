@@ -10,7 +10,8 @@ interface PlanInfo {
   price: number;
   projectLimit: number;
   memberLimit: number;
-  memoryLimit: number;
+  memoryLimitPerProject: number;
+  memoryLimitOrg: number;
   apiCallLimit: number;
 }
 
@@ -163,7 +164,7 @@ export function BillingClient({
                   {[
                     `${formatLimit(plan.projectLimit)} projects`,
                     `${formatLimit(plan.memberLimit)} members`,
-                    `${formatLimit(plan.memoryLimit)} memories`,
+                    `${formatLimit(plan.memoryLimitPerProject)} memories/project`,
                     `${formatLimit(plan.apiCallLimit)} API calls/mo`,
                   ].map((feature) => (
                     <li key={feature} className="flex items-center gap-2">

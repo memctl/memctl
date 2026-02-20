@@ -16,7 +16,10 @@ export const PLANS: Record<
     price: number;
     projectLimit: number;
     memberLimit: number;
-    memoryLimit: number;
+    /** Soft limit per project — agents get a warning when approaching, not a hard block */
+    memoryLimitPerProject: number;
+    /** Hard org-wide ceiling (generous, acts as abuse prevention) */
+    memoryLimitOrg: number;
     apiCallLimit: number;
   }
 > = {
@@ -25,7 +28,8 @@ export const PLANS: Record<
     price: 0,
     projectLimit: 1,
     memberLimit: 1,
-    memoryLimit: 500,
+    memoryLimitPerProject: 200,
+    memoryLimitOrg: 500,
     apiCallLimit: 5_000,
   },
   lite: {
@@ -33,7 +37,8 @@ export const PLANS: Record<
     price: 5,
     projectLimit: 10,
     memberLimit: 3,
-    memoryLimit: 5_000,
+    memoryLimitPerProject: 1_000,
+    memoryLimitOrg: 10_000,
     apiCallLimit: 50_000,
   },
   pro: {
@@ -41,7 +46,8 @@ export const PLANS: Record<
     price: 20,
     projectLimit: 25,
     memberLimit: 10,
-    memoryLimit: 50_000,
+    memoryLimitPerProject: 5_000,
+    memoryLimitOrg: 100_000,
     apiCallLimit: 500_000,
   },
   business: {
@@ -49,7 +55,8 @@ export const PLANS: Record<
     price: 59,
     projectLimit: 100,
     memberLimit: 30,
-    memoryLimit: 250_000,
+    memoryLimitPerProject: 10_000,
+    memoryLimitOrg: 500_000,
     apiCallLimit: 2_000_000,
   },
   scale: {
@@ -57,7 +64,8 @@ export const PLANS: Record<
     price: 149,
     projectLimit: 500,
     memberLimit: 100,
-    memoryLimit: 1_000_000,
+    memoryLimitPerProject: 25_000,
+    memoryLimitOrg: 2_000_000,
     apiCallLimit: 10_000_000,
   },
   enterprise: {
@@ -65,7 +73,8 @@ export const PLANS: Record<
     price: -1,
     projectLimit: Infinity,
     memberLimit: Infinity,
-    memoryLimit: Infinity,
+    memoryLimitPerProject: Infinity,
+    memoryLimitOrg: Infinity,
     apiCallLimit: Infinity,
   },
 };

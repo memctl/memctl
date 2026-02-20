@@ -80,7 +80,7 @@ export default async function BillingPage({
             { label: "Members", value: formatLimit(currentPlan.memberLimit) },
             {
               label: "Memories / project",
-              value: formatLimit(currentPlan.memoryLimit),
+              value: formatLimit(currentPlan.memoryLimitPerProject),
             },
             {
               label: "API calls / month",

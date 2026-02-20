@@ -1,10 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ApiClient } from "../api-client.js";
 import {
-  AGENT_CONTEXT_TYPE_INFO,
-  AGENT_CONTEXT_TYPES,
+  BUILTIN_AGENT_CONTEXT_TYPES,
   buildBranchPlanKey,
   extractAgentContextEntries,
+  getAllContextTypeInfo,
   getBranchInfo,
   listAllMemories,
 } from "../agent-context.js";
@@ -84,17 +84,18 @@ export function registerResources(server: McpServer, client: ApiClient) {
     "agent://functionalities",
     async (uri) => {
       try {
-        const [allMemories, branchInfo] = await Promise.all([
+        const [allMemories, branchInfo, allTypeInfo] = await Promise.all([
           listAllMemories(client),
           getBranchInfo(),
+          getAllContextTypeInfo(client),
         ]);
         const entries = extractAgentContextEntries(allMemories);
         const capacity = await client.getMemoryCapacity().catch(() => null);
 
-        const functionalityTypes = AGENT_CONTEXT_TYPES.map((type) => ({
+        const functionalityTypes = Object.entries(allTypeInfo).map(([type, info]) => ({
           type,
-          label: AGENT_CONTEXT_TYPE_INFO[type].label,
-          description: AGENT_CONTEXT_TYPE_INFO[type].description,
+          label: info.label,
+          description: info.description,
           count: entries.filter((entry) => entry.type === type).length,
           items: entries
             .filter((entry) => entry.type === type)
@@ -102,6 +103,8 @@ export function registerResources(server: McpServer, client: ApiClient) {
               id: entry.id,
               title: entry.title,
               key: entry.key,
+              priority: entry.priority,
+              tags: entry.tags,
               updatedAt: entry.updatedAt,
             })),
         }));
@@ -135,20 +138,22 @@ export function registerResources(server: McpServer, client: ApiClient) {
     async (uri) => {
       const segments = getPathSegments(uri);
       const maybeType = segments[0];
-      const type = AGENT_CONTEXT_TYPES.find((entry) => entry === maybeType);
-
-      if (!type) {
-        return textContent(
-          uri,
-          "text/plain",
-          `Error: unknown type "${maybeType}". Valid values: ${AGENT_CONTEXT_TYPES.join(", ")}`,
-        );
-      }
 
       try {
+        const allTypeInfo = await getAllContextTypeInfo(client);
+        const typeInfo = allTypeInfo[maybeType];
+
+        if (!typeInfo) {
+          return textContent(
+            uri,
+            "text/plain",
+            `Error: unknown type "${maybeType}". Valid values: ${Object.keys(allTypeInfo).join(", ")}`,
+          );
+        }
+
         const allMemories = await listAllMemories(client);
         const entries = extractAgentContextEntries(allMemories).filter(
-          (entry) => entry.type === type,
+          (entry) => entry.type === maybeType,
         );
 
         return textContent(
@@ -156,9 +161,9 @@ export function registerResources(server: McpServer, client: ApiClient) {
           "application/json",
           JSON.stringify(
             {
-              type,
-              label: AGENT_CONTEXT_TYPE_INFO[type].label,
-              description: AGENT_CONTEXT_TYPE_INFO[type].description,
+              type: maybeType,
+              label: typeInfo.label,
+              description: typeInfo.description,
               count: entries.length,
               items: entries,
             },
@@ -208,6 +213,69 @@ export function registerResources(server: McpServer, client: ApiClient) {
               ...branchInfo,
               branchPlanKey,
               branchPlan,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return textContent(
+          uri,
+          "text/plain",
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    },
+  );
+
+  server.resource(
+    "agent-bootstrap",
+    "agent://bootstrap",
+    async (uri) => {
+      try {
+        const [allMemories, branchInfo, allTypeInfo, capacity] = await Promise.all([
+          listAllMemories(client),
+          getBranchInfo(),
+          getAllContextTypeInfo(client),
+          client.getMemoryCapacity().catch(() => null),
+        ]);
+
+        const entries = extractAgentContextEntries(allMemories);
+
+        const functionalityTypes = Object.entries(allTypeInfo).map(([type, info]) => ({
+          type,
+          label: info.label,
+          description: info.description,
+          count: entries.filter((e) => e.type === type).length,
+          items: entries
+            .filter((e) => e.type === type)
+            .map((e) => ({
+              id: e.id,
+              title: e.title,
+              key: e.key,
+              priority: e.priority,
+              tags: e.tags,
+              content: e.content,
+              updatedAt: e.updatedAt,
+            })),
+        }));
+
+        let branchPlan = null;
+        if (branchInfo?.branch) {
+          const planKey = buildBranchPlanKey(branchInfo.branch);
+          branchPlan = await client.getMemory(planKey).catch(() => null);
+        }
+
+        return textContent(
+          uri,
+          "application/json",
+          JSON.stringify(
+            {
+              functionalityTypes,
+              currentBranch: branchInfo,
+              branchPlan,
+              memoryStatus: capacity,
+              availableTypes: Object.keys(allTypeInfo),
             },
             null,
             2,

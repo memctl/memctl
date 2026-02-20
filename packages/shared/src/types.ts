@@ -52,7 +52,34 @@ export interface Memory {
   key: string;
   content: string;
   metadata: string | null;
+  priority: number | null;
+  tags: string | null;
+  archivedAt: number | null;
+  expiresAt: number | null;
   createdBy: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MemoryVersion {
+  id: string;
+  memoryId: string;
+  version: number;
+  content: string;
+  metadata: string | null;
+  changedBy: string | null;
+  changeType: "created" | "updated" | "restored";
+  createdAt: number;
+}
+
+export interface ContextType {
+  id: string;
+  orgId: string;
+  slug: string;
+  label: string;
+  description: string;
+  schema: string | null;
+  icon: string | null;
   createdAt: number;
   updatedAt: number;
 }

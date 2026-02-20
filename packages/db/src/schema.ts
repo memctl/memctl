@@ -87,6 +87,10 @@ export const memories = sqliteTable(
     key: text("key").notNull(),
     content: text("content").notNull(),
     metadata: text("metadata"),
+    priority: integer("priority").default(0),
+    tags: text("tags"), // JSON array of strings
+    archivedAt: integer("archived_at", { mode: "timestamp" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
     createdBy: text("created_by").references(() => users.id),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -96,6 +100,43 @@ export const memories = sqliteTable(
       .$defaultFn(() => new Date()),
   },
   (table) => [unique().on(table.projectId, table.key)],
+);
+
+export const memoryVersions = sqliteTable("memory_versions", {
+  id: text("id").primaryKey(),
+  memoryId: text("memory_id")
+    .notNull()
+    .references(() => memories.id, { onDelete: "cascade" }),
+  version: integer("version").notNull(),
+  content: text("content").notNull(),
+  metadata: text("metadata"),
+  changedBy: text("changed_by").references(() => users.id),
+  changeType: text("change_type").notNull(), // "created" | "updated" | "restored"
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const contextTypes = sqliteTable(
+  "context_types",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    slug: text("slug").notNull(),
+    label: text("label").notNull(),
+    description: text("description").notNull(),
+    schema: text("schema"), // optional JSON schema for validation
+    icon: text("icon"), // optional icon name
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [unique().on(table.orgId, table.slug)],
 );
 
 export const apiTokens = sqliteTable("api_tokens", {

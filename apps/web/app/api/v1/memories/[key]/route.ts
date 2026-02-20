@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, projects, organizations } from "@memctl/db/schema";
-import { eq, and } from "drizzle-orm";
+import { memories, memoryVersions, projects, organizations } from "@memctl/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { memoryUpdateSchema } from "@memctl/shared/validators";
+import { generateId } from "@/lib/utils";
 
 async function resolveProject(orgSlug: string, projectSlug: string) {
   const [org] = await db
@@ -90,9 +91,35 @@ export async function PATCH(
 
   if (!existing) return jsonError("Memory not found", 404);
 
+  // Save version before updating
+  const [latestVersion] = await db
+    .select({ version: memoryVersions.version })
+    .from(memoryVersions)
+    .where(eq(memoryVersions.memoryId, existing.id))
+    .orderBy(desc(memoryVersions.version))
+    .limit(1);
+
+  const nextVersion = (latestVersion?.version ?? 0) + 1;
+
+  await db.insert(memoryVersions).values({
+    id: generateId(),
+    memoryId: existing.id,
+    version: nextVersion,
+    content: existing.content,
+    metadata: existing.metadata,
+    changedBy: authResult.userId,
+    changeType: "updated",
+    createdAt: new Date(),
+  });
+
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.content) updates.content = parsed.data.content;
   if (parsed.data.metadata) updates.metadata = JSON.stringify(parsed.data.metadata);
+  if (parsed.data.priority !== undefined) updates.priority = parsed.data.priority;
+  if (parsed.data.tags !== undefined) updates.tags = JSON.stringify(parsed.data.tags);
+  if (parsed.data.expiresAt !== undefined) {
+    updates.expiresAt = parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null;
+  }
 
   await db.update(memories).set(updates).where(eq(memories.id, existing.id));
 

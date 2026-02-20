@@ -99,7 +99,7 @@ export default async function UsagePage({
     {
       label: "Memories",
       current: totalMemories,
-      limit: currentPlan.memoryLimit * Math.max(projectList.length, 1),
+      limit: currentPlan.memoryLimitOrg,
     },
     {
       label: "API Calls",
