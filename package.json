@@ -1,5 +1,5 @@
 {
-  "name": "memctl",
+  "name": "memctl-workspace",
   "private": true,
   "scripts": {
     "dev": "turbo dev",

@@ -50,7 +50,11 @@ export async function GET(req: NextRequest) {
 
     let parsed: Record<string, unknown> | null = null;
     if (mem.metadata) {
-      try { parsed = JSON.parse(mem.metadata) as Record<string, unknown>; } catch {}
+      try {
+        parsed = JSON.parse(mem.metadata) as Record<string, unknown>;
+      } catch {
+        // Ignore invalid metadata JSON and export null metadata.
+      }
     }
 
     byType[type].push({

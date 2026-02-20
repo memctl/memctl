@@ -126,7 +126,11 @@ export async function POST(req: NextRequest) {
 
         let existing: string[] = [];
         if (full?.tags) {
-          try { existing = JSON.parse(full.tags); } catch {}
+          try {
+            existing = JSON.parse(full.tags);
+          } catch {
+            // Keep default empty tags if stored JSON is invalid.
+          }
         }
         const merged = [...new Set([...existing, ...(value as string[])])];
         await db

@@ -2135,7 +2135,9 @@ export function registerTools(server: McpServer, client: ApiClient) {
               await client.getMemory(key);
               results.push({ key, status: "skipped (exists)" });
               continue;
-            } catch {}
+            } catch {
+              // Memory does not exist yet; continue to import.
+            }
           }
 
           try {
@@ -2362,7 +2364,9 @@ export function registerTools(server: McpServer, client: ApiClient) {
                 selectedKeys.add(rk);
                 budgetRemaining -= relEntry.content.length;
               }
-            } catch {}
+            } catch {
+              // Ignore malformed relatedKeys and continue with primary matches.
+            }
           }
 
           if (budgetRemaining <= 0) break;
@@ -3350,7 +3354,11 @@ exit 0
           // Merge with existing tags
           let existingTags: string[] = [];
           if (mem.memory.tags) {
-            try { existingTags = JSON.parse(mem.memory.tags); } catch {}
+            try {
+              existingTags = JSON.parse(mem.memory.tags);
+            } catch {
+              // Keep default empty tags if stored JSON is invalid.
+            }
           }
           const merged = [...new Set([...existingTags, ...uniqueTags])];
           await client.updateMemory(key, undefined, undefined, {
@@ -5564,7 +5572,7 @@ exit 0
 
           // Check file references — are referenced files deleted?
           const content = mem.content ?? "";
-          const fileRefs = content.match(/(?:^|\s)([\w./\-]+\.\w{1,10})/gm) ?? [];
+          const fileRefs = content.match(/(?:^|\s)([\w./-]+\.\w{1,10})/gm) ?? [];
           const missingFiles = fileRefs
             .map((f) => f.trim())
             .filter((f) => trackedFiles.size > 0 && !trackedFiles.has(f) && f.includes("/"));
