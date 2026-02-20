@@ -73,6 +73,30 @@ function matchGlob(filepath: string, pattern: string): boolean {
 
 export function registerTools(server: McpServer, client: ApiClient) {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SESSION RATE LIMITING (Feature 8)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const RATE_LIMIT = Number(process.env.MEMCTL_RATE_LIMIT) || 500;
+  let writeCallCount = 0;
+
+  function checkRateLimit(): { allowed: boolean; warning?: string } {
+    const pct = writeCallCount / RATE_LIMIT;
+    if (pct >= 1) {
+      return {
+        allowed: false,
+        warning: `Rate limit reached (${writeCallCount}/${RATE_LIMIT}). No more write operations allowed this session.`,
+      };
+    }
+    if (pct >= 0.8) {
+      return {
+        allowed: true,
+        warning: `Approaching rate limit: ${writeCallCount}/${RATE_LIMIT} write calls used (${Math.round(pct * 100)}%).`,
+      };
+    }
+    return { allowed: true };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // BOOTSTRAP — single-call context loader
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -88,8 +112,12 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .array(z.string())
         .optional()
         .describe("Only include these types (omit for all)"),
+      branch: z
+        .string()
+        .optional()
+        .describe("Filter by branch tag. Branch-tagged memories sort first, global memories still included."),
     },
-    async ({ includeContent, types }) => {
+    async ({ includeContent, types, branch }) => {
       try {
         const [allMemories, branchInfo, capacity, allTypeInfo] = await Promise.all([
           listAllMemories(client),
@@ -102,10 +130,24 @@ export function registerTools(server: McpServer, client: ApiClient) {
         const allTypeSlugs = Object.keys(allTypeInfo);
         const selectedTypes = types ?? allTypeSlugs;
 
-        // Group entries by type
+        // Resolve branch filter
+        const branchFilter = branch ?? (branchInfo?.branch && branchInfo.branch !== "main" && branchInfo.branch !== "master" ? branchInfo.branch : null);
+        const branchTag = branchFilter ? `branch:${branchFilter}` : null;
+
+        // Group entries by type, sorting branch-tagged first
         const functionalityTypes = selectedTypes.map((type) => {
           const typeInfo = allTypeInfo[type];
-          const typeEntries = entries.filter((e) => e.type === type);
+          let typeEntries = entries.filter((e) => e.type === type);
+
+          // Sort branch-tagged memories first when branch filter is active
+          if (branchTag) {
+            typeEntries = typeEntries.sort((a, b) => {
+              const aHasBranch = a.tags.includes(branchTag!) ? 1 : 0;
+              const bHasBranch = b.tags.includes(branchTag!) ? 1 : 0;
+              if (aHasBranch !== bHasBranch) return bHasBranch - aHasBranch;
+              return b.priority - a.priority;
+            });
+          }
 
           return {
             type,
@@ -143,6 +185,18 @@ export function registerTools(server: McpServer, client: ApiClient) {
             }
           : null;
 
+        // Hint about org defaults when project is empty (Feature 6)
+        const totalEntries = entries.length;
+        let orgDefaultsHint: string | undefined;
+        if (totalEntries === 0) {
+          try {
+            const orgDefaults = await client.listOrgDefaults();
+            if (orgDefaults.defaults.length > 0) {
+              orgDefaultsHint = `This project has no memories yet. Your organization has ${orgDefaults.defaults.length} default memories available. Use org_defaults_apply to populate this project.`;
+            }
+          } catch { /* ignore if org defaults API not available */ }
+        }
+
         return textResponse(
           JSON.stringify(
             {
@@ -151,6 +205,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
               branchPlan,
               memoryStatus,
               availableTypes: allTypeSlugs,
+              orgDefaultsHint,
             },
             null,
             2,
@@ -204,9 +259,34 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .optional()
         .default("warn")
         .describe("What to do if similar content exists: warn (store + warn), skip (don't store), merge (append to existing)"),
+      autoBranch: z
+        .boolean()
+        .default(true)
+        .describe("Auto-append branch:<name> tag when on a non-main/master branch"),
     },
-    async ({ key, content, metadata, scope, priority, tags, expiresAt, ttl, dedupAction }) => {
+    async ({ key, content, metadata, scope, priority, tags, expiresAt, ttl, dedupAction, autoBranch }) => {
       try {
+        // Rate limit check
+        const rateCheck = checkRateLimit();
+        if (!rateCheck.allowed) {
+          return errorResponse("Rate limit exceeded", rateCheck.warning!);
+        }
+        writeCallCount++;
+
+        // Auto-branch tagging (Feature 1)
+        let resolvedTags = tags ?? [];
+        if (autoBranch) {
+          try {
+            const bi = await getBranchInfo();
+            if (bi?.branch && bi.branch !== "main" && bi.branch !== "master") {
+              const branchTag = `branch:${bi.branch}`;
+              if (!resolvedTags.includes(branchTag)) {
+                resolvedTags = [...resolvedTags, branchTag];
+              }
+            }
+          } catch { /* ignore git errors */ }
+        }
+
         // Resolve TTL preset to expiresAt
         let resolvedExpiry = expiresAt;
         if (!resolvedExpiry && ttl && ttl !== "permanent") {
@@ -239,7 +319,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
               const existingMem = existing?.memory as Record<string, unknown> | undefined;
               const existingContent = typeof existingMem?.content === "string" ? existingMem.content : "";
               const merged = `${existingContent}\n\n---\n\n${content}`;
-              await client.storeMemory(top.key, merged, metadata, { scope, priority, tags, expiresAt: resolvedExpiry });
+              await client.storeMemory(top.key, merged, metadata, { scope, priority, tags: resolvedTags.length > 0 ? resolvedTags : undefined, expiresAt: resolvedExpiry });
               return textResponse(
                 `Merged into existing memory "${top.key}" (${Math.round(top.similarity * 100)}% match). Content appended.`,
               );
@@ -252,10 +332,11 @@ export function registerTools(server: McpServer, client: ApiClient) {
           // Dedup check is best-effort
         }
 
-        await client.storeMemory(key, content, metadata, { scope, priority, tags, expiresAt: resolvedExpiry });
+        await client.storeMemory(key, content, metadata, { scope, priority, tags: resolvedTags.length > 0 ? resolvedTags : undefined, expiresAt: resolvedExpiry });
         const scopeMsg = scope === "shared" ? " [shared across org]" : "";
         const ttlMsg = ttl ? ` [ttl: ${ttl}]` : "";
-        return textResponse(`Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}`);
+        const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
+        return textResponse(`Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${rateWarn}`);
       } catch (error) {
         if (hasMemoryFullError(error)) {
           return errorResponse(
@@ -270,13 +351,74 @@ export function registerTools(server: McpServer, client: ApiClient) {
 
   server.tool(
     "memory_get",
-    "Retrieve a memory by key",
+    "Retrieve a memory by key. Includes contextual hints about staleness, feedback, access patterns, and more.",
     {
       key: z.string().describe("Key of the memory to retrieve"),
+      includeHints: z
+        .boolean()
+        .default(true)
+        .describe("Include contextual hints (staleness, feedback ratio, etc.)"),
     },
-    async ({ key }) => {
+    async ({ key, includeHints }) => {
       try {
-        const memory = await client.getMemory(key);
+        const memory = await client.getMemory(key) as { memory?: Record<string, unknown> };
+
+        if (includeHints && memory?.memory) {
+          const mem = memory.memory;
+          const hints: string[] = [];
+          const now = Date.now();
+
+          // Staleness hint
+          const updatedAt = mem.updatedAt ? new Date(mem.updatedAt as string).getTime() : 0;
+          if (updatedAt) {
+            const daysSinceUpdate = (now - updatedAt) / 86_400_000;
+            if (daysSinceUpdate > 60) hints.push(`Stale: not updated in ${Math.round(daysSinceUpdate)} days`);
+            else if (daysSinceUpdate > 30) hints.push(`Aging: last updated ${Math.round(daysSinceUpdate)} days ago`);
+          }
+
+          // Access recency hint
+          const lastAccessed = mem.lastAccessedAt ? new Date(mem.lastAccessedAt as string).getTime() : 0;
+          if (lastAccessed) {
+            const daysSinceAccess = (now - lastAccessed) / 86_400_000;
+            if (daysSinceAccess > 30) hints.push(`Rarely accessed: last read ${Math.round(daysSinceAccess)} days ago`);
+          } else {
+            hints.push("Never accessed before");
+          }
+
+          // Feedback ratio hint
+          const helpful = (mem.helpfulCount as number) ?? 0;
+          const unhelpful = (mem.unhelpfulCount as number) ?? 0;
+          if (helpful + unhelpful > 0) {
+            if (unhelpful > helpful) hints.push(`Negative feedback: ${helpful} helpful, ${unhelpful} unhelpful`);
+            else if (helpful > 0) hints.push(`Positive feedback: ${helpful} helpful, ${unhelpful} unhelpful`);
+          }
+
+          // Pin status hint
+          if (mem.pinnedAt) hints.push("Pinned: always included in bootstrap");
+
+          // Expiry hint
+          if (mem.expiresAt) {
+            const expiresAt = new Date(mem.expiresAt as string).getTime();
+            const daysUntilExpiry = (expiresAt - now) / 86_400_000;
+            if (daysUntilExpiry < 0) hints.push("Expired");
+            else if (daysUntilExpiry < 3) hints.push(`Expiring soon: ${Math.round(daysUntilExpiry * 24)} hours left`);
+          }
+
+          // Content size hint
+          const contentLen = typeof mem.content === "string" ? mem.content.length : 0;
+          if (contentLen > 8000) hints.push(`Large memory: ~${Math.ceil(contentLen / 4)} tokens`);
+
+          // Link count hint
+          if (mem.relatedKeys) {
+            try {
+              const relKeys = JSON.parse(mem.relatedKeys as string) as string[];
+              if (relKeys.length > 0) hints.push(`Linked to ${relKeys.length} other memories`);
+            } catch { /* ignore */ }
+          }
+
+          return textResponse(JSON.stringify({ ...memory, hints }, null, 2));
+        }
+
         return textResponse(JSON.stringify(memory, null, 2));
       } catch (error) {
         return errorResponse("Error retrieving memory", error);
@@ -375,8 +517,16 @@ export function registerTools(server: McpServer, client: ApiClient) {
     },
     async ({ key }) => {
       try {
+        // Rate limit check
+        const rateCheck = checkRateLimit();
+        if (!rateCheck.allowed) {
+          return errorResponse("Rate limit exceeded", rateCheck.warning!);
+        }
+        writeCallCount++;
+
         await client.deleteMemory(key);
-        return textResponse(`Memory deleted: ${key}`);
+        const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
+        return textResponse(`Memory deleted: ${key}${rateWarn}`);
       } catch (error) {
         return errorResponse("Error deleting memory", error);
       }
@@ -407,8 +557,34 @@ export function registerTools(server: McpServer, client: ApiClient) {
     },
     async ({ key, content, metadata, priority, tags }) => {
       try {
+        // Rate limit check
+        const rateCheck = checkRateLimit();
+        if (!rateCheck.allowed) {
+          return errorResponse("Rate limit exceeded", rateCheck.warning!);
+        }
+        writeCallCount++;
+
         await client.updateMemory(key, content, metadata, { priority, tags });
-        return textResponse(`Memory updated: ${key}`);
+
+        // Impact analysis warning (Feature 4)
+        let impactWarning = "";
+        try {
+          const allMemories = await listAllMemories(client);
+          const impacted = allMemories.filter((m) => {
+            if (m.key === key) return false;
+            const c = (m.content ?? "").toLowerCase();
+            const rk = (m.relatedKeys ?? "").toLowerCase();
+            const meta = typeof m.metadata === "string" ? m.metadata.toLowerCase() : "";
+            const keyLower = key.toLowerCase();
+            return c.includes(keyLower) || rk.includes(keyLower) || meta.includes(keyLower);
+          });
+          if (impacted.length > 0) {
+            impactWarning = ` ⚠ ${impacted.length} other memories reference "${key}": ${impacted.slice(0, 5).map((m) => m.key).join(", ")}${impacted.length > 5 ? "..." : ""}. Use memory_impact to see details.`;
+          }
+        } catch { /* best-effort */ }
+
+        const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
+        return textResponse(`Memory updated: ${key}${impactWarning}${rateWarn}`);
       } catch (error) {
         return errorResponse("Error updating memory", error);
       }
@@ -2762,9 +2938,17 @@ exit 0
     },
     async ({ keys, action, value }) => {
       try {
+        // Rate limit check
+        const rateCheck = checkRateLimit();
+        if (!rateCheck.allowed) {
+          return errorResponse("Rate limit exceeded", rateCheck.warning!);
+        }
+        writeCallCount++;
+
         const result = await client.batchMutate(keys, action, value);
+        const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
         return textResponse(
-          `Batch ${action}: ${result.affected}/${result.matched} memories affected (${result.requested} requested).`,
+          `Batch ${action}: ${result.affected}/${result.matched} memories affected (${result.requested} requested).${rateWarn}`,
         );
       } catch (error) {
         return errorResponse("Error in batch mutation", error);
@@ -3989,6 +4173,694 @@ exit 0
       } catch (error) {
         return errorResponse("Error fetching context thread", error);
       }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BRANCH-AWARE MEMORY FILTER (Feature 1)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_branch_filter",
+    "List memories by branch tag, or list all branches with counts. Useful for understanding which memories are branch-specific vs global.",
+    {
+      branch: z
+        .string()
+        .optional()
+        .describe("Filter memories by this branch. Omit to list all branches with counts."),
+    },
+    async ({ branch }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+
+        if (branch) {
+          const branchTag = `branch:${branch}`;
+          const branchMemories = allMemories.filter((m) => {
+            try {
+              const tags = JSON.parse(m.tags ?? "[]") as string[];
+              return tags.includes(branchTag);
+            } catch { return false; }
+          });
+
+          return textResponse(
+            JSON.stringify(
+              {
+                branch,
+                count: branchMemories.length,
+                memories: branchMemories.map((m) => ({
+                  key: m.key,
+                  priority: m.priority,
+                  updatedAt: m.updatedAt,
+                  contentPreview: (m.content ?? "").slice(0, 120),
+                })),
+              },
+              null,
+              2,
+            ),
+          );
+        }
+
+        // List all branches with counts
+        const branchCounts: Record<string, number> = {};
+        let globalCount = 0;
+
+        for (const m of allMemories) {
+          let tags: string[] = [];
+          try { tags = JSON.parse(m.tags ?? "[]") as string[]; } catch { /* ignore */ }
+          const branchTags = tags.filter((t) => t.startsWith("branch:"));
+          if (branchTags.length === 0) {
+            globalCount++;
+          } else {
+            for (const bt of branchTags) {
+              const name = bt.replace("branch:", "");
+              branchCounts[name] = (branchCounts[name] ?? 0) + 1;
+            }
+          }
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              globalCount,
+              branches: Object.entries(branchCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, count]) => ({ branch: name, count })),
+              totalMemories: allMemories.length,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error filtering by branch", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY COMPILATION (Feature 2)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_compile",
+    "Compile all memories into a single structured document. Filters by types/tags/branch, groups by type, sorts by priority. Token budget via knapsack. Two formats: markdown (full with TOC) and condensed (stripped headers).",
+    {
+      types: z.array(z.string()).optional().describe("Only include these context types"),
+      tags: z.array(z.string()).optional().describe("Only include memories with these tags"),
+      branch: z.string().optional().describe("Include branch-tagged memories for this branch"),
+      maxTokens: z.number().int().min(100).max(200000).default(16000).describe("Token budget"),
+      format: z.enum(["markdown", "condensed"]).default("markdown").describe("Output format"),
+    },
+    async ({ types, tags, branch, maxTokens, format }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+        const entries = extractAgentContextEntries(allMemories);
+        const allTypeInfo = await getAllContextTypeInfo(client);
+
+        // Filter
+        let filtered = entries;
+        if (types) filtered = filtered.filter((e) => types.includes(e.type));
+        if (tags) {
+          filtered = filtered.filter((e) =>
+            tags.some((t) => e.tags.includes(t)),
+          );
+        }
+        if (branch) {
+          const branchTag = `branch:${branch}`;
+          // Include branch-tagged + global (no branch tag)
+          filtered = filtered.filter((e) => {
+            const hasBranchTag = e.tags.some((t) => t.startsWith("branch:"));
+            return e.tags.includes(branchTag) || !hasBranchTag;
+          });
+        }
+
+        // Sort by priority descending
+        filtered.sort((a, b) => b.priority - a.priority);
+
+        // Knapsack by token budget
+        const CHARS_PER_TOKEN = 4;
+        let budgetChars = maxTokens * CHARS_PER_TOKEN;
+        const selected: typeof filtered = [];
+        for (const entry of filtered) {
+          if (entry.content.length <= budgetChars) {
+            selected.push(entry);
+            budgetChars -= entry.content.length;
+          }
+          if (budgetChars <= 0) break;
+        }
+
+        // Group by type
+        const byType: Record<string, typeof selected> = {};
+        for (const entry of selected) {
+          if (!byType[entry.type]) byType[entry.type] = [];
+          byType[entry.type].push(entry);
+        }
+
+        if (format === "condensed") {
+          const parts: string[] = [];
+          for (const [type, typeEntries] of Object.entries(byType)) {
+            parts.push(`[${allTypeInfo[type]?.label ?? type}]`);
+            for (const e of typeEntries) {
+              parts.push(e.content);
+            }
+            parts.push("");
+          }
+          return textResponse(parts.join("\n"));
+        }
+
+        // Markdown format with TOC
+        const lines: string[] = ["# Compiled Memory Context", ""];
+
+        // TOC
+        lines.push("## Table of Contents");
+        for (const [type] of Object.entries(byType)) {
+          const label = allTypeInfo[type]?.label ?? type;
+          lines.push(`- [${label}](#${type})`);
+        }
+        lines.push("");
+
+        for (const [type, typeEntries] of Object.entries(byType)) {
+          const label = allTypeInfo[type]?.label ?? type;
+          lines.push(`## ${label}`);
+          lines.push("");
+          for (const e of typeEntries) {
+            if (typeEntries.length > 1) {
+              lines.push(`### ${e.title}`);
+              lines.push("");
+            }
+            lines.push(e.content);
+            lines.push("");
+          }
+        }
+
+        const totalTokens = selected.reduce(
+          (sum, e) => sum + Math.ceil(e.content.length / CHARS_PER_TOKEN),
+          0,
+        );
+
+        return textResponse(
+          `${lines.join("\n")}\n---\n_Compiled ${selected.length} entries (~${totalTokens} tokens) from ${filtered.length} candidates._`,
+        );
+      } catch (error) {
+        return errorResponse("Error compiling memories", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CONTRADICTION DETECTION (Feature 3)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_contradictions",
+    "Detect conflicting directives across memories. Finds pairs like 'use Jest' vs 'use Vitest', 'always X' vs 'never X', 'prefer A' vs 'avoid A'. Returns conflicting pairs with confidence.",
+    {},
+    async () => {
+      try {
+        const allMemories = await listAllMemories(client);
+
+        interface Directive {
+          key: string;
+          verb: string;
+          subject: string;
+          snippet: string;
+        }
+
+        const directives: Directive[] = [];
+
+        // Regex patterns for directive extraction
+        const patterns = [
+          /\b(use|prefer|always use|choose|require)\s+(\w[\w\s.-]{0,30}\w)/gi,
+          /\b(avoid|never use|don't use|do not use|never)\s+(\w[\w\s.-]{0,30}\w)/gi,
+          /\b(always|must|should always)\s+(\w[\w\s.-]{0,30}\w)/gi,
+          /\b(never|must not|should never|don't|do not)\s+(\w[\w\s.-]{0,30}\w)/gi,
+        ];
+
+        for (const mem of allMemories) {
+          const content = mem.content ?? "";
+          for (const pattern of patterns) {
+            pattern.lastIndex = 0;
+            let match: RegExpExecArray | null;
+            while ((match = pattern.exec(content)) !== null) {
+              const verb = match[1]!.toLowerCase();
+              const subject = match[2]!.toLowerCase().trim();
+              if (subject.length < 3) continue;
+              const lineStart = content.lastIndexOf("\n", match.index) + 1;
+              const lineEnd = content.indexOf("\n", match.index);
+              const snippet = content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd).trim().slice(0, 120);
+              directives.push({ key: mem.key, verb, subject, snippet });
+            }
+          }
+        }
+
+        // Find contradictions
+        const positiveVerbs = new Set(["use", "prefer", "always use", "choose", "require", "always", "must", "should always"]);
+        const negativeVerbs = new Set(["avoid", "never use", "don't use", "do not use", "never", "must not", "should never", "don't", "do not"]);
+
+        interface Conflict {
+          memoryA: string;
+          snippetA: string;
+          memoryB: string;
+          snippetB: string;
+          subject: string;
+          confidence: number;
+        }
+
+        const conflicts: Conflict[] = [];
+        const seen = new Set<string>();
+
+        for (let i = 0; i < directives.length; i++) {
+          for (let j = i + 1; j < directives.length; j++) {
+            const a = directives[i]!;
+            const b = directives[j]!;
+            if (a.key === b.key) continue;
+
+            // Check if subjects overlap
+            const subjectOverlap =
+              a.subject === b.subject ||
+              a.subject.includes(b.subject) ||
+              b.subject.includes(a.subject);
+
+            if (!subjectOverlap) continue;
+
+            const aPositive = positiveVerbs.has(a.verb);
+            const aNegative = negativeVerbs.has(a.verb);
+            const bPositive = positiveVerbs.has(b.verb);
+            const bNegative = negativeVerbs.has(b.verb);
+
+            if ((aPositive && bNegative) || (aNegative && bPositive)) {
+              const conflictKey = [a.key, b.key].sort().join("|") + "|" + a.subject;
+              if (seen.has(conflictKey)) continue;
+              seen.add(conflictKey);
+
+              const confidence = a.subject === b.subject ? 0.9 : 0.6;
+              conflicts.push({
+                memoryA: a.key,
+                snippetA: a.snippet,
+                memoryB: b.key,
+                snippetB: b.snippet,
+                subject: a.subject,
+                confidence,
+              });
+            }
+          }
+        }
+
+        conflicts.sort((a, b) => b.confidence - a.confidence);
+
+        return textResponse(
+          JSON.stringify(
+            {
+              directivesFound: directives.length,
+              contradictions: conflicts.length,
+              conflicts: conflicts.slice(0, 20),
+              hint: conflicts.length > 0
+                ? `Found ${conflicts.length} potential contradictions. Review and resolve to avoid conflicting guidance.`
+                : "No contradictions detected.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error detecting contradictions", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // IMPACT ANALYSIS (Feature 4)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_impact",
+    "Scan all memories for references to a specific key. Shows which memories link to, mention, or depend on a given memory. Use before updating or deleting critical memories.",
+    {
+      key: z.string().describe("Memory key to analyze impact for"),
+    },
+    async ({ key }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+        const keyLower = key.toLowerCase();
+
+        const impacted = allMemories
+          .filter((m) => {
+            if (m.key === key) return false;
+            const content = (m.content ?? "").toLowerCase();
+            const relatedKeys = (m.relatedKeys ?? "").toLowerCase();
+            const metadata = typeof m.metadata === "string" ? m.metadata.toLowerCase() : "";
+            return content.includes(keyLower) || relatedKeys.includes(keyLower) || metadata.includes(keyLower);
+          })
+          .map((m) => {
+            const referenceTypes: string[] = [];
+            if ((m.content ?? "").toLowerCase().includes(keyLower)) referenceTypes.push("content");
+            if ((m.relatedKeys ?? "").toLowerCase().includes(keyLower)) referenceTypes.push("relatedKeys");
+            if (typeof m.metadata === "string" && m.metadata.toLowerCase().includes(keyLower)) referenceTypes.push("metadata");
+            return {
+              key: m.key,
+              referenceTypes,
+              priority: m.priority ?? 0,
+              contentPreview: (m.content ?? "").slice(0, 120),
+            };
+          });
+
+        return textResponse(
+          JSON.stringify(
+            {
+              analyzedKey: key,
+              impactedCount: impacted.length,
+              impacted,
+              hint: impacted.length > 0
+                ? `${impacted.length} memories reference "${key}". Updating or deleting it may affect these memories.`
+                : `No other memories reference "${key}". Safe to modify or delete.`,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error analyzing impact", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ORG DEFAULTS (Feature 6)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "org_defaults_list",
+    "List organization-wide default memories. These can be applied to any project to bootstrap standard context (coding style, architecture patterns, etc).",
+    {},
+    async () => {
+      try {
+        const result = await client.listOrgDefaults();
+        return textResponse(
+          JSON.stringify(
+            {
+              count: result.defaults.length,
+              defaults: result.defaults.map((d) => ({
+                key: d.key,
+                priority: d.priority,
+                tags: d.tags,
+                contentPreview: d.content.slice(0, 120),
+                updatedAt: d.updatedAt,
+              })),
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error listing org defaults", error);
+      }
+    },
+  );
+
+  server.tool(
+    "org_defaults_set",
+    "Create or update an organization-wide default memory. When applied to a project, this memory will be created with the specified content, priority, and tags.",
+    {
+      key: z.string().describe("Memory key for the default"),
+      content: z.string().describe("Default content"),
+      metadata: z.record(z.unknown()).optional().describe("Optional metadata"),
+      priority: z.number().int().min(0).max(100).optional().describe("Default priority"),
+      tags: z.array(z.string()).optional().describe("Default tags"),
+    },
+    async ({ key, content, metadata, priority, tags }) => {
+      try {
+        await client.setOrgDefault({ key, content, metadata, priority, tags });
+        return textResponse(`Org default set: ${key}`);
+      } catch (error) {
+        return errorResponse("Error setting org default", error);
+      }
+    },
+  );
+
+  server.tool(
+    "org_defaults_apply",
+    "Apply all organization defaults to the current project. Existing memories with the same key are updated, new ones are created. Use this to bootstrap a new project with org-wide standards.",
+    {},
+    async () => {
+      try {
+        const result = await client.applyOrgDefaults();
+        return textResponse(
+          JSON.stringify(
+            {
+              applied: result.applied,
+              memoriesCreated: result.memoriesCreated,
+              memoriesUpdated: result.memoriesUpdated,
+              totalDefaults: result.totalDefaults,
+              message: `Applied ${result.totalDefaults} org defaults: ${result.memoriesCreated} created, ${result.memoriesUpdated} updated.`,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error applying org defaults", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGENT ONBOARDING (Feature 7)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "agent_onboard",
+    "Scan the repository for config files (package.json, tsconfig, eslint, test configs, Dockerfile, CI workflows) and auto-detect framework, language, test runner, and package manager. Generates suggested memories for coding style, testing, architecture, workflow, and folder structure. Use apply=true to store immediately.",
+    {
+      apply: z
+        .boolean()
+        .default(false)
+        .describe("If true, store the generated memories immediately"),
+    },
+    async ({ apply }) => {
+      try {
+        const cwd = process.cwd();
+        const detected: Record<string, string> = {};
+        const suggestions: Array<{ type: string; id: string; title: string; content: string; priority: number }> = [];
+
+        // Read config files
+        async function readFile(path: string): Promise<string | null> {
+          try {
+            const result = await execFileAsync("cat", [path], { cwd });
+            return result.stdout;
+          } catch { return null; }
+        }
+
+        // Package manager detection
+        const yarnLock = await readFile("yarn.lock");
+        const pnpmLock = await readFile("pnpm-lock.yaml");
+        const bunLock = await readFile("bun.lockb");
+        if (pnpmLock) detected.packageManager = "pnpm";
+        else if (bunLock) detected.packageManager = "bun";
+        else if (yarnLock) detected.packageManager = "yarn";
+        else detected.packageManager = "npm";
+
+        // package.json analysis
+        const pkgJson = await readFile("package.json");
+        if (pkgJson) {
+          try {
+            const pkg = JSON.parse(pkgJson) as Record<string, unknown>;
+            const deps = { ...(pkg.dependencies as Record<string, string> | undefined ?? {}), ...(pkg.devDependencies as Record<string, string> | undefined ?? {}) };
+
+            // Framework detection
+            if (deps.next) detected.framework = "Next.js";
+            else if (deps.nuxt) detected.framework = "Nuxt";
+            else if (deps.svelte || deps["@sveltejs/kit"]) detected.framework = "SvelteKit";
+            else if (deps.react) detected.framework = "React";
+            else if (deps.vue) detected.framework = "Vue";
+            else if (deps.express) detected.framework = "Express";
+            else if (deps.fastify) detected.framework = "Fastify";
+            else if (deps.hono) detected.framework = "Hono";
+
+            // Test runner detection
+            if (deps.vitest) detected.testRunner = "vitest";
+            else if (deps.jest) detected.testRunner = "jest";
+            else if (deps.mocha) detected.testRunner = "mocha";
+            else if (deps.playwright || deps["@playwright/test"]) detected.testRunner = "playwright";
+            else if (deps.cypress) detected.testRunner = "cypress";
+
+            // Language detection
+            if (deps.typescript) detected.language = "TypeScript";
+            else detected.language = "JavaScript";
+
+            // Linter
+            if (deps.eslint) detected.linter = "ESLint";
+            if (deps.biome || deps["@biomejs/biome"]) detected.linter = "Biome";
+
+            // Formatter
+            if (deps.prettier) detected.formatter = "Prettier";
+
+            // Monorepo
+            if (pkg.workspaces) detected.monorepo = "npm/yarn workspaces";
+          } catch { /* ignore parse errors */ }
+        }
+
+        // pnpm workspace check
+        const pnpmWorkspace = await readFile("pnpm-workspace.yaml");
+        if (pnpmWorkspace) detected.monorepo = "pnpm workspaces";
+
+        // tsconfig check
+        const tsconfig = await readFile("tsconfig.json");
+        if (tsconfig) detected.language = "TypeScript";
+
+        // Docker check
+        const dockerfile = await readFile("Dockerfile");
+        if (dockerfile) detected.docker = "yes";
+
+        // CI check
+        const ghActions = await readFile(".github/workflows/ci.yml") ?? await readFile(".github/workflows/ci.yaml");
+        if (ghActions) detected.ci = "GitHub Actions";
+
+        // Generate suggestions
+        if (detected.language || detected.framework) {
+          const parts: string[] = [];
+          if (detected.language) parts.push(`- Language: ${detected.language}`);
+          if (detected.framework) parts.push(`- Framework: ${detected.framework}`);
+          if (detected.packageManager) parts.push(`- Package manager: ${detected.packageManager}`);
+          if (detected.linter) parts.push(`- Linter: ${detected.linter}`);
+          if (detected.formatter) parts.push(`- Formatter: ${detected.formatter}`);
+          if (detected.monorepo) parts.push(`- Monorepo: ${detected.monorepo}`);
+          suggestions.push({
+            type: "coding_style",
+            id: "project-stack",
+            title: "Project Stack & Conventions",
+            content: `## Tech Stack\n${parts.join("\n")}`,
+            priority: 80,
+          });
+        }
+
+        if (detected.testRunner) {
+          suggestions.push({
+            type: "testing",
+            id: "test-setup",
+            title: "Test Setup",
+            content: `## Test Runner\n- Runner: ${detected.testRunner}\n- Run: \`${detected.packageManager} ${detected.packageManager === "npm" ? "run " : ""}test\``,
+            priority: 70,
+          });
+        }
+
+        if (detected.framework) {
+          suggestions.push({
+            type: "architecture",
+            id: "framework-overview",
+            title: "Architecture Overview",
+            content: `## Framework\n- ${detected.framework}${detected.monorepo ? `\n- Monorepo: ${detected.monorepo}` : ""}${detected.docker ? "\n- Containerized with Docker" : ""}`,
+            priority: 75,
+          });
+        }
+
+        if (detected.ci) {
+          suggestions.push({
+            type: "workflow",
+            id: "ci-cd",
+            title: "CI/CD",
+            content: `## CI/CD\n- Platform: ${detected.ci}`,
+            priority: 60,
+          });
+        }
+
+        // Folder structure from git
+        try {
+          const result = await execFileAsync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { cwd, maxBuffer: 5 * 1024 * 1024 });
+          const files = result.stdout.trim().split("\n").filter(Boolean);
+          const topDirs = [...new Set(files.map((f) => f.split("/")[0]).filter(Boolean))].sort();
+          if (topDirs.length > 0) {
+            suggestions.push({
+              type: "folder_structure",
+              id: "repo-layout",
+              title: "Repository Layout",
+              content: `## Top-level Directories\n${topDirs.map((d) => `- ${d}/`).join("\n")}\n\n_${files.length} files total_`,
+              priority: 65,
+            });
+          }
+        } catch { /* ignore */ }
+
+        if (apply && suggestions.length > 0) {
+          const results: Array<{ key: string; status: string }> = [];
+          for (const s of suggestions) {
+            const key = buildAgentContextKey(s.type, s.id);
+            try {
+              await client.storeMemory(key, s.content, {
+                scope: "agent_functionality",
+                type: s.type,
+                id: s.id,
+                title: s.title,
+                updatedByTool: "agent_onboard",
+                updatedAt: new Date().toISOString(),
+              }, { priority: s.priority });
+              results.push({ key, status: "stored" });
+            } catch (err) {
+              results.push({ key, status: `error: ${err instanceof Error ? err.message : String(err)}` });
+            }
+          }
+          return textResponse(
+            JSON.stringify(
+              {
+                detected,
+                applied: true,
+                stored: results.filter((r) => r.status === "stored").length,
+                errors: results.filter((r) => r.status.startsWith("error")).length,
+                details: results,
+              },
+              null,
+              2,
+            ),
+          );
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              detected,
+              suggestions: suggestions.map((s) => ({
+                type: s.type,
+                id: s.id,
+                title: s.title,
+                key: buildAgentContextKey(s.type, s.id),
+                priority: s.priority,
+                contentPreview: s.content.slice(0, 200),
+              })),
+              hint: suggestions.length > 0
+                ? `Found ${suggestions.length} suggestions. Call again with apply=true to store them.`
+                : "No configs detected. This may not be a standard project.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error during onboarding scan", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SESSION RATE STATUS (Feature 8)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "session_rate_status",
+    "Show current session write rate limit status: calls made, limit, remaining, and percentage used.",
+    {},
+    async () => {
+      const pct = Math.round((writeCallCount / RATE_LIMIT) * 100);
+      return textResponse(
+        JSON.stringify(
+          {
+            callsMade: writeCallCount,
+            limit: RATE_LIMIT,
+            remaining: Math.max(0, RATE_LIMIT - writeCallCount),
+            percentageUsed: pct,
+            status: pct >= 100 ? "blocked" : pct >= 80 ? "warning" : "ok",
+          },
+          null,
+          2,
+        ),
+      );
     },
   );
 
