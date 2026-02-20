@@ -185,4 +185,82 @@ export class ApiClient {
   async deleteContextType(slug: string) {
     return this.request("DELETE", `/context-types/${encodeURIComponent(slug)}`);
   }
+
+  // ── Session Logs ────────────────────────────────────────────────
+
+  async getSessionLogs(limit = 20) {
+    return this.request<{
+      sessionLogs: Array<{
+        id: string;
+        projectId: string;
+        sessionId: string;
+        branch: string | null;
+        summary: string | null;
+        keysRead: string | null;
+        keysWritten: string | null;
+        toolsUsed: string | null;
+        startedAt: unknown;
+        endedAt: unknown;
+      }>;
+    }>("GET", `/session-logs?limit=${limit}`);
+  }
+
+  async upsertSessionLog(data: {
+    sessionId: string;
+    branch?: string;
+    summary?: string;
+    keysRead?: string[];
+    keysWritten?: string[];
+    toolsUsed?: string[];
+    endedAt?: number;
+  }) {
+    return this.request("POST", "/session-logs", data);
+  }
+
+  // ── Suggest Cleanup ─────────────────────────────────────────────
+
+  async suggestCleanup(staleDays = 30, limit = 20) {
+    return this.request<{
+      stale: Array<{
+        key: string;
+        accessCount: number;
+        lastAccessedAt: unknown;
+        updatedAt: unknown;
+        priority: number | null;
+        reason: string;
+      }>;
+      expired: Array<{
+        key: string;
+        expiresAt: unknown;
+        reason: string;
+      }>;
+      staleDaysThreshold: number;
+    }>("GET", `/memories/suggest-cleanup?stale_days=${staleDays}&limit=${limit}`);
+  }
+
+  // ── Watch ───────────────────────────────────────────────────────
+
+  async watchMemories(keys: string[], since: number) {
+    return this.request<{
+      changed: Array<{
+        key: string;
+        updatedAt: unknown;
+        contentPreview: string;
+      }>;
+      unchanged: string[];
+      checkedAt: number;
+    }>("POST", "/memories/watch", { keys, since });
+  }
+
+  // ── Similar / Dedup ─────────────────────────────────────────────
+
+  async findSimilar(content: string, excludeKey?: string, threshold = 0.6) {
+    return this.request<{
+      similar: Array<{
+        key: string;
+        priority: number | null;
+        similarity: number;
+      }>;
+    }>("POST", "/memories/similar", { content, excludeKey, threshold });
+  }
 }

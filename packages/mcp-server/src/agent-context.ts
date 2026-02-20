@@ -15,6 +15,7 @@ export const BUILTIN_AGENT_CONTEXT_TYPES = [
   "testing",
   "branch_plan",
   "constraints",
+  "lessons_learned",
 ] as const;
 
 export type BuiltinAgentContextType = (typeof BUILTIN_AGENT_CONTEXT_TYPES)[number];
@@ -58,6 +59,10 @@ export const AGENT_CONTEXT_TYPE_INFO: Record<
   constraints: {
     label: "Constraints",
     description: "Hard requirements, non-goals, and safety limits for agent changes.",
+  },
+  lessons_learned: {
+    label: "Lessons Learned",
+    description: "Pitfalls, gotchas, and negative knowledge — things that failed or should be avoided.",
   },
 };
 
@@ -138,6 +143,8 @@ export interface MemoryRecord {
   tags?: string | null;
   archivedAt?: unknown;
   expiresAt?: unknown;
+  accessCount?: number;
+  lastAccessedAt?: unknown;
   updatedAt?: unknown;
   createdAt?: unknown;
 }
@@ -375,6 +382,13 @@ export function parseAgentsMd(content: string): ParsedAgentsMdSection[] {
     "safety": "constraints",
     "do not": "constraints",
     "don't": "constraints",
+    "lessons learned": "lessons_learned",
+    "pitfalls": "lessons_learned",
+    "gotchas": "lessons_learned",
+    "mistakes": "lessons_learned",
+    "what not to do": "lessons_learned",
+    "failed": "lessons_learned",
+    "avoid": "lessons_learned",
   };
 
   let currentSection: ParsedAgentsMdSection | null = null;

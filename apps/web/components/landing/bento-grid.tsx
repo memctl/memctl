@@ -262,8 +262,13 @@ interface BentoCardProps {
 function BentoCard({ icon: Icon, title, description, visualization, className = "" }: BentoCardProps) {
   return (
     <div
-      className={`glass-border group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_var(--landing-glow)] ${className}`}
+      className={`glass-border group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_30px_-5px_rgba(99,102,241,0.15)] ${className}`}
     >
+      {/* Diagonal hatching pattern */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] opacity-[0.35] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom,black_50%,transparent_100%)] group-hover:opacity-[0.5]"
+        aria-hidden="true"
+      />
       {visualization && (
         <div className="pointer-events-none absolute right-4 top-4 opacity-[0.45] transition-opacity duration-300 group-hover:opacity-75">
           {visualization}
@@ -288,6 +293,8 @@ function BentoCard({ icon: Icon, title, description, visualization, className = 
 function StackCard() {
   return (
     <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7">
+      {/* Diagonal hatching */}
+      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.2] transition-opacity duration-300 [mask-image:linear-gradient(to_right,black_15%,transparent_40%,transparent_60%,black_85%)] group-hover:opacity-[0.35]" aria-hidden="true" />
       {/* Shimmer sweep on hover */}
       <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[#F97316]/[0.03] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
 
@@ -387,6 +394,8 @@ export function BentoGrid() {
       {/* Smart Indexing - 2 col span, enriched layout */}
       <ScrollReveal animation="slide-left" delay={200} className="lg:col-span-2" style={{ display: "flex" }}>
         <div className="glass-border group relative flex h-full w-full flex-col overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_var(--landing-glow)]">
+          {/* Diagonal hatching */}
+          <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom_left,black_30%,transparent_70%)] group-hover:opacity-[0.45]" aria-hidden="true" />
           <div className="pointer-events-none absolute right-4 top-4 opacity-[0.45] transition-opacity duration-300 group-hover:opacity-75">
             <IndexingViz />
           </div>
@@ -406,6 +415,8 @@ export function BentoGrid() {
       {/* Version-aware - 2 col span, enriched layout */}
       <ScrollReveal animation="slide-right" delay={300} className="lg:col-span-2" style={{ display: "flex" }}>
         <div className="glass-border group relative flex h-full w-full flex-col overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_var(--landing-glow)]">
+          {/* Diagonal hatching */}
+          <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom_right,black_30%,transparent_70%)] group-hover:opacity-[0.45]" aria-hidden="true" />
           <div className="pointer-events-none absolute right-4 top-4 opacity-[0.45] transition-opacity duration-300 group-hover:opacity-75">
             <TimelineViz />
           </div>

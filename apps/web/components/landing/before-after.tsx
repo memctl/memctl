@@ -90,10 +90,39 @@ export function BeforeAfter() {
   );
 
   return (
+    <>
+    {/* ── Gradient divider with intersection dots ── */}
+    <div className="relative flex items-center" aria-hidden="true">
+      <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+      <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+        <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+      </div>
+    </div>
+
     <section
       ref={sectionRef}
-      className="relative border-t border-[var(--landing-border)] py-28 lg:py-36"
+      className="relative overflow-hidden py-28 lg:py-36"
     >
+      {/* ── Structural frame lines ── */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+          <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+        </div>
+      </div>
+      {/* ── Diagonal hatching ── */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] opacity-[0.18] [mask-image:radial-gradient(ellipse_50%_45%_at_50%_50%,black_30%,transparent_70%)]"
+        aria-hidden="true"
+      />
+      {/* Indigo glow */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[400px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/[0.03] blur-[100px]"
+        aria-hidden="true"
+      />
       <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
         <div className="mb-16 text-center">
           <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
@@ -117,7 +146,9 @@ export function BeforeAfter() {
 
           {/* Without memctl */}
           <div ref={beforeRef}>
-            <div className="h-full rounded-xl border border-red-500/20 bg-[var(--landing-surface)] p-8">
+            <div className="relative h-full overflow-hidden rounded-xl border border-red-500/20 bg-[var(--landing-surface)] p-8">
+              {/* Diagonal hatching */}
+              <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] [mask-image:linear-gradient(to_bottom_right,black_30%,transparent_70%)]" aria-hidden="true" />
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/5 px-3 py-1">
                 <span className="h-2 w-2 rounded-full bg-red-500" />
                 <span className="font-mono text-xs text-red-500">
@@ -156,7 +187,9 @@ export function BeforeAfter() {
 
           {/* With memctl */}
           <div ref={afterRef}>
-            <div className="h-full rounded-xl border border-emerald-500/20 bg-[var(--landing-surface)] p-8">
+            <div className="relative h-full overflow-hidden rounded-xl border border-emerald-500/20 bg-[var(--landing-surface)] p-8">
+              {/* Diagonal hatching */}
+              <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] [mask-image:linear-gradient(to_bottom_left,black_30%,transparent_70%)]" aria-hidden="true" />
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 <span className="font-mono text-xs text-emerald-500">
@@ -195,5 +228,6 @@ export function BeforeAfter() {
         </div>
       </div>
     </section>
+    </>
   );
 }

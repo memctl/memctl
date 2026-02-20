@@ -57,8 +57,24 @@ export interface Memory {
   archivedAt: number | null;
   expiresAt: number | null;
   createdBy: string | null;
+  accessCount: number;
+  lastAccessedAt: number | null;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface SessionLog {
+  id: string;
+  projectId: string;
+  sessionId: string;
+  branch: string | null;
+  summary: string | null;
+  keysRead: string | null;
+  keysWritten: string | null;
+  toolsUsed: string | null;
+  startedAt: number;
+  endedAt: number | null;
+  createdBy: string | null;
 }
 
 export interface MemoryVersion {

@@ -118,6 +118,19 @@ function LogoItem({ logo }: { logo: (typeof LOGOS)[number] }) {
 export function LogoCloud() {
   return (
     <section className="hover-pause relative border-y border-[var(--landing-border)] py-14">
+      {/* ── Structural frame lines ── */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="w-px bg-[var(--landing-border)] opacity-[0.12]" />
+          <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+          <div className="w-px bg-[var(--landing-border)] opacity-[0.12]" />
+        </div>
+      </div>
+      {/* ── Diagonal hatching ── */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.15] [mask-image:linear-gradient(to_top,black_15%,transparent_75%)]"
+        aria-hidden="true"
+      />
       <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
         <div className="mb-8 text-center">
           <span className="text-[12px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">

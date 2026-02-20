@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, memoryVersions, projects, organizations } from "@memctl/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { memoryUpdateSchema } from "@memctl/shared/validators";
 import { generateId } from "@/lib/utils";
 
@@ -54,6 +54,15 @@ export async function GET(
     .limit(1);
 
   if (!memory) return jsonError("Memory not found", 404);
+
+  // Track access (fire-and-forget)
+  db.update(memories)
+    .set({
+      accessCount: sql`${memories.accessCount} + 1`,
+      lastAccessedAt: new Date(),
+    })
+    .where(eq(memories.id, memory.id))
+    .then(() => {}, () => {});
 
   return NextResponse.json({ memory });
 }

@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ApiClient } from "../api-client.js";
@@ -15,6 +17,8 @@ import {
   normalizeAgentContextId,
   parseAgentsMd,
 } from "../agent-context.js";
+
+const execFileAsync = promisify(execFile);
 
 function textResponse(text: string) {
   return { content: [{ type: "text" as const, text }] };
@@ -56,6 +60,15 @@ function formatCapacityGuidance(capacity: {
     return `Approaching project limit (${capacity.used}/${toFiniteLimitText(capacity.limit)}). Org: ${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}.`;
   }
   return `Memory available. Project: ${capacity.used}/${toFiniteLimitText(capacity.limit)}, Org: ${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}.`;
+}
+
+function matchGlob(filepath: string, pattern: string): boolean {
+  const regex = pattern
+    .replace(/\*\*/g, "{{GLOBSTAR}}")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\?/g, "[^/]")
+    .replace(/{{GLOBSTAR}}/g, ".*");
+  return new RegExp(`^${regex}$`).test(filepath);
 }
 
 export function registerTools(server: McpServer, client: ApiClient) {
@@ -176,8 +189,20 @@ export function registerTools(server: McpServer, client: ApiClient) {
     },
     async ({ key, content, metadata, priority, tags, expiresAt }) => {
       try {
+        // Check for near-duplicates before storing
+        let dedupWarning = "";
+        try {
+          const similar = await client.findSimilar(content, key, 0.7);
+          if (similar.similar.length > 0) {
+            const top = similar.similar[0];
+            dedupWarning = ` ⚠ Similar memory found: "${top.key}" (${Math.round(top.similarity * 100)}% match). Consider updating it instead.`;
+          }
+        } catch {
+          // Dedup check is best-effort
+        }
+
         await client.storeMemory(key, content, metadata, { priority, tags, expiresAt });
-        return textResponse(`Memory stored with key: ${key}`);
+        return textResponse(`Memory stored with key: ${key}${dedupWarning}`);
       } catch (error) {
         if (hasMemoryFullError(error)) {
           return errorResponse(
@@ -1211,6 +1236,480 @@ export function registerTools(server: McpServer, client: ApiClient) {
         return textResponse(`Branch context deleted: ${key}`);
       } catch (error) {
         return errorResponse("Error deleting branch context", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SCAN REPOSITORY — auto-generate file_map
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "scan_repository",
+    "Scan the current repository and generate a structured file_map context entry. Uses git ls-files to walk the repo and groups files by directory/extension.",
+    {
+      maxFiles: z
+        .number()
+        .int()
+        .min(10)
+        .max(5000)
+        .default(1000)
+        .describe("Maximum files to include in the scan"),
+      includePatterns: z
+        .array(z.string())
+        .optional()
+        .describe("Glob patterns to include (e.g., ['src/**', 'lib/**'])"),
+      excludePatterns: z
+        .array(z.string())
+        .optional()
+        .describe("Glob patterns to exclude (e.g., ['node_modules/**', 'dist/**'])"),
+      saveAsContext: z
+        .boolean()
+        .default(false)
+        .describe("If true, save the result as an agent/context/file_map entry"),
+    },
+    async ({ maxFiles, includePatterns, excludePatterns, saveAsContext }) => {
+      try {
+        const args = ["ls-files", "--cached", "--others", "--exclude-standard"];
+        const result = await execFileAsync("git", args, {
+          cwd: process.cwd(),
+          maxBuffer: 10 * 1024 * 1024,
+        });
+
+        let files = result.stdout.trim().split("\n").filter(Boolean);
+
+        // Apply include patterns
+        if (includePatterns && includePatterns.length > 0) {
+          files = files.filter((f) =>
+            includePatterns.some((p) => matchGlob(f, p)),
+          );
+        }
+
+        // Apply exclude patterns
+        if (excludePatterns && excludePatterns.length > 0) {
+          files = files.filter(
+            (f) => !excludePatterns.some((p) => matchGlob(f, p)),
+          );
+        }
+
+        files = files.slice(0, maxFiles);
+
+        // Group by top-level directory
+        const byDir: Record<string, string[]> = {};
+        const byExt: Record<string, number> = {};
+
+        for (const file of files) {
+          const parts = file.split("/");
+          const topDir = parts.length > 1 ? parts[0] : ".";
+          if (!byDir[topDir]) byDir[topDir] = [];
+          byDir[topDir].push(file);
+
+          const ext = file.includes(".") ? file.split(".").pop()! : "no-ext";
+          byExt[ext] = (byExt[ext] ?? 0) + 1;
+        }
+
+        const fileMap = {
+          totalFiles: files.length,
+          directories: Object.entries(byDir)
+            .sort((a, b) => b[1].length - a[1].length)
+            .map(([dir, dirFiles]) => ({
+              directory: dir,
+              fileCount: dirFiles.length,
+              files: dirFiles.slice(0, 50),
+              truncated: dirFiles.length > 50,
+            })),
+          extensionBreakdown: Object.entries(byExt)
+            .sort((a, b) => b[1] - a[1])
+            .map(([ext, count]) => ({ extension: ext, count })),
+        };
+
+        if (saveAsContext) {
+          const content = JSON.stringify(fileMap, null, 2);
+          const key = buildAgentContextKey("file_map", "auto-scan");
+          await client.storeMemory(key, content, {
+            scope: "agent_functionality",
+            type: "file_map",
+            id: "auto-scan",
+            title: "Auto-scanned file map",
+            updatedByTool: "scan_repository",
+            updatedAt: new Date().toISOString(),
+          });
+          return textResponse(
+            `Repository scanned: ${files.length} files. Saved as ${key}.`,
+          );
+        }
+
+        return textResponse(JSON.stringify(fileMap, null, 2));
+      } catch (error) {
+        return errorResponse("Error scanning repository", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SESSION HANDOFF — continuity log
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "session_start",
+    "Register a new agent session. Retrieves the last session's handoff summary for continuity.",
+    {
+      sessionId: z.string().min(1).describe("Unique session identifier"),
+    },
+    async ({ sessionId }) => {
+      try {
+        const branchInfo = await getBranchInfo();
+
+        // Get recent sessions for continuity
+        const recentSessions = await client.getSessionLogs(5).catch(() => ({ sessionLogs: [] }));
+
+        // Register this session
+        await client.upsertSessionLog({
+          sessionId,
+          branch: branchInfo?.branch,
+        });
+
+        const lastSession = recentSessions.sessionLogs[0];
+        const handoff = lastSession
+          ? {
+              previousSessionId: lastSession.sessionId,
+              summary: lastSession.summary,
+              branch: lastSession.branch,
+              keysWritten: lastSession.keysWritten ? JSON.parse(lastSession.keysWritten) : [],
+              endedAt: lastSession.endedAt,
+            }
+          : null;
+
+        return textResponse(
+          JSON.stringify(
+            {
+              sessionId,
+              currentBranch: branchInfo,
+              handoff,
+              recentSessionCount: recentSessions.sessionLogs.length,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error starting session", error);
+      }
+    },
+  );
+
+  server.tool(
+    "session_end",
+    "End the current agent session with a handoff summary for the next session",
+    {
+      sessionId: z.string().min(1).describe("Session identifier from session_start"),
+      summary: z
+        .string()
+        .min(1)
+        .max(4096)
+        .describe("Summary of what was accomplished, key decisions, and open questions for the next session"),
+      keysRead: z
+        .array(z.string())
+        .optional()
+        .describe("Memory keys that were read during this session"),
+      keysWritten: z
+        .array(z.string())
+        .optional()
+        .describe("Memory keys that were created or updated during this session"),
+      toolsUsed: z
+        .array(z.string())
+        .optional()
+        .describe("Tool names used during the session"),
+    },
+    async ({ sessionId, summary, keysRead, keysWritten, toolsUsed }) => {
+      try {
+        await client.upsertSessionLog({
+          sessionId,
+          summary,
+          keysRead,
+          keysWritten,
+          toolsUsed,
+          endedAt: Date.now(),
+        });
+
+        return textResponse(
+          `Session ${sessionId} ended. Handoff summary saved for next session.`,
+        );
+      } catch (error) {
+        return errorResponse("Error ending session", error);
+      }
+    },
+  );
+
+  server.tool(
+    "session_history",
+    "View recent session logs for continuity and context",
+    {
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .default(10)
+        .describe("Number of recent sessions to retrieve"),
+    },
+    async ({ limit }) => {
+      try {
+        const result = await client.getSessionLogs(limit);
+        return textResponse(JSON.stringify(result, null, 2));
+      } catch (error) {
+        return errorResponse("Error retrieving session history", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY SUGGEST CLEANUP — relevance decay
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_suggest_cleanup",
+    "Get suggestions for memories that could be archived or deleted based on staleness, low access count, and expiration. Helps maintain a clean, relevant memory store.",
+    {
+      staleDays: z
+        .number()
+        .int()
+        .min(1)
+        .max(365)
+        .default(30)
+        .describe("Consider memories stale if not updated in this many days"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .default(20)
+        .describe("Maximum suggestions to return"),
+    },
+    async ({ staleDays, limit }) => {
+      try {
+        const result = await client.suggestCleanup(staleDays, limit);
+        const totalSuggestions = result.stale.length + result.expired.length;
+
+        if (totalSuggestions === 0) {
+          return textResponse("No cleanup suggestions. Memory store looks healthy.");
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              summary: `Found ${result.stale.length} stale and ${result.expired.length} expired memories.`,
+              ...result,
+              actions: "Use memory_archive to archive stale memories, or memory_cleanup to remove expired ones.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error getting cleanup suggestions", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY WATCH — detect concurrent changes
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_watch",
+    "Check if specific memory keys have been modified since a given timestamp. Useful for detecting concurrent changes by other agents or users.",
+    {
+      keys: z
+        .array(z.string())
+        .min(1)
+        .max(100)
+        .describe("Memory keys to watch for changes"),
+      since: z
+        .number()
+        .describe("Unix timestamp (ms) — check for changes after this time. Typically your session start time."),
+    },
+    async ({ keys, since }) => {
+      try {
+        const result = await client.watchMemories(keys, since);
+
+        if (result.changed.length === 0) {
+          return textResponse(
+            `No changes detected for ${keys.length} watched keys since ${new Date(since).toISOString()}.`,
+          );
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              alert: `${result.changed.length} of ${keys.length} watched memories have been modified.`,
+              ...result,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error watching memories", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CONTEXT BUDGET — token-aware retrieval
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "context_budget",
+    "Retrieve agent context entries that fit within a token budget. Prioritizes by priority score and recency. Uses ~4 chars per token as estimate.",
+    {
+      maxTokens: z
+        .number()
+        .int()
+        .min(100)
+        .max(200000)
+        .describe("Maximum token budget for the returned context"),
+      types: z
+        .array(z.string())
+        .optional()
+        .describe("Only include these context types (default: all)"),
+      includeKeys: z
+        .array(z.string())
+        .optional()
+        .describe("Always include these specific keys (they count against the budget)"),
+    },
+    async ({ maxTokens, types, includeKeys }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+        const entries = extractAgentContextEntries(allMemories);
+        const allTypeInfo = await getAllContextTypeInfo(client);
+        const selectedTypes = types ?? Object.keys(allTypeInfo);
+
+        // Separate must-include entries
+        const mustInclude = includeKeys
+          ? entries.filter((e) => includeKeys.includes(e.key))
+          : [];
+        const candidates = entries
+          .filter((e) => selectedTypes.includes(e.type))
+          .filter((e) => !includeKeys?.includes(e.key));
+
+        // Sort candidates by priority desc, then by updatedAt desc
+        candidates.sort((a, b) => {
+          if (b.priority !== a.priority) return b.priority - a.priority;
+          const aTime = typeof a.updatedAt === "string" ? new Date(a.updatedAt).getTime() : 0;
+          const bTime = typeof b.updatedAt === "string" ? new Date(b.updatedAt).getTime() : 0;
+          return bTime - aTime;
+        });
+
+        const CHARS_PER_TOKEN = 4;
+        let budgetRemaining = maxTokens * CHARS_PER_TOKEN;
+        const selected: Array<{
+          type: string;
+          id: string;
+          key: string;
+          title: string;
+          priority: number;
+          content: string;
+          tokenEstimate: number;
+        }> = [];
+
+        // Always include must-haves first
+        for (const entry of mustInclude) {
+          const charLen = entry.content.length;
+          const tokenEst = Math.ceil(charLen / CHARS_PER_TOKEN);
+          selected.push({
+            type: entry.type,
+            id: entry.id,
+            key: entry.key,
+            title: entry.title,
+            priority: entry.priority,
+            content: entry.content,
+            tokenEstimate: tokenEst,
+          });
+          budgetRemaining -= charLen;
+        }
+
+        // Fill remaining budget with highest-priority candidates
+        for (const entry of candidates) {
+          const charLen = entry.content.length;
+          if (charLen > budgetRemaining) continue;
+
+          const tokenEst = Math.ceil(charLen / CHARS_PER_TOKEN);
+          selected.push({
+            type: entry.type,
+            id: entry.id,
+            key: entry.key,
+            title: entry.title,
+            priority: entry.priority,
+            content: entry.content,
+            tokenEstimate: tokenEst,
+          });
+          budgetRemaining -= charLen;
+
+          if (budgetRemaining <= 0) break;
+        }
+
+        const totalTokens = selected.reduce((sum, e) => sum + e.tokenEstimate, 0);
+
+        return textResponse(
+          JSON.stringify(
+            {
+              budgetUsed: totalTokens,
+              budgetMax: maxTokens,
+              entriesIncluded: selected.length,
+              entriesTotal: entries.length,
+              entries: selected,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error retrieving context budget", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEDUP CHECK (standalone tool)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_check_duplicates",
+    "Check if content is similar to existing memories before storing. Returns near-duplicates based on word overlap similarity.",
+    {
+      content: z.string().min(1).describe("Content to check for duplicates"),
+      excludeKey: z
+        .string()
+        .optional()
+        .describe("Exclude this key from comparison (useful when updating)"),
+      threshold: z
+        .number()
+        .min(0)
+        .max(1)
+        .default(0.6)
+        .describe("Similarity threshold (0-1, default 0.6)"),
+    },
+    async ({ content, excludeKey, threshold }) => {
+      try {
+        const result = await client.findSimilar(content, excludeKey, threshold);
+
+        if (result.similar.length === 0) {
+          return textResponse("No duplicates found. Content is unique.");
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              warning: `Found ${result.similar.length} similar memories. Consider updating an existing one instead of creating a new entry.`,
+              similar: result.similar,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error checking for duplicates", error);
       }
     },
   );

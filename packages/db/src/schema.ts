@@ -91,6 +91,8 @@ export const memories = sqliteTable(
     tags: text("tags"), // JSON array of strings
     archivedAt: integer("archived_at", { mode: "timestamp" }),
     expiresAt: integer("expires_at", { mode: "timestamp" }),
+    accessCount: integer("access_count").notNull().default(0),
+    lastAccessedAt: integer("last_accessed_at", { mode: "timestamp" }),
     createdBy: text("created_by").references(() => users.id),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -138,6 +140,24 @@ export const contextTypes = sqliteTable(
   },
   (table) => [unique().on(table.orgId, table.slug)],
 );
+
+export const sessionLogs = sqliteTable("session_logs", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id),
+  sessionId: text("session_id").notNull(),
+  branch: text("branch"),
+  summary: text("summary"),
+  keysRead: text("keys_read"), // JSON array of memory keys accessed
+  keysWritten: text("keys_written"), // JSON array of memory keys written
+  toolsUsed: text("tools_used"), // JSON array of tool names used
+  startedAt: integer("started_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  endedAt: integer("ended_at", { mode: "timestamp" }),
+  createdBy: text("created_by").references(() => users.id),
+});
 
 export const apiTokens = sqliteTable("api_tokens", {
   id: text("id").primaryKey(),

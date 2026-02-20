@@ -246,10 +246,39 @@ export function FeatureShowcase() {
   );
 
   return (
+    <>
+    {/* ── Gradient divider with intersection dots ── */}
+    <div className="relative flex items-center" aria-hidden="true">
+      <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+      <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+        <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+      </div>
+    </div>
+
     <section
       ref={containerRef}
-      className="relative border-t border-[var(--landing-border)]"
+      className="relative overflow-hidden"
     >
+      {/* ── Structural frame lines ── */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+          <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+        </div>
+      </div>
+      {/* ── Diagonal hatching ── */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.15] [mask-image:linear-gradient(to_right,black_10%,transparent_50%)]"
+        aria-hidden="true"
+      />
+      {/* Cyan glow orb */}
+      <div
+        className="pointer-events-none absolute right-[5%] top-[30%] -z-10 h-[450px] w-[450px] rounded-full bg-cyan-500/[0.04] blur-[120px]"
+        aria-hidden="true"
+      />
       <div ref={sectionRef} className="relative lg:min-h-screen">
         <div className="mx-auto max-w-[1600px] px-6 py-20 lg:px-8 lg:py-0 lg:pt-24">
           {/* Header */}
@@ -308,7 +337,8 @@ export function FeatureShowcase() {
             </div>
 
             {/* memctl node (center, emphasized) */}
-            <div className="flex min-w-[200px] items-center gap-3 rounded-xl border-2 border-[#F97316]/30 bg-[var(--landing-surface)] px-6 py-5 shadow-[0_0_30px_rgba(249,115,22,0.06)]">
+            <div className="relative flex min-w-[200px] items-center gap-3 overflow-hidden rounded-xl border-2 border-[#F97316]/30 bg-[var(--landing-surface)] px-6 py-5 shadow-[0_0_30px_rgba(249,115,22,0.06)]">
+              <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_3px,var(--landing-border)_3px,var(--landing-border)_4px)] opacity-[0.35]" aria-hidden="true" />
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F97316]/10">
                 <span className="font-mono text-sm font-bold text-[#F97316]">
                   m
@@ -418,7 +448,9 @@ export function FeatureShowcase() {
                   </div>
 
                   {/* Right: protocol code */}
-                  <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5">
+                  <div className="relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5">
+                    {/* Diagonal hatching */}
+                    <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] opacity-[0.3] [mask-image:linear-gradient(to_bottom,black_25%,transparent_65%)]" aria-hidden="true" />
                     <div className="mb-3 flex items-center gap-2">
                       <span className="h-2.5 w-2.5 rounded-full bg-[var(--landing-border)]" />
                       <span className="h-2.5 w-2.5 rounded-full bg-[var(--landing-border)]" />
@@ -442,5 +474,6 @@ export function FeatureShowcase() {
         </div>
       </div>
     </section>
+    </>
   );
 }

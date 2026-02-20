@@ -219,6 +219,36 @@ export default async function HomePage() {
           SECTION 1 - Hero
           ================================================================ */}
       <section className="relative overflow-hidden">
+        {/* ── Layer 0a: Diagonal hatching ── */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.25] [mask-image:radial-gradient(ellipse_60%_55%_at_40%_45%,black_50%,transparent_100%)]"
+          aria-hidden="true"
+        />
+        {/* ── Layer 0b: Large indigo glow orb behind headline ── */}
+        <div
+          className="pointer-events-none absolute -left-[5%] top-[10%] h-[600px] w-[600px] rounded-full bg-indigo-500/[0.01] blur-[120px]"
+          aria-hidden="true"
+        />
+        {/* ── Layer 0c: Thin vertical accent line from hero ── */}
+        <div
+          className="pointer-events-none absolute bottom-0 left-1/2 z-[12] h-24 w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-[var(--landing-border)]"
+          aria-hidden="true"
+        />
+        {/* ── Structural frame lines ── */}
+        <div className="pointer-events-none absolute inset-0 z-[5]" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+          {/* Horizontal shelf line */}
+          <div className="absolute left-0 right-0 top-[85%]">
+            <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
+              <div className="h-px bg-gradient-to-r from-[var(--landing-border)] via-transparent to-[var(--landing-border)] opacity-[0.1]" />
+            </div>
+          </div>
+        </div>
+
         {/* ── Layer 1: Diagonal wash from left ── */}
         <div
           className="pointer-events-none absolute -left-[15%] top-[15%] h-[100%] w-[70%]"
@@ -312,10 +342,45 @@ export default async function HomePage() {
           ================================================================ */}
       <BeforeAfter />
 
+      {/* ── Gradient divider with intersection dots ── */}
+      <div className="relative flex items-center" aria-hidden="true">
+        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        </div>
+      </div>
+
       {/* ================================================================
           SECTION 3 - How It Works
           ================================================================ */}
-      <section className="relative py-28 lg:py-36">
+      <section className="relative overflow-hidden py-28 lg:py-36">
+        {/* ── Structural frame lines (4 lines for 3-col grid) ── */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+          {/* Horizontal shelf line below heading */}
+          <div className="absolute left-0 right-0 top-[25%]">
+            <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
+              <div className="h-px bg-gradient-to-r from-[var(--landing-border)] via-transparent to-[var(--landing-border)] opacity-[0.1]" />
+            </div>
+          </div>
+        </div>
+        {/* Section-level diagonal hatching */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.2] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,black_40%,transparent_100%)]"
+          aria-hidden="true"
+        />
+        {/* Blue glow orb behind cards */}
+        <div
+          className="pointer-events-none absolute right-[10%] top-[40%] -z-10 h-[400px] w-[400px] rounded-full bg-blue-500/[0.05] blur-[100px]"
+          aria-hidden="true"
+        />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollParallax effect="fade-scale" intensity={0.6}>
             <ScrollReveal>
@@ -356,7 +421,9 @@ export default async function HomePage() {
                 animation={i === 0 ? "slide-left" : i === 2 ? "slide-right" : "fade-up"}
                 delay={i * 120}
               >
-                <div className="glass-border group relative rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-8 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_30px_var(--landing-glow)]">
+                <div className="glass-border group relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-8 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_30px_var(--landing-glow)]">
+                  {/* Diagonal hatching */}
+                  <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.35] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom,black_40%,transparent_90%)] group-hover:opacity-[0.45]" aria-hidden="true" />
                   {/* Step number */}
                   <div className="mb-6 flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface-2)] transition-colors group-hover:border-[#F97316]/30 group-hover:bg-[#F97316]/5">
@@ -400,10 +467,43 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── Gradient divider with crosshair + edge dots ── */}
+      <div className="relative flex items-center" aria-hidden="true">
+        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          {/* Center crosshair */}
+          <div className="relative">
+            <div className="absolute -left-px -top-3 h-6 w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent" />
+            <div className="absolute -left-3 -top-px h-px w-6 bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+            <div className="h-1.5 w-1.5 rounded-full border border-[var(--landing-border)] bg-[var(--landing-bg)]" />
+          </div>
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        </div>
+      </div>
+
       {/* ================================================================
           SECTION 4 - Code Integration
           ================================================================ */}
-      <section className="relative border-t border-[var(--landing-border)] py-20 lg:py-28">
+      <section className="relative overflow-hidden py-20 lg:py-28">
+        {/* ── Structural frame lines ── */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+        </div>
+        {/* Section-level diagonal hatching */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] opacity-[0.15] [mask-image:linear-gradient(to_right,black_10%,transparent_50%)]"
+          aria-hidden="true"
+        />
+        {/* Teal glow orb, right side behind code tabs */}
+        <div
+          className="pointer-events-none absolute right-[5%] top-[20%] -z-10 h-[500px] w-[500px] rounded-full bg-cyan-500/[0.04] blur-[120px]"
+          aria-hidden="true"
+        />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_1.6fr] lg:gap-16">
             {/* Left - Description + Features */}
@@ -478,7 +578,43 @@ export default async function HomePage() {
       {/* ================================================================
           SECTION 5 - Feature Bento Grid
           ================================================================ */}
-      <section id="features" className="relative border-t border-[var(--landing-border)] py-28 lg:py-36">
+      {/* ── Gradient divider with intersection dots ── */}
+      <div className="relative flex items-center" aria-hidden="true">
+        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        </div>
+      </div>
+
+      <section id="features" className="relative overflow-hidden py-28 lg:py-36">
+        {/* ── Structural frame lines (5 lines for 4-col grid) ── */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+          {/* Horizontal shelf line below heading */}
+          <div className="absolute left-0 right-0 top-[18%]">
+            <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
+              <div className="h-px bg-gradient-to-r from-[var(--landing-border)] via-transparent to-[var(--landing-border)] opacity-[0.1]" />
+            </div>
+          </div>
+        </div>
+        {/* Section-level diagonal hatching */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] opacity-[0.15] [mask-image:radial-gradient(ellipse_55%_50%_at_40%_40%,black_30%,transparent_100%)]"
+          aria-hidden="true"
+        />
+        {/* Purple glow orb */}
+        <div
+          className="pointer-events-none absolute left-[15%] top-[20%] -z-10 h-[500px] w-[500px] rounded-full bg-purple-500/[0.05] blur-[120px]"
+          aria-hidden="true"
+        />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollParallax effect="fade-scale" intensity={0.6}>
             <ScrollReveal>
@@ -500,7 +636,35 @@ export default async function HomePage() {
       {/* ================================================================
           SECTION 6 - Dashboard / Metrics
           ================================================================ */}
-      <section className="relative border-t border-[var(--landing-border)] py-20 lg:py-28">
+      {/* ── Gradient divider with intersection dots ── */}
+      <div className="relative flex items-center" aria-hidden="true">
+        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        </div>
+      </div>
+
+      <section className="relative overflow-hidden py-20 lg:py-28">
+        {/* ── Structural frame lines ── */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+        </div>
+        {/* Section-level diagonal hatching */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.18] [mask-image:radial-gradient(ellipse_60%_60%_at_70%_50%,black,transparent)]"
+          aria-hidden="true"
+        />
+        {/* Blue glow orb */}
+        <div
+          className="pointer-events-none absolute right-[15%] bottom-[10%] -z-10 h-[400px] w-[400px] rounded-full bg-blue-500/[0.05] blur-[100px]"
+          aria-hidden="true"
+        />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_2fr] lg:gap-16">
             {/* Left - Description */}
@@ -557,7 +721,35 @@ export default async function HomePage() {
       {/* ================================================================
           SECTION 7 - Testimonial
           ================================================================ */}
-      <section className="relative border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)] py-24 lg:py-32">
+      {/* ── Gradient divider with intersection dots ── */}
+      <div className="relative flex items-center" aria-hidden="true">
+        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        </div>
+      </div>
+
+      <section className="relative overflow-hidden bg-[var(--landing-code-bg)] py-24 lg:py-32">
+        {/* ── Structural frame lines ── */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+        </div>
+        {/* Section-level diagonal hatching */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.2] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_40%,black_40%,transparent_100%)]"
+          aria-hidden="true"
+        />
+        {/* Indigo glow */}
+        <div
+          className="pointer-events-none absolute left-[30%] top-[10%] -z-10 h-[350px] w-[350px] rounded-full bg-indigo-500/[0.04] blur-[100px]"
+          aria-hidden="true"
+        />
         <div className="mx-auto max-w-[1600px] px-6 text-center lg:px-8">
           <ScrollReveal animation="scale-up">
             <div className="mx-auto max-w-3xl">
@@ -602,8 +794,10 @@ export default async function HomePage() {
               },
             ].map((testimonial, i) => (
               <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
-                <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-                  <p className="text-sm leading-relaxed text-[var(--landing-text-secondary)]">
+                <div className="relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+                  {/* Diagonal hatching */}
+                  <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] opacity-[0.35] [mask-image:linear-gradient(to_bottom,black_40%,transparent_90%)]" aria-hidden="true" />
+                  <p className="relative text-sm leading-relaxed text-[var(--landing-text-secondary)]">
                     &ldquo;{testimonial.quote}&rdquo;
                   </p>
                   <div className="mt-4">
@@ -624,7 +818,43 @@ export default async function HomePage() {
       {/* ================================================================
           SECTION 8 - Pricing
           ================================================================ */}
-      <section id="pricing" className="relative border-t border-[var(--landing-border)] py-28 lg:py-36">
+      {/* ── Gradient divider with intersection dots ── */}
+      <div className="relative flex items-center" aria-hidden="true">
+        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        </div>
+      </div>
+
+      <section id="pricing" className="relative overflow-hidden py-28 lg:py-36">
+        {/* ── Structural frame lines (5 lines for 4-col grid) ── */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+          {/* Horizontal shelf line below heading */}
+          <div className="absolute left-0 right-0 top-[22%]">
+            <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
+              <div className="h-px bg-gradient-to-r from-[var(--landing-border)] via-transparent to-[var(--landing-border)] opacity-[0.1]" />
+            </div>
+          </div>
+        </div>
+        {/* Section-level diagonal hatching */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.2] [mask-image:linear-gradient(to_bottom,black_20%,transparent_60%)]"
+          aria-hidden="true"
+        />
+        {/* Indigo glow behind pricing */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-[30%] -z-10 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-indigo-400/[0.04] blur-[120px]"
+          aria-hidden="true"
+        />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollParallax effect="fade-scale" intensity={0.6}>
             <ScrollReveal>
@@ -657,6 +887,10 @@ export default async function HomePage() {
                         : "border-[var(--landing-border)] bg-[var(--landing-surface)]"
                       }`}
                   >
+                    {/* Diagonal hatching */}
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl" aria-hidden="true">
+                      <div className="h-full w-full bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.35] [mask-image:linear-gradient(to_bottom,black_40%,transparent_85%)]" />
+                    </div>
                     {plan.highlighted && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#F97316] px-4 py-1 font-mono text-[11px] font-medium text-white">
                         Most popular
@@ -728,6 +962,10 @@ export default async function HomePage() {
                   <div
                     className="glass-border relative flex h-full flex-col rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_var(--landing-glow)]"
                   >
+                    {/* Diagonal hatching */}
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl" aria-hidden="true">
+                      <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.25] [mask-image:linear-gradient(to_bottom_right,black_30%,transparent_70%)]" />
+                    </div>
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="mb-2 text-sm font-medium text-[var(--landing-text-secondary)]">
@@ -798,7 +1036,40 @@ export default async function HomePage() {
       {/* ================================================================
           SECTION 9 - Open Source
           ================================================================ */}
-      <section className="relative border-t border-[var(--landing-border)] py-28 lg:py-36">
+      {/* ── Gradient divider with crosshair + edge dots ── */}
+      <div className="relative flex items-center" aria-hidden="true">
+        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          {/* Center crosshair */}
+          <div className="relative">
+            <div className="absolute -left-px -top-3 h-6 w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent" />
+            <div className="absolute -left-3 -top-px h-px w-6 bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+            <div className="h-1.5 w-1.5 rounded-full border border-[var(--landing-border)] bg-[var(--landing-bg)]" />
+          </div>
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        </div>
+      </div>
+
+      <section className="relative overflow-hidden py-28 lg:py-36">
+        {/* ── Structural frame lines ── */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+        </div>
+        {/* Section-level diagonal hatching */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.15] [mask-image:linear-gradient(to_left,black_15%,transparent_55%)]"
+          aria-hidden="true"
+        />
+        {/* Cyan glow orb, left side */}
+        <div
+          className="pointer-events-none absolute left-[5%] top-[30%] -z-10 h-[450px] w-[450px] rounded-full bg-cyan-500/[0.04] blur-[120px]"
+          aria-hidden="true"
+        />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollParallax effect="fade-scale" intensity={0.6}>
             <ScrollReveal>
@@ -847,7 +1118,9 @@ export default async function HomePage() {
             </ScrollReveal>
 
             <ScrollReveal animation="slide-right" delay={150}>
-              <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+              <div className="relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+                {/* Diagonal hatching */}
+                <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] [mask-image:linear-gradient(to_top_left,black_35%,transparent_80%)]" aria-hidden="true" />
                 {/* Repo card */}
                 <div className="mb-6 flex items-center gap-3">
                   <svg
@@ -945,7 +1218,40 @@ export default async function HomePage() {
       {/* ================================================================
           SECTION 10 - CTA
           ================================================================ */}
-      <section className="relative border-t border-[var(--landing-border)] py-24 lg:py-32">
+      {/* ── Gradient divider with intersection dots ── */}
+      <div className="relative flex items-center" aria-hidden="true">
+        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        </div>
+      </div>
+
+      <section className="relative overflow-hidden py-24 lg:py-32">
+        {/* ── Structural frame lines ── */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+        </div>
+        {/* Square grid lines, fading upward */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--landing-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--landing-border)_1px,transparent_1px)] bg-[size:32px_32px] opacity-[0.12] [mask-image:linear-gradient(to_top,black_20%,transparent_80%)]"
+          aria-hidden="true"
+        />
+        {/* ── Diagonal hatching ── */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_9px,var(--landing-border)_9px,var(--landing-border)_10px)] opacity-[0.12] [mask-image:radial-gradient(ellipse_45%_50%_at_50%_60%,black_25%,transparent_70%)]"
+          aria-hidden="true"
+        />
+        {/* Warm orange glow for CTA */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-[40%] -z-10 h-[400px] w-[600px] -translate-x-1/2 rounded-full bg-[#F97316]/[0.05] blur-[120px]"
+          aria-hidden="true"
+        />
         <div className="relative mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollReveal animation="scale-up">
             <div className="text-center">
@@ -1011,7 +1317,35 @@ export default async function HomePage() {
       {/* ================================================================
           SECTION 11 - Footer
           ================================================================ */}
-      <footer className="border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
+      {/* ── Gradient divider with intersection dots ── */}
+      <div className="relative flex items-center" aria-hidden="true">
+        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-[1600px] justify-between px-6 lg:px-8">
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
+        </div>
+      </div>
+
+      <footer className="relative overflow-hidden bg-[var(--landing-code-bg)]">
+        {/* ── Structural frame lines ── */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="mx-auto flex h-full max-w-[1600px] justify-between px-6 lg:px-8">
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+            <div className="w-px bg-[var(--landing-border)] opacity-[0.06]" />
+            <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
+          </div>
+        </div>
+        {/* Square grid lines, fading upward */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--landing-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--landing-border)_1px,transparent_1px)] bg-[size:32px_32px] opacity-[0.1] [mask-image:linear-gradient(to_top,black_10%,transparent_60%)]"
+          aria-hidden="true"
+        />
+        {/* ── Diagonal hatching ── */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] opacity-[0.1] [mask-image:linear-gradient(to_top,black_15%,transparent_55%)]"
+          aria-hidden="true"
+        />
         <div className="mx-auto max-w-[1600px] px-6 py-16 lg:px-8 lg:py-20">
           <ScrollReveal animation="fade-in">
             <div className="grid grid-cols-2 gap-8 md:grid-cols-6">
