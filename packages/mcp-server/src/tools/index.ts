@@ -112,15 +112,20 @@ export function registerTools(server: McpServer, client: ApiClient) {
             label: typeInfo?.label ?? type,
             description: typeInfo?.description ?? "",
             count: typeEntries.length,
-            items: typeEntries.map((entry) => ({
-              id: entry.id,
-              title: entry.title,
-              key: entry.key,
-              priority: entry.priority,
-              tags: entry.tags,
-              updatedAt: entry.updatedAt,
-              content: includeContent ? entry.content : undefined,
-            })),
+            items: typeEntries.map((entry) => {
+              const mem = allMemories.find((m) => m.key === entry.key);
+              return {
+                id: entry.id,
+                title: entry.title,
+                key: entry.key,
+                priority: entry.priority,
+                tags: entry.tags,
+                isPinned: Boolean(mem?.pinnedAt),
+                scope: mem?.scope ?? "project",
+                updatedAt: entry.updatedAt,
+                content: includeContent ? entry.content : undefined,
+              };
+            }),
           };
         });
 
@@ -163,7 +168,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
 
   server.tool(
     "memory_store",
-    "Store a key-value memory for the current project",
+    "Store a key-value memory for the current project. Use scope='shared' to make it visible across all projects in the org (opt-in).",
     {
       key: z.string().describe("Unique key for the memory"),
       content: z.string().describe("Content to store"),
@@ -171,6 +176,10 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .record(z.unknown())
         .optional()
         .describe("Optional metadata object"),
+      scope: z
+        .enum(["project", "shared"])
+        .default("project")
+        .describe("'project' (default) for this project only, 'shared' for org-wide visibility"),
       priority: z
         .number()
         .int()
@@ -187,7 +196,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .optional()
         .describe("Unix timestamp when this memory should expire"),
     },
-    async ({ key, content, metadata, priority, tags, expiresAt }) => {
+    async ({ key, content, metadata, scope, priority, tags, expiresAt }) => {
       try {
         // Check for near-duplicates before storing
         let dedupWarning = "";
@@ -201,8 +210,9 @@ export function registerTools(server: McpServer, client: ApiClient) {
           // Dedup check is best-effort
         }
 
-        await client.storeMemory(key, content, metadata, { priority, tags, expiresAt });
-        return textResponse(`Memory stored with key: ${key}${dedupWarning}`);
+        await client.storeMemory(key, content, metadata, { scope, priority, tags, expiresAt });
+        const scopeMsg = scope === "shared" ? " [shared across org]" : "";
+        return textResponse(`Memory stored with key: ${key}${scopeMsg}${dedupWarning}`);
       } catch (error) {
         if (hasMemoryFullError(error)) {
           return errorResponse(
@@ -1710,6 +1720,921 @@ export function registerTools(server: McpServer, client: ApiClient) {
         );
       } catch (error) {
         return errorResponse("Error checking for duplicates", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY PIN / UNPIN
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_pin",
+    "Pin or unpin a memory. Pinned memories are always included in bootstrap and context_budget, and never suggested for cleanup.",
+    {
+      key: z.string().describe("Key of the memory to pin/unpin"),
+      pin: z.boolean().describe("true to pin, false to unpin"),
+    },
+    async ({ key, pin }) => {
+      try {
+        const result = await client.pinMemory(key, pin);
+        return textResponse(result.message);
+      } catch (error) {
+        return errorResponse("Error pinning memory", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY LINK / RELATIONSHIPS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_link",
+    "Create or remove a bidirectional relationship between two memories. When loading one, related entries are suggested.",
+    {
+      key: z.string().describe("First memory key"),
+      relatedKey: z.string().describe("Second memory key to link/unlink"),
+      unlink: z.boolean().default(false).describe("true to remove the link"),
+    },
+    async ({ key, relatedKey, unlink }) => {
+      try {
+        const result = await client.linkMemories(key, relatedKey, unlink);
+        return textResponse(
+          `Memories ${unlink ? "unlinked" : "linked"}: "${key}" ↔ "${relatedKey}"`,
+        );
+      } catch (error) {
+        return errorResponse("Error linking memories", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY DIFF
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_diff",
+    "Show a readable line-by-line diff between two versions of a memory. If v2 is omitted, diffs version v1 against the current content.",
+    {
+      key: z.string().describe("Memory key"),
+      v1: z.number().int().min(1).describe("First version number"),
+      v2: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Second version number (omit to diff against current)"),
+    },
+    async ({ key, v1, v2 }) => {
+      try {
+        const result = await client.diffMemory(key, v1, v2);
+        const diffText = result.diff
+          .map((line) => {
+            if (line.type === "add") return `+ ${line.line}`;
+            if (line.type === "remove") return `- ${line.line}`;
+            return `  ${line.line}`;
+          })
+          .join("\n");
+
+        return textResponse(
+          `Diff for "${key}" (${result.from} → ${result.to}):\n` +
+            `+${result.summary.added} -${result.summary.removed} ~${result.summary.unchanged}\n\n` +
+            diffText,
+        );
+      } catch (error) {
+        return errorResponse("Error computing diff", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // IMPORT .cursorrules / copilot-instructions
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "import_cursorrules",
+    "Import a .cursorrules or .github/copilot-instructions.md file into structured agent context. Parses the content the same way as agents_md_import.",
+    {
+      content: z.string().min(1).describe("Full text content of the .cursorrules or copilot-instructions.md file"),
+      source: z
+        .enum(["cursorrules", "copilot"])
+        .default("cursorrules")
+        .describe("Source format for metadata tagging"),
+      dryRun: z
+        .boolean()
+        .default(false)
+        .describe("If true, returns parsed sections without storing"),
+      overwrite: z
+        .boolean()
+        .default(false)
+        .describe("If true, overwrite existing entries"),
+    },
+    async ({ content, source, dryRun, overwrite }) => {
+      try {
+        const sections = parseAgentsMd(content);
+
+        if (dryRun) {
+          return textResponse(
+            JSON.stringify(
+              {
+                dryRun: true,
+                source,
+                sections: sections.map((s) => ({
+                  type: s.type,
+                  id: s.id,
+                  title: s.title,
+                  contentLength: s.content.length,
+                  key: buildAgentContextKey(s.type, s.id),
+                })),
+                totalSections: sections.length,
+              },
+              null,
+              2,
+            ),
+          );
+        }
+
+        const results: Array<{ key: string; status: string }> = [];
+        for (const section of sections) {
+          const key = buildAgentContextKey(section.type, section.id);
+
+          if (!overwrite) {
+            try {
+              await client.getMemory(key);
+              results.push({ key, status: "skipped (exists)" });
+              continue;
+            } catch {}
+          }
+
+          try {
+            await client.storeMemory(key, section.content, {
+              scope: "agent_functionality",
+              type: section.type,
+              id: normalizeAgentContextId(section.id),
+              title: section.title,
+              importedFrom: source,
+              updatedByTool: "import_cursorrules",
+              updatedAt: new Date().toISOString(),
+            });
+            results.push({ key, status: "imported" });
+          } catch (error) {
+            results.push({
+              key,
+              status: `error: ${error instanceof Error ? error.message : String(error)}`,
+            });
+          }
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              source,
+              imported: results.filter((r) => r.status === "imported").length,
+              skipped: results.filter((r) => r.status.startsWith("skipped")).length,
+              errors: results.filter((r) => r.status.startsWith("error")).length,
+              details: results,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse(`Error importing ${source}`, error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EXPORT — generate AGENTS.md / .cursorrules from memory
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "export_agents_md",
+    "Export structured agent context memories back to AGENTS.md or .cursorrules format. Useful for keeping flat files in sync with memctl.",
+    {
+      format: z
+        .enum(["agents_md", "cursorrules", "json"])
+        .default("agents_md")
+        .describe("Output format"),
+    },
+    async ({ format }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+        const entries = extractAgentContextEntries(allMemories);
+        const allTypeInfo = await getAllContextTypeInfo(client);
+
+        // Group by type
+        const byType: Record<string, typeof entries> = {};
+        for (const entry of entries) {
+          if (entry.type === "branch_plan") continue;
+          if (!byType[entry.type]) byType[entry.type] = [];
+          byType[entry.type].push(entry);
+        }
+
+        if (format === "json") {
+          return textResponse(JSON.stringify({ types: byType }, null, 2));
+        }
+
+        const lines: string[] = [];
+
+        if (format === "agents_md") {
+          lines.push("# AGENTS.md");
+          lines.push("");
+          lines.push("> Auto-generated from memctl structured agent context");
+          lines.push("");
+        }
+
+        for (const [type, typeEntries] of Object.entries(byType)) {
+          const label = allTypeInfo[type]?.label ?? type;
+
+          if (format === "agents_md") {
+            lines.push(`## ${label}`);
+            lines.push("");
+            for (const entry of typeEntries) {
+              if (typeEntries.length > 1) {
+                lines.push(`### ${entry.title}`);
+                lines.push("");
+              }
+              lines.push(entry.content);
+              lines.push("");
+            }
+          } else {
+            // cursorrules: flat format
+            lines.push(`# ${label}`);
+            lines.push("");
+            for (const entry of typeEntries) {
+              lines.push(entry.content);
+              lines.push("");
+            }
+          }
+        }
+
+        return textResponse(lines.join("\n"));
+      } catch (error) {
+        return errorResponse("Error exporting context", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SMART COMPOSE — task-intent context retrieval
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "compose_context",
+    "Intelligently compose context for a specific task. Analyzes the task description and selects the most relevant entries across all context types. Better than context_budget for task-specific retrieval.",
+    {
+      task: z
+        .string()
+        .min(1)
+        .describe("Description of the task you're about to perform (e.g., 'add a REST endpoint for user preferences')"),
+      maxTokens: z
+        .number()
+        .int()
+        .min(100)
+        .max(200000)
+        .default(8000)
+        .describe("Maximum token budget"),
+      includeRelated: z
+        .boolean()
+        .default(true)
+        .describe("Follow memory links to include related entries"),
+    },
+    async ({ task, maxTokens, includeRelated }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+        const entries = extractAgentContextEntries(allMemories);
+
+        // Extract task keywords
+        const taskWords = new Set(
+          task
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, " ")
+            .split(/\s+/)
+            .filter((w) => w.length > 2),
+        );
+
+        // Score each entry by relevance to the task
+        const scored = entries.map((entry) => {
+          const searchableText = `${entry.type} ${entry.title} ${entry.content} ${entry.tags.join(" ")}`.toLowerCase();
+          let score = 0;
+
+          // Pinned entries get a massive boost
+          const mem = allMemories.find((m) => m.key === entry.key);
+          if (mem && mem.pinnedAt) score += 200;
+
+          // Priority contributes
+          score += entry.priority;
+
+          // Word match scoring
+          for (const word of taskWords) {
+            if (searchableText.includes(word)) score += 15;
+          }
+
+          // Type relevance: constraints and lessons_learned always get a boost
+          if (entry.type === "constraints") score += 30;
+          if (entry.type === "lessons_learned") score += 20;
+          if (entry.type === "coding_style") score += 10;
+
+          return { entry, score, mem };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+
+        const CHARS_PER_TOKEN = 4;
+        let budgetRemaining = maxTokens * CHARS_PER_TOKEN;
+        const selected: Array<{
+          type: string;
+          id: string;
+          key: string;
+          title: string;
+          content: string;
+          relevanceScore: number;
+          isPinned: boolean;
+        }> = [];
+        const selectedKeys = new Set<string>();
+
+        for (const { entry, score, mem } of scored) {
+          if (entry.content.length > budgetRemaining) continue;
+          if (selectedKeys.has(entry.key)) continue;
+
+          selected.push({
+            type: entry.type,
+            id: entry.id,
+            key: entry.key,
+            title: entry.title,
+            content: entry.content,
+            relevanceScore: score,
+            isPinned: Boolean(mem?.pinnedAt),
+          });
+          selectedKeys.add(entry.key);
+          budgetRemaining -= entry.content.length;
+
+          // Follow links if enabled
+          if (includeRelated && mem?.relatedKeys) {
+            try {
+              const relKeys = JSON.parse(typeof mem.relatedKeys === "string" ? mem.relatedKeys : "[]") as string[];
+              for (const rk of relKeys) {
+                if (selectedKeys.has(rk)) continue;
+                const relEntry = entries.find((e) => e.key === rk);
+                if (!relEntry || relEntry.content.length > budgetRemaining) continue;
+                selected.push({
+                  type: relEntry.type,
+                  id: relEntry.id,
+                  key: relEntry.key,
+                  title: relEntry.title,
+                  content: relEntry.content,
+                  relevanceScore: score * 0.5,
+                  isPinned: false,
+                });
+                selectedKeys.add(rk);
+                budgetRemaining -= relEntry.content.length;
+              }
+            } catch {}
+          }
+
+          if (budgetRemaining <= 0) break;
+        }
+
+        const totalTokens = selected.reduce(
+          (sum, e) => sum + Math.ceil(e.content.length / CHARS_PER_TOKEN),
+          0,
+        );
+
+        return textResponse(
+          JSON.stringify(
+            {
+              task,
+              tokensUsed: totalTokens,
+              tokenBudget: maxTokens,
+              entriesSelected: selected.length,
+              entries: selected,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error composing context", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CONDITIONAL CONTEXT RULES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "context_rules_evaluate",
+    "Evaluate conditional context rules for the current situation. Returns only context entries whose conditions (file patterns, branch patterns) match the given inputs.",
+    {
+      filePaths: z
+        .array(z.string())
+        .optional()
+        .describe("File paths being modified"),
+      branch: z
+        .string()
+        .optional()
+        .describe("Current branch name (auto-detected if omitted)"),
+      taskType: z
+        .string()
+        .optional()
+        .describe("Type of task (e.g., 'api', 'frontend', 'testing', 'refactor')"),
+    },
+    async ({ filePaths, branch, taskType }) => {
+      try {
+        const branchInfo = await getBranchInfo();
+        const currentBranch = branch ?? branchInfo?.branch ?? "";
+        const allMemories = await listAllMemories(client);
+        const entries = extractAgentContextEntries(allMemories);
+
+        const matched: Array<{
+          type: string;
+          id: string;
+          title: string;
+          content: string;
+          matchedConditions: string[];
+        }> = [];
+
+        for (const entry of entries) {
+          const conditions = entry.metadata?.conditions;
+          if (!conditions || typeof conditions !== "object") continue;
+
+          const cond = conditions as {
+            filePatterns?: string[];
+            branchPatterns?: string[];
+            taskTypes?: string[];
+          };
+
+          const matchedConditions: string[] = [];
+
+          // Check file patterns
+          if (cond.filePatterns && filePaths) {
+            for (const pattern of cond.filePatterns) {
+              if (filePaths.some((fp) => matchGlob(fp, pattern))) {
+                matchedConditions.push(`file:${pattern}`);
+              }
+            }
+          }
+
+          // Check branch patterns
+          if (cond.branchPatterns && currentBranch) {
+            for (const pattern of cond.branchPatterns) {
+              if (matchGlob(currentBranch, pattern)) {
+                matchedConditions.push(`branch:${pattern}`);
+              }
+            }
+          }
+
+          // Check task types
+          if (cond.taskTypes && taskType) {
+            if (cond.taskTypes.includes(taskType)) {
+              matchedConditions.push(`task:${taskType}`);
+            }
+          }
+
+          if (matchedConditions.length > 0) {
+            matched.push({
+              type: entry.type,
+              id: entry.id,
+              title: entry.title,
+              content: entry.content,
+              matchedConditions,
+            });
+          }
+        }
+
+        if (matched.length === 0) {
+          return textResponse(
+            "No conditional context rules matched the current situation.",
+          );
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              currentBranch,
+              filePaths: filePaths ?? [],
+              taskType: taskType ?? null,
+              matchedRules: matched,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error evaluating context rules", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // REPO SCAN STALENESS CHECK
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "repo_scan_check",
+    "Check if the stored file_map is stale compared to the current repository. Reports new/deleted files since the last scan.",
+    {},
+    async () => {
+      try {
+        // Get current repo files
+        const result = await execFileAsync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
+          cwd: process.cwd(),
+          maxBuffer: 10 * 1024 * 1024,
+        });
+        const currentFiles = new Set(result.stdout.trim().split("\n").filter(Boolean));
+
+        // Get stored file_map
+        const key = buildAgentContextKey("file_map", "auto-scan");
+        let storedMap: { totalFiles?: number; directories?: Array<{ files?: string[] }> } | null = null;
+
+        try {
+          const mem = await client.getMemory(key) as { memory?: { content?: string; updatedAt?: unknown } };
+          if (mem?.memory?.content) {
+            storedMap = JSON.parse(mem.memory.content);
+          }
+        } catch {
+          return textResponse(
+            "No stored file_map found. Run scan_repository first to create one.",
+          );
+        }
+
+        // Reconstruct stored file set
+        const storedFiles = new Set<string>();
+        if (storedMap?.directories) {
+          for (const dir of storedMap.directories) {
+            if (dir.files) {
+              for (const f of dir.files) storedFiles.add(f);
+            }
+          }
+        }
+
+        const newFiles = [...currentFiles].filter((f) => !storedFiles.has(f));
+        const deletedFiles = [...storedFiles].filter((f) => !currentFiles.has(f));
+
+        const isStale = newFiles.length > 0 || deletedFiles.length > 0;
+
+        return textResponse(
+          JSON.stringify(
+            {
+              isStale,
+              currentFileCount: currentFiles.size,
+              storedFileCount: storedFiles.size,
+              newFiles: newFiles.slice(0, 50),
+              deletedFiles: deletedFiles.slice(0, 50),
+              newFilesTotal: newFiles.length,
+              deletedFilesTotal: deletedFiles.length,
+              recommendation: isStale
+                ? "Run scan_repository with saveAsContext=true to update the file_map."
+                : "File map is up to date.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error checking repo scan staleness", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY TEMPLATES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_template",
+    "Get a structured template for a given context type. Helps maintain consistent entries.",
+    {
+      type: z.string().describe("Context type to get template for"),
+    },
+    async ({ type }) => {
+      const templates: Record<string, { description: string; template: string }> = {
+        coding_style: {
+          description: "Coding conventions and style guide",
+          template: `## Language & Framework
+- Primary language:
+- Framework:
+
+## Naming Conventions
+- Variables:
+- Functions:
+- Components:
+- Files:
+
+## Formatting
+- Indentation:
+- Line length:
+- Import ordering:
+
+## Patterns to Follow
+-
+
+## Anti-patterns to Avoid
+-`,
+        },
+        architecture: {
+          description: "System architecture and design decisions",
+          template: `## Overview
+Brief description of the system architecture.
+
+## Module Boundaries
+-
+
+## Data Flow
+-
+
+## Key Design Decisions
+- Decision:
+  - Context:
+  - Trade-offs:
+
+## Dependencies
+-`,
+        },
+        testing: {
+          description: "Testing strategy and requirements",
+          template: `## Test Framework
+-
+
+## Required Coverage
+-
+
+## Test Locations
+- Unit tests:
+- Integration tests:
+- E2E tests:
+
+## Running Tests
+\`\`\`bash
+\`\`\`
+
+## Testing Conventions
+-`,
+        },
+        constraints: {
+          description: "Hard rules and safety limits",
+          template: `## Must Do
+-
+
+## Must Not Do
+-
+
+## Security Requirements
+-
+
+## Performance Requirements
+-
+
+## Backwards Compatibility
+-`,
+        },
+        lessons_learned: {
+          description: "Pitfalls and negative knowledge",
+          template: `## What Happened
+Describe the issue or failure.
+
+## Why It Failed
+Root cause analysis.
+
+## What to Do Instead
+The correct approach.
+
+## Files/Areas Affected
+-
+
+## Date Discovered
+`,
+        },
+        workflow: {
+          description: "Development workflow and processes",
+          template: `## Branching Strategy
+-
+
+## PR Process
+-
+
+## Deployment
+-
+
+## Code Review
+-
+
+## CI/CD
+-`,
+        },
+        folder_structure: {
+          description: "Repository organization",
+          template: `## Root Layout
+\`\`\`
+/
+├── src/
+├── tests/
+└── ...
+\`\`\`
+
+## Key Directories
+-
+
+## Where to Put New Code
+-`,
+        },
+        file_map: {
+          description: "Key file locations",
+          template: `## Entry Points
+-
+
+## Configuration Files
+-
+
+## API Endpoints
+-
+
+## Database
+-
+
+## Shared Utilities
+-`,
+        },
+      };
+
+      const tmpl = templates[type];
+      if (!tmpl) {
+        const allTypeInfo = await getAllContextTypeInfo(client);
+        const info = allTypeInfo[type];
+        if (info) {
+          return textResponse(
+            JSON.stringify(
+              {
+                type,
+                label: info.label,
+                description: info.description,
+                template: `## ${info.label}\n\n${info.description}\n\n## Content\n-`,
+                note: "This is a custom type with a generic template. Fill in the details.",
+              },
+              null,
+              2,
+            ),
+          );
+        }
+        return errorResponse(
+          "Error getting template",
+          `Unknown type "${type}". Use context_type_list to see available types.`,
+        );
+      }
+
+      return textResponse(
+        JSON.stringify(
+          {
+            type,
+            description: tmpl.description,
+            template: tmpl.template,
+            usage: `Use agent_functionality_set with type="${type}" and the filled-in template as content.`,
+          },
+          null,
+          2,
+        ),
+      );
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ACTIVITY LOG
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "activity_log",
+    "View recent agent activity for this project (opt-in). Shows tool calls, memory reads/writes, and session history.",
+    {
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .default(50)
+        .describe("Maximum entries to return"),
+      sessionId: z
+        .string()
+        .optional()
+        .describe("Filter by specific session ID"),
+    },
+    async ({ limit, sessionId }) => {
+      try {
+        const result = await client.getActivityLogs(limit, sessionId);
+        return textResponse(JSON.stringify(result, null, 2));
+      } catch (error) {
+        return errorResponse("Error retrieving activity logs", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GIT HOOKS GENERATOR
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "generate_git_hooks",
+    "Generate git hook scripts that auto-inject memctl context checks. Returns the hook script content for the user to install. Does NOT install hooks automatically.",
+    {
+      hooks: z
+        .array(z.enum(["pre-commit", "post-checkout", "prepare-commit-msg"]))
+        .min(1)
+        .describe("Which hooks to generate"),
+    },
+    async ({ hooks }) => {
+      try {
+        const scripts: Record<string, string> = {};
+
+        if (hooks.includes("pre-commit")) {
+          scripts["pre-commit"] = `#!/bin/sh
+# memctl pre-commit hook
+# Checks modified files against agent context constraints
+#
+# Install: cp this file to .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+CHANGED_FILES=$(git diff --cached --name-only)
+
+if [ -z "$CHANGED_FILES" ]; then
+  exit 0
+fi
+
+echo "[memctl] Checking agent context for modified files..."
+
+# You can customize this to call the memctl CLI or API
+# Example with curl:
+# curl -s -X POST \\
+#   -H "Authorization: Bearer $MEMCTL_TOKEN" \\
+#   -H "X-Org-Slug: $MEMCTL_ORG" \\
+#   -H "X-Project-Slug: $MEMCTL_PROJECT" \\
+#   -H "Content-Type: application/json" \\
+#   -d "{\\"filePaths\\": [$(echo "$CHANGED_FILES" | sed 's/.*/"&"/' | tr '\\n' ',' | sed 's/,$//')]]}" \\
+#   "$MEMCTL_URL/api/v1/memories/watch"
+
+echo "[memctl] Context check complete."
+exit 0
+`;
+        }
+
+        if (hooks.includes("post-checkout")) {
+          scripts["post-checkout"] = `#!/bin/sh
+# memctl post-checkout hook
+# Loads branch context after switching branches
+#
+# Install: cp this file to .git/hooks/post-checkout && chmod +x .git/hooks/post-checkout
+
+PREV_HEAD=$1
+NEW_HEAD=$2
+BRANCH_CHECKOUT=$3
+
+if [ "$BRANCH_CHECKOUT" != "1" ]; then
+  exit 0
+fi
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "[memctl] Switched to branch: $BRANCH"
+echo "[memctl] Run 'branch_context_get' in your agent to load the branch plan."
+
+exit 0
+`;
+        }
+
+        if (hooks.includes("prepare-commit-msg")) {
+          scripts["prepare-commit-msg"] = `#!/bin/sh
+# memctl prepare-commit-msg hook
+# Adds context reminder to commit message template
+#
+# Install: cp this file to .git/hooks/prepare-commit-msg && chmod +x .git/hooks/prepare-commit-msg
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Only add for regular commits (not merge/squash)
+if [ -z "$COMMIT_SOURCE" ]; then
+  BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  echo "" >> "$COMMIT_MSG_FILE"
+  echo "# [memctl] Branch: $BRANCH" >> "$COMMIT_MSG_FILE"
+  echo "# Run 'session_end' after committing to save session context." >> "$COMMIT_MSG_FILE"
+fi
+
+exit 0
+`;
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              hooks: Object.keys(scripts),
+              scripts,
+              installation: "Save each script to .git/hooks/<name> and run chmod +x on it.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error generating git hooks", error);
       }
     },
   );

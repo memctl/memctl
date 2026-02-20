@@ -47,7 +47,7 @@ export class ApiClient {
     key: string,
     content: string,
     metadata?: Record<string, unknown>,
-    options?: { priority?: number; tags?: string[]; expiresAt?: number },
+    options?: { scope?: string; priority?: number; tags?: string[]; expiresAt?: number },
   ) {
     return this.request("POST", "/memories", {
       key,
@@ -262,5 +262,80 @@ export class ApiClient {
         similarity: number;
       }>;
     }>("POST", "/memories/similar", { content, excludeKey, threshold });
+  }
+
+  // ── Pin / Unpin ─────────────────────────────────────────────────
+
+  async pinMemory(key: string, pin: boolean) {
+    return this.request<{ key: string; pinned: boolean; message: string }>(
+      "POST",
+      "/memories/pin",
+      { key, pin },
+    );
+  }
+
+  // ── Link / Unlink ──────────────────────────────────────────────
+
+  async linkMemories(key: string, relatedKey: string, unlink = false) {
+    return this.request<{
+      key: string;
+      relatedKey: string;
+      action: string;
+      keyRelatedKeys: string[];
+      relatedKeyRelatedKeys: string[];
+    }>("POST", "/memories/link", { key, relatedKey, unlink });
+  }
+
+  // ── Diff ───────────────────────────────────────────────────────
+
+  async diffMemory(key: string, v1: number, v2?: number) {
+    const params = new URLSearchParams({
+      key,
+      v1: String(v1),
+    });
+    if (v2 !== undefined) params.set("v2", String(v2));
+    return this.request<{
+      key: string;
+      from: string;
+      to: string;
+      diff: Array<{ type: "add" | "remove" | "same"; line: string; lineNumber?: number }>;
+      summary: { added: number; removed: number; unchanged: number };
+    }>("GET", `/memories/diff?${params}`);
+  }
+
+  // ── Export ─────────────────────────────────────────────────────
+
+  async exportMemories(format: "agents_md" | "cursorrules" | "json" = "agents_md") {
+    return this.request<string>("GET", `/memories/export?format=${format}`);
+  }
+
+  // ── Activity Logs ──────────────────────────────────────────────
+
+  async getActivityLogs(limit = 50, sessionId?: string) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (sessionId) params.set("session_id", sessionId);
+    return this.request<{
+      activityLogs: Array<{
+        id: string;
+        projectId: string;
+        sessionId: string | null;
+        action: string;
+        toolName: string | null;
+        memoryKey: string | null;
+        details: string | null;
+        createdBy: string | null;
+        createdAt: unknown;
+      }>;
+    }>("GET", `/activity-logs?${params}`);
+  }
+
+  async logActivity(data: {
+    action: string;
+    sessionId?: string;
+    toolName?: string;
+    memoryKey?: string;
+    details?: Record<string, unknown>;
+  }) {
+    return this.request("POST", "/activity-logs", data);
   }
 }

@@ -139,8 +139,11 @@ export interface MemoryRecord {
   key: string;
   content?: string | null;
   metadata?: unknown;
+  scope?: string;
   priority?: number | null;
   tags?: string | null;
+  relatedKeys?: string | null;
+  pinnedAt?: unknown;
   archivedAt?: unknown;
   expiresAt?: unknown;
   accessCount?: number;
