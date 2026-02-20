@@ -30,6 +30,7 @@ export const memoryStoreSchema = z.object({
   key: z.string().min(1).max(256),
   content: z.string().min(1).max(65536),
   metadata: z.record(z.unknown()).optional(),
+  scope: z.enum(["project", "shared"]).default("project"),
   priority: z.number().int().min(0).max(100).optional(),
   tags: z.array(z.string().min(1).max(64)).max(20).optional(),
   expiresAt: z.number().int().optional(),

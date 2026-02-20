@@ -87,8 +87,11 @@ export const memories = sqliteTable(
     key: text("key").notNull(),
     content: text("content").notNull(),
     metadata: text("metadata"),
+    scope: text("scope").notNull().default("project"), // "project" | "shared"
     priority: integer("priority").default(0),
     tags: text("tags"), // JSON array of strings
+    relatedKeys: text("related_keys"), // JSON array of related memory keys
+    pinnedAt: integer("pinned_at", { mode: "timestamp" }),
     archivedAt: integer("archived_at", { mode: "timestamp" }),
     expiresAt: integer("expires_at", { mode: "timestamp" }),
     accessCount: integer("access_count").notNull().default(0),
@@ -157,6 +160,22 @@ export const sessionLogs = sqliteTable("session_logs", {
     .$defaultFn(() => new Date()),
   endedAt: integer("ended_at", { mode: "timestamp" }),
   createdBy: text("created_by").references(() => users.id),
+});
+
+export const activityLogs = sqliteTable("activity_logs", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id),
+  sessionId: text("session_id"),
+  action: text("action").notNull(), // "tool_call" | "memory_read" | "memory_write" | "memory_delete"
+  toolName: text("tool_name"),
+  memoryKey: text("memory_key"),
+  details: text("details"), // JSON object with extra info
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 export const apiTokens = sqliteTable("api_tokens", {

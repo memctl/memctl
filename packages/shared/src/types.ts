@@ -52,13 +52,16 @@ export interface Memory {
   key: string;
   content: string;
   metadata: string | null;
+  scope: "project" | "shared";
   priority: number | null;
   tags: string | null;
+  relatedKeys: string | null;
+  pinnedAt: number | null;
   archivedAt: number | null;
   expiresAt: number | null;
-  createdBy: string | null;
   accessCount: number;
   lastAccessedAt: number | null;
+  createdBy: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -85,6 +88,18 @@ export interface MemoryVersion {
   metadata: string | null;
   changedBy: string | null;
   changeType: "created" | "updated" | "restored";
+  createdAt: number;
+}
+
+export interface ActivityLog {
+  id: string;
+  projectId: string;
+  sessionId: string | null;
+  action: string;
+  toolName: string | null;
+  memoryKey: string | null;
+  details: string | null;
+  createdBy: string | null;
   createdAt: number;
 }
 

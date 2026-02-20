@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, memoryVersions } from "@memctl/db/schema";
-import { eq, and, like, isNull, inArray, desc } from "drizzle-orm";
+import { memories, memoryVersions, projects } from "@memctl/db/schema";
+import { eq, and, like, isNull, inArray, desc, or } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { memoryStoreSchema } from "@memctl/shared/validators";
 import { getOrgMemoryCapacity, resolveOrgAndProject } from "./capacity-utils";
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   if (!context) {
     return jsonError("Project not found", 404);
   }
-  const { project } = context;
+  const { org, project } = context;
 
   const url = new URL(req.url);
   const query = url.searchParams.get("q");
@@ -31,7 +31,29 @@ export async function GET(req: NextRequest) {
   const offset = parseInt(url.searchParams.get("offset") ?? "0");
   const tagsFilter = url.searchParams.get("tags"); // comma-separated
   const includeArchived = url.searchParams.get("include_archived") === "true";
+  const includeShared = url.searchParams.get("include_shared") !== "false"; // opt-in by default
   const sortBy = url.searchParams.get("sort") ?? "updated"; // "updated" | "priority" | "created"
+
+  // Get org project IDs for shared memory inclusion
+  let sharedProjectIds: string[] = [];
+  if (includeShared) {
+    const orgProjects = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.orgId, org.id));
+    sharedProjectIds = orgProjects.map((p) => p.id).filter((id) => id !== project.id);
+  }
+
+  // Build scope filter: own project memories + shared memories from other projects
+  const scopeFilter = sharedProjectIds.length > 0
+    ? or(
+        eq(memories.projectId, project.id),
+        and(
+          inArray(memories.projectId, sharedProjectIds),
+          eq(memories.scope, "shared"),
+        ),
+      )
+    : eq(memories.projectId, project.id);
 
   let results;
 
@@ -102,7 +124,7 @@ export async function GET(req: NextRequest) {
       .from(memories)
       .where(
         and(
-          eq(memories.projectId, project.id),
+          scopeFilter,
           includeArchived ? undefined : isNull(memories.archivedAt),
         ),
       )
@@ -151,7 +173,7 @@ export async function POST(req: NextRequest) {
     return jsonError(parsed.error.message, 400);
   }
 
-  const { key, content, metadata, priority, tags, expiresAt } = parsed.data;
+  const { key, content, metadata, scope, priority, tags, expiresAt } = parsed.data;
 
   await ensureFts();
 
@@ -229,6 +251,7 @@ export async function POST(req: NextRequest) {
     key,
     content,
     metadata: metadata ? JSON.stringify(metadata) : null,
+    scope: scope ?? "project",
     priority: priority ?? 0,
     tags: tags ? JSON.stringify(tags) : null,
     expiresAt: expiresAt ? new Date(expiresAt) : null,
