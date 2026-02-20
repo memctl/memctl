@@ -54,11 +54,40 @@ export class ApiClient {
     // For GET requests, check in-memory cache first
     if (method === "GET") {
       const cached = this.cache.get(cacheKey);
-      if (cached) {
+      if (cached && !cached.stale) {
         return cached.data as T;
+      }
+
+      // Stale-while-revalidate: return stale data immediately, revalidate in background
+      if (cached?.stale) {
+        this.revalidate(cacheKey, path);
+        return cached.data as T;
+      }
+
+      // Request deduplication: if an identical GET is already in-flight, share it
+      const existing = this.inflight.get(cacheKey);
+      if (existing) {
+        return existing as Promise<T>;
       }
     }
 
+    const promise = this.doFetch<T>(method, path, body, cacheKey);
+
+    // Track in-flight GET requests for deduplication
+    if (method === "GET") {
+      this.inflight.set(cacheKey, promise);
+      promise.finally(() => this.inflight.delete(cacheKey));
+    }
+
+    return promise;
+  }
+
+  private async doFetch<T>(
+    method: string,
+    path: string,
+    body: unknown,
+    cacheKey: string,
+  ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.token}`,
@@ -137,6 +166,13 @@ export class ApiClient {
     return data;
   }
 
+  /** Background revalidation for stale cache entries. */
+  private revalidate(cacheKey: string, path: string): void {
+    this.doFetch("GET", path, undefined, cacheKey).catch(() => {
+      // Revalidation failed silently — stale data continues to be served
+    });
+  }
+
   private syncToLocalCache(data: unknown): void {
     try {
       if (data && typeof data === "object") {
@@ -190,11 +226,15 @@ export class ApiClient {
     return this.request("GET", `/memories?${params}`);
   }
 
-  async listMemories(limit = 100, offset = 0, options?: { sort?: string; includeArchived?: boolean; tags?: string }) {
+  async listMemories(limit = 100, offset = 0, options?: { sort?: string; includeArchived?: boolean; tags?: string; after?: string }) {
     const params = new URLSearchParams({
       limit: String(limit),
-      offset: String(offset),
     });
+    if (options?.after) {
+      params.set("after", options.after);
+    } else {
+      params.set("offset", String(offset));
+    }
     if (options?.sort) params.set("sort", options.sort);
     if (options?.includeArchived) params.set("include_archived", "true");
     if (options?.tags) params.set("tags", options.tags);

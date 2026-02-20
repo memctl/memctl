@@ -112,9 +112,9 @@ describe("ApiClient", () => {
       project: "test-project",
     });
 
-    // Override the cache with a very short TTL
+    // Override the cache with a very short TTL and no stale window
     const cacheModule = await import("../cache");
-    (client as unknown as { cache: InstanceType<typeof cacheModule.MemoryCache> }).cache = new cacheModule.MemoryCache(10); // 10ms TTL
+    (client as unknown as { cache: InstanceType<typeof cacheModule.MemoryCache> }).cache = new cacheModule.MemoryCache(10, 0); // 10ms TTL, 0ms stale
 
     const data = { memory: { key: "k" } };
 

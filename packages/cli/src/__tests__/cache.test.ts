@@ -5,7 +5,7 @@ describe("MemoryCache", () => {
   let cache: MemoryCache;
 
   beforeEach(() => {
-    cache = new MemoryCache(100); // 100ms TTL for fast tests
+    cache = new MemoryCache(100, 50); // 100ms TTL, 50ms stale window
   });
 
   it("returns null for missing keys", () => {
@@ -17,6 +17,7 @@ describe("MemoryCache", () => {
     const result = cache.get("key1");
     expect(result).not.toBeNull();
     expect(result!.data).toEqual({ hello: "world" });
+    expect(result!.stale).toBeUndefined();
   });
 
   it("stores and retrieves ETags", () => {
@@ -25,15 +26,26 @@ describe("MemoryCache", () => {
     expect(result!.etag).toBe('"abc123"');
   });
 
-  it("returns null for expired entries", async () => {
+  it("returns stale data after TTL but within stale window", async () => {
     cache.set("key1", { data: 1 }, undefined, 10); // 10ms TTL
     await new Promise((r) => setTimeout(r, 20));
+    const result = cache.get("key1");
+    expect(result).not.toBeNull();
+    expect(result!.stale).toBe(true);
+    expect(result!.data).toEqual({ data: 1 });
+  });
+
+  it("returns null after both TTL and stale window expire", async () => {
+    cache = new MemoryCache(10, 10); // 10ms TTL, 10ms stale window
+    cache.set("key1", { data: 1 });
+    await new Promise((r) => setTimeout(r, 30));
     expect(cache.get("key1")).toBeNull();
   });
 
   it("still returns ETag for expired entries via getEtag", async () => {
-    cache.set("key1", { data: 1 }, '"etag-val"', 10);
-    await new Promise((r) => setTimeout(r, 20));
+    cache = new MemoryCache(10, 10);
+    cache.set("key1", { data: 1 }, '"etag-val"');
+    await new Promise((r) => setTimeout(r, 30));
     expect(cache.get("key1")).toBeNull();
     expect(cache.getEtag("key1")).toBe('"etag-val"');
   });

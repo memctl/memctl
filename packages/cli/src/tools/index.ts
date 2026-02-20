@@ -5688,4 +5688,30 @@ exit 0
       }
     },
   );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BATCH OPERATIONS — combine multiple API calls in one round-trip
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "batch_operations",
+    "Execute multiple memctl API operations in a single round-trip. Use this when you need to perform several independent reads or writes at once to reduce latency. Max 20 operations per batch.",
+    {
+      operations: z.array(
+        z.object({
+          method: z.enum(["GET", "POST", "PATCH", "DELETE"]),
+          path: z.string().describe("API path, e.g. /memories/my-key"),
+          body: z.any().optional().describe("Request body for POST/PATCH"),
+        }),
+      ).min(1).max(20),
+    },
+    async ({ operations }) => {
+      try {
+        const result = await client.batch(operations);
+        return textResponse(JSON.stringify(result, null, 2));
+      } catch (error) {
+        return errorResponse("Error executing batch operations", error);
+      }
+    },
+  );
 }

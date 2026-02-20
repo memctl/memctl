@@ -63,3 +63,61 @@ export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
   const denom = Math.sqrt(normA) * Math.sqrt(normB);
   return denom === 0 ? 0 : dot / denom;
 }
+
+/**
+ * Quantize a Float32 embedding to Int8 for compact storage.
+ * Stores min/max alongside the int8 values for dequantization.
+ * Reduces ~3-4KB JSON to ~500 bytes.
+ */
+export function quantizeEmbedding(
+  emb: Float32Array,
+): { values: number[]; min: number; max: number } {
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < emb.length; i++) {
+    if (emb[i] < min) min = emb[i];
+    if (emb[i] > max) max = emb[i];
+  }
+
+  const range = max - min || 1;
+  const values: number[] = new Array(emb.length);
+  for (let i = 0; i < emb.length; i++) {
+    values[i] = Math.round(((emb[i] - min) / range) * 255) - 128;
+  }
+
+  return { values, min, max };
+}
+
+/**
+ * Dequantize an Int8 embedding back to Float32 for similarity computation.
+ */
+export function dequantizeEmbedding(
+  q: { values: number[]; min: number; max: number },
+): Float32Array {
+  const range = q.max - q.min || 1;
+  const result = new Float32Array(q.values.length);
+  for (let i = 0; i < q.values.length; i++) {
+    result[i] = ((q.values[i] + 128) / 255) * range + q.min;
+  }
+  return result;
+}
+
+/**
+ * Serialize an embedding for storage. Uses int8 quantization.
+ */
+export function serializeEmbedding(emb: Float32Array): string {
+  return JSON.stringify(quantizeEmbedding(emb));
+}
+
+/**
+ * Deserialize an embedding from storage. Handles both legacy Float32 arrays and quantized format.
+ */
+export function deserializeEmbedding(stored: string): Float32Array {
+  const parsed = JSON.parse(stored);
+  // Quantized format: { values, min, max }
+  if (parsed.values && typeof parsed.min === "number") {
+    return dequantizeEmbedding(parsed);
+  }
+  // Legacy Float32Array format: plain number array
+  return new Float32Array(parsed);
+}

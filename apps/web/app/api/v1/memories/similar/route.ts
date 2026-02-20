@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories } from "@memctl/db/schema";
-import { eq, and, isNull, ne } from "drizzle-orm";
+import { eq, and, isNull, ne, isNotNull } from "drizzle-orm";
 import { resolveOrgAndProject } from "../capacity-utils";
+import { generateEmbedding, cosineSimilarity, deserializeEmbedding } from "@/lib/embeddings";
 
 /**
  * POST /api/v1/memories/similar
  *
- * Find memories with similar content using trigram-like comparison.
- * Uses normalized word overlap to detect near-duplicates without embeddings.
+ * Find memories with similar content using vector embeddings (preferred)
+ * or Jaccard word overlap (fallback when embeddings are unavailable).
  *
  * Body: { content: string, excludeKey?: string, threshold?: number }
  */
@@ -38,22 +39,52 @@ export async function POST(req: NextRequest) {
     threshold?: number;
   };
 
-  // Get all non-archived memories for this project
   const conditions = [
     eq(memories.projectId, context.project.id),
     isNull(memories.archivedAt),
   ];
-
   if (excludeKey) {
     conditions.push(ne(memories.key, excludeKey));
   }
 
+  // Try vector similarity first
+  const queryEmbedding = await generateEmbedding(content);
+
+  if (queryEmbedding) {
+    const withEmbeddings = await db
+      .select({
+        key: memories.key,
+        priority: memories.priority,
+        embedding: memories.embedding,
+      })
+      .from(memories)
+      .where(and(...conditions, isNotNull(memories.embedding)));
+
+    if (withEmbeddings.length > 0) {
+      const similar = withEmbeddings
+        .map((m) => {
+          try {
+            const emb = deserializeEmbedding(m.embedding!);
+            const sim = cosineSimilarity(queryEmbedding, emb);
+            return { key: m.key, priority: m.priority, similarity: Math.round(sim * 100) / 100 };
+          } catch {
+            return null;
+          }
+        })
+        .filter((m): m is NonNullable<typeof m> => m !== null && m.similarity >= threshold)
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, 10);
+
+      return NextResponse.json({ similar });
+    }
+  }
+
+  // Fallback to Jaccard word overlap
   const allMemories = await db
     .select({ key: memories.key, content: memories.content, priority: memories.priority })
     .from(memories)
     .where(and(...conditions));
 
-  // Simple word-overlap similarity
   const inputWords = extractWords(content);
   if (inputWords.size === 0) {
     return NextResponse.json({ similar: [] });

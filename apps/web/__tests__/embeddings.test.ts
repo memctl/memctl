@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cosineSimilarity } from "../lib/embeddings";
+import { cosineSimilarity, quantizeEmbedding, dequantizeEmbedding, serializeEmbedding, deserializeEmbedding } from "../lib/embeddings";
 
 describe("cosineSimilarity", () => {
   it("returns 1 for identical vectors", () => {
@@ -46,5 +46,63 @@ describe("cosineSimilarity", () => {
     const a = new Float32Array(dim).fill(0.1);
     const b = new Float32Array(dim).fill(0.1);
     expect(cosineSimilarity(a, b)).toBeCloseTo(1);
+  });
+});
+
+describe("quantizeEmbedding / dequantizeEmbedding", () => {
+  it("round-trips with minimal loss", () => {
+    const original = new Float32Array([0.1, -0.5, 0.8, 0.0, -0.3]);
+    const quantized = quantizeEmbedding(original);
+    const restored = dequantizeEmbedding(quantized);
+
+    for (let i = 0; i < original.length; i++) {
+      expect(restored[i]).toBeCloseTo(original[i], 1); // within 0.1
+    }
+  });
+
+  it("preserves cosine similarity after quantization", () => {
+    const a = new Float32Array(384);
+    const b = new Float32Array(384);
+    for (let i = 0; i < 384; i++) {
+      a[i] = Math.sin(i * 0.1);
+      b[i] = Math.sin(i * 0.1 + 0.5);
+    }
+
+    const originalSim = cosineSimilarity(a, b);
+    const restoredA = dequantizeEmbedding(quantizeEmbedding(a));
+    const restoredB = dequantizeEmbedding(quantizeEmbedding(b));
+    const restoredSim = cosineSimilarity(restoredA, restoredB);
+
+    expect(restoredSim).toBeCloseTo(originalSim, 1);
+  });
+
+  it("quantized format is much smaller than raw Float32 JSON", () => {
+    const emb = new Float32Array(384);
+    for (let i = 0; i < 384; i++) emb[i] = Math.random() * 2 - 1;
+
+    const rawJson = JSON.stringify(Array.from(emb));
+    const quantizedJson = serializeEmbedding(emb);
+
+    // Quantized should be significantly smaller
+    expect(quantizedJson.length).toBeLessThan(rawJson.length * 0.5);
+  });
+});
+
+describe("serializeEmbedding / deserializeEmbedding", () => {
+  it("round-trips quantized format", () => {
+    const original = new Float32Array([0.5, -0.3, 0.7]);
+    const serialized = serializeEmbedding(original);
+    const restored = deserializeEmbedding(serialized);
+    for (let i = 0; i < original.length; i++) {
+      expect(restored[i]).toBeCloseTo(original[i], 1);
+    }
+  });
+
+  it("handles legacy Float32 array format", () => {
+    const original = [0.5, -0.3, 0.7];
+    const legacy = JSON.stringify(original);
+    const restored = deserializeEmbedding(legacy);
+    expect(restored).toBeInstanceOf(Float32Array);
+    expect(restored[0]).toBeCloseTo(0.5);
   });
 });

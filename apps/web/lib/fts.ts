@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { sql, eq, and, isNull, isNotNull } from "drizzle-orm";
 import { memories } from "@memctl/db/schema";
-import { generateEmbedding, cosineSimilarity } from "./embeddings";
+import { generateEmbedding, cosineSimilarity, deserializeEmbedding } from "./embeddings";
 
 let ftsInitialized = false;
 
@@ -122,7 +122,7 @@ export async function vectorSearch(
     const scored: Array<{ id: string; similarity: number }> = [];
     for (const row of rows) {
       try {
-        const emb = new Float32Array(JSON.parse(row.embedding!));
+        const emb = deserializeEmbedding(row.embedding!);
         const similarity = cosineSimilarity(queryEmbedding, emb);
         if (similarity > 0.3) {
           scored.push({ id: row.id, similarity });

@@ -7,7 +7,7 @@ import { db } from "../lib/db";
 import { memories } from "@memctl/db/schema";
 import { isNull } from "drizzle-orm";
 import { eq } from "drizzle-orm";
-import { generateEmbedding } from "../lib/embeddings";
+import { generateEmbedding, serializeEmbedding } from "../lib/embeddings";
 
 const BATCH_SIZE = 50;
 
@@ -40,7 +40,7 @@ async function backfill() {
         if (embedding) {
           await db
             .update(memories)
-            .set({ embedding: JSON.stringify(Array.from(embedding)) })
+            .set({ embedding: serializeEmbedding(embedding) })
             .where(eq(memories.id, memory.id));
           processed++;
         } else {

@@ -4,7 +4,7 @@ import { memories } from "@memctl/db/schema";
 import { lt, isNull, isNotNull, eq } from "drizzle-orm";
 import { logger } from "./logger";
 import { sendPendingWebhooks } from "./webhook-dispatch";
-import { generateEmbedding } from "./embeddings";
+import { generateEmbedding, serializeEmbedding } from "./embeddings";
 
 let initialized = false;
 
@@ -62,7 +62,7 @@ export function initScheduler(): void {
           if (emb) {
             await db
               .update(memories)
-              .set({ embedding: JSON.stringify(Array.from(emb)) })
+              .set({ embedding: serializeEmbedding(emb) })
               .where(eq(memories.id, row.id));
             embedded++;
           }

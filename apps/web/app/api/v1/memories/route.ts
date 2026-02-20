@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError, checkRateLimit } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, memoryVersions, projects } from "@memctl/db/schema";
-import { eq, and, like, isNull, inArray, desc, or } from "drizzle-orm";
+import { eq, and, like, isNull, inArray, desc, or, lt } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { memoryStoreSchema } from "@memctl/shared/validators";
 import { getOrgMemoryCapacity, resolveOrgAndProject } from "./capacity-utils";
 import { ensureFts, ftsSearch, vectorSearch, mergeSearchResults } from "@/lib/fts";
 import { generateETag, checkConditional } from "@/lib/etag";
-import { generateEmbedding } from "@/lib/embeddings";
+import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
 import { dispatchWebhooks } from "@/lib/webhook-dispatch";
 import { logger } from "@/lib/logger";
 
@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
   const includeArchived = url.searchParams.get("include_archived") === "true";
   const includeShared = url.searchParams.get("include_shared") !== "false"; // opt-in by default
   const sortBy = url.searchParams.get("sort") ?? "updated"; // "updated" | "priority" | "created"
+  const afterCursor = url.searchParams.get("after"); // cursor-based pagination (memory ID)
 
   // Get org project IDs for shared memory inclusion
   let sharedProjectIds: string[] = [];
@@ -123,6 +124,21 @@ export async function GET(req: NextRequest) {
           ? desc(memories.createdAt)
           : desc(memories.updatedAt);
 
+    // Cursor-based pagination: fetch items after the cursor record
+    // Always use updatedAt for cursor comparison (consistent non-null column)
+    let cursorFilter = undefined;
+    if (afterCursor) {
+      const [cursorRow] = await db
+        .select({ id: memories.id, updatedAt: memories.updatedAt })
+        .from(memories)
+        .where(eq(memories.id, afterCursor))
+        .limit(1);
+
+      if (cursorRow) {
+        cursorFilter = lt(memories.updatedAt, cursorRow.updatedAt);
+      }
+    }
+
     results = await db
       .select()
       .from(memories)
@@ -130,11 +146,12 @@ export async function GET(req: NextRequest) {
         and(
           scopeFilter,
           includeArchived ? undefined : isNull(memories.archivedAt),
+          cursorFilter,
         ),
       )
       .orderBy(orderClause)
       .limit(limit)
-      .offset(offset);
+      .offset(afterCursor ? 0 : offset);
   }
 
   // Filter by tags if requested
@@ -213,7 +230,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const body = JSON.stringify({ memories: results });
+  // Include cursor for next page
+  const nextCursor = results.length === limit ? results[results.length - 1]?.id : undefined;
+  const body = JSON.stringify({ memories: results, ...(nextCursor ? { nextCursor } : {}) });
   const etag = generateETag(body);
 
   if (checkConditional(req, etag)) {
@@ -315,7 +334,7 @@ export async function POST(req: NextRequest) {
     ).then((emb) => {
       if (emb) {
         db.update(memories)
-          .set({ embedding: JSON.stringify(Array.from(emb)) })
+          .set({ embedding: serializeEmbedding(emb) })
           .where(eq(memories.id, existing.id))
           .then(() => {}, () => {});
       }

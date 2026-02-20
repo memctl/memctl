@@ -7,7 +7,7 @@ import { memoryUpdateSchema } from "@memctl/shared/validators";
 import { generateId } from "@/lib/utils";
 import { resolveOrgAndProject } from "../capacity-utils";
 import { generateETag, checkConditional } from "@/lib/etag";
-import { generateEmbedding } from "@/lib/embeddings";
+import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
 import { dispatchWebhooks } from "@/lib/webhook-dispatch";
 
 export async function GET(
@@ -148,7 +148,7 @@ export async function PATCH(
     generateEmbedding(text).then((emb) => {
       if (emb) {
         db.update(memories)
-          .set({ embedding: JSON.stringify(Array.from(emb)) })
+          .set({ embedding: serializeEmbedding(emb) })
           .where(eq(memories.id, existing.id))
           .then(() => {}, () => {});
       }
