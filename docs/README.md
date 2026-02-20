@@ -4,6 +4,7 @@ Practical project documentation for local development and testing.
 
 ## Guides
 
+- [Architecture & Infrastructure](./architecture.md) — embeddings, caching, offline mode, rate limiting, webhooks, background jobs
 - [Testing Environment Setup](./testing-environment.md)
 - [Environment Variables Examples](./env-examples.md)
 - [Billing Plan Example](./billing-plan-example.md)

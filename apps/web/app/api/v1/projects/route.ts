@@ -5,8 +5,9 @@ import {
   projects,
   organizations,
   organizationMembers,
+  projectMembers,
 } from "@memctl/db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, inArray } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { projectCreateSchema } from "@memctl/shared/validators";
 import { headers } from "next/headers";
@@ -53,6 +54,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Not a member" }, { status: 403 });
   }
 
+  // For members, filter to assigned projects only
+  let accessibleProjectIds: string[] | null = null;
+  if (member.role === "member") {
+    const assignments = await db
+      .select({ projectId: projectMembers.projectId })
+      .from(projectMembers)
+      .where(eq(projectMembers.userId, session.user.id));
+
+    const orgProjectIds = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.orgId, org.id));
+
+    const orgIdSet = new Set(orgProjectIds.map((p) => p.id));
+    accessibleProjectIds = assignments
+      .map((a) => a.projectId)
+      .filter((id) => orgIdSet.has(id));
+  }
+
   // Pagination
   const pageParam = parseInt(req.nextUrl.searchParams.get("page") ?? "1", 10);
   const perPageParam = parseInt(req.nextUrl.searchParams.get("per_page") ?? "20", 10);
@@ -60,15 +80,29 @@ export async function GET(req: NextRequest) {
   const perPage = Math.max(1, Math.min(100, perPageParam));
   const offset = (page - 1) * perPage;
 
+  const projectFilter = accessibleProjectIds !== null
+    ? accessibleProjectIds.length > 0
+      ? and(eq(projects.orgId, org.id), inArray(projects.id, accessibleProjectIds))
+      : undefined
+    : eq(projects.orgId, org.id);
+
+  // If member has no project access, return empty
+  if (accessibleProjectIds !== null && accessibleProjectIds.length === 0) {
+    return NextResponse.json({
+      projects: [],
+      pagination: { page, perPage, total: 0, totalPages: 0 },
+    });
+  }
+
   const [totalResult, projectList] = await Promise.all([
     db
       .select({ value: count() })
       .from(projects)
-      .where(eq(projects.orgId, org.id)),
+      .where(projectFilter),
     db
       .select()
       .from(projects)
-      .where(eq(projects.orgId, org.id))
+      .where(projectFilter)
       .limit(perPage)
       .offset(offset),
   ]);
@@ -174,6 +208,14 @@ export async function POST(req: NextRequest) {
     description: parsed.data.description ?? null,
     createdAt: now,
     updatedAt: now,
+  });
+
+  // Auto-assign creator to the new project
+  await db.insert(projectMembers).values({
+    id: generateId(),
+    projectId,
+    userId: session.user.id,
+    createdAt: now,
   });
 
   const [project] = await db

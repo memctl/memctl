@@ -53,6 +53,7 @@ interface SidebarProps {
     email: string;
     image?: string | null;
   };
+  userRole: "owner" | "admin" | "member";
 }
 
 const MAX_VISIBLE_PROJECTS = 7;
@@ -116,6 +117,7 @@ export function Sidebar({
   projects,
   totalProjectCount,
   user,
+  userRole,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -258,23 +260,39 @@ export function Sidebar({
                 Projects
               </span>
             </CollapsibleTrigger>
-            <Link
-              href={`/org/${orgSlug}/projects/new`}
-              className="rounded-md p-1 text-[var(--landing-text-tertiary)] transition-colors hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Link>
+            {userRole === "member" ? (
+              <span
+                className="rounded-md p-1 text-[var(--landing-text-tertiary)] opacity-40 cursor-not-allowed"
+                title="Only owners and admins can create projects"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </span>
+            ) : (
+              <Link
+                href={`/org/${orgSlug}/projects/new`}
+                className="rounded-md p-1 text-[var(--landing-text-tertiary)] transition-colors hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)]"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </div>
           <CollapsibleContent>
             <div className="flex flex-col gap-0.5">
               {visibleProjects.length === 0 ? (
-                <Link
-                  href={`/org/${orgSlug}/projects/new`}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-[var(--landing-text-tertiary)] transition-colors hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)]"
-                >
-                  <Plus className="h-4 w-4 shrink-0" />
-                  Create a project
-                </Link>
+                userRole === "member" ? (
+                  <span className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-[var(--landing-text-tertiary)] opacity-40 cursor-not-allowed">
+                    <Plus className="h-4 w-4 shrink-0" />
+                    No projects assigned
+                  </span>
+                ) : (
+                  <Link
+                    href={`/org/${orgSlug}/projects/new`}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-[var(--landing-text-tertiary)] transition-colors hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)]"
+                  >
+                    <Plus className="h-4 w-4 shrink-0" />
+                    Create a project
+                  </Link>
+                )
               ) : (
                 <>
                   {visibleProjects.map((project) => {

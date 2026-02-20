@@ -102,7 +102,7 @@ export default function TokensPage() {
       mcpServers: {
         memctl: {
           command: "npx",
-          args: ["@memctl/cli"],
+          args: ["memctl"],
           env: {
             MEMCTL_TOKEN: "<your-token>",
             MEMCTL_ORG: orgSlug,

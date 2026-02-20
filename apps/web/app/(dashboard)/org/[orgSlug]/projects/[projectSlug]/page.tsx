@@ -8,8 +8,16 @@ import {
   projects,
   memories,
   organizationMembers,
+  projectMembers,
 } from "@memctl/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, desc } from "drizzle-orm";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/dashboard/shared/page-header";
+import { SectionLabel } from "@/components/dashboard/shared/section-label";
+import { Settings, Brain } from "lucide-react";
+import { CopyMcpConfig } from "./copy-mcp-config";
+import { MemoryBrowser } from "@/components/dashboard/memories/memory-browser";
 
 export async function generateMetadata({
   params,
@@ -34,20 +42,6 @@ export async function generateMetadata({
 
   return { title: project?.name ?? "Project" };
 }
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/dashboard/shared/page-header";
-import { SectionLabel } from "@/components/dashboard/shared/section-label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Settings, Brain, Copy } from "lucide-react";
-import { CopyMcpConfig } from "./copy-mcp-config";
 
 export default async function ProjectDetailPage({
   params,
@@ -82,6 +76,8 @@ export default async function ProjectDetailPage({
 
   if (!member) redirect("/");
 
+  const isMember = member.role === "member";
+
   const [project] = await db
     .select()
     .from(projects)
@@ -92,18 +88,38 @@ export default async function ProjectDetailPage({
 
   if (!project) redirect(`/org/${orgSlug}`);
 
+  // Check project-level access for members
+  if (isMember) {
+    const [assignment] = await db
+      .select()
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.projectId, project.id),
+          eq(projectMembers.userId, session.user.id),
+        ),
+      )
+      .limit(1);
+
+    if (!assignment) redirect(`/org/${orgSlug}`);
+  }
+
   const memoryList = await db
     .select()
     .from(memories)
     .where(eq(memories.projectId, project.id))
-    .limit(100);
+    .orderBy(desc(memories.updatedAt))
+    .limit(500);
+
+  const activeCount = memoryList.filter((m) => !m.archivedAt).length;
+  const archivedCount = memoryList.filter((m) => m.archivedAt).length;
 
   const mcpConfig = JSON.stringify(
     {
       mcpServers: {
         memctl: {
           command: "npx",
-          args: ["@memctl/cli"],
+          args: ["memctl"],
           env: {
             MEMCTL_TOKEN: "<your-token>",
             MEMCTL_ORG: orgSlug,
@@ -116,6 +132,15 @@ export default async function ProjectDetailPage({
     2,
   );
 
+  // Serialize for client component
+  const serializedMemories = memoryList.map((m) => ({
+    ...m,
+    createdAt: m.createdAt?.toISOString() ?? "",
+    updatedAt: m.updatedAt?.toISOString() ?? "",
+    archivedAt: m.archivedAt?.toISOString() ?? null,
+    expiresAt: m.expiresAt?.toISOString() ?? null,
+  }));
+
   return (
     <div>
       <PageHeader
@@ -123,18 +148,27 @@ export default async function ProjectDetailPage({
         title={project.name}
         description={project.description ?? undefined}
       >
-        <span className="rounded-md bg-[#F97316]/10 px-2.5 py-1 font-mono text-xs font-medium text-[#F97316]">
-          {memoryList.length} memories
-        </span>
-        <Link href={`/org/${orgSlug}/projects/${projectSlug}/settings`}>
-          <Button
-            variant="outline"
-            className="gap-2 border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
-          >
-            <Settings className="h-4 w-4" />
-            Settings
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-[#F97316]/10 px-2.5 py-1 font-mono text-xs font-medium text-[#F97316]">
+            {activeCount} memories
+          </span>
+          {archivedCount > 0 && (
+            <span className="rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1 font-mono text-xs font-medium text-[var(--landing-text-tertiary)]">
+              {archivedCount} archived
+            </span>
+          )}
+        </div>
+        {!isMember && (
+          <Link href={`/org/${orgSlug}/projects/${projectSlug}/settings`}>
+            <Button
+              variant="outline"
+              className="gap-2 border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </Link>
+        )}
       </PageHeader>
 
       {/* MCP Configuration */}
@@ -148,60 +182,29 @@ export default async function ProjectDetailPage({
         </div>
       </div>
 
-      {/* Memories Table */}
+      {/* Memory Browser */}
       <div>
         <SectionLabel>Memories</SectionLabel>
-        {memoryList.length === 0 ? (
-          <div className="dash-card mt-3 flex flex-col items-center justify-center py-12 text-center">
-            <Brain className="mb-3 h-8 w-8 text-[var(--landing-text-tertiary)]" />
-            <p className="mb-1 font-mono text-sm font-medium text-[var(--landing-text)]">
-              No memories stored yet
-            </p>
-            <p className="text-xs text-[var(--landing-text-tertiary)]">
-              Use the MCP server to store memories.
-            </p>
-          </div>
-        ) : (
-          <div className="dash-card mt-3 overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                    Key
-                  </TableHead>
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                    Content
-                  </TableHead>
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                    Updated
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {memoryList.map((memory) => (
-                  <TableRow
-                    key={memory.id}
-                    className="border-[var(--landing-border)]"
-                  >
-                    <TableCell className="font-mono text-sm font-medium text-[#F97316]">
-                      {memory.key}
-                    </TableCell>
-                    <TableCell className="max-w-md truncate font-mono text-xs text-[var(--landing-text-secondary)]">
-                      {memory.content.length > 200
-                        ? memory.content.slice(0, 200) + "..."
-                        : memory.content}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-[var(--landing-text-tertiary)]">
-                      {memory.updatedAt
-                        ? memory.updatedAt.toLocaleDateString()
-                        : ""}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        <div className="mt-3">
+          {memoryList.length === 0 ? (
+            <div className="dash-card flex flex-col items-center justify-center py-12 text-center">
+              <Brain className="mb-3 h-8 w-8 text-[var(--landing-text-tertiary)]" />
+              <p className="mb-1 font-mono text-sm font-medium text-[var(--landing-text)]">
+                No memories stored yet
+              </p>
+              <p className="text-xs text-[var(--landing-text-tertiary)]">
+                Use the MCP server to store memories, or import from an
+                AGENTS.md file.
+              </p>
+            </div>
+          ) : (
+            <MemoryBrowser
+              memories={serializedMemories}
+              orgSlug={orgSlug}
+              projectSlug={projectSlug}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

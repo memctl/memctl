@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
-import { memories, organizations, projects } from "@memctl/db/schema";
+import { memories, organizations, organizationMembers, projectMembers, projects } from "@memctl/db/schema";
 import { PLAN_IDS, PLANS, type PlanId } from "@memctl/shared/constants";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, isNull } from "drizzle-orm";
 
 function isPlanId(value: string): value is PlanId {
   return (PLAN_IDS as readonly string[]).includes(value);
@@ -10,6 +10,7 @@ function isPlanId(value: string): value is PlanId {
 export async function resolveOrgAndProject(
   orgSlug: string,
   projectSlug: string,
+  userId?: string,
 ) {
   const [org] = await db
     .select()
@@ -26,33 +27,110 @@ export async function resolveOrgAndProject(
     .limit(1);
 
   if (!project) return null;
+
+  // If userId provided, check project-level access for members
+  if (userId) {
+    const [member] = await db
+      .select()
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.orgId, org.id),
+          eq(organizationMembers.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (!member) return null;
+
+    // Owner/admin bypass project-level checks
+    if (member.role === "member") {
+      const [assignment] = await db
+        .select()
+        .from(projectMembers)
+        .where(
+          and(
+            eq(projectMembers.projectId, project.id),
+            eq(projectMembers.userId, userId),
+          ),
+        )
+        .limit(1);
+
+      if (!assignment) return null;
+    }
+  }
+
   return { org, project };
 }
 
-export async function getOrgMemoryCapacity(orgId: string, rawPlanId: string) {
+/**
+ * Get memory capacity for a specific project.
+ * Returns both project-level soft limit and org-level hard limit.
+ *
+ * - softLimit (per-project): agents get a warning when approaching this
+ * - hardLimit (org-wide): actual storage block when reached
+ */
+export async function getOrgMemoryCapacity(orgId: string, rawPlanId: string, projectId?: string) {
   const planId = isPlanId(rawPlanId) ? rawPlanId : "free";
-  const limit = PLANS[planId].memoryLimit;
+  const plan = PLANS[planId];
+  const softLimit = plan.memoryLimitPerProject;
+  const hardLimit = plan.memoryLimitOrg;
 
+  // Count org-wide memories (for hard limit check, exclude archived)
   const orgProjects = await db
     .select({ id: projects.id })
     .from(projects)
     .where(eq(projects.orgId, orgId));
 
-  if (orgProjects.length === 0) {
-    return {
-      used: 0,
-      limit,
-      isFull: Number.isFinite(limit) && 0 >= limit,
-    };
+  let orgUsed = 0;
+  if (orgProjects.length > 0) {
+    const [orgCount] = await db
+      .select({ value: count() })
+      .from(memories)
+      .where(
+        and(
+          inArray(memories.projectId, orgProjects.map((p) => p.id)),
+          isNull(memories.archivedAt),
+        ),
+      );
+    orgUsed = orgCount?.value ?? 0;
   }
 
-  const [memoryCount] = await db
-    .select({ value: count() })
-    .from(memories)
-    .where(inArray(memories.projectId, orgProjects.map((p) => p.id)));
+  // Count project-specific memories (for soft limit)
+  let projectUsed = 0;
+  if (projectId) {
+    const [projectCount] = await db
+      .select({ value: count() })
+      .from(memories)
+      .where(
+        and(
+          eq(memories.projectId, projectId),
+          isNull(memories.archivedAt),
+        ),
+      );
+    projectUsed = projectCount?.value ?? 0;
+  }
 
-  const used = memoryCount?.value ?? 0;
-  const isFull = Number.isFinite(limit) && used >= limit;
+  // Hard-full: org-wide limit exceeded (actual block)
+  const isHardFull = Number.isFinite(hardLimit) && orgUsed >= hardLimit;
 
-  return { used, limit, isFull };
+  // Soft-full: project limit exceeded (warning, not blocking)
+  const isSoftFull = Number.isFinite(softLimit) && projectUsed >= softLimit;
+
+  // Approaching soft limit (>80%)
+  const isApproaching = Number.isFinite(softLimit) && projectUsed >= softLimit * 0.8;
+
+  return {
+    used: projectId ? projectUsed : orgUsed,
+    limit: projectId ? softLimit : hardLimit,
+    orgUsed,
+    orgLimit: hardLimit,
+    // Only block on hard (org) limit
+    isFull: isHardFull,
+    isSoftFull,
+    isApproaching,
+    usageRatio: projectId && Number.isFinite(softLimit) && softLimit > 0
+      ? Math.min(1, projectUsed / softLimit)
+      : null,
+  };
 }

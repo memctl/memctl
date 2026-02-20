@@ -1,27 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, jsonError } from "@/lib/api-middleware";
+import { authenticateRequest, jsonError, checkRateLimit } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, projects, organizations } from "@memctl/db/schema";
-import { eq, and } from "drizzle-orm";
+import { memories, memoryVersions } from "@memctl/db/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { memoryUpdateSchema } from "@memctl/shared/validators";
-
-async function resolveProject(orgSlug: string, projectSlug: string) {
-  const [org] = await db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.slug, orgSlug))
-    .limit(1);
-
-  if (!org) return null;
-
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(and(eq(projects.orgId, org.id), eq(projects.slug, projectSlug)))
-    .limit(1);
-
-  return project ?? null;
-}
+import { generateId } from "@/lib/utils";
+import { resolveOrgAndProject } from "../capacity-utils";
+import { generateETag, checkConditional } from "@/lib/etag";
+import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
+import { dispatchWebhooks } from "@/lib/webhook-dispatch";
+import { validateContent } from "@/lib/schema-validator";
+import { contextTypes } from "@memctl/db/schema";
 
 export async function GET(
   req: NextRequest,
@@ -38,8 +27,9 @@ export async function GET(
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const project = await resolveProject(orgSlug, projectSlug);
-  if (!project) return jsonError("Project not found", 404);
+  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  if (!context) return jsonError("Project not found", 404);
+  const { project } = context;
 
   const [memory] = await db
     .select()
@@ -54,7 +44,36 @@ export async function GET(
 
   if (!memory) return jsonError("Memory not found", 404);
 
-  return NextResponse.json({ memory });
+  // Track access (fire-and-forget) + auto-extend TTL if within 24h of expiry
+  const accessUpdates: Record<string, unknown> = {
+    accessCount: sql`${memories.accessCount} + 1`,
+    lastAccessedAt: new Date(),
+  };
+  if (memory.expiresAt) {
+    const msUntilExpiry = new Date(memory.expiresAt).getTime() - Date.now();
+    if (msUntilExpiry > 0 && msUntilExpiry < 24 * 60 * 60 * 1000) {
+      accessUpdates.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    }
+  }
+  db.update(memories)
+    .set(accessUpdates)
+    .where(eq(memories.id, memory.id))
+    .then(() => {}, () => {});
+
+  const body = JSON.stringify({ memory });
+  const etag = generateETag(body);
+
+  if (checkConditional(req, etag)) {
+    return new NextResponse(null, { status: 304, headers: { ETag: etag } });
+  }
+
+  return new NextResponse(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      ETag: etag,
+    },
+  });
 }
 
 export async function PATCH(
@@ -72,8 +91,9 @@ export async function PATCH(
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const project = await resolveProject(orgSlug, projectSlug);
-  if (!project) return jsonError("Project not found", 404);
+  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  if (!context) return jsonError("Project not found", 404);
+  const { org, project } = context;
 
   const body = await req.json().catch(() => null);
   const parsed = memoryUpdateSchema.safeParse(body);
@@ -90,11 +110,87 @@ export async function PATCH(
 
   if (!existing) return jsonError("Memory not found", 404);
 
+  // Optimistic concurrency: check If-Match header
+  const ifMatch = req.headers.get("if-match");
+  if (ifMatch) {
+    const currentEtag = generateETag(JSON.stringify({ memory: existing }));
+    if (ifMatch !== currentEtag) {
+      return jsonError("Conflict: memory has been modified since last read", 409);
+    }
+  }
+
+  // Validate content against context type schema if content is changing
+  if (parsed.data.content) {
+    const existingMeta = existing.metadata ? JSON.parse(existing.metadata) : null;
+    const newMeta = parsed.data.metadata ?? existingMeta;
+    if (newMeta && typeof newMeta === "object" && "contextType" in newMeta) {
+      const ctSlug = String(newMeta.contextType);
+      const [ct] = await db
+        .select({ schema: contextTypes.schema })
+        .from(contextTypes)
+        .where(and(eq(contextTypes.orgId, org.id), eq(contextTypes.slug, ctSlug)))
+        .limit(1);
+      if (ct?.schema) {
+        const validation = validateContent(ct.schema, parsed.data.content);
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: "Content validation failed", details: validation.errors },
+            { status: 422 },
+          );
+        }
+      }
+    }
+  }
+
+  // Save version before updating
+  const [latestVersion] = await db
+    .select({ version: memoryVersions.version })
+    .from(memoryVersions)
+    .where(eq(memoryVersions.memoryId, existing.id))
+    .orderBy(desc(memoryVersions.version))
+    .limit(1);
+
+  const nextVersion = (latestVersion?.version ?? 0) + 1;
+
+  await db.insert(memoryVersions).values({
+    id: generateId(),
+    memoryId: existing.id,
+    version: nextVersion,
+    content: existing.content,
+    metadata: existing.metadata,
+    changedBy: authResult.userId,
+    changeType: "updated",
+    createdAt: new Date(),
+  });
+
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.content) updates.content = parsed.data.content;
   if (parsed.data.metadata) updates.metadata = JSON.stringify(parsed.data.metadata);
+  if (parsed.data.priority !== undefined) updates.priority = parsed.data.priority;
+  if (parsed.data.tags !== undefined) updates.tags = JSON.stringify(parsed.data.tags);
+  if (parsed.data.expiresAt !== undefined) {
+    updates.expiresAt = parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null;
+  }
 
   await db.update(memories).set(updates).where(eq(memories.id, existing.id));
+
+  // Regenerate embedding if content changed (fire-and-forget)
+  if (parsed.data.content || parsed.data.tags) {
+    const text = `${decodedKey} ${parsed.data.content ?? existing.content} ${parsed.data.tags?.join(" ") ?? ""}`;
+    generateEmbedding(text).then((emb) => {
+      if (emb) {
+        db.update(memories)
+          .set({ embedding: serializeEmbedding(emb) })
+          .where(eq(memories.id, existing.id))
+          .then(() => {}, () => {});
+      }
+    }).catch(() => {});
+  }
+
+  // Dispatch webhooks (fire-and-forget)
+  dispatchWebhooks(project.id, [
+    { type: "memory.updated", payload: { key: decodedKey, projectId: project.id } },
+  ]).catch(() => {});
 
   return NextResponse.json({
     memory: { ...existing, ...updates },
@@ -116,8 +212,9 @@ export async function DELETE(
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const project = await resolveProject(orgSlug, projectSlug);
-  if (!project) return jsonError("Project not found", 404);
+  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  if (!context) return jsonError("Project not found", 404);
+  const { project } = context;
 
   const decodedKey = decodeURIComponent(key);
   const [existing] = await db
@@ -130,7 +227,21 @@ export async function DELETE(
 
   if (!existing) return jsonError("Memory not found", 404);
 
+  // Optimistic concurrency: check If-Match header
+  const ifMatch = req.headers.get("if-match");
+  if (ifMatch) {
+    const currentEtag = generateETag(JSON.stringify({ memory: existing }));
+    if (ifMatch !== currentEtag) {
+      return jsonError("Conflict: memory has been modified since last read", 409);
+    }
+  }
+
   await db.delete(memories).where(eq(memories.id, existing.id));
+
+  // Dispatch webhooks (fire-and-forget)
+  dispatchWebhooks(project.id, [
+    { type: "memory.deleted", payload: { key: decodedKey, projectId: project.id } },
+  ]).catch(() => {});
 
   return NextResponse.json({ deleted: true });
 }
