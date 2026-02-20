@@ -148,6 +148,8 @@ export interface MemoryRecord {
   expiresAt?: unknown;
   accessCount?: number;
   lastAccessedAt?: unknown;
+  helpfulCount?: number;
+  unhelpfulCount?: number;
   updatedAt?: unknown;
   createdAt?: unknown;
 }

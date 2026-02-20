@@ -2855,21 +2855,23 @@ exit 0
     async ({ key, content, ifUnmodifiedSince, metadata, priority, tags }) => {
       try {
         // Check current state
-        let current: { memory?: { updatedAt?: unknown; content?: string } } | null = null;
+        let current: Record<string, unknown> | null = null;
         try {
-          current = await client.getMemory(key) as typeof current;
+          current = await client.getMemory(key) as Record<string, unknown>;
         } catch {
           // Memory doesn't exist, safe to create
         }
 
-        if (current?.memory?.updatedAt) {
-          const currentUpdated = typeof current.memory.updatedAt === "string"
-            ? new Date(current.memory.updatedAt).getTime()
-            : typeof current.memory.updatedAt === "number"
-              ? current.memory.updatedAt
+        const mem = current?.memory as Record<string, unknown> | undefined;
+        if (mem?.updatedAt) {
+          const currentUpdated = typeof mem.updatedAt === "string"
+            ? new Date(mem.updatedAt).getTime()
+            : typeof mem.updatedAt === "number"
+              ? mem.updatedAt
               : 0;
 
           if (currentUpdated > ifUnmodifiedSince) {
+            const memContent = typeof mem.content === "string" ? mem.content : "";
             // Conflict detected
             return textResponse(
               JSON.stringify(
@@ -2878,8 +2880,8 @@ exit 0
                   key,
                   message: "Memory was modified since you last read it.",
                   yourVersion: content.slice(0, 500),
-                  currentVersion: current.memory.content?.slice(0, 500),
-                  currentUpdatedAt: current.memory.updatedAt,
+                  currentVersion: memContent.slice(0, 500),
+                  currentUpdatedAt: mem.updatedAt,
                   yourTimestamp: new Date(ifUnmodifiedSince).toISOString(),
                   suggestion: "Read the current version, merge changes, then store again without ifUnmodifiedSince.",
                 },
