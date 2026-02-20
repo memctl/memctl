@@ -182,6 +182,19 @@ export interface OnboardingResponse {
   createdAt: number;
 }
 
+export interface OrgMemoryDefault {
+  id: string;
+  orgId: string;
+  key: string;
+  content: string;
+  metadata: string | null;
+  priority: number | null;
+  tags: string | null;
+  createdBy: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface JwtPayload {
   userId: string;
   orgId: string;

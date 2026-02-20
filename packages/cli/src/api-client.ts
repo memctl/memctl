@@ -547,6 +547,54 @@ export class ApiClient {
 
   // ── Rollback ────────────────────────────────────────────────────
 
+  // ── Org Defaults ──────────────────────────────────────────────
+
+  async listOrgDefaults() {
+    return this.request<{
+      defaults: Array<{
+        id: string;
+        orgId: string;
+        key: string;
+        content: string;
+        metadata: Record<string, unknown> | null;
+        priority: number | null;
+        tags: string[] | null;
+        createdBy: string | null;
+        createdAt: unknown;
+        updatedAt: unknown;
+      }>;
+    }>("GET", "/org-defaults");
+  }
+
+  async setOrgDefault(data: {
+    key: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+    priority?: number;
+    tags?: string[];
+  }) {
+    return this.request<{
+      default: Record<string, unknown>;
+    }>("POST", "/org-defaults", data);
+  }
+
+  async deleteOrgDefault(key: string) {
+    return this.request<{ deleted: boolean; key: string }>(
+      "DELETE",
+      "/org-defaults",
+      { key },
+    );
+  }
+
+  async applyOrgDefaults() {
+    return this.request<{
+      applied: boolean;
+      memoriesCreated: number;
+      memoriesUpdated: number;
+      totalDefaults: number;
+    }>("POST", "/org-defaults/apply");
+  }
+
   async rollbackMemory(key: string, steps = 1) {
     return this.request<{
       key: string;

@@ -351,6 +351,29 @@ export const verifications = sqliteTable("verifications", {
   ),
 });
 
+export const orgMemoryDefaults = sqliteTable(
+  "org_memory_defaults",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    key: text("key").notNull(),
+    content: text("content").notNull(),
+    metadata: text("metadata"),
+    priority: integer("priority").default(0),
+    tags: text("tags"), // JSON array of strings
+    createdBy: text("created_by").references(() => users.id),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [unique().on(table.orgId, table.key)],
+);
+
 export const blogPosts = sqliteTable("blog_posts", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
