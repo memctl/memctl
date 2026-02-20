@@ -1,5 +1,7 @@
 import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { sql, eq, and, isNull, isNotNull } from "drizzle-orm";
+import { memories } from "@memctl/db/schema";
+import { generateEmbedding, cosineSimilarity } from "./embeddings";
 
 let ftsInitialized = false;
 
@@ -67,7 +69,7 @@ export async function ftsSearch(
     const safeQuery = query.replace(/['"*(){}[\]^~\\:]/g, " ").trim();
     if (!safeQuery) return null;
 
-    const ftsQuery = safeQuery.split(/\s+/).map((w) => `"${w}"`).join(" OR ");
+    const ftsQuery = safeQuery.split(/\s+/).map((w: string) => `"${w}"`).join(" OR ");
 
     const results = await db.all(sql`
       SELECT m.id, rank
@@ -80,10 +82,88 @@ export async function ftsSearch(
       LIMIT ${limit}
     `);
 
-    return (results as Array<{ id: string }>).map((r) => r.id);
+    return (results as Array<{ id: string }>).map((r: { id: string }) => r.id);
   } catch {
     return null;
   }
+}
+
+/**
+ * Search memories using vector (cosine) similarity on embeddings.
+ * Generates an embedding for the query, then compares against stored embeddings.
+ */
+export async function vectorSearch(
+  projectId: string,
+  query: string,
+  limit: number,
+): Promise<string[] | null> {
+  try {
+    const queryEmbedding = await generateEmbedding(query);
+    if (!queryEmbedding) return null;
+
+    // Fetch all memories with embeddings for this project
+    const rows = await db
+      .select({
+        id: memories.id,
+        embedding: memories.embedding,
+      })
+      .from(memories)
+      .where(
+        and(
+          eq(memories.projectId, projectId),
+          isNull(memories.archivedAt),
+          isNotNull(memories.embedding),
+        ),
+      );
+
+    if (rows.length === 0) return null;
+
+    // Compute cosine similarity in JS
+    const scored: Array<{ id: string; similarity: number }> = [];
+    for (const row of rows) {
+      try {
+        const emb = new Float32Array(JSON.parse(row.embedding!));
+        const similarity = cosineSimilarity(queryEmbedding, emb);
+        if (similarity > 0.3) {
+          scored.push({ id: row.id, similarity });
+        }
+      } catch {
+        // Skip malformed embeddings
+      }
+    }
+
+    scored.sort((a, b) => b.similarity - a.similarity);
+    return scored.slice(0, limit).map((r) => r.id);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Merge FTS and vector search results using Reciprocal Rank Fusion (RRF).
+ */
+export function mergeSearchResults(
+  ftsIds: string[],
+  vectorIds: string[],
+  limit: number,
+  k = 60,
+): string[] {
+  const scores = new Map<string, number>();
+
+  for (let i = 0; i < ftsIds.length; i++) {
+    const id = ftsIds[i];
+    scores.set(id, (scores.get(id) ?? 0) + 1 / (k + i + 1));
+  }
+
+  for (let i = 0; i < vectorIds.length; i++) {
+    const id = vectorIds[i];
+    scores.set(id, (scores.get(id) ?? 0) + 1 / (k + i + 1));
+  }
+
+  return [...scores.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([id]) => id);
 }
 
 /**

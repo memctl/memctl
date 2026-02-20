@@ -44,9 +44,11 @@ mem/ctl is a cloud MCP server that gives AI coding agents (Claude Code, Cursor, 
 - **Monorepo:** pnpm workspaces + Turborepo
 - **Web:** Next.js 15 (App Router)
 - **Database:** Turso (libSQL) + Drizzle ORM
+- **Search:** FTS5 + vector embeddings (all-MiniLM-L6-v2 via @xenova/transformers)
 - **Auth:** better-auth (GitHub OAuth)
 - **Payments:** Stripe
 - **MCP:** @modelcontextprotocol/sdk
+- **Testing:** Vitest
 
 ## Development
 
@@ -57,22 +59,10 @@ pnpm dev
 
 ## Local Docs
 
+- Architecture & infrastructure: `docs/architecture.md`
 - Docker and testing setup: `docs/testing-environment.md`
 - Env examples: `docs/env-examples.md`
 - Docs index: `docs/README.md`
-
-## Project Structure
-
-```
-memctl/
-├── apps/web/          # Next.js app (dashboard + landing + docs)
-├── packages/
-│   ├── mcp-server/    # memctl npm package
-│   ├── db/            # Shared Drizzle schema + client
-│   └── shared/        # Shared types, constants, validators
-├── plans/             # Implementation task tracker
-└── turbo.json
-```
 
 ## License
 

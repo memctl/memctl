@@ -111,11 +111,10 @@ export function createServer(config: {
   server.resource(
     "connection_status",
     "memctl://connection-status",
-    "Current API connection status (online/offline)",
-    async () => ({
+    async (uri) => ({
       contents: [
         {
-          uri: "memctl://connection-status",
+          uri: uri.href,
           text: JSON.stringify(client.getConnectionStatus()),
           mimeType: "application/json",
         },

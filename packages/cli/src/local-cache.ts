@@ -2,21 +2,27 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-let Database: typeof import("better-sqlite3").default | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Database: any = null;
 try {
   Database = (await import("better-sqlite3")).default;
 } catch {
   // better-sqlite3 not available — local cache disabled
 }
 
-type DB = import("better-sqlite3").Database;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DB = any;
 
-const CACHE_DIR = join(homedir(), ".memctl");
-const DB_PATH = join(CACHE_DIR, "cache.db");
-const PENDING_WRITES_PATH = join(CACHE_DIR, "pending-writes.json");
 const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
+function getCacheDir(): string {
+  return join(homedir(), ".memctl");
+}
+
 export class LocalCache {
+  private static fallbackMemories = new Map<string, Map<string, Record<string, unknown>>>();
+  private static fallbackSyncMeta = new Map<string, number>();
+
   private db: DB | null = null;
   private org: string;
   private project: string;
@@ -29,14 +35,18 @@ export class LocalCache {
   }
 
   private init(): void {
-    if (!Database) return;
+    if (!Database) {
+      this.lastSyncAt = LocalCache.fallbackSyncMeta.get(this.getFallbackScopeKey()) ?? 0;
+      return;
+    }
 
     try {
-      if (!existsSync(CACHE_DIR)) {
-        mkdirSync(CACHE_DIR, { recursive: true });
+      const cacheDir = getCacheDir();
+      if (!existsSync(cacheDir)) {
+        mkdirSync(cacheDir, { recursive: true });
       }
 
-      this.db = new Database!(DB_PATH);
+      this.db = new Database(join(cacheDir, "cache.db"));
       this.db.pragma("journal_mode = WAL");
 
       this.db.exec(`
@@ -69,103 +79,166 @@ export class LocalCache {
       this.lastSyncAt = row?.last_sync_at ?? 0;
     } catch {
       this.db = null;
+      this.lastSyncAt = LocalCache.fallbackSyncMeta.get(this.getFallbackScopeKey()) ?? 0;
     }
   }
 
   sync(memories: Array<Record<string, unknown>>): void {
-    if (!this.db || memories.length === 0) return;
+    if (memories.length === 0) return;
 
-    try {
-      const upsert = this.db.prepare(`
-        INSERT OR REPLACE INTO cached_memories (key, content, metadata, tags, priority, project, org, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `);
+    if (this.db) {
+      try {
+        const upsert = this.db.prepare(`
+          INSERT OR REPLACE INTO cached_memories (key, content, metadata, tags, priority, project, org, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
 
-      const tx = this.db.transaction(() => {
-        for (const m of memories) {
-          upsert.run(
-            String(m.key ?? ""),
-            String(m.content ?? ""),
-            typeof m.metadata === "string" ? m.metadata : JSON.stringify(m.metadata ?? null),
-            typeof m.tags === "string" ? m.tags : JSON.stringify(m.tags ?? null),
-            Number(m.priority ?? 0),
-            this.project,
-            this.org,
-            m.updatedAt instanceof Date
-              ? m.updatedAt.getTime()
-              : typeof m.updatedAt === "number"
-                ? m.updatedAt
-                : Date.now(),
-          );
-        }
-      });
+        const tx = this.db.transaction(() => {
+          for (const m of memories) {
+            upsert.run(
+              String(m.key ?? ""),
+              String(m.content ?? ""),
+              typeof m.metadata === "string" ? m.metadata : JSON.stringify(m.metadata ?? null),
+              typeof m.tags === "string" ? m.tags : JSON.stringify(m.tags ?? null),
+              Number(m.priority ?? 0),
+              this.project,
+              this.org,
+              m.updatedAt instanceof Date
+                ? m.updatedAt.getTime()
+                : typeof m.updatedAt === "number"
+                  ? m.updatedAt
+                  : Date.now(),
+            );
+          }
+        });
 
-      tx();
-      this.lastSyncAt = Date.now();
+        tx();
+        this.lastSyncAt = Date.now();
 
-      this.db
-        .prepare(
-          "INSERT OR REPLACE INTO sync_meta (org, project, last_sync_at) VALUES (?, ?, ?)",
-        )
-        .run(this.org, this.project, this.lastSyncAt);
-    } catch {
-      // Non-critical
+        this.db
+          .prepare(
+            "INSERT OR REPLACE INTO sync_meta (org, project, last_sync_at) VALUES (?, ?, ?)",
+          )
+          .run(this.org, this.project, this.lastSyncAt);
+      } catch {
+        // Non-critical
+      }
+      return;
     }
+
+    const store = this.getFallbackStore();
+    for (const m of memories) {
+      const key = String(m.key ?? "");
+      if (!key) continue;
+
+      const updatedAt =
+        m.updatedAt instanceof Date
+          ? m.updatedAt.getTime()
+          : typeof m.updatedAt === "number"
+            ? m.updatedAt
+            : Date.now();
+
+      store.set(key, {
+        key,
+        content: String(m.content ?? ""),
+        metadata: typeof m.metadata === "string" ? m.metadata : JSON.stringify(m.metadata ?? null),
+        tags: typeof m.tags === "string" ? m.tags : JSON.stringify(m.tags ?? null),
+        priority: Number(m.priority ?? 0),
+        project: this.project,
+        org: this.org,
+        updated_at: updatedAt,
+      });
+    }
+
+    this.lastSyncAt = Date.now();
+    LocalCache.fallbackSyncMeta.set(this.getFallbackScopeKey(), this.lastSyncAt);
+  }
+
+  private getFallbackScopeKey(): string {
+    return `${this.org}:${this.project}`;
+  }
+
+  private getFallbackStore(): Map<string, Record<string, unknown>> {
+    const scope = this.getFallbackScopeKey();
+    let store = LocalCache.fallbackMemories.get(scope);
+    if (!store) {
+      store = new Map();
+      LocalCache.fallbackMemories.set(scope, store);
+    }
+    return store;
   }
 
   get(key: string): Record<string, unknown> | null {
-    if (!this.db) return null;
+    if (this.db) {
+      try {
+        const row = this.db
+          .prepare(
+            "SELECT * FROM cached_memories WHERE org = ? AND project = ? AND key = ?",
+          )
+          .get(this.org, this.project, key) as Record<string, unknown> | undefined;
 
-    try {
-      const row = this.db
-        .prepare(
-          "SELECT * FROM cached_memories WHERE org = ? AND project = ? AND key = ?",
-        )
-        .get(this.org, this.project, key) as Record<string, unknown> | undefined;
-
-      return row ?? null;
-    } catch {
-      return null;
+        return row ?? null;
+      } catch {
+        return null;
+      }
     }
+
+    return this.getFallbackStore().get(key) ?? null;
   }
 
   search(query: string): Array<Record<string, unknown>> {
-    if (!this.db) return [];
-
-    try {
-      return this.db
-        .prepare(
-          `SELECT * FROM cached_memories
-           WHERE org = ? AND project = ?
-           AND (key LIKE ? OR content LIKE ?)
-           ORDER BY priority DESC
-           LIMIT 50`,
-        )
-        .all(this.org, this.project, `%${query}%`, `%${query}%`) as Array<
-        Record<string, unknown>
-      >;
-    } catch {
-      return [];
+    if (this.db) {
+      try {
+        return this.db
+          .prepare(
+            `SELECT * FROM cached_memories
+             WHERE org = ? AND project = ?
+             AND (key LIKE ? OR content LIKE ?)
+             ORDER BY priority DESC
+             LIMIT 50`,
+          )
+          .all(this.org, this.project, `%${query}%`, `%${query}%`) as Array<
+          Record<string, unknown>
+        >;
+      } catch {
+        return [];
+      }
     }
+
+    const q = query.toLowerCase();
+    return Array.from(this.getFallbackStore().values())
+      .filter((memory) => {
+        const key = String(memory.key ?? "").toLowerCase();
+        const content = String(memory.content ?? "").toLowerCase();
+        return key.includes(q) || content.includes(q);
+      })
+      .sort((a, b) => Number(b.priority ?? 0) - Number(a.priority ?? 0))
+      .slice(0, 50);
   }
 
   list(): Array<Record<string, unknown>> {
-    if (!this.db) return [];
-
-    try {
-      return this.db
-        .prepare(
-          "SELECT * FROM cached_memories WHERE org = ? AND project = ? ORDER BY updated_at DESC LIMIT 100",
-        )
-        .all(this.org, this.project) as Array<Record<string, unknown>>;
-    } catch {
-      return [];
+    if (this.db) {
+      try {
+        return this.db
+          .prepare(
+            "SELECT * FROM cached_memories WHERE org = ? AND project = ? ORDER BY updated_at DESC LIMIT 100",
+          )
+          .all(this.org, this.project) as Array<Record<string, unknown>>;
+      } catch {
+        return [];
+      }
     }
+
+    return Array.from(this.getFallbackStore().values())
+      .sort((a, b) => Number(b.updated_at ?? 0) - Number(a.updated_at ?? 0))
+      .slice(0, 100);
   }
 
   /** Try to return cached data for a given API path. */
   getByPath(path: string): unknown {
-    if (!this.db) return null;
+    if (!this.db && !LocalCache.fallbackMemories.has(this.getFallbackScopeKey())) {
+      return null;
+    }
 
     // Single memory by key
     const keyMatch = path.match(/^\/memories\/([^/?]+)$/);
@@ -196,16 +269,18 @@ export class LocalCache {
 
   queueWrite(operation: { method: string; path: string; body?: unknown }): void {
     try {
-      if (!existsSync(CACHE_DIR)) {
-        mkdirSync(CACHE_DIR, { recursive: true });
+      const cacheDir = getCacheDir();
+      if (!existsSync(cacheDir)) {
+        mkdirSync(cacheDir, { recursive: true });
       }
 
+      const pendingPath = join(cacheDir, "pending-writes.json");
       let pending: Array<{ method: string; path: string; body?: unknown }> = [];
-      if (existsSync(PENDING_WRITES_PATH)) {
-        pending = JSON.parse(readFileSync(PENDING_WRITES_PATH, "utf-8"));
+      if (existsSync(pendingPath)) {
+        pending = JSON.parse(readFileSync(pendingPath, "utf-8"));
       }
       pending.push(operation);
-      writeFileSync(PENDING_WRITES_PATH, JSON.stringify(pending, null, 2));
+      writeFileSync(pendingPath, JSON.stringify(pending, null, 2));
     } catch {
       // Non-critical
     }
@@ -217,8 +292,9 @@ export class LocalCache {
     body?: unknown;
   }> {
     try {
-      if (existsSync(PENDING_WRITES_PATH)) {
-        return JSON.parse(readFileSync(PENDING_WRITES_PATH, "utf-8"));
+      const pendingPath = join(getCacheDir(), "pending-writes.json");
+      if (existsSync(pendingPath)) {
+        return JSON.parse(readFileSync(pendingPath, "utf-8"));
       }
     } catch {
       // Corrupted file — ignore
@@ -228,8 +304,9 @@ export class LocalCache {
 
   clearPendingWrites(): void {
     try {
-      if (existsSync(PENDING_WRITES_PATH)) {
-        writeFileSync(PENDING_WRITES_PATH, "[]");
+      const pendingPath = join(getCacheDir(), "pending-writes.json");
+      if (existsSync(pendingPath)) {
+        writeFileSync(pendingPath, "[]");
       }
     } catch {
       // Non-critical

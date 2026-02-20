@@ -189,7 +189,7 @@ export async function GET(req: NextRequest) {
 
         // Fetch any vector-only results not already in results
         const existingIds = new Set(results.map((r) => r.id));
-        const missingIds = mergedIds.filter((id) => !existingIds.has(id));
+        const missingIds = mergedIds.filter((id: string) => !existingIds.has(id));
 
         if (missingIds.length > 0) {
           const extra = await db
@@ -200,8 +200,12 @@ export async function GET(req: NextRequest) {
         }
 
         // Reorder by merged ranking
-        const idOrder = new Map(mergedIds.map((id, i) => [id, i]));
-        results.sort((a, b) => (idOrder.get(a.id) ?? 999) - (idOrder.get(b.id) ?? 999));
+        const idOrder = new Map<string, number>(mergedIds.map((id: string, i: number) => [id, i] as [string, number]));
+        results.sort((a, b) => {
+          const orderA: number = idOrder.get(a.id) ?? 999;
+          const orderB: number = idOrder.get(b.id) ?? 999;
+          return orderA - orderB;
+        });
         results = results.slice(0, limit);
       }
     } catch {
