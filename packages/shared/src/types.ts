@@ -128,6 +128,38 @@ export interface ContextType {
   updatedAt: number;
 }
 
+export interface MemoryLock {
+  id: string;
+  projectId: string;
+  memoryKey: string;
+  lockedBy: string | null;
+  expiresAt: number;
+  createdAt: number;
+}
+
+export interface ProjectTemplate {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string | null;
+  data: string; // JSON array of memory entries
+  isBuiltin: boolean;
+  createdBy: string | null;
+  createdAt: number;
+}
+
+export interface WebhookConfig {
+  id: string;
+  projectId: string;
+  url: string;
+  events: string | null;
+  digestIntervalMinutes: number;
+  lastSentAt: number | null;
+  isActive: boolean;
+  secret: string | null;
+  createdAt: number;
+}
+
 export interface ApiToken {
   id: string;
   userId: string;

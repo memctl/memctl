@@ -147,6 +147,34 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // Weighted ranking: compute composite relevance score when searching
+  if (query && results.length > 1) {
+    const now = Date.now();
+    const scored = results.map((m) => {
+      const priority = m.priority ?? 0;
+      const accessCount = m.accessCount ?? 0;
+      const helpful = m.helpfulCount ?? 0;
+      const unhelpful = m.unhelpfulCount ?? 0;
+      const lastAccess = m.lastAccessedAt ? new Date(m.lastAccessedAt).getTime() : 0;
+      const daysSinceAccess = lastAccess ? (now - lastAccess) / 86_400_000 : 999;
+      const isPinned = m.pinnedAt ? 1 : 0;
+
+      // Composite score (higher = more relevant)
+      const priorityScore = priority * 0.3;
+      const accessScore = Math.min(25, accessCount * 2) * 0.2;
+      const feedbackScore = Math.max(0, (helpful - unhelpful) * 3) * 0.15;
+      const recencyScore = Math.max(0, 25 - daysSinceAccess / 3) * 0.2;
+      const pinBoost = isPinned * 15;
+
+      return {
+        memory: m,
+        _relevanceScore: Math.round((priorityScore + accessScore + feedbackScore + recencyScore + pinBoost) * 100) / 100,
+      };
+    });
+    scored.sort((a, b) => b._relevanceScore - a._relevanceScore);
+    results = scored.map((s) => s.memory);
+  }
+
   return NextResponse.json({ memories: results });
 }
 

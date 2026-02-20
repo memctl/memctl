@@ -1603,16 +1603,41 @@ export function registerTools(server: McpServer, client: ApiClient) {
           .filter((e) => selectedTypes.includes(e.type))
           .filter((e) => !includeKeys?.includes(e.key));
 
-        // Sort candidates by priority desc, then by updatedAt desc
-        candidates.sort((a, b) => {
-          if (b.priority !== a.priority) return b.priority - a.priority;
-          const aTime = typeof a.updatedAt === "string" ? new Date(a.updatedAt).getTime() : 0;
-          const bTime = typeof b.updatedAt === "string" ? new Date(b.updatedAt).getTime() : 0;
-          return bTime - aTime;
-        });
-
         const CHARS_PER_TOKEN = 4;
         let budgetRemaining = maxTokens * CHARS_PER_TOKEN;
+        const now = Date.now();
+
+        // Compute value score for each candidate (relevance * priority / cost)
+        const scored = candidates.map((entry) => {
+          const charLen = entry.content.length;
+          const tokenEst = Math.ceil(charLen / CHARS_PER_TOKEN);
+          const mem = allMemories.find((m) => m.key === entry.key);
+          const accessCount = mem?.accessCount ?? 0;
+          const helpful = (mem?.helpfulCount ?? 0) - (mem?.unhelpfulCount ?? 0);
+          const lastAccess = mem?.lastAccessedAt ? new Date(mem.lastAccessedAt as string).getTime() : 0;
+          const daysSinceAccess = lastAccess ? (now - lastAccess) / 86_400_000 : 999;
+          const isPinned = mem?.pinnedAt ? 1 : 0;
+
+          // Value = weighted combination of signals
+          const priorityVal = entry.priority * 2;
+          const accessVal = Math.min(20, accessCount * 2);
+          const feedbackVal = Math.max(0, helpful * 3);
+          const recencyVal = Math.max(0, 20 - daysSinceAccess / 3);
+          const pinBoost = isPinned * 30;
+          const totalValue = priorityVal + accessVal + feedbackVal + recencyVal + pinBoost;
+
+          // Efficiency = value per token (knapsack: maximize value within budget)
+          const efficiency = tokenEst > 0 ? totalValue / tokenEst : 0;
+
+          return { entry, charLen, tokenEst, totalValue, efficiency };
+        });
+
+        // Sort by efficiency (value/token), breaking ties with total value
+        scored.sort((a, b) => {
+          if (Math.abs(b.efficiency - a.efficiency) > 0.01) return b.efficiency - a.efficiency;
+          return b.totalValue - a.totalValue;
+        });
+
         const selected: Array<{
           type: string;
           id: string;
@@ -1639,12 +1664,10 @@ export function registerTools(server: McpServer, client: ApiClient) {
           budgetRemaining -= charLen;
         }
 
-        // Fill remaining budget with highest-priority candidates
-        for (const entry of candidates) {
-          const charLen = entry.content.length;
+        // Fill remaining budget using efficiency-sorted candidates (greedy knapsack)
+        for (const { entry, charLen, tokenEst } of scored) {
           if (charLen > budgetRemaining) continue;
 
-          const tokenEst = Math.ceil(charLen / CHARS_PER_TOKEN);
           selected.push({
             type: entry.type,
             id: entry.id,
@@ -2841,18 +2864,23 @@ exit 0
 
   server.tool(
     "memory_store_safe",
-    "Store a memory with optimistic concurrency check. If the memory was modified since you last read it (ifUnmodifiedSince), returns a conflict with the diff instead of blindly overwriting.",
+    "Store a memory with optimistic concurrency check and conflict resolution. If modified since ifUnmodifiedSince, uses the chosen strategy: 'reject' (default, return conflict), 'last_write_wins' (overwrite), 'append' (merge by appending), or 'return_both' (return both versions for manual merge).",
     {
       key: z.string().describe("Memory key"),
       content: z.string().describe("New content"),
       ifUnmodifiedSince: z
         .number()
-        .describe("Unix timestamp (ms) of when you last read this memory. If it was modified after this, a conflict is returned."),
+        .describe("Unix timestamp (ms) of when you last read this memory. If it was modified after this, conflict resolution applies."),
+      onConflict: z
+        .enum(["reject", "last_write_wins", "append", "return_both"])
+        .optional()
+        .default("reject")
+        .describe("Conflict resolution strategy: reject (return conflict), last_write_wins (overwrite), append (concatenate both), return_both (show both versions)"),
       metadata: z.record(z.unknown()).optional().describe("Optional metadata"),
       priority: z.number().int().min(0).max(100).optional(),
       tags: z.array(z.string()).optional(),
     },
-    async ({ key, content, ifUnmodifiedSince, metadata, priority, tags }) => {
+    async ({ key, content, ifUnmodifiedSince, onConflict, metadata, priority, tags }) => {
       try {
         // Check current state
         let current: Record<string, unknown> | null = null;
@@ -2872,18 +2900,52 @@ exit 0
 
           if (currentUpdated > ifUnmodifiedSince) {
             const memContent = typeof mem.content === "string" ? mem.content : "";
-            // Conflict detected
+            const strategy = onConflict ?? "reject";
+
+            if (strategy === "last_write_wins") {
+              await client.storeMemory(key, content, metadata, { priority, tags });
+              return textResponse(`Memory stored with key: ${key} (conflict resolved: last_write_wins, overwrote remote changes)`);
+            }
+
+            if (strategy === "append") {
+              const merged = `${memContent}\n\n---\n\n${content}`;
+              await client.storeMemory(key, merged, metadata, { priority, tags });
+              return textResponse(`Memory stored with key: ${key} (conflict resolved: append, merged both versions)`);
+            }
+
+            if (strategy === "return_both") {
+              return textResponse(
+                JSON.stringify(
+                  {
+                    conflict: true,
+                    key,
+                    strategy: "return_both",
+                    message: "Memory was modified. Both versions returned for manual merge.",
+                    remoteVersion: memContent,
+                    localVersion: content,
+                    remoteUpdatedAt: mem.updatedAt,
+                    localTimestamp: new Date(ifUnmodifiedSince).toISOString(),
+                    hint: "Merge the content yourself, then call memory_store (without _safe) to save the merged result.",
+                  },
+                  null,
+                  2,
+                ),
+              );
+            }
+
+            // Default: reject
             return textResponse(
               JSON.stringify(
                 {
                   conflict: true,
                   key,
+                  strategy: "reject",
                   message: "Memory was modified since you last read it.",
                   yourVersion: content.slice(0, 500),
                   currentVersion: memContent.slice(0, 500),
                   currentUpdatedAt: mem.updatedAt,
                   yourTimestamp: new Date(ifUnmodifiedSince).toISOString(),
-                  suggestion: "Read the current version, merge changes, then store again without ifUnmodifiedSince.",
+                  suggestion: "Read the current version, merge changes, then store again. Or use onConflict: 'last_write_wins' or 'append'.",
                 },
                 null,
                 2,
@@ -3109,6 +3171,340 @@ exit 0
         );
       } catch (error) {
         return errorResponse("Error pruning stale references", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DELTA BOOTSTRAP
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "agent_bootstrap_delta",
+    "Incremental sync: returns only memories that changed since a given timestamp. Use this at session start if you have a cached copy from a previous session. Much faster than full bootstrap for repeat sessions.",
+    {
+      since: z
+        .number()
+        .describe("Unix timestamp (ms) from your last sync. All changes after this are returned."),
+    },
+    async ({ since }) => {
+      try {
+        const delta = await client.getDelta(since);
+        return textResponse(
+          JSON.stringify(
+            {
+              created: delta.created.length,
+              updated: delta.updated.length,
+              deleted: delta.deleted.length,
+              since: new Date(delta.since).toISOString(),
+              now: new Date(delta.now).toISOString(),
+              createdMemories: delta.created,
+              updatedMemories: delta.updated,
+              deletedKeys: delta.deleted,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error fetching delta", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY HEALTH SCORES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_health",
+    "Get health scores for all memories. Score 0-100 based on age, access frequency, feedback, and recency. Sorted worst-first to prioritize maintenance on degraded entries.",
+    {
+      limit: z.number().int().min(1).max(200).optional().default(50),
+    },
+    async ({ limit }) => {
+      try {
+        const result = await client.getHealthScores(limit);
+        const unhealthy = result.memories.filter((m) => m.healthScore < 40);
+        return textResponse(
+          JSON.stringify(
+            {
+              total: result.memories.length,
+              unhealthyCount: unhealthy.length,
+              memories: result.memories,
+              hint: unhealthy.length > 0
+                ? `${unhealthy.length} memories have health score below 40. Consider updating or archiving them.`
+                : "All memories are in good health.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error fetching health scores", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY LOCKING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_lock",
+    "Acquire a short-lived lock on a memory to prevent concurrent overwrites. Lock auto-expires after ttlSeconds (default 60s). Check 'acquired' in the response.",
+    {
+      key: z.string().describe("Memory key to lock"),
+      lockedBy: z.string().optional().describe("Identifier for who is locking (e.g. session ID)"),
+      ttlSeconds: z.number().int().min(5).max(600).optional().default(60).describe("Lock TTL in seconds (default 60, max 600)"),
+    },
+    async ({ key, lockedBy, ttlSeconds }) => {
+      try {
+        const result = await client.lockMemory(key, lockedBy, ttlSeconds);
+        if (!result.acquired) {
+          return textResponse(
+            JSON.stringify(
+              {
+                acquired: false,
+                key,
+                message: "Lock held by another agent.",
+                currentLock: result.lock,
+                suggestion: "Wait for the lock to expire or try again later.",
+              },
+              null,
+              2,
+            ),
+          );
+        }
+        return textResponse(
+          JSON.stringify(
+            {
+              acquired: true,
+              key,
+              expiresAt: result.lock.expiresAt,
+              message: `Lock acquired. Expires in ${ttlSeconds}s. Call memory_unlock when done.`,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error acquiring lock", error);
+      }
+    },
+  );
+
+  server.tool(
+    "memory_unlock",
+    "Release a lock on a memory. Optionally provide lockedBy to only release your own lock.",
+    {
+      key: z.string().describe("Memory key to unlock"),
+      lockedBy: z.string().optional().describe("Only release if this matches the lock holder"),
+    },
+    async ({ key, lockedBy }) => {
+      try {
+        const result = await client.unlockMemory(key, lockedBy);
+        return textResponse(`Lock released for key: ${key} (released: ${result.released})`);
+      } catch (error) {
+        return errorResponse("Error releasing lock", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // USAGE ANALYTICS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_analytics",
+    "Get usage analytics: most/least accessed memories, tag distribution, scope breakdown, access counts, and more. Useful for understanding how context is being used.",
+    {},
+    async () => {
+      try {
+        const analytics = await client.getAnalytics();
+        return textResponse(JSON.stringify(analytics, null, 2));
+      } catch (error) {
+        return errorResponse("Error fetching analytics", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CHANGE DIGEST
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_change_digest",
+    "Get a summary of what changed since a given timestamp. Returns counts by action type and a list of individual changes. Useful at session start to understand what happened since your last session.",
+    {
+      since: z
+        .number()
+        .describe("Unix timestamp (ms) — show changes after this point"),
+      limit: z.number().int().min(1).max(500).optional().default(100),
+    },
+    async ({ since, limit }) => {
+      try {
+        const changes = await client.getChanges(since, limit);
+        return textResponse(
+          JSON.stringify(
+            {
+              timeRange: {
+                from: new Date(changes.since).toISOString(),
+                to: new Date(changes.until).toISOString(),
+              },
+              summary: changes.summary,
+              changes: changes.changes,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error fetching change digest", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PROJECT TEMPLATES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "project_template_list",
+    "List available project templates. Templates pre-populate new projects with a starter memory structure (coding style, folder structure, testing conventions, etc).",
+    {},
+    async () => {
+      try {
+        const result = await client.listTemplates();
+        return textResponse(
+          JSON.stringify(
+            {
+              templates: result.templates.map((t) => ({
+                id: t.id,
+                name: t.name,
+                description: t.description,
+                entryCount: Array.isArray(t.data) ? t.data.length : 0,
+                isBuiltin: t.isBuiltin,
+              })),
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error listing templates", error);
+      }
+    },
+  );
+
+  server.tool(
+    "project_template_apply",
+    "Apply a project template to populate this project with starter memories. Existing memories with the same keys are updated, new ones are created.",
+    {
+      templateId: z.string().describe("ID of the template to apply"),
+    },
+    async ({ templateId }) => {
+      try {
+        const result = await client.applyTemplate(templateId);
+        return textResponse(
+          JSON.stringify(
+            {
+              applied: result.applied,
+              templateName: result.templateName,
+              memoriesCreated: result.memoriesCreated,
+              memoriesUpdated: result.memoriesUpdated,
+              message: `Template "${result.templateName}" applied: ${result.memoriesCreated} created, ${result.memoriesUpdated} updated.`,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error applying template", error);
+      }
+    },
+  );
+
+  server.tool(
+    "project_template_create",
+    "Create a project template from a list of memory entries. Other projects in the org can then apply this template to bootstrap their context.",
+    {
+      name: z.string().describe("Template name"),
+      description: z.string().optional().describe("Template description"),
+      data: z
+        .array(
+          z.object({
+            key: z.string(),
+            content: z.string(),
+            metadata: z.record(z.unknown()).optional(),
+            priority: z.number().optional(),
+            tags: z.array(z.string()).optional(),
+          }),
+        )
+        .describe("Array of memory entries for the template"),
+    },
+    async ({ name, description, data }) => {
+      try {
+        const result = await client.createTemplate(name, description, data as Array<Record<string, unknown>>);
+        return textResponse(
+          JSON.stringify(
+            {
+              created: true,
+              templateId: result.template.id,
+              templateName: result.template.name,
+              entryCount: data.length,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error creating template", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SCHEDULED LIFECYCLE
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "lifecycle_schedule",
+    "Run all automatic lifecycle policies in one call: cleanup expired memories, prune old session logs, auto-promote frequently accessed entries, auto-demote negatively rated ones. Designed for periodic maintenance.",
+    {
+      sessionLogMaxAgeDays: z.number().int().optional().default(30).describe("Delete session logs older than this (default 30)"),
+      accessThreshold: z.number().int().optional().default(10).describe("Promote memories accessed more than this (default 10)"),
+      feedbackThreshold: z.number().int().optional().default(3).describe("Demote memories with unhelpful count above this (default 3)"),
+    },
+    async ({ sessionLogMaxAgeDays, accessThreshold, feedbackThreshold }) => {
+      try {
+        const result = await client.runScheduledLifecycle({
+          sessionLogMaxAgeDays,
+          accessThreshold,
+          feedbackThreshold,
+        });
+
+        const totalAffected = Object.values(result.results).reduce(
+          (sum, r) => sum + r.affected,
+          0,
+        );
+
+        return textResponse(
+          JSON.stringify(
+            {
+              ranAt: result.ranAt,
+              totalAffected,
+              policies: result.results,
+              message: totalAffected > 0
+                ? `Lifecycle complete: ${totalAffected} total entries affected.`
+                : "Lifecycle complete: no entries needed maintenance.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error running scheduled lifecycle", error);
       }
     },
   );

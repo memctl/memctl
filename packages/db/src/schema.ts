@@ -195,6 +195,54 @@ export const memorySnapshots = sqliteTable("memory_snapshots", {
     .$defaultFn(() => new Date()),
 });
 
+export const memoryLocks = sqliteTable(
+  "memory_locks",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id),
+    memoryKey: text("memory_key").notNull(),
+    lockedBy: text("locked_by"), // session or agent identifier
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [unique().on(table.projectId, table.memoryKey)],
+);
+
+export const projectTemplates = sqliteTable("project_templates", {
+  id: text("id").primaryKey(),
+  orgId: text("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  data: text("data").notNull(), // JSON array of { key, content, metadata, priority, tags }
+  isBuiltin: integer("is_builtin", { mode: "boolean" }).default(false),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const webhookConfigs = sqliteTable("webhook_configs", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id),
+  url: text("url").notNull(),
+  events: text("events"), // JSON array: ["memory_created","memory_updated","memory_deleted","snapshot_created"]
+  digestIntervalMinutes: integer("digest_interval_minutes").notNull().default(60),
+  lastSentAt: integer("last_sent_at", { mode: "timestamp" }),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  secret: text("secret"), // HMAC signing secret
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const apiTokens = sqliteTable("api_tokens", {
   id: text("id").primaryKey(),
   userId: text("user_id")

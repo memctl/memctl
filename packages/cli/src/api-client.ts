@@ -409,4 +409,127 @@ export class ApiClient {
       recommendation: string;
     }>("POST", "/memories/validate", { repoFiles });
   }
+
+  // ── Delta Bootstrap ──────────────────────────────────────────────
+
+  async getDelta(since: number) {
+    return this.request<{
+      created: Array<Record<string, unknown>>;
+      updated: Array<Record<string, unknown>>;
+      deleted: string[];
+      since: number;
+      now: number;
+    }>("GET", `/memories/delta?since=${since}`);
+  }
+
+  // ── Health Scores ────────────────────────────────────────────────
+
+  async getHealthScores(limit = 50) {
+    return this.request<{
+      memories: Array<{
+        key: string;
+        healthScore: number;
+        factors: { age: number; access: number; feedback: number; freshness: number };
+        priority: number;
+        accessCount: number;
+        lastAccessedAt: unknown;
+      }>;
+    }>("GET", `/memories/health?limit=${limit}`);
+  }
+
+  // ── Memory Locking ──────────────────────────────────────────────
+
+  async lockMemory(key: string, lockedBy?: string, ttlSeconds = 60) {
+    return this.request<{
+      lock: { key: string; lockedBy: string | null; expiresAt: unknown };
+      acquired: boolean;
+    }>("POST", "/memories/lock", { key, lockedBy, ttlSeconds });
+  }
+
+  async unlockMemory(key: string, lockedBy?: string) {
+    return this.request<{ key: string; released: boolean }>(
+      "DELETE",
+      "/memories/lock",
+      { key, lockedBy },
+    );
+  }
+
+  // ── Analytics ───────────────────────────────────────────────────
+
+  async getAnalytics() {
+    return this.request<{
+      totalMemories: number;
+      totalAccessCount: number;
+      averagePriority: number;
+      averageHealthScore: number;
+      mostAccessed: Array<{ key: string; accessCount: number; lastAccessedAt: unknown }>;
+      leastAccessed: Array<{ key: string; accessCount: number; lastAccessedAt: unknown }>;
+      neverAccessed: string[];
+      byScope: { project: number; shared: number };
+      byTag: Record<string, number>;
+      pinnedCount: number;
+      avgAge: number;
+    }>("GET", "/memories/analytics");
+  }
+
+  // ── Change Digest ──────────────────────────────────────────────
+
+  async getChanges(since: number, limit = 100) {
+    return this.request<{
+      since: number;
+      until: number;
+      summary: { created: number; updated: number; deleted: number; total: number };
+      changes: Array<{
+        action: string;
+        memoryKey: string | null;
+        toolName: string | null;
+        createdAt: unknown;
+        details: string | null;
+      }>;
+    }>("GET", `/memories/changes?since=${since}&limit=${limit}`);
+  }
+
+  // ── Project Templates ─────────────────────────────────────────
+
+  async listTemplates() {
+    return this.request<{
+      templates: Array<{
+        id: string;
+        name: string;
+        description: string | null;
+        data: Array<Record<string, unknown>>;
+        isBuiltin: boolean;
+        createdAt: unknown;
+      }>;
+    }>("GET", "/project-templates");
+  }
+
+  async createTemplate(name: string, description: string | undefined, data: Array<Record<string, unknown>>) {
+    return this.request<{
+      template: { id: string; name: string };
+    }>("POST", "/project-templates", { name, description, data });
+  }
+
+  async applyTemplate(templateId: string) {
+    return this.request<{
+      applied: boolean;
+      templateName: string;
+      memoriesCreated: number;
+      memoriesUpdated: number;
+    }>("POST", "/project-templates", { apply: true, templateId });
+  }
+
+  // ── Lifecycle Schedule ────────────────────────────────────────
+
+  async runScheduledLifecycle(options?: {
+    sessionLogMaxAgeDays?: number;
+    accessThreshold?: number;
+    feedbackThreshold?: number;
+  }) {
+    return this.request<{
+      scheduled: boolean;
+      ranAt: string;
+      results: Record<string, { affected: number }>;
+    }>("POST", "/memories/lifecycle/schedule", options ?? {});
+  }
 }
