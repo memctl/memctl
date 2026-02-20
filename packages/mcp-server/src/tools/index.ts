@@ -2638,4 +2638,476 @@ exit 0
       }
     },
   );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // BATCH MUTATIONS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_batch_mutate",
+    "Perform a single action on multiple memories at once. Supports: archive, unarchive, delete, pin, unpin, set_priority, add_tags, set_scope.",
+    {
+      keys: z
+        .array(z.string())
+        .min(1)
+        .max(100)
+        .describe("Memory keys to mutate"),
+      action: z
+        .enum([
+          "archive",
+          "unarchive",
+          "delete",
+          "pin",
+          "unpin",
+          "set_priority",
+          "add_tags",
+          "set_scope",
+        ])
+        .describe("Action to perform"),
+      value: z
+        .unknown()
+        .optional()
+        .describe("Value for the action (number for set_priority, string[] for add_tags, 'project'|'shared' for set_scope)"),
+    },
+    async ({ keys, action, value }) => {
+      try {
+        const result = await client.batchMutate(keys, action, value);
+        return textResponse(
+          `Batch ${action}: ${result.affected}/${result.matched} memories affected (${result.requested} requested).`,
+        );
+      } catch (error) {
+        return errorResponse("Error in batch mutation", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY SNAPSHOTS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_snapshot_create",
+    "Create a full point-in-time snapshot of all memories. Useful before big refactors or context updates.",
+    {
+      name: z.string().min(1).max(128).describe("Snapshot name (e.g., 'before-api-refactor')"),
+      description: z.string().max(512).optional().describe("Optional description"),
+    },
+    async ({ name, description }) => {
+      try {
+        const result = await client.createSnapshot(name, description);
+        return textResponse(
+          `Snapshot "${name}" created with ${result.snapshot.memoryCount} memories. ID: ${result.snapshot.id}`,
+        );
+      } catch (error) {
+        return errorResponse("Error creating snapshot", error);
+      }
+    },
+  );
+
+  server.tool(
+    "memory_snapshot_list",
+    "List available memory snapshots for the current project",
+    {
+      limit: z.number().int().min(1).max(50).default(10).describe("Maximum snapshots to return"),
+    },
+    async ({ limit }) => {
+      try {
+        const result = await client.listSnapshots(limit);
+        return textResponse(JSON.stringify(result, null, 2));
+      } catch (error) {
+        return errorResponse("Error listing snapshots", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY FEEDBACK
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_feedback",
+    "Rate a memory as helpful or unhelpful. Feedback influences automatic priority adjustments via lifecycle policies.",
+    {
+      key: z.string().describe("Memory key to rate"),
+      helpful: z.boolean().describe("true = helpful, false = unhelpful"),
+    },
+    async ({ key, helpful }) => {
+      try {
+        const result = await client.feedbackMemory(key, helpful);
+        return textResponse(
+          `Feedback recorded for "${key}": ${result.feedback} (${result.helpfulCount} helpful, ${result.unhelpfulCount} unhelpful)`,
+        );
+      } catch (error) {
+        return errorResponse("Error recording feedback", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // LIFECYCLE POLICIES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "lifecycle_run",
+    "Run automatic lifecycle policies to manage memory health. Policies: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote (boost frequently accessed), auto_demote (lower negatively rated).",
+    {
+      policies: z
+        .array(
+          z.enum([
+            "archive_merged_branches",
+            "cleanup_expired",
+            "cleanup_session_logs",
+            "auto_promote",
+            "auto_demote",
+          ]),
+        )
+        .min(1)
+        .describe("Policies to run"),
+      mergedBranches: z
+        .array(z.string())
+        .optional()
+        .describe("Branch names that have been merged (for archive_merged_branches)"),
+      sessionLogMaxAgeDays: z
+        .number()
+        .int()
+        .min(1)
+        .max(365)
+        .default(30)
+        .describe("Max age for session logs before cleanup"),
+    },
+    async ({ policies, mergedBranches, sessionLogMaxAgeDays }) => {
+      try {
+        const result = await client.runLifecycle(policies, {
+          mergedBranches,
+          sessionLogMaxAgeDays,
+        });
+
+        const summary = Object.entries(result.results)
+          .map(([policy, r]) => `${policy}: ${r.affected} affected${r.details ? ` (${r.details})` : ""}`)
+          .join("\n");
+
+        return textResponse(`Lifecycle policies executed:\n${summary}`);
+      } catch (error) {
+        return errorResponse("Error running lifecycle policies", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CROSS-REFERENCE VALIDATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "validate_references",
+    "Check if memories reference files or paths that no longer exist in the repository. Scans the repo and cross-references against memory content.",
+    {},
+    async () => {
+      try {
+        // Get current repo files
+        const result = await execFileAsync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
+          cwd: process.cwd(),
+          maxBuffer: 10 * 1024 * 1024,
+        });
+        const repoFiles = result.stdout.trim().split("\n").filter(Boolean);
+
+        const validation = await client.validateReferences(repoFiles);
+
+        if (validation.issuesFound === 0) {
+          return textResponse(
+            `All references valid. Checked ${validation.totalMemoriesChecked} memories against ${repoFiles.length} repo files.`,
+          );
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              summary: `Found ${validation.issuesFound} memories with stale file references.`,
+              ...validation,
+              actions: "Update or archive memories that reference deleted files.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error validating references", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CONFLICT DETECTION ON WRITE
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_store_safe",
+    "Store a memory with optimistic concurrency check. If the memory was modified since you last read it (ifUnmodifiedSince), returns a conflict with the diff instead of blindly overwriting.",
+    {
+      key: z.string().describe("Memory key"),
+      content: z.string().describe("New content"),
+      ifUnmodifiedSince: z
+        .number()
+        .describe("Unix timestamp (ms) of when you last read this memory. If it was modified after this, a conflict is returned."),
+      metadata: z.record(z.unknown()).optional().describe("Optional metadata"),
+      priority: z.number().int().min(0).max(100).optional(),
+      tags: z.array(z.string()).optional(),
+    },
+    async ({ key, content, ifUnmodifiedSince, metadata, priority, tags }) => {
+      try {
+        // Check current state
+        let current: { memory?: { updatedAt?: unknown; content?: string } } | null = null;
+        try {
+          current = await client.getMemory(key) as typeof current;
+        } catch {
+          // Memory doesn't exist, safe to create
+        }
+
+        if (current?.memory?.updatedAt) {
+          const currentUpdated = typeof current.memory.updatedAt === "string"
+            ? new Date(current.memory.updatedAt).getTime()
+            : typeof current.memory.updatedAt === "number"
+              ? current.memory.updatedAt
+              : 0;
+
+          if (currentUpdated > ifUnmodifiedSince) {
+            // Conflict detected
+            return textResponse(
+              JSON.stringify(
+                {
+                  conflict: true,
+                  key,
+                  message: "Memory was modified since you last read it.",
+                  yourVersion: content.slice(0, 500),
+                  currentVersion: current.memory.content?.slice(0, 500),
+                  currentUpdatedAt: current.memory.updatedAt,
+                  yourTimestamp: new Date(ifUnmodifiedSince).toISOString(),
+                  suggestion: "Read the current version, merge changes, then store again without ifUnmodifiedSince.",
+                },
+                null,
+                2,
+              ),
+            );
+          }
+        }
+
+        // No conflict, proceed with store
+        await client.storeMemory(key, content, metadata, { priority, tags });
+        return textResponse(`Memory stored with key: ${key} (no conflict)`);
+      } catch (error) {
+        return errorResponse("Error in safe store", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // COMPACT BOOTSTRAP
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "agent_bootstrap_compact",
+    "Lightweight bootstrap that returns only titles, keys, and metadata (no content). Useful for initial orientation when you have many context entries. Fetch specific entries with agent_functionality_get afterward.",
+    {},
+    async () => {
+      try {
+        const [allMemories, branchInfo, capacity, allTypeInfo] = await Promise.all([
+          listAllMemories(client),
+          getBranchInfo(),
+          client.getMemoryCapacity().catch(() => null),
+          getAllContextTypeInfo(client),
+        ]);
+
+        const entries = extractAgentContextEntries(allMemories);
+
+        const types = Object.entries(allTypeInfo).map(([type, info]) => {
+          const typeEntries = entries.filter((e) => e.type === type);
+          return {
+            type,
+            label: info.label,
+            count: typeEntries.length,
+            items: typeEntries.map((entry) => {
+              const mem = allMemories.find((m) => m.key === entry.key);
+              return {
+                id: entry.id,
+                key: entry.key,
+                title: entry.title,
+                priority: entry.priority,
+                isPinned: Boolean(mem?.pinnedAt),
+                scope: mem?.scope ?? "project",
+                tags: entry.tags,
+                contentLength: entry.content.length,
+                feedbackScore: (mem?.helpfulCount ?? 0) - (mem?.unhelpfulCount ?? 0),
+              };
+            }),
+          };
+        });
+
+        return textResponse(
+          JSON.stringify(
+            {
+              mode: "compact",
+              hint: "Use agent_functionality_get to load full content for specific entries.",
+              types: types.filter((t) => t.count > 0),
+              currentBranch: branchInfo,
+              memoryStatus: capacity,
+              totalEntries: entries.length,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error in compact bootstrap", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AUTO-TAGGING (heuristic, no AI)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_auto_tag",
+    "Analyze a memory's content and suggest tags based on keyword extraction. Uses heuristic pattern matching, not AI.",
+    {
+      key: z.string().describe("Memory key to analyze"),
+      apply: z
+        .boolean()
+        .default(false)
+        .describe("If true, apply the suggested tags to the memory"),
+    },
+    async ({ key, apply }) => {
+      try {
+        const mem = await client.getMemory(key) as {
+          memory?: { content?: string; tags?: string; key?: string };
+        };
+        if (!mem?.memory?.content) {
+          return errorResponse("Error auto-tagging", "Memory not found or empty");
+        }
+
+        const content = mem.memory.content.toLowerCase();
+        const suggestedTags: string[] = [];
+
+        // Technology detection
+        const techPatterns: Record<string, string[]> = {
+          react: ["react", "jsx", "tsx", "usestate", "useeffect", "component"],
+          nextjs: ["next.js", "nextjs", "app router", "getserversideprops", "server component"],
+          typescript: ["typescript", ".ts", ".tsx", "interface ", "type "],
+          javascript: ["javascript", ".js", ".mjs", "const ", "let "],
+          python: ["python", ".py", "def ", "import ", "pip"],
+          rust: ["rust", ".rs", "cargo", "fn ", "impl "],
+          go: ["golang", ".go", "func ", "package "],
+          css: ["css", "tailwind", "styled", "scss", "sass"],
+          database: ["database", "sql", "query", "schema", "migration", "drizzle", "prisma"],
+          api: ["api", "endpoint", "rest", "graphql", "route", "handler"],
+          testing: ["test", "jest", "vitest", "playwright", "cypress", "assert"],
+          docker: ["docker", "container", "dockerfile", "compose"],
+          ci: ["ci/cd", "github actions", "pipeline", "deploy"],
+          auth: ["auth", "login", "session", "token", "jwt", "oauth"],
+          security: ["security", "xss", "csrf", "injection", "sanitize"],
+        };
+
+        for (const [tag, keywords] of Object.entries(techPatterns)) {
+          if (keywords.some((kw) => content.includes(kw))) {
+            suggestedTags.push(tag);
+          }
+        }
+
+        // Scope detection
+        if (content.includes("frontend") || content.includes("ui") || content.includes("component")) {
+          suggestedTags.push("frontend");
+        }
+        if (content.includes("backend") || content.includes("server") || content.includes("api")) {
+          suggestedTags.push("backend");
+        }
+        if (content.includes("performance") || content.includes("optimize") || content.includes("cache")) {
+          suggestedTags.push("performance");
+        }
+
+        // Deduplicate
+        const uniqueTags = [...new Set(suggestedTags)];
+
+        if (apply && uniqueTags.length > 0) {
+          // Merge with existing tags
+          let existingTags: string[] = [];
+          if (mem.memory.tags) {
+            try { existingTags = JSON.parse(mem.memory.tags); } catch {}
+          }
+          const merged = [...new Set([...existingTags, ...uniqueTags])];
+          await client.updateMemory(key, undefined, undefined, {
+            tags: merged,
+          });
+          return textResponse(
+            `Auto-tagged "${key}" with: ${uniqueTags.join(", ")}. Total tags: ${merged.join(", ")}`,
+          );
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              key,
+              suggestedTags: uniqueTags,
+              applied: false,
+              hint: "Call again with apply=true to apply these tags.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error auto-tagging memory", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STALE REFERENCE PRUNING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "prune_stale_references",
+    "Find and optionally archive memories that reference files no longer in the repository. Combines repo scanning with content analysis.",
+    {
+      archiveStale: z
+        .boolean()
+        .default(false)
+        .describe("If true, archive memories with stale references"),
+    },
+    async ({ archiveStale }) => {
+      try {
+        const result = await execFileAsync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
+          cwd: process.cwd(),
+          maxBuffer: 10 * 1024 * 1024,
+        });
+        const repoFiles = result.stdout.trim().split("\n").filter(Boolean);
+
+        const validation = await client.validateReferences(repoFiles);
+
+        if (validation.issuesFound === 0) {
+          return textResponse("No stale references found. All memories are up to date.");
+        }
+
+        if (archiveStale) {
+          const staleKeys = validation.issues.map((i) => i.key);
+          const batchResult = await client.batchMutate(staleKeys, "archive");
+          return textResponse(
+            `Archived ${batchResult.affected} memories with stale file references.`,
+          );
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              summary: `${validation.issuesFound} memories reference files that no longer exist.`,
+              issues: validation.issues,
+              hint: "Call again with archiveStale=true to archive these memories.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error pruning stale references", error);
+      }
+    },
+  );
 }
