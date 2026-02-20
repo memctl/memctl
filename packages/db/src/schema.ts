@@ -96,6 +96,8 @@ export const memories = sqliteTable(
     expiresAt: integer("expires_at", { mode: "timestamp" }),
     accessCount: integer("access_count").notNull().default(0),
     lastAccessedAt: integer("last_accessed_at", { mode: "timestamp" }),
+    helpfulCount: integer("helpful_count").notNull().default(0),
+    unhelpfulCount: integer("unhelpful_count").notNull().default(0),
     createdBy: text("created_by").references(() => users.id),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -172,6 +174,21 @@ export const activityLogs = sqliteTable("activity_logs", {
   toolName: text("tool_name"),
   memoryKey: text("memory_key"),
   details: text("details"), // JSON object with extra info
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const memorySnapshots = sqliteTable("memory_snapshots", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  data: text("data").notNull(), // JSON: full snapshot of all memories
+  memoryCount: integer("memory_count").notNull(),
   createdBy: text("created_by").references(() => users.id),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

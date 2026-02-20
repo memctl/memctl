@@ -338,4 +338,75 @@ export class ApiClient {
   }) {
     return this.request("POST", "/activity-logs", data);
   }
+
+  // ── Batch Mutations ─────────────────────────────────────────────
+
+  async batchMutate(keys: string[], action: string, value?: unknown) {
+    return this.request<{
+      action: string;
+      requested: number;
+      matched: number;
+      affected: number;
+    }>("POST", "/memories/batch", { keys, action, value });
+  }
+
+  // ── Snapshots ──────────────────────────────────────────────────
+
+  async listSnapshots(limit = 20) {
+    return this.request<{
+      snapshots: Array<{
+        id: string;
+        name: string;
+        description: string | null;
+        memoryCount: number;
+        createdBy: string | null;
+        createdAt: unknown;
+      }>;
+    }>("GET", `/memories/snapshots?limit=${limit}`);
+  }
+
+  async createSnapshot(name: string, description?: string) {
+    return this.request<{
+      snapshot: { id: string; name: string; memoryCount: number };
+    }>("POST", "/memories/snapshots", { name, description });
+  }
+
+  // ── Feedback ───────────────────────────────────────────────────
+
+  async feedbackMemory(key: string, helpful: boolean) {
+    return this.request<{
+      key: string;
+      feedback: string;
+      helpfulCount: number;
+      unhelpfulCount: number;
+    }>("POST", "/memories/feedback", { key, helpful });
+  }
+
+  // ── Lifecycle ──────────────────────────────────────────────────
+
+  async runLifecycle(policies: string[], options?: {
+    sessionLogMaxAgeDays?: number;
+    accessThreshold?: number;
+    feedbackThreshold?: number;
+    mergedBranches?: string[];
+  }) {
+    return this.request<{
+      results: Record<string, { affected: number; details?: string }>;
+    }>("POST", "/memories/lifecycle", { policies, ...options });
+  }
+
+  // ── Validate References ────────────────────────────────────────
+
+  async validateReferences(repoFiles: string[]) {
+    return this.request<{
+      totalMemoriesChecked: number;
+      issuesFound: number;
+      issues: Array<{
+        key: string;
+        referencedPaths: string[];
+        missingPaths: string[];
+      }>;
+      recommendation: string;
+    }>("POST", "/memories/validate", { repoFiles });
+  }
 }

@@ -61,9 +61,22 @@ export interface Memory {
   expiresAt: number | null;
   accessCount: number;
   lastAccessedAt: number | null;
+  helpfulCount: number;
+  unhelpfulCount: number;
   createdBy: string | null;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface MemorySnapshot {
+  id: string;
+  projectId: string;
+  name: string;
+  description: string | null;
+  data: string;
+  memoryCount: number;
+  createdBy: string | null;
+  createdAt: number;
 }
 
 export interface SessionLog {
