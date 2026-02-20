@@ -9,6 +9,8 @@ import { resolveOrgAndProject } from "../capacity-utils";
 import { generateETag, checkConditional } from "@/lib/etag";
 import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
 import { dispatchWebhooks } from "@/lib/webhook-dispatch";
+import { validateContent } from "@/lib/schema-validator";
+import { contextTypes } from "@memctl/db/schema";
 
 export async function GET(
   req: NextRequest,
@@ -42,12 +44,19 @@ export async function GET(
 
   if (!memory) return jsonError("Memory not found", 404);
 
-  // Track access (fire-and-forget)
+  // Track access (fire-and-forget) + auto-extend TTL if within 24h of expiry
+  const accessUpdates: Record<string, unknown> = {
+    accessCount: sql`${memories.accessCount} + 1`,
+    lastAccessedAt: new Date(),
+  };
+  if (memory.expiresAt) {
+    const msUntilExpiry = new Date(memory.expiresAt).getTime() - Date.now();
+    if (msUntilExpiry > 0 && msUntilExpiry < 24 * 60 * 60 * 1000) {
+      accessUpdates.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    }
+  }
   db.update(memories)
-    .set({
-      accessCount: sql`${memories.accessCount} + 1`,
-      lastAccessedAt: new Date(),
-    })
+    .set(accessUpdates)
     .where(eq(memories.id, memory.id))
     .then(() => {}, () => {});
 
@@ -84,7 +93,7 @@ export async function PATCH(
 
   const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
   if (!context) return jsonError("Project not found", 404);
-  const { project } = context;
+  const { org, project } = context;
 
   const body = await req.json().catch(() => null);
   const parsed = memoryUpdateSchema.safeParse(body);
@@ -107,6 +116,29 @@ export async function PATCH(
     const currentEtag = generateETag(JSON.stringify({ memory: existing }));
     if (ifMatch !== currentEtag) {
       return jsonError("Conflict: memory has been modified since last read", 409);
+    }
+  }
+
+  // Validate content against context type schema if content is changing
+  if (parsed.data.content) {
+    const existingMeta = existing.metadata ? JSON.parse(existing.metadata) : null;
+    const newMeta = parsed.data.metadata ?? existingMeta;
+    if (newMeta && typeof newMeta === "object" && "contextType" in newMeta) {
+      const ctSlug = String(newMeta.contextType);
+      const [ct] = await db
+        .select({ schema: contextTypes.schema })
+        .from(contextTypes)
+        .where(and(eq(contextTypes.orgId, org.id), eq(contextTypes.slug, ctSlug)))
+        .limit(1);
+      if (ct?.schema) {
+        const validation = validateContent(ct.schema, parsed.data.content);
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: "Content validation failed", details: validation.errors },
+            { status: 422 },
+          );
+        }
+      }
     }
   }
 

@@ -177,21 +177,28 @@ export const sessionLogs = sqliteTable("session_logs", {
   createdBy: text("created_by").references(() => users.id),
 });
 
-export const activityLogs = sqliteTable("activity_logs", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id),
-  sessionId: text("session_id"),
-  action: text("action").notNull(), // "tool_call" | "memory_read" | "memory_write" | "memory_delete"
-  toolName: text("tool_name"),
-  memoryKey: text("memory_key"),
-  details: text("details"), // JSON object with extra info
-  createdBy: text("created_by").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
+export const activityLogs = sqliteTable(
+  "activity_logs",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id),
+    sessionId: text("session_id"),
+    action: text("action").notNull(), // "tool_call" | "memory_read" | "memory_write" | "memory_delete"
+    toolName: text("tool_name"),
+    memoryKey: text("memory_key"),
+    details: text("details"), // JSON object with extra info
+    createdBy: text("created_by").references(() => users.id),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("activity_session_action").on(table.sessionId, table.action),
+    index("activity_project_action_created").on(table.projectId, table.action, table.createdAt),
+  ],
+);
 
 export const memorySnapshots = sqliteTable("memory_snapshots", {
   id: text("id").primaryKey(),

@@ -364,6 +364,9 @@ export function registerTools(server: McpServer, client: ApiClient) {
       try {
         const memory = await client.getMemory(key) as { memory?: Record<string, unknown> };
 
+        // Prefetch co-accessed memories into cache (non-blocking, silent failure)
+        client.prefetchCoAccessed(key);
+
         if (includeHints && memory?.memory) {
           const mem = memory.memory;
           const hints: string[] = [];
@@ -5100,6 +5103,33 @@ exit 0
         );
       } catch (error) {
         return errorResponse("Error building memory graph", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // FOCUSED MEMORY GRAPH TRAVERSAL
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_traverse",
+    "BFS traversal from a single memory following relatedKeys. More efficient than memory_graph for focused exploration.",
+    {
+      key: z.string().describe("Starting memory key"),
+      depth: z
+        .number()
+        .int()
+        .min(1)
+        .max(5)
+        .default(2)
+        .describe("Maximum hops to traverse (1-5, default 2)"),
+    },
+    async ({ key, depth }) => {
+      try {
+        const result = await client.traverseMemory(key, depth);
+        return textResponse(JSON.stringify(result, null, 2));
+      } catch (error) {
+        return errorResponse("Error traversing memory graph", error);
       }
     },
   );

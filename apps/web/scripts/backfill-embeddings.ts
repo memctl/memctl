@@ -7,7 +7,7 @@ import { db } from "../lib/db";
 import { memories } from "@memctl/db/schema";
 import { isNull } from "drizzle-orm";
 import { eq } from "drizzle-orm";
-import { generateEmbedding, serializeEmbedding } from "../lib/embeddings";
+import { generateEmbeddings, serializeEmbedding } from "../lib/embeddings";
 
 const BATCH_SIZE = 50;
 
@@ -32,24 +32,29 @@ async function backfill() {
   for (let i = 0; i < all.length; i += BATCH_SIZE) {
     const batch = all.slice(i, i + BATCH_SIZE);
 
-    for (const memory of batch) {
-      try {
-        const text = `${memory.key} ${memory.content} ${memory.tags ?? ""}`;
-        const embedding = await generateEmbedding(text);
-
-        if (embedding) {
-          await db
-            .update(memories)
-            .set({ embedding: serializeEmbedding(embedding) })
-            .where(eq(memories.id, memory.id));
-          processed++;
+    const texts = batch.map((m) => `${m.key} ${m.content} ${m.tags ?? ""}`);
+    try {
+      const embeddings = await generateEmbeddings(texts);
+      for (let j = 0; j < batch.length; j++) {
+        const emb = embeddings[j];
+        if (emb) {
+          try {
+            await db
+              .update(memories)
+              .set({ embedding: serializeEmbedding(emb) })
+              .where(eq(memories.id, batch[j].id));
+            processed++;
+          } catch (err) {
+            console.error(`Failed to store embedding for ${batch[j].key}:`, err);
+            failed++;
+          }
         } else {
           failed++;
         }
-      } catch (err) {
-        console.error(`Failed to embed memory ${memory.key}:`, err);
-        failed++;
       }
+    } catch (err) {
+      console.error(`Failed to embed batch starting at ${i}:`, err);
+      failed += batch.length;
     }
 
     console.log(

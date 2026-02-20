@@ -123,11 +123,28 @@ export function createServer(config: {
   );
 
   // Attempt API ping on startup — enter offline mode if unreachable
-  client.ping().then((online) => {
+  client.ping().then(async (online) => {
     if (!online) {
       process.stderr.write(
         "[memctl] Warning: API unreachable — running in offline mode with local cache\n",
       );
+      return;
+    }
+
+    // Incremental sync: if we have a previous sync timestamp, fetch only delta
+    try {
+      const lastSync = client.getLocalCacheSyncAt();
+      if (lastSync > 0) {
+        const stats = await client.incrementalSync();
+        process.stderr.write(
+          `[memctl] Incremental sync: +${stats.created} created, ~${stats.updated} updated, -${stats.deleted} deleted\n`,
+        );
+      } else {
+        // First run: do full list to populate cache
+        await client.listMemories(100);
+      }
+    } catch {
+      // Sync failure is non-critical
     }
   }).catch(() => {});
 

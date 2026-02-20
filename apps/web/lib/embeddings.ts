@@ -48,6 +48,55 @@ export async function generateEmbedding(
   }
 }
 
+const EMBEDDING_DIM = 384;
+
+/**
+ * Generate embeddings for multiple texts in a single batch call.
+ * Falls back to sequential generateEmbedding() calls if batch fails.
+ */
+export async function generateEmbeddings(
+  texts: string[],
+): Promise<(Float32Array | null)[]> {
+  if (texts.length === 0) return [];
+  if (texts.length === 1) {
+    const emb = await generateEmbedding(texts[0]);
+    return [emb];
+  }
+
+  try {
+    const embedder = (await getEmbedder()) as
+      | ((text: string[], opts: unknown) => Promise<{ data: Float32Array }>)
+      | null;
+    if (!embedder) return texts.map(() => null);
+
+    const result = await embedder(texts, {
+      pooling: "mean",
+      normalize: true,
+    });
+
+    // Pipeline returns concatenated output — slice into individual embeddings
+    const embeddings: (Float32Array | null)[] = [];
+    for (let i = 0; i < texts.length; i++) {
+      const start = i * EMBEDDING_DIM;
+      const end = start + EMBEDDING_DIM;
+      if (end <= result.data.length) {
+        embeddings.push(result.data.slice(start, end));
+      } else {
+        embeddings.push(null);
+      }
+    }
+    return embeddings;
+  } catch (err) {
+    logger.warn({ error: String(err) }, "Batch embedding failed, falling back to sequential");
+    // Fallback to sequential calls
+    const results: (Float32Array | null)[] = [];
+    for (const text of texts) {
+      results.push(await generateEmbedding(text));
+    }
+    return results;
+  }
+}
+
 export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
   if (a.length !== b.length) return 0;
 

@@ -29,6 +29,10 @@ export class ApiClient {
     return { online: !this.isOffline };
   }
 
+  getLocalCacheSyncAt(): number {
+    return this.localCache.getLastSyncAt();
+  }
+
   /** Attempt to reach the API. Returns true if online. */
   async ping(): Promise<boolean> {
     try {
@@ -568,7 +572,27 @@ export class ApiClient {
     }>("POST", "/memories/validate", { repoFiles });
   }
 
-  // ── Delta Bootstrap ──────────────────────────────────────────────
+  // ── Delta Bootstrap / Incremental Sync ──────────────────────────
+
+  /** Incremental sync: fetch only changed memories since last sync, apply to local cache. */
+  async incrementalSync(): Promise<{ created: number; updated: number; deleted: number }> {
+    const lastSync = this.localCache.getLastSyncAt();
+    const delta = await this.getDelta(lastSync);
+
+    const upserts = [...delta.created, ...delta.updated];
+    if (upserts.length > 0) {
+      this.localCache.sync(upserts);
+    }
+    if (delta.deleted.length > 0) {
+      this.localCache.removeKeys(delta.deleted);
+    }
+
+    return {
+      created: delta.created.length,
+      updated: delta.updated.length,
+      deleted: delta.deleted.length,
+    };
+  }
 
   async getDelta(since: number) {
     return this.request<{
@@ -578,6 +602,39 @@ export class ApiClient {
       since: number;
       now: number;
     }>("GET", `/memories/delta?since=${since}`);
+  }
+
+  // ── Graph Traversal ────────────────────────────────────────────────
+
+  async traverseMemory(key: string, depth = 2) {
+    return this.request<{
+      root: string;
+      nodes: Array<{ key: string; content: string; depth: number }>;
+      edges: Array<{ from: string; to: string }>;
+      maxDepthReached: boolean;
+    }>("GET", `/memories/traverse?key=${encodeURIComponent(key)}&depth=${depth}`);
+  }
+
+  // ── Co-Access Patterns ────────────────────────────────────────────
+
+  async getCoAccessed(key: string, limit = 5) {
+    return this.request<{
+      key: string;
+      coAccessed: Array<{ key: string; count: number }>;
+    }>("GET", `/memories/co-accessed?key=${encodeURIComponent(key)}&limit=${limit}`);
+  }
+
+  /** Fire-and-forget: fetch co-accessed keys and prefetch them into cache. */
+  prefetchCoAccessed(key: string): void {
+    this.getCoAccessed(key, 5)
+      .then((result) => {
+        for (const item of result.coAccessed) {
+          if (item.key) {
+            this.getMemory(item.key).catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
   }
 
   // ── Health Scores ────────────────────────────────────────────────

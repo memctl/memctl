@@ -4,7 +4,7 @@ import { memories } from "@memctl/db/schema";
 import { lt, isNull, isNotNull, eq } from "drizzle-orm";
 import { logger } from "./logger";
 import { sendPendingWebhooks } from "./webhook-dispatch";
-import { generateEmbedding, serializeEmbedding } from "./embeddings";
+import { generateEmbeddings, serializeEmbedding } from "./embeddings";
 
 let initialized = false;
 
@@ -16,6 +16,7 @@ export function initScheduler(): void {
   initialized = true;
 
   // Expired memory cleanup — every hour
+  // Note: actively-accessed memories auto-extend their TTL by 24h on each GET
   cron.schedule("0 * * * *", async () => {
     try {
       const now = new Date();
@@ -55,19 +56,27 @@ export function initScheduler(): void {
         .limit(100);
 
       let embedded = 0;
-      for (const row of rows) {
+      // Process in batches of 50 for efficiency
+      for (let i = 0; i < rows.length; i += 50) {
+        const batch = rows.slice(i, i + 50);
+        const texts = batch.map((r) => `${r.key} ${r.content} ${r.tags ?? ""}`);
         try {
-          const text = `${row.key} ${row.content} ${row.tags ?? ""}`;
-          const emb = await generateEmbedding(text);
-          if (emb) {
-            await db
-              .update(memories)
-              .set({ embedding: serializeEmbedding(emb) })
-              .where(eq(memories.id, row.id));
-            embedded++;
+          const embeddings = await generateEmbeddings(texts);
+          for (let j = 0; j < batch.length; j++) {
+            if (embeddings[j]) {
+              try {
+                await db
+                  .update(memories)
+                  .set({ embedding: serializeEmbedding(embeddings[j]!) })
+                  .where(eq(memories.id, batch[j].id));
+                embedded++;
+              } catch {
+                // Skip individual store failures
+              }
+            }
           }
         } catch {
-          // Skip individual failures
+          // Skip batch failures
         }
       }
 

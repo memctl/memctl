@@ -10,6 +10,8 @@ import { ensureFts, ftsSearch, vectorSearch, mergeSearchResults } from "@/lib/ft
 import { generateETag, checkConditional } from "@/lib/etag";
 import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
 import { dispatchWebhooks } from "@/lib/webhook-dispatch";
+import { validateContent } from "@/lib/schema-validator";
+import { contextTypes } from "@memctl/db/schema";
 import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
@@ -275,6 +277,25 @@ export async function POST(req: NextRequest) {
   }
 
   const { key, content, metadata, scope, priority, tags, expiresAt } = parsed.data;
+
+  // Validate content against context type schema if applicable
+  if (metadata && typeof metadata === "object" && "contextType" in metadata) {
+    const ctSlug = String((metadata as Record<string, unknown>).contextType);
+    const [ct] = await db
+      .select({ schema: contextTypes.schema })
+      .from(contextTypes)
+      .where(and(eq(contextTypes.orgId, org.id), eq(contextTypes.slug, ctSlug)))
+      .limit(1);
+    if (ct?.schema) {
+      const validation = validateContent(ct.schema, content);
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: "Content validation failed", details: validation.errors },
+          { status: 422 },
+        );
+      }
+    }
+  }
 
   await ensureFts();
 

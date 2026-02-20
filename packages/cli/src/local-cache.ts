@@ -261,6 +261,36 @@ export class LocalCache {
     return null;
   }
 
+  getLastSyncAt(): number {
+    return this.lastSyncAt;
+  }
+
+  removeKeys(keys: string[]): void {
+    if (keys.length === 0) return;
+
+    if (this.db) {
+      try {
+        const del = this.db.prepare(
+          "DELETE FROM cached_memories WHERE org = ? AND project = ? AND key = ?",
+        );
+        const tx = this.db.transaction(() => {
+          for (const key of keys) {
+            del.run(this.org, this.project, key);
+          }
+        });
+        tx();
+      } catch {
+        // Non-critical
+      }
+      return;
+    }
+
+    const store = this.getFallbackStore();
+    for (const key of keys) {
+      store.delete(key);
+    }
+  }
+
   isStale(): boolean {
     return Date.now() - this.lastSyncAt > STALE_THRESHOLD_MS;
   }
