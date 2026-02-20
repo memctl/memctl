@@ -168,7 +168,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
 
   server.tool(
     "memory_store",
-    "Store a key-value memory for the current project. Use scope='shared' to make it visible across all projects in the org (opt-in).",
+    "Store a key-value memory for the current project. Use scope='shared' to make it visible across all projects in the org (opt-in). Use ttl for named expiration presets. Auto-checks for duplicates and warns if similar content exists.",
     {
       key: z.string().describe("Unique key for the memory"),
       content: z.string().describe("Content to store"),
@@ -194,25 +194,68 @@ export function registerTools(server: McpServer, client: ApiClient) {
       expiresAt: z
         .number()
         .optional()
-        .describe("Unix timestamp when this memory should expire"),
+        .describe("Unix timestamp when this memory should expire (overrides ttl)"),
+      ttl: z
+        .enum(["session", "pr", "sprint", "permanent"])
+        .optional()
+        .describe("Named TTL preset: session (24h), pr (7d), sprint (14d), permanent (never). Overridden by expiresAt if both set."),
+      dedupAction: z
+        .enum(["warn", "skip", "merge"])
+        .optional()
+        .default("warn")
+        .describe("What to do if similar content exists: warn (store + warn), skip (don't store), merge (append to existing)"),
     },
-    async ({ key, content, metadata, scope, priority, tags, expiresAt }) => {
+    async ({ key, content, metadata, scope, priority, tags, expiresAt, ttl, dedupAction }) => {
       try {
+        // Resolve TTL preset to expiresAt
+        let resolvedExpiry = expiresAt;
+        if (!resolvedExpiry && ttl && ttl !== "permanent") {
+          const now = Date.now();
+          const TTL_MAP: Record<string, number> = {
+            session: 24 * 60 * 60 * 1000,       // 24 hours
+            pr: 7 * 24 * 60 * 60 * 1000,         // 7 days
+            sprint: 14 * 24 * 60 * 60 * 1000,    // 14 days
+          };
+          resolvedExpiry = now + (TTL_MAP[ttl] ?? 0);
+        }
+
         // Check for near-duplicates before storing
         let dedupWarning = "";
+        const action = dedupAction ?? "warn";
         try {
           const similar = await client.findSimilar(content, key, 0.7);
           if (similar.similar.length > 0) {
-            const top = similar.similar[0];
-            dedupWarning = ` ⚠ Similar memory found: "${top.key}" (${Math.round(top.similarity * 100)}% match). Consider updating it instead.`;
+            const top = similar.similar[0]!;
+
+            if (action === "skip") {
+              return textResponse(
+                `Skipped: similar memory "${top.key}" already exists (${Math.round(top.similarity * 100)}% match). Use dedupAction='warn' to store anyway.`,
+              );
+            }
+
+            if (action === "merge") {
+              // Append to the existing similar memory
+              const existing = await client.getMemory(top.key) as Record<string, unknown>;
+              const existingMem = existing?.memory as Record<string, unknown> | undefined;
+              const existingContent = typeof existingMem?.content === "string" ? existingMem.content : "";
+              const merged = `${existingContent}\n\n---\n\n${content}`;
+              await client.storeMemory(top.key, merged, metadata, { scope, priority, tags, expiresAt: resolvedExpiry });
+              return textResponse(
+                `Merged into existing memory "${top.key}" (${Math.round(top.similarity * 100)}% match). Content appended.`,
+              );
+            }
+
+            // Default: warn
+            dedupWarning = ` ⚠ Similar memory: "${top.key}" (${Math.round(top.similarity * 100)}% match). Use dedupAction='merge' to combine, or 'skip' to cancel.`;
           }
         } catch {
           // Dedup check is best-effort
         }
 
-        await client.storeMemory(key, content, metadata, { scope, priority, tags, expiresAt });
+        await client.storeMemory(key, content, metadata, { scope, priority, tags, expiresAt: resolvedExpiry });
         const scopeMsg = scope === "shared" ? " [shared across org]" : "";
-        return textResponse(`Memory stored with key: ${key}${scopeMsg}${dedupWarning}`);
+        const ttlMsg = ttl ? ` [ttl: ${ttl}]` : "";
+        return textResponse(`Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}`);
       } catch (error) {
         if (hasMemoryFullError(error)) {
           return errorResponse(
@@ -592,7 +635,7 @@ export function registerTools(server: McpServer, client: ApiClient) {
 
   server.tool(
     "agent_functionality_get",
-    "Get detailed functionality data for one type or one specific item",
+    "Get detailed functionality data for one type or one specific item. When followLinks is true, also returns linked/related memories.",
     {
       type: z.string().describe("Functionality type (built-in or custom slug)"),
       id: z
@@ -605,13 +648,38 @@ export function registerTools(server: McpServer, client: ApiClient) {
         .boolean()
         .default(true)
         .describe("Include full content"),
+      followLinks: z
+        .boolean()
+        .default(false)
+        .describe("Also include linked/related memories (follows relatedKeys)"),
     },
-    async ({ type, id, includeContent }) => {
+    async ({ type, id, includeContent, followLinks }) => {
       try {
         if (id) {
           const key = buildAgentContextKey(type, id);
-          const memory = await client.getMemory(key);
-          return textResponse(JSON.stringify(memory, null, 2));
+          const memory = await client.getMemory(key) as Record<string, unknown>;
+
+          // Follow related links if requested
+          let linked: unknown[] = [];
+          if (followLinks) {
+            const mem = memory?.memory as Record<string, unknown> | undefined;
+            const relatedKeysRaw = typeof mem?.relatedKeys === "string" ? mem.relatedKeys : null;
+            if (relatedKeysRaw) {
+              try {
+                const relatedKeys = JSON.parse(relatedKeysRaw) as string[];
+                if (relatedKeys.length > 0) {
+                  const bulk = await client.bulkGetMemories(relatedKeys);
+                  linked = Object.values(bulk.memories);
+                }
+              } catch { /* ignore parse errors */ }
+            }
+          }
+
+          return textResponse(JSON.stringify(
+            followLinks ? { ...memory, linkedMemories: linked } : memory,
+            null,
+            2,
+          ));
         }
 
         const allMemories = await listAllMemories(client);
@@ -3505,6 +3573,528 @@ exit 0
         );
       } catch (error) {
         return errorResponse("Error running scheduled lifecycle", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SMART RETRIEVE
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "smart_retrieve",
+    "Single intelligent retrieval tool. Describe what you need in natural language and it combines FTS search, tag matching, key pattern matching, and file path matching to find the best context. Use this instead of figuring out which specific search tool to call.",
+    {
+      intent: z.string().describe("What context do you need? E.g. 'auth system architecture', 'testing conventions', 'how the API routes work'"),
+      files: z
+        .array(z.string())
+        .optional()
+        .describe("File paths you're currently working on — used to find relevant context"),
+      maxResults: z.number().int().min(1).max(20).optional().default(5),
+      followLinks: z.boolean().optional().default(true).describe("Also return linked/related memories"),
+    },
+    async ({ intent, files, maxResults, followLinks }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+        const now = Date.now();
+
+        // Score every memory against the intent
+        const intentWords = intent.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+        const filePatterns = (files ?? []).map((f) => f.toLowerCase());
+
+        const scored = allMemories.map((mem) => {
+          const content = `${mem.key} ${mem.content ?? ""} ${mem.tags ?? ""}`.toLowerCase();
+          let score = 0;
+
+          // Word overlap with intent
+          const matchedWords = intentWords.filter((w) => content.includes(w));
+          score += matchedWords.length * 10;
+
+          // File path relevance
+          for (const fp of filePatterns) {
+            const parts = fp.split("/").filter(Boolean);
+            for (const part of parts) {
+              if (content.includes(part.toLowerCase())) score += 5;
+            }
+            if (content.includes(fp)) score += 15;
+          }
+
+          // Priority boost
+          score += (mem.priority ?? 0) * 0.3;
+
+          // Pinned boost
+          if (mem.pinnedAt) score += 10;
+
+          // Access frequency boost
+          score += Math.min(10, (mem.accessCount ?? 0) * 0.5);
+
+          // Recency boost
+          const lastAccess = mem.lastAccessedAt ? new Date(mem.lastAccessedAt as string).getTime() : 0;
+          if (lastAccess) {
+            const daysSince = (now - lastAccess) / 86_400_000;
+            score += Math.max(0, 5 - daysSince / 7);
+          }
+
+          // Feedback boost
+          score += ((mem.helpfulCount ?? 0) - (mem.unhelpfulCount ?? 0)) * 2;
+
+          return { mem, score };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        const top = scored.slice(0, maxResults).filter((s) => s.score > 0);
+
+        // Follow links for top results
+        const linkedKeys = new Set<string>();
+        if (followLinks) {
+          for (const { mem } of top) {
+            if (mem.relatedKeys) {
+              try {
+                const keys = JSON.parse(mem.relatedKeys as string) as string[];
+                keys.forEach((k) => linkedKeys.add(k));
+              } catch { /* ignore */ }
+            }
+          }
+          // Remove keys already in top results
+          for (const { mem } of top) linkedKeys.delete(mem.key);
+        }
+
+        let linked: Array<Record<string, unknown>> = [];
+        if (linkedKeys.size > 0) {
+          try {
+            const bulk = await client.bulkGetMemories([...linkedKeys]);
+            linked = Object.values(bulk.memories) as Array<Record<string, unknown>>;
+          } catch { /* ignore */ }
+        }
+
+        return textResponse(
+          JSON.stringify(
+            {
+              intent,
+              resultsCount: top.length,
+              linkedCount: linked.length,
+              results: top.map(({ mem, score }) => ({
+                key: mem.key,
+                score: Math.round(score * 10) / 10,
+                content: mem.content,
+                priority: mem.priority,
+                tags: mem.tags,
+              })),
+              linkedMemories: linked.length > 0
+                ? linked.map((m) => ({ key: m.key, content: m.content }))
+                : undefined,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error in smart retrieve", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // FRESHNESS CHECK
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_freshness",
+    "Lightweight check: has anything changed since your last sync? Returns a hash and timestamps without downloading content. Compare the hash to your cached value to know if you need a delta sync.",
+    {
+      cachedHash: z.string().optional().describe("Hash from your previous freshness check. If it matches, nothing changed."),
+    },
+    async ({ cachedHash }) => {
+      try {
+        const result = await client.checkFreshness();
+        const changed = cachedHash ? cachedHash !== result.hash : true;
+
+        return textResponse(
+          JSON.stringify(
+            {
+              changed,
+              hash: result.hash,
+              memoryCount: result.memoryCount,
+              latestUpdate: result.latestUpdate,
+              checkedAt: result.checkedAt,
+              message: changed
+                ? "Context has changed. Use agent_bootstrap_delta to sync."
+                : "No changes since last check. Your cached context is still valid.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error checking freshness", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGENT MEMO BOARD
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memo_leave",
+    "Leave a note for the next agent session. Memos are actionable items like 'started refactoring auth but didn't finish tests' or 'don't touch config.ts, known issue'. Different from session logs — these are direct agent-to-agent messages.",
+    {
+      message: z.string().describe("The memo content"),
+      urgency: z
+        .enum(["info", "warning", "blocker"])
+        .optional()
+        .default("info")
+        .describe("Urgency level: info (FYI), warning (heads up), blocker (must address)"),
+      relatedKeys: z
+        .array(z.string())
+        .optional()
+        .describe("Memory keys this memo relates to"),
+    },
+    async ({ message, urgency, relatedKeys }) => {
+      try {
+        const id = Date.now().toString(36);
+        const key = `agent/memo/${id}`;
+        const priorityMap: Record<string, number> = { info: 30, warning: 60, blocker: 90 };
+        const ttlMs = urgency === "blocker" ? 7 * 86_400_000 : 3 * 86_400_000; // blockers last 7d, others 3d
+
+        await client.storeMemory(key, message, {
+          urgency,
+          relatedKeys: relatedKeys ?? [],
+          createdAt: new Date().toISOString(),
+        }, {
+          priority: priorityMap[urgency] ?? 30,
+          tags: ["memo", urgency],
+          expiresAt: Date.now() + ttlMs,
+        });
+
+        return textResponse(`Memo left (${urgency}): "${message.slice(0, 100)}${message.length > 100 ? "..." : ""}"`);
+      } catch (error) {
+        return errorResponse("Error leaving memo", error);
+      }
+    },
+  );
+
+  server.tool(
+    "memo_read",
+    "Read all active memos left by previous agent sessions. Shows actionable items, warnings, and blockers. Call this at session start to see if there's anything important.",
+    {},
+    async () => {
+      try {
+        const result = await client.searchMemories("agent/memo/", 50);
+        const memos = result as { memories?: Array<Record<string, unknown>> };
+        const items = (memos.memories ?? [])
+          .filter((m) => String(m.key).startsWith("agent/memo/"))
+          .map((m) => {
+            let meta: Record<string, unknown> = {};
+            try {
+              meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : (m.metadata as Record<string, unknown>) ?? {};
+            } catch { /* ignore */ }
+            return {
+              key: m.key,
+              message: m.content,
+              urgency: meta.urgency ?? "info",
+              relatedKeys: meta.relatedKeys ?? [],
+              createdAt: meta.createdAt,
+            };
+          });
+
+        const blockers = items.filter((m) => m.urgency === "blocker");
+        const warnings = items.filter((m) => m.urgency === "warning");
+        const infos = items.filter((m) => m.urgency === "info");
+
+        return textResponse(
+          JSON.stringify(
+            {
+              totalMemos: items.length,
+              blockers: blockers.length,
+              warnings: warnings.length,
+              infos: infos.length,
+              memos: [...blockers, ...warnings, ...infos],
+              hint: items.length === 0
+                ? "No memos from previous sessions."
+                : blockers.length > 0
+                  ? `${blockers.length} BLOCKER(s) require attention before proceeding.`
+                  : "Review memos and proceed.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error reading memos", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY SIZE WARNINGS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_size_audit",
+    "Find oversized memories that consume disproportionate token budget. Returns memories sorted by size with suggestions for splitting. Memories over 4000 chars (~1000 tokens) are flagged.",
+    {
+      threshold: z.number().int().optional().default(4000).describe("Character threshold to flag (default 4000 = ~1000 tokens)"),
+    },
+    async ({ threshold }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+        const CHARS_PER_TOKEN = 4;
+
+        const oversized = allMemories
+          .filter((m) => (m.content?.length ?? 0) > threshold)
+          .map((m) => {
+            const len = m.content?.length ?? 0;
+            const tokenEst = Math.ceil(len / CHARS_PER_TOKEN);
+            // Count sections (headings) to estimate splittability
+            const headings = (m.content ?? "").match(/^#{1,3}\s+.+$/gm) ?? [];
+            return {
+              key: m.key,
+              chars: len,
+              tokenEstimate: tokenEst,
+              headingsCount: headings.length,
+              canSplit: headings.length >= 2,
+              suggestion: headings.length >= 2
+                ? `This memory has ${headings.length} sections. Consider splitting into ${headings.length} separate memories.`
+                : len > threshold * 3
+                  ? "Very large memory. Consider summarizing or breaking into focused sub-entries."
+                  : "Slightly over threshold. Acceptable if content is cohesive.",
+            };
+          })
+          .sort((a, b) => b.chars - a.chars);
+
+        const totalTokens = allMemories.reduce(
+          (sum, m) => sum + Math.ceil((m.content?.length ?? 0) / CHARS_PER_TOKEN),
+          0,
+        );
+        const oversizedTokens = oversized.reduce((sum, m) => sum + m.tokenEstimate, 0);
+
+        return textResponse(
+          JSON.stringify(
+            {
+              totalMemories: allMemories.length,
+              totalTokenEstimate: totalTokens,
+              oversizedCount: oversized.length,
+              oversizedTokenEstimate: oversizedTokens,
+              oversizedPercentage: totalTokens > 0 ? Math.round((oversizedTokens / totalTokens) * 100) : 0,
+              oversized,
+              hint: oversized.length > 0
+                ? `${oversized.length} memories exceed ${threshold} chars. They consume ${Math.round((oversizedTokens / totalTokens) * 100)}% of your total token budget.`
+                : "No oversized memories found.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error auditing memory sizes", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // UNDO / ROLLBACK
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_undo",
+    "Undo the last N changes to a memory. Rolls back to a previous version using the version history. The current content is saved as a new version before rollback (so you can undo the undo).",
+    {
+      key: z.string().describe("Memory key to rollback"),
+      steps: z.number().int().min(1).max(50).optional().default(1).describe("Number of versions to go back (default 1)"),
+    },
+    async ({ key, steps }) => {
+      try {
+        const result = await client.rollbackMemory(key, steps);
+        return textResponse(
+          JSON.stringify(
+            {
+              key: result.key,
+              rolledBackTo: `version ${result.rolledBackTo}`,
+              stepsBack: result.stepsBack,
+              previousContent: result.previousContent,
+              restoredContent: result.restoredContent,
+              message: `Rolled back "${key}" by ${steps} version(s). Current state saved as version ${result.newVersion} (can undo this rollback).`,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error rolling back memory", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CONTEXT THREADING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "context_thread",
+    "Show which memories were actively read/written in recent sessions. Highlights 'hot' memories that were being worked on. Call at session start to continue where the last agent left off.",
+    {
+      sessionCount: z.number().int().min(1).max(10).optional().default(3).describe("How many recent sessions to analyze (default 3)"),
+    },
+    async ({ sessionCount }) => {
+      try {
+        const sessions = await client.getSessionLogs(sessionCount);
+        const logs = sessions.sessionLogs ?? [];
+
+        const hotKeys: Record<string, { reads: number; writes: number; lastSession: string }> = {};
+
+        for (const log of logs) {
+          const read = log.keysRead ? JSON.parse(log.keysRead as string) as string[] : [];
+          const written = log.keysWritten ? JSON.parse(log.keysWritten as string) as string[] : [];
+
+          for (const k of read) {
+            if (!hotKeys[k]) hotKeys[k] = { reads: 0, writes: 0, lastSession: "" };
+            hotKeys[k].reads++;
+            if (!hotKeys[k].lastSession) hotKeys[k].lastSession = log.sessionId;
+          }
+          for (const k of written) {
+            if (!hotKeys[k]) hotKeys[k] = { reads: 0, writes: 0, lastSession: "" };
+            hotKeys[k].writes++;
+            if (!hotKeys[k].lastSession) hotKeys[k].lastSession = log.sessionId;
+          }
+        }
+
+        // Sort by activity (writes first, then reads)
+        const sorted = Object.entries(hotKeys)
+          .map(([key, stats]) => ({
+            key,
+            ...stats,
+            activity: stats.writes * 3 + stats.reads,
+          }))
+          .sort((a, b) => b.activity - a.activity);
+
+        const activelyEdited = sorted.filter((s) => s.writes > 0);
+        const readOnly = sorted.filter((s) => s.writes === 0);
+
+        return textResponse(
+          JSON.stringify(
+            {
+              sessionsAnalyzed: logs.length,
+              hotMemories: sorted.length,
+              activelyEdited: activelyEdited.slice(0, 10),
+              frequentlyRead: readOnly.slice(0, 10),
+              hint: activelyEdited.length > 0
+                ? `${activelyEdited.length} memories were being actively edited. Consider reading these first to continue the work.`
+                : "No recent edits. Starting fresh.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error fetching context thread", error);
+      }
+    },
+  );
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MEMORY QUALITY SCORE
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  server.tool(
+    "memory_quality",
+    "Score memories on content quality (not just staleness). Checks: too short, unstructured, no headings, poor feedback ratio, conflicting content. Sorted worst-first to prioritize updates.",
+    {
+      limit: z.number().int().min(1).max(100).optional().default(30),
+    },
+    async ({ limit }) => {
+      try {
+        const allMemories = await listAllMemories(client);
+
+        const scored = allMemories.map((mem) => {
+          const content = mem.content ?? "";
+          const len = content.length;
+          const issues: string[] = [];
+          let score = 100;
+
+          // Length check
+          if (len < 50) {
+            score -= 30;
+            issues.push("Very short content (< 50 chars). May not be useful.");
+          } else if (len < 150) {
+            score -= 10;
+            issues.push("Short content. Consider adding more detail.");
+          }
+
+          // Structure check (has headings/sections?)
+          const headings = content.match(/^#{1,3}\s+.+$/gm) ?? [];
+          const hasBullets = /^[-*]\s+/m.test(content);
+          if (len > 500 && headings.length === 0 && !hasBullets) {
+            score -= 15;
+            issues.push("Long unstructured content. Add headings or bullet points.");
+          }
+
+          // Feedback ratio
+          const helpful = mem.helpfulCount ?? 0;
+          const unhelpful = mem.unhelpfulCount ?? 0;
+          const totalFeedback = helpful + unhelpful;
+          if (totalFeedback >= 3 && unhelpful > helpful) {
+            score -= 25;
+            issues.push(`Negative feedback ratio (${helpful} helpful, ${unhelpful} unhelpful).`);
+          }
+
+          // Staleness (no access in 30+ days)
+          const lastAccess = mem.lastAccessedAt ? new Date(mem.lastAccessedAt as string).getTime() : 0;
+          if (lastAccess) {
+            const daysSince = (Date.now() - lastAccess) / 86_400_000;
+            if (daysSince > 60) {
+              score -= 20;
+              issues.push(`Not accessed in ${Math.round(daysSince)} days.`);
+            } else if (daysSince > 30) {
+              score -= 10;
+              issues.push(`Not accessed in ${Math.round(daysSince)} days.`);
+            }
+          }
+
+          // Placeholder/TODO content
+          if (/TODO|FIXME|PLACEHOLDER|TBD/i.test(content)) {
+            score -= 15;
+            issues.push("Contains TODO/FIXME markers. Needs completion.");
+          }
+
+          // Duplicate-ish short content
+          if (len > 0 && len < 100 && (mem.priority ?? 0) === 0) {
+            score -= 5;
+            issues.push("Low-priority short entry. Consider if this is still needed.");
+          }
+
+          return {
+            key: mem.key,
+            qualityScore: Math.max(0, score),
+            issues,
+            contentLength: len,
+            priority: mem.priority ?? 0,
+            accessCount: mem.accessCount ?? 0,
+          };
+        });
+
+        scored.sort((a, b) => a.qualityScore - b.qualityScore);
+        const results = scored.slice(0, limit);
+        const lowQuality = results.filter((m) => m.qualityScore < 50);
+
+        return textResponse(
+          JSON.stringify(
+            {
+              totalMemories: allMemories.length,
+              analyzed: results.length,
+              lowQualityCount: lowQuality.length,
+              averageQuality: Math.round(scored.reduce((s, m) => s + m.qualityScore, 0) / (scored.length || 1)),
+              memories: results,
+              hint: lowQuality.length > 0
+                ? `${lowQuality.length} memories have quality score below 50. Update, expand, or archive them.`
+                : "All analyzed memories have acceptable quality.",
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        return errorResponse("Error scoring memory quality", error);
       }
     },
   );

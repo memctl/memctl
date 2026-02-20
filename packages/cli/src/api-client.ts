@@ -532,4 +532,29 @@ export class ApiClient {
       results: Record<string, { affected: number }>;
     }>("POST", "/memories/lifecycle/schedule", options ?? {});
   }
+
+  // ── Freshness Check ─────────────────────────────────────────────
+
+  async checkFreshness() {
+    return this.request<{
+      memoryCount: number;
+      latestUpdate: number | null;
+      latestCreate: number | null;
+      hash: string;
+      checkedAt: number;
+    }>("GET", "/memories/freshness");
+  }
+
+  // ── Rollback ────────────────────────────────────────────────────
+
+  async rollbackMemory(key: string, steps = 1) {
+    return this.request<{
+      key: string;
+      rolledBackTo: number;
+      stepsBack: number;
+      previousContent: string;
+      restoredContent: string;
+      newVersion: number;
+    }>("POST", "/memories/rollback", { key, steps });
+  }
 }
