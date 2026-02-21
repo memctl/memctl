@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
-import { organizations } from "@memctl/db/schema";
-import { eq } from "drizzle-orm";
+import { organizations, promoCodes, promoRedemptions } from "@memctl/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { isBillingEnabled } from "@/lib/plans";
+import { generateId } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   if (!isBillingEnabled()) {
@@ -61,6 +62,58 @@ export async function POST(req: NextRequest) {
               updatedAt: new Date(),
             })
             .where(eq(organizations.slug, orgSlug));
+        }
+
+        // Track promo code redemption
+        try {
+          const totalDiscount = session.total_details?.amount_discount ?? 0;
+          // Check if a promotion code was applied via discounts
+          const discountObjs = (session as Record<string, unknown>).discounts as Array<{ promotion_code?: string }> | undefined;
+          const appliedPromoCodeId =
+            discountObjs?.[0]?.promotion_code ??
+            (typeof (session as Record<string, unknown>).discount === "object" &&
+            (session as Record<string, unknown>).discount !== null
+              ? ((session as Record<string, unknown>).discount as { promotion_code?: string }).promotion_code
+              : undefined);
+
+          if (appliedPromoCodeId && typeof appliedPromoCodeId === "string") {
+            const [promo] = await db
+              .select()
+              .from(promoCodes)
+              .where(eq(promoCodes.stripePromoCodeId, appliedPromoCodeId))
+              .limit(1);
+
+            if (promo) {
+              const [org] = await db
+                .select()
+                .from(organizations)
+                .where(eq(organizations.slug, orgSlug))
+                .limit(1);
+
+              if (org) {
+                await db.insert(promoRedemptions).values({
+                  id: generateId(),
+                  promoCodeId: promo.id,
+                  orgId: org.id,
+                  userId: session.metadata?.userId ?? org.ownerId,
+                  planId: planId ?? org.planId,
+                  discountApplied: totalDiscount,
+                  stripeCheckoutSessionId: session.id,
+                });
+
+                await db
+                  .update(promoCodes)
+                  .set({
+                    timesRedeemed: sql`${promoCodes.timesRedeemed} + 1`,
+                    totalDiscountGiven: sql`${promoCodes.totalDiscountGiven} + ${totalDiscount}`,
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(promoCodes.id, promo.id));
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Failed to track promo redemption:", err);
         }
       }
       break;
