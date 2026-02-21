@@ -68,12 +68,12 @@ export async function POST(req: NextRequest) {
         try {
           const totalDiscount = session.total_details?.amount_discount ?? 0;
           // Check if a promotion code was applied via discounts
-          const discountObjs = (session as Record<string, unknown>).discounts as Array<{ promotion_code?: string }> | undefined;
+          const sessionAny = session as unknown as Record<string, unknown>;
+          const discountObjs = sessionAny.discounts as Array<{ promotion_code?: string }> | undefined;
           const appliedPromoCodeId =
             discountObjs?.[0]?.promotion_code ??
-            (typeof (session as Record<string, unknown>).discount === "object" &&
-            (session as Record<string, unknown>).discount !== null
-              ? ((session as Record<string, unknown>).discount as { promotion_code?: string }).promotion_code
+            (typeof sessionAny.discount === "object" && sessionAny.discount !== null
+              ? (sessionAny.discount as { promotion_code?: string }).promotion_code
               : undefined);
 
           if (appliedPromoCodeId && typeof appliedPromoCodeId === "string") {

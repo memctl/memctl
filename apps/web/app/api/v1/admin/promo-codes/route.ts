@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
-import { promoCodes, promoRedemptions } from "@memctl/db/schema";
-import { eq, and, like, desc, asc, count, sql } from "drizzle-orm";
+import { promoCodes } from "@memctl/db/schema";
+import { eq, and, desc, asc, count, sql } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { createStripeCouponAndPromoCode } from "@/lib/stripe";
 

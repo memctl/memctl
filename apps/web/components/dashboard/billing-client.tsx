@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Check, CreditCard, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Check, CreditCard, FileText, Ticket, X, ChevronDown } from "lucide-react";
 import type { PlanId } from "@memctl/shared/constants";
 
 interface PlanInfo {
@@ -20,6 +22,14 @@ interface BillingClientProps {
   currentPlan: PlanId;
   hasSubscription: boolean;
   plans: Record<string, PlanInfo>;
+}
+
+interface PromoDiscount {
+  type: string;
+  amount: number;
+  currency: string;
+  duration: string;
+  durationInMonths: number | null;
 }
 
 const isSelfHostedClient =
@@ -53,14 +63,84 @@ export function BillingClient({
   plans,
 }: BillingClientProps) {
   const [loading, setLoading] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  // Promo code state
+  const [promoExpanded, setPromoExpanded] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [promoValidating, setPromoValidating] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discount: PromoDiscount;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+
+  const validatePromo = useCallback(async (code: string, planId?: string) => {
+    if (!code) return;
+    setPromoValidating(true);
+    setPromoError(null);
+    try {
+      const res = await fetch(`/api/v1/orgs/${orgSlug}/validate-promo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.toUpperCase(), planId }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setAppliedPromo({ code: code.toUpperCase(), discount: data.discount });
+        setPromoError(null);
+      } else {
+        setAppliedPromo(null);
+        setPromoError(data.reason ?? "Invalid promo code");
+      }
+    } catch {
+      setPromoError("Failed to validate code");
+    } finally {
+      setPromoValidating(false);
+    }
+  }, [orgSlug]);
+
+  // Auto-apply promo from URL param
+  useEffect(() => {
+    const promoParam = searchParams.get("promo");
+    if (promoParam) {
+      setPromoExpanded(true);
+      setPromoInput(promoParam.toUpperCase());
+      validatePromo(promoParam);
+    }
+  }, [searchParams, validatePromo]);
+
+  // Re-validate when plan selection changes
+  const appliedCode = appliedPromo?.code;
+  useEffect(() => {
+    if (appliedCode && selectedPlan) {
+      validatePromo(appliedCode, selectedPlan);
+    }
+  }, [selectedPlan, appliedCode, validatePromo]);
+
+  const handleApplyPromo = () => {
+    if (!promoInput.trim()) return;
+    validatePromo(promoInput, selectedPlan ?? undefined);
+  };
+
+  const removePromo = () => {
+    setAppliedPromo(null);
+    setPromoInput("");
+    setPromoError(null);
+  };
 
   const handleCheckout = async (planId: string) => {
     setLoading(planId);
+    setSelectedPlan(planId);
     try {
       const res = await fetch(`/api/v1/orgs/${orgSlug}/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({
+          planId,
+          promoCode: appliedPromo?.code ?? undefined,
+        }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -80,6 +160,27 @@ export function BillingClient({
     } finally {
       setLoading(null);
     }
+  };
+
+  const formatDiscountBadge = (discount: PromoDiscount) => {
+    const amount =
+      discount.type === "percent"
+        ? `${discount.amount}% off`
+        : `$${(discount.amount / 100).toFixed(2)} off`;
+    const dur =
+      discount.duration === "once"
+        ? "once"
+        : discount.duration === "forever"
+          ? "forever"
+          : `for ${discount.durationInMonths} months`;
+    return `${amount} ${dur}`;
+  };
+
+  const getDiscountedPrice = (planPrice: number, discount: PromoDiscount) => {
+    if (discount.type === "percent") {
+      return planPrice - planPrice * (discount.amount / 100);
+    }
+    return Math.max(0, planPrice - discount.amount / 100);
   };
 
   const renderActionButton = (planId: PlanId) => {
@@ -137,6 +238,70 @@ export function BillingClient({
 
   return (
     <>
+      {/* Promo Code Section */}
+      {!isSelfHostedClient && (
+        <div className="mt-6">
+          <button
+            onClick={() => setPromoExpanded(!promoExpanded)}
+            className="flex items-center gap-2 text-sm text-[var(--landing-text-secondary)] transition-colors hover:text-[var(--landing-text)]"
+          >
+            <Ticket className="h-4 w-4" />
+            Have a promo code?
+            <ChevronDown className={`h-4 w-4 transition-transform ${promoExpanded ? "rotate-180" : ""}`} />
+          </button>
+
+          {promoExpanded && (
+            <div className="mt-3">
+              {appliedPromo ? (
+                <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 font-mono text-sm font-medium text-emerald-500">
+                        <Ticket className="h-3.5 w-3.5" />
+                        {formatDiscountBadge(appliedPromo.discount)}
+                      </span>
+                    </div>
+                    <p className="mt-2 font-mono text-xs text-[var(--landing-text-secondary)]">
+                      Code: {appliedPromo.code}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={removePromo}
+                    className="text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                    placeholder="Enter code"
+                    className="max-w-[240px] font-mono border-[var(--landing-border)] bg-[var(--landing-surface)]"
+                    onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
+                  />
+                  <Button
+                    onClick={handleApplyPromo}
+                    disabled={promoValidating || !promoInput.trim()}
+                    variant="outline"
+                    className="border-[var(--landing-border)]"
+                  >
+                    {promoValidating ? "..." : "Apply"}
+                  </Button>
+                </div>
+              )}
+
+              {promoError && (
+                <p className="mt-2 text-sm text-red-500">{promoError}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Plan Cards Grid */}
       <div className="mt-10">
         <h2 className="text-sm font-medium text-[var(--landing-text)]">
@@ -147,6 +312,10 @@ export function BillingClient({
             const plan = plans[id];
             if (!plan) return null;
             const isCurrent = id === currentPlan;
+            const showDiscount = appliedPromo && PAID_PLANS.includes(id) && plan.price > 0;
+            const discountedPrice = showDiscount
+              ? getDiscountedPrice(plan.price, appliedPromo.discount)
+              : null;
             return (
               <div
                 key={id}
@@ -161,7 +330,18 @@ export function BillingClient({
                     {plan.name}
                   </h3>
                   <span className="text-sm font-medium text-[var(--landing-text)]">
-                    {formatPrice(plan.price)}
+                    {showDiscount && discountedPrice !== null ? (
+                      <>
+                        <span className="mr-1.5 text-[var(--landing-text-tertiary)] line-through">
+                          {formatPrice(plan.price)}
+                        </span>
+                        <span className="text-emerald-500">
+                          {formatPrice(Math.round(discountedPrice * 100) / 100)}
+                        </span>
+                      </>
+                    ) : (
+                      formatPrice(plan.price)
+                    )}
                   </span>
                 </div>
 

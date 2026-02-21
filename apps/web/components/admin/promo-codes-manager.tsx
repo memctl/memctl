@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -219,7 +218,6 @@ function generateRandomCode() {
 export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
   const [codes, setCodes] = useState<PromoCode[]>([]);
   const [campaigns, setCampaigns] = useState<string[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCampaign, setFilterCampaign] = useState("");
@@ -254,7 +252,6 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
     const data = await res.json();
     setCodes(data.codes ?? []);
     setCampaigns(data.campaigns ?? []);
-    setTotal(data.total ?? 0);
     setLoading(false);
   }, [searchQuery, filterCampaign, filterStatus]);
 

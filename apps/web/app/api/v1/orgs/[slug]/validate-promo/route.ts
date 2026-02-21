@@ -9,7 +9,6 @@ import {
 } from "@memctl/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { headers } from "next/headers";
-import { PLAN_IDS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 
 const PLAN_TIER_ORDER: PlanId[] = ["free", "lite", "pro", "business", "scale", "enterprise"];
