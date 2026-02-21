@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { organizations, organizationMembers } from "@memctl/db/schema";
+import { organizations, organizationMembers, promoCodes } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { createCheckoutSession, STRIPE_PLANS } from "@/lib/stripe";
@@ -52,6 +52,7 @@ export async function POST(
 
   const body = await req.json().catch(() => null);
   const planId = body?.planId;
+  const promoCode = body?.promoCode;
 
   if (!planId || !STRIPE_PLANS[planId]) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
@@ -59,6 +60,19 @@ export async function POST(
 
   if (!org.stripeCustomerId) {
     return NextResponse.json({ error: "No Stripe customer" }, { status: 400 });
+  }
+
+  // Resolve promo code to Stripe promotion code ID
+  let stripePromoCodeId: string | undefined;
+  if (promoCode) {
+    const [promo] = await db
+      .select()
+      .from(promoCodes)
+      .where(and(eq(promoCodes.code, promoCode.toUpperCase()), eq(promoCodes.active, true)))
+      .limit(1);
+    if (promo) {
+      stripePromoCodeId = promo.stripePromoCodeId;
+    }
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -69,6 +83,7 @@ export async function POST(
     orgSlug: slug,
     successUrl: `${appUrl}/org/${slug}/billing?success=true`,
     cancelUrl: `${appUrl}/org/${slug}/billing?canceled=true`,
+    stripePromoCodeId,
   });
 
   return NextResponse.json({ url: checkoutSession.url });

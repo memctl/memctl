@@ -49,6 +49,7 @@ export async function createCheckoutSession(params: {
   orgSlug: string;
   successUrl: string;
   cancelUrl: string;
+  stripePromoCodeId?: string;
 }) {
   return getStripe().checkout.sessions.create({
     customer: params.customerId,
@@ -57,7 +58,57 @@ export async function createCheckoutSession(params: {
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
     metadata: { orgSlug: params.orgSlug },
+    ...(params.stripePromoCodeId
+      ? { discounts: [{ promotion_code: params.stripePromoCodeId }] }
+      : { allow_promotion_codes: true }),
   });
+}
+
+export async function createStripeCouponAndPromoCode(params: {
+  code: string;
+  discountType: "percent" | "fixed";
+  discountAmount: number;
+  currency?: string;
+  duration: "once" | "repeating" | "forever";
+  durationInMonths?: number;
+  maxRedemptions?: number;
+  expiresAt?: Date;
+  firstSubscriptionOnly?: boolean;
+}) {
+  const s = getStripe();
+
+  const coupon = await s.coupons.create({
+    ...(params.discountType === "percent"
+      ? { percent_off: params.discountAmount }
+      : { amount_off: params.discountAmount, currency: params.currency ?? "usd" }),
+    duration: params.duration,
+    ...(params.duration === "repeating" && params.durationInMonths
+      ? { duration_in_months: params.durationInMonths }
+      : {}),
+    ...(params.maxRedemptions ? { max_redemptions: params.maxRedemptions } : {}),
+    ...(params.expiresAt
+      ? { redeem_by: Math.floor(params.expiresAt.getTime() / 1000) }
+      : {}),
+  });
+
+  const promoCode = await s.promotionCodes.create({
+    coupon: coupon.id,
+    code: params.code,
+    active: true,
+    ...(params.firstSubscriptionOnly
+      ? { restrictions: { first_time_transaction: true } }
+      : {}),
+  });
+
+  return { couponId: coupon.id, promoCodeId: promoCode.id };
+}
+
+export async function deactivateStripePromoCode(promoCodeId: string) {
+  return getStripe().promotionCodes.update(promoCodeId, { active: false });
+}
+
+export async function reactivateStripePromoCode(promoCodeId: string) {
+  return getStripe().promotionCodes.update(promoCodeId, { active: true });
 }
 
 export async function createCustomerPortalSession(params: {
