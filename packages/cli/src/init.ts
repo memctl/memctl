@@ -44,7 +44,7 @@ export async function runInit(flags: InitFlags): Promise<void> {
         detectedOrg = match[1]!;
         detectedProject = match[2]!;
       }
-    } catch {}
+    } catch { /* ignore */ }
 
     // 2. API token
     const token = await rl.question("  API token: ");
@@ -196,7 +196,7 @@ async function writeJsonConfig(path: string, data: Record<string, unknown>, ideN
   try {
     const raw = await readFile(path, "utf-8");
     existing = JSON.parse(raw) as Record<string, unknown>;
-  } catch {}
+  } catch { /* ignore */ }
 
   const merged = {
     ...existing,

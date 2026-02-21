@@ -46,7 +46,7 @@ export function registerImportExportTool(server: McpServer, client: ApiClient, _
             for (const section of sections) {
               const key = buildAgentContextKey(section.type, section.id);
               if (!params.overwrite) {
-                try { await client.getMemory(key); results.push({ key, status: "skipped (exists)" }); continue; } catch {}
+                try { await client.getMemory(key); results.push({ key, status: "skipped (exists)" }); continue; } catch { /* ignore */ }
               }
               try {
                 await client.storeMemory(key, section.content, {

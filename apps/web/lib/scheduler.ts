@@ -114,7 +114,7 @@ export function initScheduler(): void {
         if (score < PRUNE_THRESHOLD) {
           let existingTags: string[] = [];
           if (mem.tags) {
-            try { existingTags = JSON.parse(mem.tags) as string[]; } catch {}
+            try { existingTags = JSON.parse(mem.tags) as string[]; } catch { /* ignore */ }
           }
           const newTags = [...new Set([...existingTags, "auto:pruned"])];
           await db

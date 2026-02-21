@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Mock agent-context before any handler imports ──────────────────────

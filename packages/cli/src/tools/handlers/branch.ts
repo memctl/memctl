@@ -55,7 +55,7 @@ export function registerBranchTool(server: McpServer, client: ApiClient, _rl: Ra
                 try {
                   const meta = typeof plan.memory.metadata === "string" ? JSON.parse(plan.memory.metadata) : plan.memory.metadata;
                   planStatus = { status: meta.planStatus ?? "active", checklist: meta.checklist ?? null, completedItems: meta.completedItems ?? null, totalItems: meta.totalItems ?? null };
-                } catch {}
+                } catch { /* ignore */ }
               }
             }
 

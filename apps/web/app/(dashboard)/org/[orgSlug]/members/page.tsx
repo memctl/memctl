@@ -32,7 +32,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { MemberRowActions } from "@/components/dashboard/members/member-row-actions";
-import { Shield, ShieldAlert, Lock, Users, UserPlus, Crown, Clock, Mail } from "lucide-react";
+import { Shield, Lock, Users, Crown, Mail } from "lucide-react";
 
 const roleBadgeStyles: Record<string, string> = {
   owner:

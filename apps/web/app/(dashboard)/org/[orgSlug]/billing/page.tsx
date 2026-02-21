@@ -11,7 +11,7 @@ import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { BillingClient } from "@/components/dashboard/billing-client";
-import { isSelfHosted, formatLimitValue } from "@/lib/plans";
+import { isSelfHosted } from "@/lib/plans";
 import { Server, Infinity as InfinityIcon, Shield, Check, FolderOpen, Users, Brain, Zap, Lock, Database, Globe } from "lucide-react";
 
 export default async function BillingPage({

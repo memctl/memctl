@@ -202,7 +202,7 @@ async function handleGraph(client: ApiClient) {
   for (const mem of allMemories) {
     allKeys.add(mem.key);
     let related: string[] = [];
-    if (mem.relatedKeys) { try { related = JSON.parse(mem.relatedKeys as string); } catch {} }
+    if (mem.relatedKeys) { try { related = JSON.parse(mem.relatedKeys as string); } catch { /* ignore */ } }
     adjacency[mem.key] = related.filter((k) => k !== mem.key);
   }
 
@@ -384,9 +384,9 @@ async function handleSizeAudit(client: ApiClient, threshold: number) {
 async function handleSunset(client: ApiClient, limit: number) {
   const allMemories = await listAllMemories(client);
   let currentBranches = new Set<string>();
-  try { const { stdout } = await execFileAsync("git", ["branch", "--format=%(refname:short)"]); currentBranches = new Set(stdout.trim().split("\n").filter(Boolean)); } catch {}
+  try { const { stdout } = await execFileAsync("git", ["branch", "--format=%(refname:short)"]); currentBranches = new Set(stdout.trim().split("\n").filter(Boolean)); } catch { /* ignore */ }
   let trackedFiles = new Set<string>();
-  try { const { stdout } = await execFileAsync("git", ["ls-files"]); trackedFiles = new Set(stdout.trim().split("\n").filter(Boolean)); } catch {}
+  try { const { stdout } = await execFileAsync("git", ["ls-files"]); trackedFiles = new Set(stdout.trim().split("\n").filter(Boolean)); } catch { /* ignore */ }
 
   const now = Date.now();
   const suggestions: Array<{ key: string; score: number; reasons: string[]; priority: number; lastAccessedAt: string | null }> = [];
@@ -394,14 +394,14 @@ async function handleSunset(client: ApiClient, limit: number) {
     if (mem.archivedAt) continue;
     let score = 0; const reasons: string[] = [];
     let tags: string[] = [];
-    try { tags = JSON.parse(mem.tags as string ?? "[]"); } catch {}
+    try { tags = JSON.parse(mem.tags as string ?? "[]"); } catch { /* ignore */ }
     const branchTag = tags.find((t) => t.startsWith("branch:"));
     if (branchTag) {
       const branchName = branchTag.replace("branch:", "");
       if (currentBranches.size > 0 && !currentBranches.has(branchName)) { score += 40; reasons.push(`Branch "${branchName}" no longer exists`); }
     }
     const content = mem.content ?? "";
-    const fileRefs = content.match(/(?:^|\s)([\w./\-]+\.\w{1,10})/gm) ?? [];
+    const fileRefs = content.match(/(?:^|\s)([\w./-]+\.\w{1,10})/gm) ?? [];
     const missingFiles = fileRefs.map((f) => f.trim()).filter((f) => trackedFiles.size > 0 && !trackedFiles.has(f) && f.includes("/"));
     if (missingFiles.length > 0) { score += 30; reasons.push(`References ${missingFiles.length} file(s) no longer in repo`); }
     const lastAccess = mem.lastAccessedAt ? new Date(mem.lastAccessedAt as string).getTime() : 0;
@@ -521,7 +521,7 @@ async function handleAutoTag(client: ApiClient, key: string, apply: boolean) {
   const uniqueTags = [...new Set(suggestedTags)];
   if (apply && uniqueTags.length > 0) {
     let existingTags: string[] = [];
-    if (mem.memory.tags) { try { existingTags = JSON.parse(mem.memory.tags); } catch {} }
+    if (mem.memory.tags) { try { existingTags = JSON.parse(mem.memory.tags); } catch { /* ignore */ } }
     const merged = [...new Set([...existingTags, ...uniqueTags])];
     await client.updateMemory(key, undefined, undefined, { tags: merged });
     return textResponse(`Auto-tagged "${key}" with: ${uniqueTags.join(", ")}.`);
@@ -576,7 +576,7 @@ async function handleBranchFilter(client: ApiClient, branch?: string) {
   if (branch) {
     const branchTag = `branch:${branch}`;
     const branchMemories = allMemories.filter((m) => {
-      try { const tags = JSON.parse(m.tags ?? "[]") as string[]; return tags.includes(branchTag); } catch { return false; }
+      try { const tags = JSON.parse(m.tags ?? "[]") as string[]; return tags.includes(branchTag); } catch { /* ignore */ return false; }
     });
     return textResponse(JSON.stringify({ branch, count: branchMemories.length, memories: branchMemories.map((m) => ({ key: m.key, priority: m.priority, updatedAt: m.updatedAt, contentPreview: (m.content ?? "").slice(0, 120) })) }, null, 2));
   }
@@ -584,7 +584,7 @@ async function handleBranchFilter(client: ApiClient, branch?: string) {
   let globalCount = 0;
   for (const m of allMemories) {
     let tags: string[] = [];
-    try { tags = JSON.parse(m.tags ?? "[]") as string[]; } catch {}
+    try { tags = JSON.parse(m.tags ?? "[]") as string[]; } catch { /* ignore */ }
     const branchTags = tags.filter((t) => t.startsWith("branch:"));
     if (branchTags.length === 0) globalCount++;
     else for (const bt of branchTags) { const name = bt.replace("branch:", ""); branchCounts[name] = (branchCounts[name] ?? 0) + 1; }
@@ -599,7 +599,7 @@ async function handleBranchMerge(client: ApiClient, rl: RateLimitState, branch: 
   const branchTag = `branch:${branch}`;
   const branchMemories = allMemories.filter((mem) => {
     if (!mem.tags) return false;
-    try { return (JSON.parse(mem.tags as string) as string[]).includes(branchTag); } catch { return false; }
+    try { return (JSON.parse(mem.tags as string) as string[]).includes(branchTag); } catch { /* ignore */ return false; }
   });
   if (branchMemories.length === 0) return textResponse(JSON.stringify({ branch, action, found: 0, affected: 0, message: `No memories with tag "${branchTag}".` }, null, 2));
   if (dryRun) return textResponse(JSON.stringify({ branch, action, dryRun: true, found: branchMemories.length, keys: branchMemories.map((m) => m.key) }, null, 2));
@@ -608,7 +608,7 @@ async function handleBranchMerge(client: ApiClient, rl: RateLimitState, branch: 
   if (action === "promote") {
     for (const mem of branchMemories) {
       let tags: string[] = [];
-      try { tags = JSON.parse(mem.tags as string); } catch {}
+      try { tags = JSON.parse(mem.tags as string); } catch { /* ignore */ }
       await client.updateMemory(mem.key, undefined, undefined, { tags: tags.filter((t) => t !== branchTag) });
       rl.incrementWriteCount();
       affected++;

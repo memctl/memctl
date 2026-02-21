@@ -180,7 +180,7 @@ export function HealthDashboard({
                         <span className="text-[var(--landing-text-tertiary)]">{count}</span>
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent><p className="text-xs">{count} memor{count === 1 ? "y" : "ies"} tagged "{tag}"</p></TooltipContent>
+                    <TooltipContent><p className="text-xs">{count} memor{count === 1 ? "y" : "ies"} tagged &quot;{tag}&quot;</p></TooltipContent>
                   </Tooltip>
                 ))}
               </div>

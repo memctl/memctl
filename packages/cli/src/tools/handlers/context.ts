@@ -153,7 +153,7 @@ async function handleBootstrap(client: ApiClient, params: Record<string, unknown
     try {
       const orgDefaults = await client.listOrgDefaults();
       if (orgDefaults.defaults.length > 0) orgDefaultsHint = `This project has no memories yet. Your organization has ${orgDefaults.defaults.length} default memories available. Use org defaults_apply to populate this project.`;
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   return textResponse(JSON.stringify({ functionalityTypes, currentBranch: branchInfo, branchPlan, memoryStatus, availableTypes: allTypeSlugs, orgDefaultsHint }, null, 2));
@@ -214,7 +214,7 @@ async function handleFunctionalityGet(client: ApiClient, params: Record<string, 
         try {
           const relatedKeys = JSON.parse(relatedKeysRaw) as string[];
           if (relatedKeys.length > 0) { const bulk = await client.bulkGetMemories(relatedKeys); linked = Object.values(bulk.memories); }
-        } catch {}
+        } catch { /* ignore */ }
       }
     }
     return textResponse(JSON.stringify(followLinks ? { ...memory, linkedMemories: linked } : memory, null, 2));
@@ -422,7 +422,7 @@ async function handleCompose(client: ApiClient, params: Record<string, unknown>)
           selectedKeys.add(rk);
           budgetRemaining -= relEntry.content.length;
         }
-      } catch {}
+      } catch { /* ignore */ }
     }
     if (budgetRemaining <= 0) break;
   }
@@ -463,13 +463,13 @@ async function handleSmartRetrieve(client: ApiClient, params: Record<string, unk
   const linkedKeys = new Set<string>();
   if (followLinks) {
     for (const { mem } of top) {
-      if (mem.relatedKeys) { try { (JSON.parse(mem.relatedKeys as string) as string[]).forEach((k) => linkedKeys.add(k)); } catch {} }
+      if (mem.relatedKeys) { try { (JSON.parse(mem.relatedKeys as string) as string[]).forEach((k) => linkedKeys.add(k)); } catch { /* ignore */ } }
     }
     for (const { mem } of top) linkedKeys.delete(mem.key);
   }
 
   let linked: Array<Record<string, unknown>> = [];
-  if (linkedKeys.size > 0) { try { const bulk = await client.bulkGetMemories([...linkedKeys]); linked = Object.values(bulk.memories) as Array<Record<string, unknown>>; } catch {} }
+  if (linkedKeys.size > 0) { try { const bulk = await client.bulkGetMemories([...linkedKeys]); linked = Object.values(bulk.memories) as Array<Record<string, unknown>>; } catch { /* ignore */ } }
 
   return textResponse(JSON.stringify({
     intent, resultsCount: top.length, linkedCount: linked.length,

@@ -14,7 +14,7 @@ export default [
   js.configs.recommended,
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    ignores: [".next/**", "node_modules/**"],
+    ignores: [".next/**", "node_modules/**", ".source/**", "next-env.d.ts"],
   },
   {
     rules: {

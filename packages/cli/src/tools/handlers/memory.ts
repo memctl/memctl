@@ -100,7 +100,7 @@ async function handleStore(client: ApiClient, rl: RateLimitState, params: Record
           const branchTag = `branch:${bi.branch}`;
           if (!resolvedTags.includes(branchTag)) resolvedTags = [...resolvedTags, branchTag];
         }
-      } catch {}
+      } catch { /* ignore */ }
     }
 
     let resolvedExpiry = expiresAt;
@@ -132,7 +132,7 @@ async function handleStore(client: ApiClient, rl: RateLimitState, params: Record
         }
         dedupWarning = ` Warning: Similar memory: "${top.key}" (${Math.round(top.similarity * 100)}% match).`;
       }
-    } catch {}
+    } catch { /* ignore */ }
 
     await client.storeMemory(key, content, metadata, { scope, priority, tags: resolvedTags.length > 0 ? resolvedTags : undefined, expiresAt: resolvedExpiry });
     const scopeMsg = scope === "shared" ? " [shared across org]" : "";
@@ -199,7 +199,7 @@ async function handleGet(client: ApiClient, params: Record<string, unknown>) {
         try {
           const relKeys = JSON.parse(mem.relatedKeys as string) as string[];
           if (relKeys.length > 0) hints.push(`Linked to ${relKeys.length} other memories`);
-        } catch {}
+        } catch { /* ignore */ }
       }
 
       return textResponse(JSON.stringify({ ...memory, hints }, null, 2));
@@ -291,7 +291,7 @@ async function handleUpdate(client: ApiClient, rl: RateLimitState, params: Recor
       if (impacted.length > 0) {
         impactWarning = ` Warning: ${impacted.length} other memories reference "${key}": ${impacted.slice(0, 5).map((m) => m.key).join(", ")}${impacted.length > 5 ? "..." : ""}.`;
       }
-    } catch {}
+    } catch { /* ignore */ }
 
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
     return textResponse(`Memory updated: ${key}${impactWarning}${rateWarn}`);
@@ -356,7 +356,7 @@ async function handleStoreSafe(client: ApiClient, params: Record<string, unknown
     let current: Record<string, unknown> | null = null;
     try {
       current = await client.getMemory(key) as Record<string, unknown>;
-    } catch {}
+    } catch { /* ignore */ }
 
     const mem = current?.memory as Record<string, unknown> | undefined;
     if (mem?.updatedAt) {

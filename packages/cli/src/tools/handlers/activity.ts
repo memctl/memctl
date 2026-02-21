@@ -134,7 +134,7 @@ exit 0
               .filter((m) => String(m.key).startsWith("agent/memo/"))
               .map((m) => {
                 let meta: Record<string, unknown> = {};
-                try { meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : (m.metadata as Record<string, unknown>) ?? {}; } catch {}
+                try { meta = typeof m.metadata === "string" ? JSON.parse(m.metadata) : (m.metadata as Record<string, unknown>) ?? {}; } catch { /* ignore */ }
                 return {
                   key: m.key, message: m.content, urgency: meta.urgency ?? "info",
                   relatedKeys: meta.relatedKeys ?? [], createdAt: meta.createdAt,

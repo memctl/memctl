@@ -130,7 +130,7 @@ async function handleOnboard(client: ApiClient, apply: boolean) {
       if (deps.biome || deps["@biomejs/biome"]) detected.linter = "Biome";
       if (deps.prettier) detected.formatter = "Prettier";
       if (pkg.workspaces) detected.monorepo = "npm/yarn workspaces";
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   const pnpmWorkspace = await readFile("pnpm-workspace.yaml");
@@ -161,7 +161,7 @@ async function handleOnboard(client: ApiClient, apply: boolean) {
     const files = result.stdout.trim().split("\n").filter(Boolean);
     const topDirs = [...new Set(files.map((f) => f.split("/")[0]).filter(Boolean))].sort();
     if (topDirs.length > 0) suggestions.push({ type: "folder_structure", id: "repo-layout", title: "Repository Layout", content: `## Top-level Directories\n${topDirs.map((d) => `- ${d}/`).join("\n")}\n\n_${files.length} files total_`, priority: 65 });
-  } catch {}
+  } catch { /* ignore */ }
 
   if (apply && suggestions.length > 0) {
     const results: Array<{ key: string; status: string }> = [];

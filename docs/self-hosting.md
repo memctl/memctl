@@ -93,3 +93,57 @@ In self-hosted mode without `RESEND_API_KEY`, all emails (welcome, magic link, e
 - **Self-registration**: users must be invited by an org owner/admin
 
 No Stripe or email env vars are needed in self-hosted mode.
+
+## CLI / MCP server setup
+
+The memctl CLI and MCP server work with self-hosted instances out of the box. Point them to your self-hosted API URL:
+
+### Option 1: Environment variables
+
+```bash
+export MEMCTL_API_URL=http://localhost:3000/api/v1
+export MEMCTL_TOKEN=your-api-token
+export MEMCTL_ORG=your-org-slug
+export MEMCTL_PROJECT=your-project-slug
+```
+
+### Option 2: Interactive setup
+
+```bash
+memctl init
+```
+
+When prompted for the API URL, enter your self-hosted URL (e.g. `http://localhost:3000/api/v1`). The CLI will test connectivity before saving.
+
+### Option 3: IDE MCP config
+
+For Claude Code (`.claude/mcp.json`), Cursor (`.cursor/mcp.json`), or Windsurf:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_TOKEN": "your-api-token",
+        "MEMCTL_API_URL": "http://localhost:3000/api/v1",
+        "MEMCTL_ORG": "your-org-slug",
+        "MEMCTL_PROJECT": "your-project-slug"
+      }
+    }
+  }
+}
+```
+
+### Verify connectivity
+
+```bash
+memctl doctor
+```
+
+This checks config, API connectivity, auth, and org/project access. All features (offline cache, incremental sync, pending writes) work identically with self-hosted instances.
+
+## Invitation expiry
+
+Invitations expire after a configurable period (1-7 days, default 7). Expired invitations are automatically filtered out — they won't be accepted even if the invited user signs in after expiry. Admins can set the expiry duration when sending each invitation, and can revoke pending invitations at any time.
