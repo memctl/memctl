@@ -68,11 +68,11 @@ curl -X POST https://memctl.com/api/v1/projects \
 
 | Plan | Price | Projects | Members | Memory/Project | Memory/Org | API Calls/mo | Rate/min |
 |------|-------|----------|---------|---------------|------------|-------------|----------|
-| Free | $0 | 1 | 1 | 200 | 500 | 5,000 | 60 |
-| Lite | $5/mo | 10 | 3 | 1,000 | 10,000 | 50,000 | 300 |
-| Pro | $20/mo | 25 | 10 | 5,000 | 100,000 | 500,000 | 1,000 |
-| Business | $59/mo | 100 | 30 | 10,000 | 500,000 | 2,000,000 | 3,000 |
-| Scale | $149/mo | 500 | 100 | 25,000 | 2,000,000 | 10,000,000 | 10,000 |
+| Free | $0 | 3 | 1 | 200 | 500 | Unlimited | 60 |
+| Lite | $5/mo | 10 | 3 | 1,000 | 10,000 | Unlimited | 300 |
+| Pro | $20/mo | 25 | 10 | 5,000 | 100,000 | Unlimited | 1,000 |
+| Business | $59/mo | 100 | 30 | 10,000 | 500,000 | Unlimited | 3,000 |
+| Scale | $149/mo | 500 | 100 | 25,000 | 2,000,000 | Unlimited | 10,000 |
 | Enterprise | Custom | Unlimited | Unlimited | Unlimited | Unlimited | Unlimited | Unlimited |
 
 ## Org defaults

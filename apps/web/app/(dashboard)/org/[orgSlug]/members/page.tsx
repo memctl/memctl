@@ -14,6 +14,7 @@ import {
 } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
+import { formatLimitValue } from "@/lib/plans";
 import {
   Table,
   TableBody,
@@ -153,7 +154,7 @@ export default async function MembersPage({
       <PageHeader
         badge="Team"
         title="Members"
-        description={`${members.length} / ${org.memberLimit} members`}
+        description={`${members.length} / ${formatLimitValue(org.memberLimit)} members`}
       />
 
       <div className="dash-card overflow-hidden">

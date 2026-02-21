@@ -7,6 +7,7 @@ import { AdminMagicLinkEmail } from "@/emails/admin-magic-link";
 import { WelcomeEmail } from "@/emails/welcome";
 import { users, organizations, organizationMembers } from "@memctl/db/schema";
 import { and, eq } from "drizzle-orm";
+import { getOrgCreationLimits } from "@/lib/plans";
 
 type AuthInstance = ReturnType<typeof betterAuth>;
 type GetSessionArgs = Parameters<AuthInstance["api"]["getSession"]>[0];
@@ -101,6 +102,8 @@ async function ensureDevBypassSession(): Promise<SessionResult> {
     .where(eq(organizations.slug, config.orgSlug))
     .limit(1);
 
+  const limits = getOrgCreationLimits();
+
   if (!org) {
     try {
       await db.insert(organizations).values({
@@ -108,6 +111,7 @@ async function ensureDevBypassSession(): Promise<SessionResult> {
         name: config.orgName,
         slug: config.orgSlug,
         ownerId: user.id,
+        ...limits,
       });
     } catch {
       // Ignore races/uniques and re-select below.
@@ -121,6 +125,18 @@ async function ensureDevBypassSession(): Promise<SessionResult> {
   }
 
   if (!org) return null;
+
+  // Auto-update limits if plan config changed (e.g. DEV_PLAN switched)
+  if (
+    org.planId !== limits.planId ||
+    org.projectLimit !== limits.projectLimit ||
+    org.memberLimit !== limits.memberLimit
+  ) {
+    await db
+      .update(organizations)
+      .set({ ...limits, updatedAt: new Date() })
+      .where(eq(organizations.id, org.id));
+  }
 
   const [membership] = await db
     .select()

@@ -22,6 +22,10 @@ Documentation for memctl — persistent memory for AI coding agents.
 - [Offline & Caching](./offline-and-caching.md) — cache layers, ETags, offline fallback, pending writes
 - [Organization & Teams](./organization-and-teams.md) — orgs, projects, defaults, templates
 
+## Deployment
+
+- [Self-Hosting](./self-hosting.md) — run memctl on your own infrastructure with unlimited everything
+
 ## Development
 
 - [Local Development](./local-development.md) — Docker setup, testing CLI/MCP locally, running tests

@@ -79,8 +79,6 @@ export default async function WebhooksPage({
     }
   }
 
-  const isPaid = org.planId !== "free";
-
   return (
     <div>
       <PageHeader title="Webhooks" description="Digest webhook notifications for memory changes" />
@@ -89,7 +87,6 @@ export default async function WebhooksPage({
         webhooks={allWebhooks}
         projects={projectList.map((p) => ({ slug: p.slug, name: p.name }))}
         orgSlug={orgSlug}
-        isPaid={isPaid}
       />
     </div>
   );

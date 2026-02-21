@@ -19,6 +19,7 @@ import { count } from "drizzle-orm";
 import Link from "next/link";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
+import { formatLimitValue, isUnlimited } from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -149,7 +150,7 @@ export default async function OrgDashboardPage({
       {/* Stats grid - 6 columns, dense */}
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {[
-          { icon: FolderOpen, label: "Projects", value: projectCount, sub: `${org.projectLimit - projectCount} left`, color: "text-[var(--landing-text)]" },
+          { icon: FolderOpen, label: "Projects", value: projectCount, sub: isUnlimited(org.projectLimit) ? "unlimited" : `${org.projectLimit - projectCount} left`, color: "text-[var(--landing-text)]" },
           { icon: Brain, label: "Memories", value: totalMemories, sub: `${usagePercent}% used`, color: "text-[var(--landing-text)]" },
           { icon: Pin, label: "Pinned", value: totalPinned, sub: null, color: "text-[#F97316]" },
           { icon: Archive, label: "Archived", value: totalArchived, sub: null, color: "text-[var(--landing-text-tertiary)]" },
@@ -328,8 +329,8 @@ export default async function OrgDashboardPage({
               <span className="rounded bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#F97316]">{currentPlan.name}</span>
             </div>
             <div className="space-y-1.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-              <div className="flex justify-between"><span>Projects</span><span className="text-[var(--landing-text)]">{projectCount}/{org.projectLimit}</span></div>
-              <div className="flex justify-between"><span>Members</span><span className="text-[var(--landing-text)]">{memberCount}/{org.memberLimit}</span></div>
+              <div className="flex justify-between"><span>Projects</span><span className="text-[var(--landing-text)]">{projectCount}/{formatLimitValue(org.projectLimit)}</span></div>
+              <div className="flex justify-between"><span>Members</span><span className="text-[var(--landing-text)]">{memberCount}/{formatLimitValue(org.memberLimit)}</span></div>
               <div className="flex justify-between"><span>Tokens</span><span className="text-[var(--landing-text)]">{tokenCount}</span></div>
               <div className="flex justify-between"><span>Memories</span><span className="text-[var(--landing-text)]">{totalMemories}/{memoryLimit === Infinity ? "∞" : memoryLimit}</span></div>
             </div>

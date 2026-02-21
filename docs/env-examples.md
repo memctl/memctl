@@ -61,7 +61,31 @@ DEV_AUTH_BYPASS_ADMIN=false
 
 Use this for dashboard testing when you do not want to configure GitHub OAuth credentials locally.
 
-## Example 4: CLI-only (no local server)
+## Example 4: Self-hosted (unlimited, no Stripe)
+
+```env
+# Database
+TURSO_DATABASE_URL=http://localhost:8080
+TURSO_AUTH_TOKEN=
+
+# Auth (dev bypass — simplest option)
+DEV_AUTH_BYPASS=true
+NEXT_PUBLIC_DEV_AUTH_BYPASS=true
+BETTER_AUTH_SECRET=replace_with_a_long_random_secret
+BETTER_AUTH_URL=http://localhost:3000
+
+# Self-hosted mode
+SELF_HOSTED=true
+NEXT_PUBLIC_SELF_HOSTED=true
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+MEMCTL_API_URL=http://localhost:3000/api/v1
+```
+
+No Stripe keys needed. All limits are unlimited. See [Self-Hosting](./self-hosting.md).
+
+## Example 5: CLI-only (no local server)
 
 If you're using the hosted memctl.com service and just need the CLI or MCP server:
 
@@ -74,7 +98,7 @@ MEMCTL_PROJECT=your-project-slug
 
 That's it. No database, auth, or Stripe vars needed.
 
-## Example 5: Production deployment
+## Example 6: Production deployment
 
 ```env
 # Database (Turso cloud)

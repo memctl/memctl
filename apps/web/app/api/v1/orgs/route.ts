@@ -10,6 +10,7 @@ import { generateId } from "@/lib/utils";
 import { orgCreateSchema } from "@memctl/shared/validators";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
+import { getOrgCreationLimits, isBillingEnabled } from "@/lib/plans";
 
 export async function GET() {
   const session = await auth.api.getSession({
@@ -76,12 +77,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Create Stripe customer
-  const customer = await stripe.customers.create({
-    email: session.user.email,
-    name: parsed.data.name,
-    metadata: { orgSlug: parsed.data.slug },
-  });
+  // Create Stripe customer (skip if billing is disabled)
+  let stripeCustomerId: string | null = null;
+  if (isBillingEnabled()) {
+    const customer = await stripe.customers.create({
+      email: session.user.email,
+      name: parsed.data.name,
+      metadata: { orgSlug: parsed.data.slug },
+    });
+    stripeCustomerId = customer.id;
+  }
 
   const orgId = generateId();
   const now = new Date();
@@ -91,10 +96,8 @@ export async function POST(req: NextRequest) {
     name: parsed.data.name,
     slug: parsed.data.slug,
     ownerId: session.user.id,
-    planId: "free",
-    stripeCustomerId: customer.id,
-    projectLimit: 2,
-    memberLimit: 2,
+    ...getOrgCreationLimits(),
+    stripeCustomerId,
     createdAt: now,
     updatedAt: now,
   });

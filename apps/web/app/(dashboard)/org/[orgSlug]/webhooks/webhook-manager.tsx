@@ -13,9 +13,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Alert } from "@/components/ui/alert";
 import {
-  Plus, Trash2, ExternalLink, Clock, Shield, Bell, AlertTriangle, Webhook,
+  Plus, Trash2, ExternalLink, Clock, Webhook,
 } from "lucide-react";
 
 interface WebhookItem {
@@ -36,7 +35,6 @@ interface WebhookManagerProps {
   webhooks: WebhookItem[];
   projects: { slug: string; name: string }[];
   orgSlug: string;
-  isPaid: boolean;
 }
 
 function relativeTime(d: string | null): string {
@@ -57,7 +55,7 @@ function safeParseArray(s: string | null): string[] {
   catch { return []; }
 }
 
-export function WebhookManager({ webhooks, projects, orgSlug, isPaid }: WebhookManagerProps) {
+export function WebhookManager({ webhooks, projects, orgSlug }: WebhookManagerProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [createUrl, setCreateUrl] = useState("");
   const [createProject, setCreateProject] = useState(projects[0]?.slug ?? "");
@@ -105,16 +103,6 @@ export function WebhookManager({ webhooks, projects, orgSlug, isPaid }: WebhookM
     } catch { /* silent */ }
     setLoading(false);
   };
-
-  if (!isPaid) {
-    return (
-      <div className="dash-card p-6 text-center">
-        <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-400" />
-        <p className="font-mono text-sm font-medium text-[var(--landing-text)]">Webhooks require a paid plan</p>
-        <p className="mt-1 text-xs text-[var(--landing-text-tertiary)]">Upgrade to Pro or Team to enable digest webhook notifications.</p>
-      </div>
-    );
-  }
 
   return (
     <div>

@@ -11,6 +11,8 @@ import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { BillingClient } from "@/components/dashboard/billing-client";
+import { isSelfHosted } from "@/lib/plans";
+import { Server, Infinity as InfinityIcon } from "lucide-react";
 
 export default async function BillingPage({
   params,
@@ -71,6 +73,54 @@ export default async function BillingPage({
 
   const formatLimit = (val: number) =>
     val === Infinity ? "Unlimited" : val.toLocaleString();
+
+  const selfHosted = isSelfHosted();
+
+  if (selfHosted) {
+    return (
+      <div className="mx-auto max-w-5xl">
+        <PageHeader
+          title="Billing"
+          description="Self-hosted deployment"
+        />
+
+        <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-lg bg-[#F97316]/10 p-2">
+              <Server className="h-5 w-5 text-[#F97316]" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-[var(--landing-text)]">
+                Self-Hosted (Unlimited)
+              </p>
+              <p className="text-sm text-[var(--landing-text-tertiary)]">
+                All features are unlocked. No billing required.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {[
+              { label: "Projects", value: "Unlimited" },
+              { label: "Members", value: "Unlimited" },
+              { label: "Memories / project", value: "Unlimited" },
+              { label: "API rate limit", value: "Unlimited" },
+            ].map((stat) => (
+              <div key={stat.label}>
+                <p className="text-xs text-[var(--landing-text-tertiary)]">
+                  {stat.label}
+                </p>
+                <p className="mt-1 flex items-center gap-1 text-sm font-medium text-[#F97316]">
+                  <InfinityIcon className="h-3.5 w-3.5" />
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl">

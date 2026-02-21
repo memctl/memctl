@@ -12,6 +12,7 @@ import { generateId } from "@/lib/utils";
 import { onboardingSchema } from "@memctl/shared/validators";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
+import { getOrgCreationLimits, isBillingEnabled } from "@/lib/plans";
 
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({
@@ -56,9 +57,9 @@ export async function POST(req: NextRequest) {
     createdAt: now,
   });
 
-  // Create Stripe customer (skip if Stripe is not configured)
+  // Create Stripe customer (skip if billing is disabled)
   let stripeCustomerId: string | null = null;
-  if (process.env.STRIPE_SECRET_KEY) {
+  if (isBillingEnabled()) {
     const customer = await stripe.customers.create({
       email: session.user.email,
       name: orgName,
@@ -74,10 +75,8 @@ export async function POST(req: NextRequest) {
     name: orgName,
     slug: orgSlug,
     ownerId: session.user.id,
-    planId: "free",
+    ...getOrgCreationLimits(),
     stripeCustomerId,
-    projectLimit: 2,
-    memberLimit: 2,
     createdAt: now,
     updatedAt: now,
   });

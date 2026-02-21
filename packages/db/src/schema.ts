@@ -26,8 +26,8 @@ export const organizations = sqliteTable("organizations", {
   planId: text("plan_id").notNull().default("free"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
-  projectLimit: integer("project_limit").notNull().default(2),
-  memberLimit: integer("member_limit").notNull().default(2),
+  projectLimit: integer("project_limit").notNull().default(3),
+  memberLimit: integer("member_limit").notNull().default(1),
   companyName: text("company_name"),
   taxId: text("tax_id"),
   billingAddress: text("billing_address"),
@@ -411,6 +411,29 @@ export const orgMemoryDefaults = sqliteTable(
       .$defaultFn(() => new Date()),
   },
   (table) => [unique().on(table.orgId, table.key)],
+);
+
+export const orgInvitations = sqliteTable(
+  "org_invitations",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    email: text("email").notNull(),
+    role: text("role").notNull().default("member"),
+    invitedBy: text("invited_by")
+      .notNull()
+      .references(() => users.id),
+    acceptedAt: integer("accepted_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    unique().on(table.orgId, table.email),
+    index("org_invitations_email").on(table.email),
+  ],
 );
 
 export const projectMembers = sqliteTable(

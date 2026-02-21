@@ -41,6 +41,16 @@ If all three env vars (`MEMCTL_TOKEN`, `MEMCTL_ORG`, `MEMCTL_PROJECT`) are set, 
 | `GITHUB_TOKEN` | No | — | GitHub API token for landing page stats |
 | `LOG_LEVEL` | No | `info` | Pino log level |
 
+### Self-hosted mode
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SELF_HOSTED` | `false` | Enable self-hosted mode (disables billing, unlocks all limits) |
+| `NEXT_PUBLIC_SELF_HOSTED` | `false` | Client-side flag to hide billing UI |
+| `DEV_PLAN` | — | Override default plan for new orgs in development (e.g. `enterprise`) |
+
+See [Self-Hosting](./self-hosting.md) for the full guide.
+
 ### Dev auth bypass
 
 For local development without GitHub OAuth:
