@@ -30,6 +30,7 @@
     "better-auth": "^1.1.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "drizzle-orm": "^0.41.0",
     "fumadocs-core": "^14.5.3",
     "fumadocs-mdx": "^11.4.4",
@@ -52,6 +53,7 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "resend": "^6.9.2",
+    "sonner": "^2.0.7",
     "stripe": "^17.5.0",
     "tailwind-merge": "^2.6.0",
     "zod": "^3.24.1"

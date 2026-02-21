@@ -139,6 +139,8 @@ export default async function ProjectDetailPage({
     updatedAt: m.updatedAt?.toISOString() ?? "",
     archivedAt: m.archivedAt?.toISOString() ?? null,
     expiresAt: m.expiresAt?.toISOString() ?? null,
+    pinnedAt: m.pinnedAt?.toISOString() ?? null,
+    lastAccessedAt: m.lastAccessedAt?.toISOString() ?? null,
   }));
 
   return (
