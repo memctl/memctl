@@ -15,6 +15,9 @@ import {
 import { eq, and } from "drizzle-orm";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { formatLimitValue } from "@/lib/plans";
+import { orgInvitations } from "@memctl/db/schema";
+import { isNull } from "drizzle-orm";
+import { InviteMemberDialog } from "@/components/dashboard/members/invite-member-dialog";
 import {
   Table,
   TableBody,
@@ -149,13 +152,34 @@ export default async function MembersPage({
     slug: p.slug,
   }));
 
+  // Fetch pending invitations
+  const pendingInvites = await db
+    .select()
+    .from(orgInvitations)
+    .where(
+      and(eq(orgInvitations.orgId, org.id), isNull(orgInvitations.acceptedAt)),
+    );
+
+  const serializedInvitations = pendingInvites.map((i) => ({
+    id: i.id,
+    email: i.email,
+    role: i.role,
+    createdAt: i.createdAt.toISOString(),
+  }));
+
   return (
     <div>
-      <PageHeader
-        badge="Team"
-        title="Members"
-        description={`${members.length} / ${formatLimitValue(org.memberLimit)} members`}
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          badge="Team"
+          title="Members"
+          description={`${members.length} / ${formatLimitValue(org.memberLimit)} members`}
+        />
+        <InviteMemberDialog
+          orgSlug={orgSlug}
+          pendingInvitations={serializedInvitations}
+        />
+      </div>
 
       <div className="dash-card overflow-hidden">
         <Table>

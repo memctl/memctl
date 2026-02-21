@@ -10,6 +10,8 @@ When `SELF_HOSTED=true`:
 - **Billing is completely disabled** — no Stripe customer creation, no checkout, no webhooks
 - The billing page shows a simple "Self-Hosted (Unlimited)" view instead of plan cards
 - Existing organizations automatically get unlimited limits on next access
+- **Invite-only access** — only users explicitly invited by an org owner/admin can sign in
+- **Emails are suppressed** — no welcome or notification emails sent without a configured email provider
 
 ## Quick start with Docker Compose
 
@@ -56,13 +58,30 @@ Open http://localhost:3000 — you should be auto-logged in with the dev bypass 
 
 ## Auth options
 
-### Dev bypass (simplest)
+### Dev bypass (simplest — personal use)
 
-Set `DEV_AUTH_BYPASS=true` and `NEXT_PUBLIC_DEV_AUTH_BYPASS=true`. A dev user and organization are created automatically. Good for personal use or testing.
+Set `DEV_AUTH_BYPASS=true` and `NEXT_PUBLIC_DEV_AUTH_BYPASS=true`. A dev user and organization are created automatically. In self-hosted mode, dev bypass works in **production** too (not just `NODE_ENV=development`), so a single-user Docker deployment "just works" without GitHub OAuth.
 
-### GitHub OAuth
+### GitHub OAuth (team use)
 
 Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` with a GitHub OAuth app. The callback URL should be `{BETTER_AUTH_URL}/api/auth/callback/github`.
+
+**Access is invite-only.** In self-hosted mode, users cannot self-register or create their own organizations. The flow is:
+
+1. The org owner (dev bypass user, or first GitHub user) creates the organization
+2. Owner/admins go to **Members > Invite** and add team members by email
+3. Invited users sign in via GitHub — they're automatically added to the organization
+4. Users who sign in without an invitation see a "Waiting for invitation" page
+
+This ensures only explicitly invited users can access your self-hosted instance.
+
+### Combining dev bypass + GitHub OAuth
+
+You can use both: dev bypass creates the initial owner account and org, then real users sign in via GitHub OAuth after being invited. This is useful when bootstrapping a team deployment.
+
+## Emails
+
+In self-hosted mode without `RESEND_API_KEY`, all emails (welcome, magic link, etc.) are silently skipped — no error logs, no noise. If you do configure Resend, emails work normally.
 
 ## What's disabled
 
@@ -71,5 +90,6 @@ Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` with a GitHub OAuth app. The c
 - **Portal API**: returns 400 "Billing is not enabled"
 - **Stripe webhook**: returns 400 "Billing is not enabled"
 - **Stripe customer creation**: skipped during org creation
+- **Self-registration**: users must be invited by an org owner/admin
 
-No Stripe env vars are needed in self-hosted mode.
+No Stripe or email env vars are needed in self-hosted mode.

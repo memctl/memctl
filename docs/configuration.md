@@ -45,11 +45,11 @@ If all three env vars (`MEMCTL_TOKEN`, `MEMCTL_ORG`, `MEMCTL_PROJECT`) are set, 
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SELF_HOSTED` | `false` | Enable self-hosted mode (disables billing, unlocks all limits) |
+| `SELF_HOSTED` | `false` | Enable self-hosted mode (disables billing, unlocks all limits, invite-only access) |
 | `NEXT_PUBLIC_SELF_HOSTED` | `false` | Client-side flag to hide billing UI |
 | `DEV_PLAN` | — | Override default plan for new orgs in development (e.g. `enterprise`) |
 
-See [Self-Hosting](./self-hosting.md) for the full guide.
+In self-hosted mode, access is invite-only: org owners/admins invite users by email, and only invited users can access the dashboard. Dev bypass also works in production when self-hosted. See [Self-Hosting](./self-hosting.md) for the full guide.
 
 ### Dev auth bypass
 
