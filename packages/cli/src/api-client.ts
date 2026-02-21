@@ -10,6 +10,7 @@ export class ApiClient {
   private localCache: LocalCache;
   private isOffline = false;
   private inflight = new Map<string, Promise<unknown>>();
+  private lastFreshness: "fresh" | "cached" | "stale" | "offline" = "fresh";
 
   constructor(config: {
     baseUrl: string;
@@ -27,6 +28,10 @@ export class ApiClient {
 
   getConnectionStatus(): { online: boolean } {
     return { online: !this.isOffline };
+  }
+
+  getLastFreshness(): "fresh" | "cached" | "stale" | "offline" {
+    return this.lastFreshness;
   }
 
   getLocalCacheSyncAt(): number {
@@ -59,11 +64,13 @@ export class ApiClient {
     if (method === "GET") {
       const cached = this.cache.get(cacheKey);
       if (cached && !cached.stale) {
+        this.lastFreshness = "cached";
         return cached.data as T;
       }
 
       // Stale-while-revalidate: return stale data immediately, revalidate in background
       if (cached?.stale) {
+        this.lastFreshness = "stale";
         this.revalidate(cacheKey, path);
         return cached.data as T;
       }
@@ -129,7 +136,10 @@ export class ApiClient {
       this.isOffline = true;
       if (method === "GET") {
         const offline = this.localCache.getByPath(path);
-        if (offline !== null) return offline as T;
+        if (offline !== null) {
+          this.lastFreshness = "offline";
+          return offline as T;
+        }
       }
       throw err;
     }
@@ -138,6 +148,7 @@ export class ApiClient {
 
     // Handle 304 Not Modified — return cached data
     if (res.status === 304) {
+      this.lastFreshness = "cached";
       this.cache.touch(cacheKey);
       const entry = this.cache.get(cacheKey);
       if (entry) return entry.data as T;
@@ -150,6 +161,7 @@ export class ApiClient {
     }
 
     const data = await res.json() as T;
+    this.lastFreshness = "fresh";
 
     // Cache GET responses with ETag
     if (method === "GET") {

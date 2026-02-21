@@ -13,6 +13,7 @@ import { dispatchWebhooks } from "@/lib/webhook-dispatch";
 import { validateContent } from "@/lib/schema-validator";
 import { contextTypes } from "@memctl/db/schema";
 import { logger } from "@/lib/logger";
+import { computeRelevanceScore } from "@memctl/shared/relevance";
 
 export async function GET(req: NextRequest) {
   const authResult = await authenticateRequest(req);
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
   const tagsFilter = url.searchParams.get("tags"); // comma-separated
   const includeArchived = url.searchParams.get("include_archived") === "true";
   const includeShared = url.searchParams.get("include_shared") !== "false"; // opt-in by default
-  const sortBy = url.searchParams.get("sort") ?? "updated"; // "updated" | "priority" | "created"
+  const sortBy = url.searchParams.get("sort") ?? "updated"; // "updated" | "priority" | "created" | "relevance"
   const afterCursor = url.searchParams.get("after"); // cursor-based pagination (memory ID)
 
   // Get org project IDs for shared memory inclusion
@@ -232,9 +233,28 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Compute relevance scores for each memory
+  const now = Date.now();
+  const memoriesWithRelevance = results.map((m) => ({
+    ...m,
+    relevance_score: computeRelevanceScore({
+      priority: m.priority ?? 0,
+      accessCount: m.accessCount ?? 0,
+      lastAccessedAt: m.lastAccessedAt ? new Date(m.lastAccessedAt).getTime() : null,
+      helpfulCount: m.helpfulCount ?? 0,
+      unhelpfulCount: m.unhelpfulCount ?? 0,
+      pinnedAt: m.pinnedAt ? new Date(m.pinnedAt).getTime() : null,
+    }, now),
+  }));
+
+  // Sort by relevance if requested
+  if (sortBy === "relevance") {
+    memoriesWithRelevance.sort((a, b) => b.relevance_score - a.relevance_score);
+  }
+
   // Include cursor for next page
-  const nextCursor = results.length === limit ? results[results.length - 1]?.id : undefined;
-  const body = JSON.stringify({ memories: results, ...(nextCursor ? { nextCursor } : {}) });
+  const nextCursor = memoriesWithRelevance.length === limit ? memoriesWithRelevance[memoriesWithRelevance.length - 1]?.id : undefined;
+  const body = JSON.stringify({ memories: memoriesWithRelevance, ...(nextCursor ? { nextCursor } : {}) });
   const etag = generateETag(body);
 
   if (checkConditional(req, etag)) {

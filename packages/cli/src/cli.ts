@@ -30,6 +30,12 @@ function printUsage() {
 
 Usage:
   memctl serve              Start the MCP server (default)
+  memctl init               Interactive setup wizard
+  memctl init --claude      Write Claude Code MCP config only
+  memctl init --cursor      Write Cursor MCP config only
+  memctl init --windsurf    Write Windsurf MCP config only
+  memctl init --all         Write all IDE configs
+  memctl doctor             Run diagnostics
   memctl list [options]     List memories
   memctl get <key>          Get a memory by key
   memctl search <query>     Search memories
@@ -47,9 +53,9 @@ Options:
   --json                    Output raw JSON
 
 Environment:
-  MEMCTL_TOKEN              API token (required)
-  MEMCTL_ORG                Organization slug (required)
-  MEMCTL_PROJECT            Project slug (required)
+  MEMCTL_TOKEN              API token (required, or use memctl init)
+  MEMCTL_ORG                Organization slug (required, or use memctl init)
+  MEMCTL_PROJECT            Project slug (required, or use memctl init)
   MEMCTL_API_URL            API base URL (default: https://memctl.com/api/v1)
 `);
 }
@@ -106,6 +112,23 @@ export async function runCli(args: string[]): Promise<void> {
 
   if (command === "serve") {
     // Handled by index.ts - should not reach here
+    return;
+  }
+
+  if (command === "init") {
+    const { runInit } = await import("./init.js");
+    await runInit({
+      claude: Boolean(flags.claude),
+      cursor: Boolean(flags.cursor),
+      windsurf: Boolean(flags.windsurf),
+      all: Boolean(flags.all),
+    });
+    return;
+  }
+
+  if (command === "doctor") {
+    const { runDoctor } = await import("./doctor.js");
+    await runDoctor();
     return;
   }
 
