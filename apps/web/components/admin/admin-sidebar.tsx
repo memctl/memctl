@@ -10,6 +10,7 @@ import {
   FileText,
   History,
   Mail,
+  Ticket,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -36,6 +37,12 @@ const navItems: {
     icon: Building2,
     href: "/admin/organizations",
     match: (p) => p.startsWith("/admin/organizations"),
+  },
+  {
+    label: "Promo Codes",
+    icon: Ticket,
+    href: "/admin/promo-codes",
+    match: (p) => p.startsWith("/admin/promo-codes"),
   },
   {
     label: "Blog",
