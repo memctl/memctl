@@ -454,6 +454,75 @@ export const projectMembers = sqliteTable(
   (table) => [unique().on(table.projectId, table.userId)],
 );
 
+export const promoCodes = sqliteTable(
+  "promo_codes",
+  {
+    id: text("id").primaryKey(),
+    code: text("code").notNull().unique(),
+    description: text("description"),
+    campaign: text("campaign"),
+    stripeCouponId: text("stripe_coupon_id").notNull(),
+    stripePromoCodeId: text("stripe_promo_code_id").notNull(),
+    discountType: text("discount_type").notNull(), // "percent" | "fixed"
+    discountAmount: integer("discount_amount").notNull(), // percentage (50) or cents (500 = $5.00)
+    currency: text("currency").default("usd"),
+    duration: text("duration").notNull(), // "once" | "repeating" | "forever"
+    durationInMonths: integer("duration_in_months"), // only when duration = "repeating"
+    applicablePlans: text("applicable_plans"), // JSON array of plan IDs, null = all plans
+    minimumPlanTier: text("minimum_plan_tier"), // min plan code works on
+    restrictedToOrgs: text("restricted_to_orgs"), // JSON array of org IDs, null = any org
+    maxRedemptions: integer("max_redemptions"), // total cap, null = unlimited
+    maxRedemptionsPerOrg: integer("max_redemptions_per_org").default(1),
+    firstSubscriptionOnly: integer("first_subscription_only", { mode: "boolean" }).default(false),
+    noPreviousPromo: integer("no_previous_promo", { mode: "boolean" }).default(false),
+    startsAt: integer("starts_at", { mode: "timestamp" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
+    active: integer("active", { mode: "boolean" }).default(true),
+    timesRedeemed: integer("times_redeemed").notNull().default(0),
+    totalDiscountGiven: integer("total_discount_given").notNull().default(0),
+    createdBy: text("created_by").references(() => users.id),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("promo_codes_code").on(table.code),
+    index("promo_codes_active").on(table.active),
+    index("promo_codes_campaign").on(table.campaign),
+    index("promo_codes_created_at").on(table.createdAt),
+  ],
+);
+
+export const promoRedemptions = sqliteTable(
+  "promo_redemptions",
+  {
+    id: text("id").primaryKey(),
+    promoCodeId: text("promo_code_id")
+      .notNull()
+      .references(() => promoCodes.id),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    planId: text("plan_id").notNull(),
+    discountApplied: integer("discount_applied").notNull(),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+    redeemedAt: integer("redeemed_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("promo_redemptions_promo_code_id").on(table.promoCodeId),
+    index("promo_redemptions_org_id").on(table.orgId),
+    index("promo_redemptions_promo_org").on(table.promoCodeId, table.orgId),
+  ],
+);
+
 export const blogPosts = sqliteTable("blog_posts", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
