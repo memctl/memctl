@@ -3,7 +3,7 @@ import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { getOrgMemoryCapacity, resolveOrgAndProject } from "../capacity-utils";
 import { db } from "@/lib/db";
 import { memories } from "@memctl/db/schema";
-import { eq, isNull } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { computeRelevanceScore, computeRelevanceDistribution } from "@memctl/shared/relevance";
 
 export async function GET(req: NextRequest) {
