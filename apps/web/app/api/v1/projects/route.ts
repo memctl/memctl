@@ -11,6 +11,7 @@ import { eq, and, count, inArray } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { projectCreateSchema } from "@memctl/shared/validators";
 import { headers } from "next/headers";
+import { isUnlimited } from "@/lib/plans";
 
 export async function GET(req: NextRequest) {
   const session = await auth.api.getSession({
@@ -168,7 +169,7 @@ export async function POST(req: NextRequest) {
     .from(projects)
     .where(eq(projects.orgId, org.id));
 
-  if (existingProjects.length >= org.projectLimit) {
+  if (!isUnlimited(org.projectLimit) && existingProjects.length >= org.projectLimit) {
     return NextResponse.json(
       { error: "Project limit reached. Upgrade your plan." },
       { status: 403 },

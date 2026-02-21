@@ -45,12 +45,18 @@ export function isValidAdminEmail(email: string): {
 }
 
 const isDev = process.env.NODE_ENV === "development";
+const isSelfHostedEnv = process.env.SELF_HOSTED === "true";
 
 export async function sendEmail(params: {
   to: string;
   subject: string;
   react: React.ReactElement;
 }) {
+  // In self-hosted mode without Resend, silently skip emails
+  if (isSelfHostedEnv && !process.env.RESEND_API_KEY) {
+    return { data: { id: "self-hosted-noop-" + Date.now() }, error: null };
+  }
+
   if (isDev && !process.env.RESEND_API_KEY) {
     console.log("\n📧 [DEV EMAIL] ─────────────────────────────────");
     console.log(`   To:      ${params.to}`);

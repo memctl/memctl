@@ -5,8 +5,13 @@ import { organizations } from "@memctl/db/schema";
 import { eq } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
+import { isBillingEnabled } from "@/lib/plans";
 
 export async function POST(req: NextRequest) {
+  if (!isBillingEnabled()) {
+    return NextResponse.json({ error: "Billing is not enabled" }, { status: 400 });
+  }
+
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
 

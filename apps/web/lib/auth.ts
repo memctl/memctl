@@ -5,8 +5,9 @@ import { getDb } from "./db";
 import { isValidAdminEmail, sendEmail } from "./email";
 import { AdminMagicLinkEmail } from "@/emails/admin-magic-link";
 import { WelcomeEmail } from "@/emails/welcome";
-import { users, organizations, organizationMembers } from "@memctl/db/schema";
-import { and, eq } from "drizzle-orm";
+import { users, organizations, organizationMembers, orgInvitations } from "@memctl/db/schema";
+import { and, eq, gt, isNull } from "drizzle-orm";
+import { getOrgCreationLimits, isSelfHosted } from "@/lib/plans";
 
 type AuthInstance = ReturnType<typeof betterAuth>;
 type GetSessionArgs = Parameters<AuthInstance["api"]["getSession"]>[0];
@@ -22,11 +23,12 @@ export function getAuthInstance(): AuthInstance {
 }
 
 function isDevAuthBypassEnabled() {
-  return (
-    process.env.NODE_ENV === "development" &&
-    (process.env.DEV_AUTH_BYPASS === "true" ||
-      process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true")
-  );
+  const bypassRequested =
+    process.env.DEV_AUTH_BYPASS === "true" ||
+    process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true";
+
+  // Allow bypass in development OR self-hosted mode
+  return bypassRequested && (process.env.NODE_ENV === "development" || isSelfHosted());
 }
 
 function getDevBypassConfig() {
@@ -101,6 +103,8 @@ async function ensureDevBypassSession(): Promise<SessionResult> {
     .where(eq(organizations.slug, config.orgSlug))
     .limit(1);
 
+  const limits = getOrgCreationLimits();
+
   if (!org) {
     try {
       await db.insert(organizations).values({
@@ -108,6 +112,7 @@ async function ensureDevBypassSession(): Promise<SessionResult> {
         name: config.orgName,
         slug: config.orgSlug,
         ownerId: user.id,
+        ...limits,
       });
     } catch {
       // Ignore races/uniques and re-select below.
@@ -121,6 +126,18 @@ async function ensureDevBypassSession(): Promise<SessionResult> {
   }
 
   if (!org) return null;
+
+  // Auto-update limits if plan config changed (e.g. DEV_PLAN switched)
+  if (
+    org.planId !== limits.planId ||
+    org.projectLimit !== limits.projectLimit ||
+    org.memberLimit !== limits.memberLimit
+  ) {
+    await db
+      .update(organizations)
+      .set({ ...limits, updatedAt: new Date() })
+      .where(eq(organizations.id, org.id));
+  }
 
   const [membership] = await db
     .select()
@@ -251,7 +268,37 @@ function createAuth() {
                 .where(eq(users.id, user.id));
             }
 
-            // Send welcome email (fire-and-forget)
+            // Accept pending non-expired org invitations
+            const pendingInvites = await db
+              .select()
+              .from(orgInvitations)
+              .where(
+                and(
+                  eq(orgInvitations.email, user.email.toLowerCase()),
+                  isNull(orgInvitations.acceptedAt),
+                  gt(orgInvitations.expiresAt, new Date()),
+                ),
+              );
+
+            for (const invite of pendingInvites) {
+              try {
+                await db.insert(organizationMembers).values({
+                  id: crypto.randomUUID().replace(/-/g, "").slice(0, 24),
+                  orgId: invite.orgId,
+                  userId: user.id,
+                  role: invite.role,
+                  createdAt: new Date(),
+                });
+                await db
+                  .update(orgInvitations)
+                  .set({ acceptedAt: new Date() })
+                  .where(eq(orgInvitations.id, invite.id));
+              } catch {
+                // Ignore duplicate membership races
+              }
+            }
+
+            // Send welcome email (fire-and-forget; silently skipped in self-hosted)
             sendEmail({
               to: user.email,
               subject: "Welcome to memctl",

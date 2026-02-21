@@ -22,6 +22,9 @@ interface BillingClientProps {
   plans: Record<string, PlanInfo>;
 }
 
+const isSelfHostedClient =
+  process.env.NEXT_PUBLIC_SELF_HOSTED === "true";
+
 const PLAN_ORDER: PlanId[] = [
   "free",
   "lite",
@@ -80,6 +83,8 @@ export function BillingClient({
   };
 
   const renderActionButton = (planId: PlanId) => {
+    if (isSelfHostedClient) return null;
+
     if (planId === currentPlan) {
       return (
         <span className="mt-4 block text-center text-xs text-[var(--landing-text-tertiary)]">
@@ -184,7 +189,7 @@ export function BillingClient({
       </div>
 
       {/* Billing Management */}
-      <div className="mt-10">
+      {!isSelfHostedClient && <div className="mt-10">
         <h2 className="text-sm font-medium text-[var(--landing-text)]">
           Billing management
         </h2>
@@ -233,7 +238,7 @@ export function BillingClient({
             </Button>
           </div>
         </div>
-      </div>
+      </div>}
     </>
   );
 }

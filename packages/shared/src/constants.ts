@@ -28,11 +28,11 @@ export const PLANS: Record<
   free: {
     name: "Free",
     price: 0,
-    projectLimit: 1,
+    projectLimit: 3,
     memberLimit: 1,
     memoryLimitPerProject: 200,
     memoryLimitOrg: 500,
-    apiCallLimit: 5_000,
+    apiCallLimit: Infinity,
     apiRatePerMinute: 60,
   },
   lite: {
@@ -42,7 +42,7 @@ export const PLANS: Record<
     memberLimit: 3,
     memoryLimitPerProject: 1_000,
     memoryLimitOrg: 10_000,
-    apiCallLimit: 50_000,
+    apiCallLimit: Infinity,
     apiRatePerMinute: 300,
   },
   pro: {
@@ -52,7 +52,7 @@ export const PLANS: Record<
     memberLimit: 10,
     memoryLimitPerProject: 5_000,
     memoryLimitOrg: 100_000,
-    apiCallLimit: 500_000,
+    apiCallLimit: Infinity,
     apiRatePerMinute: 1_000,
   },
   business: {
@@ -62,7 +62,7 @@ export const PLANS: Record<
     memberLimit: 30,
     memoryLimitPerProject: 10_000,
     memoryLimitOrg: 500_000,
-    apiCallLimit: 2_000_000,
+    apiCallLimit: Infinity,
     apiRatePerMinute: 3_000,
   },
   scale: {
@@ -72,7 +72,7 @@ export const PLANS: Record<
     memberLimit: 100,
     memoryLimitPerProject: 25_000,
     memoryLimitOrg: 2_000_000,
-    apiCallLimit: 10_000_000,
+    apiCallLimit: Infinity,
     apiRatePerMinute: 10_000,
   },
   enterprise: {

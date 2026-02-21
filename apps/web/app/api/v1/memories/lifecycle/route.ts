@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { memories, sessionLogs } from "@memctl/db/schema";
 import { eq, and, lt, isNull, isNotNull, like, sql } from "drizzle-orm";
 import { resolveOrgAndProject } from "../capacity-utils";
+import { computeRelevanceScore } from "@memctl/shared/relevance";
 
 /**
  * POST /api/v1/memories/lifecycle
@@ -48,12 +49,14 @@ export async function POST(req: NextRequest) {
     accessThreshold = 10,
     feedbackThreshold = 3,
     mergedBranches = [],
+    relevanceThreshold = 5.0,
   } = body as {
     policies: string[];
     sessionLogMaxAgeDays?: number;
     accessThreshold?: number;
     feedbackThreshold?: number;
     mergedBranches?: string[];
+    relevanceThreshold?: number;
   };
 
   const results: Record<string, { affected: number; details?: string }> = {};
@@ -154,6 +157,47 @@ export async function POST(req: NextRequest) {
             ),
           );
         results[policy] = { affected: demoted.rowsAffected ?? 0 };
+        break;
+      }
+
+      case "auto_prune": {
+        // Archive memories with low relevance scores
+        const allMems = await db
+          .select()
+          .from(memories)
+          .where(
+            and(
+              eq(memories.projectId, context.project.id),
+              isNull(memories.archivedAt),
+              isNull(memories.pinnedAt),
+            ),
+          );
+        const now = Date.now();
+        let pruned = 0;
+        for (const mem of allMems) {
+          const score = computeRelevanceScore({
+            priority: mem.priority ?? 0,
+            accessCount: mem.accessCount ?? 0,
+            lastAccessedAt: mem.lastAccessedAt ? new Date(mem.lastAccessedAt).getTime() : null,
+            helpfulCount: mem.helpfulCount ?? 0,
+            unhelpfulCount: mem.unhelpfulCount ?? 0,
+            pinnedAt: null,
+          }, now);
+          if (score < relevanceThreshold) {
+            // Parse existing tags
+            let existingTags: string[] = [];
+            if (mem.tags) {
+              try { existingTags = JSON.parse(mem.tags) as string[]; } catch { /* ignore */ }
+            }
+            const newTags = [...new Set([...existingTags, "auto:pruned"])];
+            await db
+              .update(memories)
+              .set({ archivedAt: new Date(), tags: JSON.stringify(newTags) })
+              .where(eq(memories.id, mem.id));
+            pruned++;
+          }
+        }
+        results[policy] = { affected: pruned, details: `Archived memories with relevance < ${relevanceThreshold}` };
         break;
       }
 

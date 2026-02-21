@@ -5,11 +5,16 @@ import { organizations, organizationMembers } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { createCheckoutSession, STRIPE_PLANS } from "@/lib/stripe";
+import { isBillingEnabled } from "@/lib/plans";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
 ) {
+  if (!isBillingEnabled()) {
+    return NextResponse.json({ error: "Billing is not enabled" }, { status: 400 });
+  }
+
   const session = await auth.api.getSession({
     headers: await headers(),
   });

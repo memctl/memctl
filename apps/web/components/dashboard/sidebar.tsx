@@ -18,6 +18,9 @@ import {
   LogOut,
   Sun,
   Moon,
+  Activity,
+  Webhook,
+  HeartPulse,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -89,6 +92,21 @@ const navItems: {
     label: "Billing",
     icon: CreditCard,
     href: (s) => `/org/${s}/billing`,
+  },
+  {
+    label: "Activity",
+    icon: Activity,
+    href: (s) => `/org/${s}/activity`,
+  },
+  {
+    label: "Webhooks",
+    icon: Webhook,
+    href: (s) => `/org/${s}/webhooks`,
+  },
+  {
+    label: "Health",
+    icon: HeartPulse,
+    href: (s) => `/org/${s}/health`,
   },
   {
     label: "Settings",

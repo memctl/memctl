@@ -69,6 +69,10 @@ Practical notes:
 - You keep normal recurring prices; wallet support is a checkout/payment-method layer.
 - For local development, wallet availability may be limited compared to production domains.
 
+## Plan limits reference
+
+For the actual enforced limits per plan (memory counts, API calls, rate limits), see the [Organization & Teams](./organization-and-teams.md#plan-limits) documentation. The limits are defined in `packages/shared/src/constants.ts`.
+
 ## Example env for plan IDs
 
 ```env

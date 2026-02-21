@@ -12,8 +12,12 @@ import {
   projects,
   users,
 } from "@memctl/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt, gte, count as drizzleCount } from "drizzle-orm";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
+import { formatLimitValue, isSelfHosted, INVITATIONS_PER_DAY } from "@/lib/plans";
+import { orgInvitations } from "@memctl/db/schema";
+import { isNull } from "drizzle-orm";
+import { InviteMemberDialog } from "@/components/dashboard/members/invite-member-dialog";
 import {
   Table,
   TableBody,
@@ -28,7 +32,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { MemberRowActions } from "@/components/dashboard/members/member-row-actions";
-import { Shield, ShieldAlert, Lock } from "lucide-react";
+import { Shield, Lock, Users, Crown, Mail } from "lucide-react";
 
 const roleBadgeStyles: Record<string, string> = {
   owner:
@@ -148,14 +152,88 @@ export default async function MembersPage({
     slug: p.slug,
   }));
 
+  // Fetch pending non-expired invitations
+  const pendingInvites = await db
+    .select()
+    .from(orgInvitations)
+    .where(
+      and(
+        eq(orgInvitations.orgId, org.id),
+        isNull(orgInvitations.acceptedAt),
+        gt(orgInvitations.expiresAt, new Date()),
+      ),
+    );
+
+  const serializedInvitations = pendingInvites.map((i) => ({
+    id: i.id,
+    email: i.email,
+    role: i.role,
+    expiresAt: i.expiresAt.toISOString(),
+    createdAt: i.createdAt.toISOString(),
+  }));
+
+  // Count invitations sent in the last 24 hours for rate limit display
+  const selfHosted = isSelfHosted();
+  let dailyUsed = 0;
+  if (!selfHosted) {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [dailyCount] = await db
+      .select({ value: drizzleCount() })
+      .from(orgInvitations)
+      .where(
+        and(
+          eq(orgInvitations.orgId, org.id),
+          gte(orgInvitations.createdAt, oneDayAgo),
+        ),
+      );
+    dailyUsed = dailyCount?.value ?? 0;
+  }
+
+  const ownerCount = members.filter((m) => m.role === "owner").length;
+  const adminCount = members.filter((m) => m.role === "admin").length;
+  const memberOnlyCount = members.filter((m) => m.role === "member").length;
+
   return (
     <div>
-      <PageHeader
-        badge="Team"
-        title="Members"
-        description={`${members.length} / ${org.memberLimit} members`}
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          badge="Team"
+          title="Members"
+          description={`${members.length} / ${formatLimitValue(org.memberLimit)} members`}
+        />
+        <InviteMemberDialog
+          orgSlug={orgSlug}
+          pendingInvitations={serializedInvitations}
+          dailyUsed={dailyUsed}
+          dailyLimit={selfHosted ? null : INVITATIONS_PER_DAY}
+        />
+      </div>
 
+      {/* Stats grid */}
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          { icon: Users, label: "Total", value: members.length, sub: `of ${formatLimitValue(org.memberLimit)}`, color: "text-[var(--landing-text)]" },
+          { icon: Crown, label: "Owners", value: ownerCount, sub: null, color: "text-[#F97316]" },
+          { icon: Shield, label: "Admins", value: adminCount, sub: null, color: "text-blue-400" },
+          { icon: Mail, label: "Pending", value: pendingInvites.length, sub: pendingInvites.length > 0 ? "invitations" : null, color: "text-emerald-400" },
+        ].map(({ icon: Icon, label, value, sub, color }) => (
+          <div key={label} className="dash-card glass-border relative overflow-hidden p-3">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/20 to-transparent" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">{label}</p>
+                <p className={`mt-1 font-mono text-lg font-bold ${color}`}>{value}</p>
+                {sub && <p className="font-mono text-[10px] text-[#F97316]">{sub}</p>}
+              </div>
+              <div className="rounded-lg bg-[#F97316]/10 p-2 shadow-[0_0_8px_rgba(249,115,22,0.06)]">
+                <Icon className="h-4 w-4 text-[#F97316]" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Members table */}
       <div className="dash-card overflow-hidden">
         <Table>
           <TableHeader>
@@ -259,6 +337,56 @@ export default async function MembersPage({
           </TableBody>
         </Table>
       </div>
+
+      {/* Role distribution */}
+      {members.length > 1 && (
+        <div className="mt-4 dash-card p-3">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Role distribution</p>
+          <div className="flex h-2 overflow-hidden rounded-full bg-[var(--landing-surface-2)]">
+            {ownerCount > 0 && (
+              <div
+                className="h-full bg-[#F97316]"
+                style={{ width: `${(ownerCount / members.length) * 100}%` }}
+                title={`${ownerCount} owner${ownerCount > 1 ? "s" : ""}`}
+              />
+            )}
+            {adminCount > 0 && (
+              <div
+                className="h-full bg-blue-400"
+                style={{ width: `${(adminCount / members.length) * 100}%` }}
+                title={`${adminCount} admin${adminCount > 1 ? "s" : ""}`}
+              />
+            )}
+            {memberOnlyCount > 0 && (
+              <div
+                className="h-full bg-[var(--landing-text-tertiary)]"
+                style={{ width: `${(memberOnlyCount / members.length) * 100}%` }}
+                title={`${memberOnlyCount} member${memberOnlyCount > 1 ? "s" : ""}`}
+              />
+            )}
+          </div>
+          <div className="mt-1.5 flex gap-4">
+            {ownerCount > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="h-2 w-2 rounded-full bg-[#F97316]" />
+                <span className="font-mono text-[9px] text-[var(--landing-text-tertiary)]">Owner ({ownerCount})</span>
+              </div>
+            )}
+            {adminCount > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="h-2 w-2 rounded-full bg-blue-400" />
+                <span className="font-mono text-[9px] text-[var(--landing-text-tertiary)]">Admin ({adminCount})</span>
+              </div>
+            )}
+            {memberOnlyCount > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="h-2 w-2 rounded-full bg-[var(--landing-text-tertiary)]" />
+                <span className="font-mono text-[9px] text-[var(--landing-text-tertiary)]">Member ({memberOnlyCount})</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

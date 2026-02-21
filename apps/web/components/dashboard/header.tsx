@@ -53,7 +53,7 @@ export function Header({ orgSlug, orgName }: HeaderProps) {
 
   return (
     <header className="flex shrink-0 items-center bg-[var(--landing-bg)] px-8 py-6">
-      <Link href="/" className="flex shrink-0 items-center gap-2 px-2">
+      <Link href="/" className="flex shrink-0 items-center gap-2 px-1">
         <span className="font-mono text-sm font-bold text-[var(--landing-text)]">
           mem<span className="text-[#F97316]">/</span>ctl
         </span>

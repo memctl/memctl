@@ -1,196 +1,237 @@
-# Architecture & Infrastructure
+# Architecture
 
-This document covers the infrastructure features behind memctl's API and CLI: semantic search, caching, offline mode, rate limiting, webhooks, background jobs, and observability.
+This document covers the memctl monorepo structure, server architecture, search pipeline, middleware, database schema, and infrastructure.
 
----
+## Monorepo structure
 
-## Semantic Search (Embeddings)
+memctl is a pnpm monorepo with four packages:
 
-memctl uses a **hybrid search** system combining full-text search (FTS5) with vector embeddings for semantic similarity.
+```
+memctl/
+├── apps/
+│   └── web/                  # Next.js web app (dashboard + API)
+│       ├── app/
+│       │   ├── api/v1/       # REST API routes
+│       │   ├── (dashboard)/  # Dashboard pages
+│       │   └── (marketing)/  # Landing, blog, changelog
+│       ├── lib/              # Server utilities
+│       │   ├── api-middleware.ts
+│       │   ├── rate-limit.ts
+│       │   ├── webhook-dispatch.ts
+│       │   ├── scheduler.ts
+│       │   ├── logger.ts
+│       │   └── jwt.ts
+│       └── components/       # React components
+├── packages/
+│   ├── cli/                  # MCP server + CLI
+│   │   └── src/
+│   │       ├── index.ts      # Entry point (routes CLI vs MCP)
+│   │       ├── cli.ts        # CLI command handling
+│   │       ├── server.ts     # MCP server creation
+│   │       ├── api-client.ts # HTTP client with caching
+│   │       ├── config.ts     # Config file loading
+│   │       ├── init.ts       # Setup wizard
+│   │       ├── doctor.ts     # Diagnostics
+│   │       ├── cache.ts      # In-memory TTL cache
+│   │       ├── local-cache.ts # SQLite offline cache
+│   │       ├── agent-context.ts # Context type system
+│   │       ├── tools/        # MCP tool handlers (11 files)
+│   │       └── resources/    # MCP resource handlers
+│   ├── db/                   # Drizzle ORM schema
+│   │   └── src/schema.ts     # 25 tables
+│   └── shared/               # Shared constants, validators, scoring
+│       └── src/
+│           ├── constants.ts  # Plan limits, roles
+│           ├── validators.ts # Zod schemas
+│           └── relevance.ts  # Relevance scoring
+├── docker-compose.yml        # Local dev environment
+├── Dockerfile.dev            # Dev container
+└── Dockerfile                # Production container
+```
 
-### Embedding Model
+## MCP server architecture
 
-- **Model:** [`all-MiniLM-L6-v2`](https://huggingface.co/Xenova/all-MiniLM-L6-v2) via [`@xenova/transformers`](https://github.com/xenova/transformers.js)
+The CLI package serves two roles depending on how it's invoked:
+
+1. **MCP server** (default, or `memctl serve`) — connects via stdio, exposes tools/resources/prompts
+2. **CLI commands** (`memctl list`, `memctl search`, etc.) — direct terminal usage
+
+```
+IDE (Claude Code / Cursor / Windsurf)
+  └─ stdin/stdout ─→ memctl MCP server
+                       ├── 11 tools (90+ actions)
+                       ├── 7 resources
+                       ├── 3 prompts
+                       └── ApiClient ─→ memctl API
+                             ├── In-memory cache (30s TTL)
+                             ├── ETag revalidation
+                             ├── SQLite offline cache
+                             └── Pending writes queue
+```
+
+On startup, the server:
+
+1. Loads config from env vars or `~/.memctl/config.json`
+2. Creates an `ApiClient` with the resolved credentials
+3. Registers all tools, resources, and prompts
+4. Pings the API — enters offline mode if unreachable
+5. Runs incremental sync (if previous sync exists) or initial cache population
+6. Connects via `StdioServerTransport`
+
+### Tool registration
+
+Tools are registered through `packages/cli/src/tools/index.ts`. Each handler file exports a `register*Tool` function that adds actions to the MCP server. All tools share a rate limit state for write operations.
+
+## API middleware pipeline
+
+Every API request goes through:
+
+1. **Request logging** (`withApiMiddleware`) — assigns `X-Request-Id`, logs method/path/status/duration
+2. **Authentication** (`authenticateRequest`) — validates Bearer token, checks session DB, caches valid sessions
+3. **Org membership** (`requireOrgMembership`) — verifies user belongs to the org in `X-Org-Slug`
+4. **Project access** (`checkProjectAccess`) — owners/admins access all projects, members need explicit assignment
+5. **Rate limiting** (`checkRateLimit`) — sliding-window counter per user, limits based on org plan
+6. **Route handler** — the actual endpoint logic
+
+Errors at any step return the appropriate HTTP status (401, 403, 429, etc.).
+
+## Database schema
+
+25 tables in a libSQL (SQLite-compatible) database, managed with Drizzle ORM.
+
+### Core tables
+
+| Table | Purpose |
+|-------|---------|
+| `users` | User accounts with GitHub OAuth |
+| `organizations` | Orgs with plan, billing, limits |
+| `organizationMembers` | Org membership with roles |
+| `projects` | Projects within orgs |
+| `projectMembers` | Project access for non-admin members |
+| `memories` | The main memory store |
+| `memoryVersions` | Version history for memories |
+| `memorySnapshots` | Point-in-time snapshots |
+| `memoryLocks` | Distributed locks |
+
+### Support tables
+
+| Table | Purpose |
+|-------|---------|
+| `contextTypes` | Custom context type definitions |
+| `orgMemoryDefaults` | Org-wide default memories |
+| `projectTemplates` | Reusable memory templates |
+| `sessionLogs` | Agent session summaries |
+| `activityLogs` | Detailed tool/action logs |
+| `apiTokens` | Bearer tokens (hashed) |
+| `webhookConfigs` | Webhook endpoints |
+| `webhookEvents` | Event queue for digest delivery |
+
+### Key indexes
+
+- `memories`: composite indexes on `(projectId, updatedAt)`, `(projectId, archivedAt)`, `(projectId, priority)`, `(projectId, createdAt)`
+- `activityLogs`: indexes on `(sessionId, action)`, `(projectId, action, createdAt)`
+- Unique constraints: `(projectId, key)` on memories, `(orgId, slug)` on projects
+
+### Memory record fields
+
+```
+key, content, metadata (JSON), scope, priority, tags (JSON),
+relatedKeys (JSON), embedding (JSON Float32Array),
+pinnedAt, archivedAt, expiresAt,
+accessCount, lastAccessedAt, helpfulCount, unhelpfulCount,
+version, createdBy, createdAt, updatedAt
+```
+
+## Semantic search
+
+memctl uses a hybrid search system combining full-text search with vector embeddings.
+
+### Embedding model
+
+- **Model:** `all-MiniLM-L6-v2` via `@xenova/transformers`
 - **Dimensions:** 384-dimensional Float32 vectors
-- **Storage:** JSON-serialized `Float32Array` in a nullable `TEXT` column on the `memories` table
-- **Runs locally** — no external API calls, no data leaves the server
+- **Storage:** JSON-serialized in a TEXT column on the memories table
+- **Runs locally** — no external API calls
 
-### How Embeddings Are Generated
+Embeddings are generated asynchronously whenever a memory is created or updated. Input: `{key} {content} {tags}`.
 
-Embeddings are generated **asynchronously** (fire-and-forget) whenever a memory is created or updated. The input text is:
+### Hybrid search pipeline
+
+When `?q=...` is provided:
+
+1. **FTS5** — keyword matching on key, content, and tags
+2. **Vector search** — cosine similarity against embeddings, threshold 0.3
+3. **Reciprocal Rank Fusion (RRF)** — merges results: `score(id) = Σ 1/(k + rank + 1)` where k=60
+4. **Weighted ranking** — final scoring by priority, access count, feedback, recency, pin status
+
+### Relevance scoring
+
+Used for context retrieval priority. Formula:
 
 ```
-{key} {content} {tags joined by space}
+score = basePriority × usageFactor × timeFactor × feedbackFactor × pinBoost × 100
+
+basePriority = max(priority, 1) / 100
+usageFactor  = 1 + ln(1 + accessCount)
+timeFactor   = e^(-0.03 × daysSinceAccess)    // ~23 day half-life
+feedbackFactor = 0.5 + (helpful / totalFeedback)  // range 0.5-1.5
+pinBoost     = 1.5 if pinned, else 1
 ```
 
-This runs in the background so it never blocks the API response.
+### Similar memories
 
-### Hybrid Search Pipeline
+`POST /memories/similar` uses cosine similarity on embeddings, with fallback to Jaccard word overlap.
 
-When a search query (`?q=...`) is provided on `GET /api/v1/memories`:
-
-1. **FTS5 keyword search** — matches on `key`, `content`, and `tags` fields
-2. **Vector search** — generates an embedding for the query, computes cosine similarity against all project memories with embeddings, filters results above a 0.3 similarity threshold
-3. **Reciprocal Rank Fusion (RRF)** — merges both result sets using RRF scoring (`k=60`): `score(id) = Σ 1/(k + rank + 1)` for each ranked list
-4. **Weighted ranking** — final results are scored by priority, access count, feedback, recency, and pin status
-
-This means searching for "login flow" will match a memory keyed "authentication-system" even though the words don't overlap.
-
-### Similar Memories
-
-`GET /api/v1/memories/similar` uses cosine similarity on embeddings when available, with a fallback to Jaccard word overlap for memories without embeddings.
-
-### Backfilling Embeddings
-
-For existing memories that were created before embeddings were added:
+### Embedding backfill
 
 ```bash
 npx tsx apps/web/scripts/backfill-embeddings.ts
 ```
 
-This processes memories in batches of 50. The background scheduler also backfills stale embeddings every 6 hours.
-
----
+The background scheduler also backfills every 6 hours (batches of 100).
 
 ## Caching
 
-### Client-Side Cache (CLI)
+Three layers, detailed in [Offline & Caching](./offline-and-caching.md):
 
-The MCP CLI client maintains an **in-memory TTL cache** (`packages/cli/src/cache.ts`):
+1. **In-memory** — 30s fresh TTL, 120s stale-while-revalidate
+2. **ETag** — conditional requests, 304 Not Modified
+3. **SQLite** — persistent offline cache at `~/.memctl/cache.db`
 
-- Default TTL: 30 seconds
-- Caches GET responses keyed by `GET:{path}`
-- Stores ETags alongside cached data for revalidation
-- Automatically invalidated on write operations (POST/PATCH/DELETE to `/memories*`)
+Request deduplication prevents duplicate in-flight GETs.
 
-### ETags & Conditional Requests
+## Rate limiting
 
-The API generates ETags (MD5 hash of response body) on memory GET endpoints. The CLI sends `If-None-Match` headers on requests where it has a cached ETag. On match, the API returns `304 Not Modified` — no response body is transferred.
-
-Supported endpoints:
-- `GET /api/v1/memories` (list/search)
-- `GET /api/v1/memories/{key}` (single memory)
-
----
-
-## Offline Mode
-
-When the API is unreachable, the CLI falls back to a **local SQLite cache** (`packages/cli/src/local-cache.ts`).
-
-### How It Works
-
-- Uses `better-sqlite3` for a local DB at `~/.memctl/cache.db`
-- Falls back to an in-memory `Map` when `better-sqlite3` is not available
-- On startup, the CLI pings the API — if unreachable, it logs a warning and enters offline mode
-- GET requests that fail due to network errors return data from the local cache
-- The local cache is synced in the background after successful API responses
-- Staleness threshold: 5 minutes (after which the cache is considered stale)
-
-### Pending Writes
-
-Write operations attempted while offline are queued to `~/.memctl/pending-writes.json`. These are replayed when connectivity is restored.
-
-### Connection Status
-
-The CLI exposes a `memctl://connection-status` MCP resource that reports whether the client is online or offline.
-
----
-
-## Rate Limiting
-
-API rate limiting uses a **sliding-window counter** backed by an LRU cache (`apps/web/lib/rate-limit.ts`).
-
-### Limits by Plan
-
-| Plan | Requests/minute |
-|------|----------------|
-| Free | 60 |
-| Lite | 300 |
-| Pro | 1,000 |
-| Business | 3,000 |
-| Scale | 10,000 |
-| Enterprise | Unlimited |
-
-When exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header indicating seconds until the window resets.
-
-Rate limiting is checked after authentication in the API middleware pipeline.
-
----
+Sliding-window counter per user, backed by LRU cache. Limits set by org plan (60/min free through 10K/min scale). Returns 429 with `Retry-After` header.
 
 ## Webhooks
 
-memctl supports webhook notifications for memory events (`apps/web/lib/webhook-dispatch.ts`).
+Events (`memory.created`, `memory.updated`, `memory.deleted`) are queued and delivered in digest mode every 15 minutes. Deliveries signed with HMAC-SHA256 (`X-Webhook-Signature`).
 
-### Event Types
+## Background scheduler
 
-- `memory.created` — a new memory was stored
-- `memory.updated` — an existing memory was modified
-- `memory.deleted` — a memory was deleted
-
-### Delivery
-
-Events are stored in the `webhookEvents` table for **digest-mode delivery**. A background job (every 15 minutes) batches undispatched events per webhook config and sends them as a single HTTP POST.
-
-### Security
-
-Each webhook delivery includes an `X-Webhook-Signature` header containing an HMAC-SHA256 signature of the request body, signed with the webhook config's secret. Receivers should verify this signature to authenticate events.
-
-Payload format:
-
-```json
-{
-  "events": [
-    { "type": "memory.created", "payload": { "key": "...", "projectId": "..." } }
-  ],
-  "timestamp": "2026-02-20T12:00:00.000Z"
-}
-```
-
----
-
-## Background Scheduler
-
-Periodic jobs run via `node-cron` (`apps/web/lib/scheduler.ts`), initialized through Next.js instrumentation:
+Runs via `node-cron`:
 
 | Job | Schedule | Description |
 |-----|----------|-------------|
-| Expired memory cleanup | Hourly (`0 * * * *`) | Deletes memories past their `expiresAt` date |
-| Webhook digest dispatch | Every 15 min (`*/15 * * * *`) | Sends batched webhook events |
-| Embedding backfill | Every 6 hours (`0 */6 * * *`) | Generates embeddings for memories missing them (batches of 100) |
+| Expired memory cleanup | Hourly | Deletes memories past `expiresAt` |
+| Webhook digest | Every 15 min | Batches and sends webhook events |
+| Embedding backfill | Every 6 hours | Generates missing embeddings |
 
----
+## Structured logging
 
-## Structured Logging
+Pino JSON logging with `X-Request-Id` correlation. Level configurable via `LOG_LEVEL` env var.
 
-The API uses [Pino](https://github.com/pinojs/pino) for JSON-structured logging (`apps/web/lib/logger.ts`).
+## Response compression
 
-- Each request gets a unique `X-Request-Id` header
-- Log level is configurable via `LOG_LEVEL` env var (default: `info`)
-- Output format: JSON with ISO timestamps
-
----
-
-## Response Compression
-
-The Next.js server has `compress: true` enabled in `next.config.ts`, which applies gzip compression to API responses.
-
----
+gzip compression via Next.js `compress: true`.
 
 ## Testing
 
-Tests use [Vitest](https://vitest.dev/) and can be run from the project root:
+Vitest test suites cover: cache, local cache, API client, rate limiting, ETags, cosine similarity, RRF, webhooks, validators, doctor, init, session/git, tool dispatch, and relevance scoring.
 
 ```bash
 pnpm test
 ```
 
-Test suites cover:
-- CLI cache (TTL, ETag storage, invalidation)
-- Local SQLite cache (sync, search, offline reads, pending writes)
-- API client (caching, ETag revalidation, offline fallback)
-- Rate limiting (sliding window, plan tiers, 429 responses)
-- ETag generation and conditional requests
-- Cosine similarity math
-- Hybrid search merging (RRF)
-- Webhook HMAC signatures
-- Zod schema validators
+See [Local Development](./local-development.md) and [Contributing](./contributing.md) for running tests.

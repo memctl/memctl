@@ -5,6 +5,7 @@ import { lt, isNull, isNotNull, eq } from "drizzle-orm";
 import { logger } from "./logger";
 import { sendPendingWebhooks } from "./webhook-dispatch";
 import { generateEmbeddings, serializeEmbedding } from "./embeddings";
+import { computeRelevanceScore } from "@memctl/shared/relevance";
 
 let initialized = false;
 
@@ -86,6 +87,46 @@ export function initScheduler(): void {
       );
     } catch (err) {
       logger.error({ job: "embedding-backfill", error: String(err) }, "Embedding backfill failed");
+    }
+  });
+
+  // Auto-prune low-relevance memories — daily at 3 AM
+  const PRUNE_THRESHOLD = parseFloat(process.env.MEMCTL_PRUNE_THRESHOLD ?? "5.0");
+  cron.schedule("0 3 * * *", async () => {
+    try {
+      const unpinned = await db
+        .select()
+        .from(memories)
+        .where(isNull(memories.archivedAt));
+
+      const now = Date.now();
+      let pruned = 0;
+      for (const mem of unpinned) {
+        if (mem.pinnedAt) continue; // never prune pinned
+        const score = computeRelevanceScore({
+          priority: mem.priority ?? 0,
+          accessCount: mem.accessCount ?? 0,
+          lastAccessedAt: mem.lastAccessedAt ? new Date(mem.lastAccessedAt).getTime() : null,
+          helpfulCount: mem.helpfulCount ?? 0,
+          unhelpfulCount: mem.unhelpfulCount ?? 0,
+          pinnedAt: null,
+        }, now);
+        if (score < PRUNE_THRESHOLD) {
+          let existingTags: string[] = [];
+          if (mem.tags) {
+            try { existingTags = JSON.parse(mem.tags) as string[]; } catch { /* ignore */ }
+          }
+          const newTags = [...new Set([...existingTags, "auto:pruned"])];
+          await db
+            .update(memories)
+            .set({ archivedAt: new Date(), tags: JSON.stringify(newTags) })
+            .where(eq(memories.id, mem.id));
+          pruned++;
+        }
+      }
+      logger.info({ job: "auto-prune", pruned, threshold: PRUNE_THRESHOLD }, "Auto-prune complete");
+    } catch (err) {
+      logger.error({ job: "auto-prune", error: String(err) }, "Auto-prune failed");
     }
   });
 

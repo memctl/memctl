@@ -11,6 +11,8 @@ import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { BillingClient } from "@/components/dashboard/billing-client";
+import { isSelfHosted } from "@/lib/plans";
+import { Server, Infinity as InfinityIcon, Shield, Check, FolderOpen, Users, Brain, Zap, Lock, Database, Globe } from "lucide-react";
 
 export default async function BillingPage({
   params,
@@ -71,6 +73,113 @@ export default async function BillingPage({
 
   const formatLimit = (val: number) =>
     val === Infinity ? "Unlimited" : val.toLocaleString();
+
+  const selfHosted = isSelfHosted();
+
+  if (selfHosted) {
+    return (
+      <div className="mx-auto max-w-5xl">
+        <PageHeader
+          title="Billing"
+          description="Self-hosted deployment"
+        />
+
+        {/* Status banner */}
+        <div className="dash-card glass-border-always relative overflow-hidden p-4 mb-4">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/30 to-transparent" />
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-[#F97316]/10 p-2.5 shadow-[0_0_12px_rgba(249,115,22,0.08)]">
+              <Server className="h-5 w-5 text-[#F97316]" />
+            </div>
+            <div className="flex-1">
+              <p className="font-mono text-sm font-semibold text-[var(--landing-text)]">
+                Self-Hosted Enterprise
+              </p>
+              <p className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+                All features unlocked. No billing required.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-mono text-[10px] font-medium text-emerald-400">Active</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Limits grid */}
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { icon: FolderOpen, label: "Projects", color: "text-[var(--landing-text)]" },
+            { icon: Users, label: "Members", color: "text-blue-400" },
+            { icon: Brain, label: "Memories", color: "text-[#F97316]" },
+            { icon: Zap, label: "API Calls", color: "text-emerald-400" },
+          ].map(({ icon: Icon, label, color }) => (
+            <div key={label} className="dash-card glass-border relative overflow-hidden p-3">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/20 to-transparent" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">{label}</p>
+                  <p className={`mt-1 flex items-center gap-1 font-mono text-lg font-bold ${color}`}>
+                    <InfinityIcon className="h-4 w-4" />
+                  </p>
+                  <p className="font-mono text-[10px] text-[#F97316]">unlimited</p>
+                </div>
+                <div className="rounded-lg bg-[#F97316]/10 p-2 shadow-[0_0_8px_rgba(249,115,22,0.06)]">
+                  <Icon className="h-4 w-4 text-[#F97316]" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Features included */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="dash-card overflow-hidden">
+            <div className="px-3 py-2 border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
+              <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">Included Features</span>
+            </div>
+            <div className="divide-y divide-[var(--landing-border)]">
+              {[
+                { icon: Shield, text: "Invite-only access control" },
+                { icon: Database, text: "Your own database" },
+                { icon: Globe, text: "Custom domain support" },
+                { icon: Lock, text: "Full data ownership" },
+                { icon: Zap, text: "No rate limiting" },
+                { icon: Brain, text: "Unlimited memory storage" },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-3 px-3 py-2">
+                  <Check className="h-3 w-3 shrink-0 text-[#F97316]" />
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--landing-text-tertiary)]" />
+                  <span className="font-mono text-[11px] text-[var(--landing-text-secondary)]">{text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="dash-card overflow-hidden">
+            <div className="px-3 py-2 border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
+              <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">Deployment Info</span>
+            </div>
+            <div className="divide-y divide-[var(--landing-border)]">
+              {[
+                { label: "Plan", value: currentPlan.name },
+                { label: "Billing", value: "Disabled" },
+                { label: "Auth mode", value: "Invite-only" },
+                { label: "Projects", value: formatLimit(currentPlan.projectLimit) },
+                { label: "Members", value: formatLimit(currentPlan.memberLimit) },
+                { label: "Memories / project", value: formatLimit(currentPlan.memoryLimitPerProject) },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between px-3 py-2">
+                  <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">{label}</span>
+                  <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl">

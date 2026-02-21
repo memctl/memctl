@@ -10,6 +10,7 @@ import { generateId } from "@/lib/utils";
 import { orgCreateSchema } from "@memctl/shared/validators";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
+import { getOrgCreationLimits, isBillingEnabled, isSelfHosted, FREE_ORG_LIMIT_PER_USER } from "@/lib/plans";
 
 export async function GET() {
   const session = await auth.api.getSession({
@@ -53,6 +54,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
+  // Self-hosted: single org only (created via dev bypass)
+  if (isSelfHosted()) {
+    return NextResponse.json(
+      { error: "Organization creation is disabled in self-hosted mode" },
+      { status: 403 },
+    );
+  }
+
+  // Free org limit: max N free-plan orgs per user (paid orgs don't count)
+  const ownedOrgs = await db
+    .select({ planId: organizations.planId })
+    .from(organizations)
+    .where(eq(organizations.ownerId, session.user.id));
+
+  const freeOwnedCount = ownedOrgs.filter((o) => o.planId === "free").length;
+
+  if (freeOwnedCount >= FREE_ORG_LIMIT_PER_USER) {
+    return NextResponse.json(
+      { error: "Free organization limit reached. Upgrade an existing organization or contact support." },
+      { status: 403 },
+    );
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = orgCreateSchema.safeParse(body);
   if (!parsed.success) {
@@ -76,12 +100,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Create Stripe customer
-  const customer = await stripe.customers.create({
-    email: session.user.email,
-    name: parsed.data.name,
-    metadata: { orgSlug: parsed.data.slug },
-  });
+  // Create Stripe customer (skip if billing is disabled)
+  let stripeCustomerId: string | null = null;
+  if (isBillingEnabled()) {
+    const customer = await stripe.customers.create({
+      email: session.user.email,
+      name: parsed.data.name,
+      metadata: { orgSlug: parsed.data.slug },
+    });
+    stripeCustomerId = customer.id;
+  }
 
   const orgId = generateId();
   const now = new Date();
@@ -91,10 +119,8 @@ export async function POST(req: NextRequest) {
     name: parsed.data.name,
     slug: parsed.data.slug,
     ownerId: session.user.id,
-    planId: "free",
-    stripeCustomerId: customer.id,
-    projectLimit: 2,
-    memberLimit: 2,
+    ...getOrgCreationLimits(),
+    stripeCustomerId,
     createdAt: now,
     updatedAt: now,
   });
