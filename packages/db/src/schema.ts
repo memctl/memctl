@@ -426,6 +426,7 @@ export const orgInvitations = sqliteTable(
       .notNull()
       .references(() => users.id),
     acceptedAt: integer("accepted_at", { mode: "timestamp" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),

@@ -6,7 +6,7 @@ import { isValidAdminEmail, sendEmail } from "./email";
 import { AdminMagicLinkEmail } from "@/emails/admin-magic-link";
 import { WelcomeEmail } from "@/emails/welcome";
 import { users, organizations, organizationMembers, orgInvitations } from "@memctl/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { getOrgCreationLimits, isSelfHosted } from "@/lib/plans";
 
 type AuthInstance = ReturnType<typeof betterAuth>;
@@ -268,7 +268,7 @@ function createAuth() {
                 .where(eq(users.id, user.id));
             }
 
-            // Accept pending org invitations
+            // Accept pending non-expired org invitations
             const pendingInvites = await db
               .select()
               .from(orgInvitations)
@@ -276,6 +276,7 @@ function createAuth() {
                 and(
                   eq(orgInvitations.email, user.email.toLowerCase()),
                   isNull(orgInvitations.acceptedAt),
+                  gt(orgInvitations.expiresAt, new Date()),
                 ),
               );
 

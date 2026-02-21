@@ -12,7 +12,7 @@ import { generateId } from "@/lib/utils";
 import { onboardingSchema } from "@memctl/shared/validators";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
-import { getOrgCreationLimits, isBillingEnabled } from "@/lib/plans";
+import { getOrgCreationLimits, isBillingEnabled, isSelfHosted, FREE_ORG_LIMIT_PER_USER } from "@/lib/plans";
 
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({
@@ -29,6 +29,29 @@ export async function POST(req: NextRequest) {
   }
 
   const { heardFrom, role, teamSize, useCase, orgName, orgSlug } = parsed.data;
+
+  // Self-hosted: single org only (created via dev bypass)
+  if (isSelfHosted()) {
+    return NextResponse.json(
+      { error: "Organization creation is disabled in self-hosted mode" },
+      { status: 403 },
+    );
+  }
+
+  // Free org limit
+  const ownedOrgs = await db
+    .select({ planId: organizations.planId })
+    .from(organizations)
+    .where(eq(organizations.ownerId, session.user.id));
+
+  const freeOwnedCount = ownedOrgs.filter((o) => o.planId === "free").length;
+
+  if (freeOwnedCount >= FREE_ORG_LIMIT_PER_USER) {
+    return NextResponse.json(
+      { error: "Free organization limit reached. Upgrade an existing organization or contact support." },
+      { status: 403 },
+    );
+  }
 
   // Check slug uniqueness
   const [existing] = await db

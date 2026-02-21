@@ -51,3 +51,12 @@ export function formatLimitValue(value: number): string {
 export function isUnlimited(value: number): boolean {
   return value >= UNLIMITED_SENTINEL;
 }
+
+/** Max free-plan orgs a user can own (paid orgs don't count). */
+export const FREE_ORG_LIMIT_PER_USER = 3;
+
+/** Max invitations an org can send per day (all invitations count, including revoked). */
+export const INVITATIONS_PER_DAY = 20;
+
+/** Max pending (non-accepted) invitations per org at any time. */
+export const MAX_PENDING_INVITATIONS = 50;
