@@ -257,6 +257,16 @@ export default function TokensPage() {
                 )}
               </button>
             </div>
+            <div className="mt-3 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-bg)] p-3">
+              <p className="text-xs font-medium text-[var(--landing-text-secondary)]">
+                Or authenticate via the CLI instead:
+              </p>
+              <pre className="mt-1.5 text-xs text-[#F97316]">npx memctl auth</pre>
+              <p className="mt-1.5 text-[10px] text-[var(--landing-text-tertiary)]">
+                This logs you in interactively and stores the token locally — no
+                need to add it to your .mcp.json.
+              </p>
+            </div>
           </div>
         </div>
       </div>
