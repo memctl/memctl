@@ -15,7 +15,6 @@ import {
   memories,
 } from "@memctl/db/schema";
 import { eq, and, desc, count } from "drizzle-orm";
-import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { ActivityFeed } from "./activity-feed";
 
 export default async function ActivityPage({
@@ -129,7 +128,7 @@ export default async function ActivityPage({
 
   return (
     <div>
-      <PageHeader title="Activity & Sessions" description="Real-time feed of agent actions and session history" />
+      <h1 className="mb-4 text-xl font-semibold text-[var(--landing-text)]">Activity & Sessions</h1>
 
       <ActivityFeed
         activities={allActivities}

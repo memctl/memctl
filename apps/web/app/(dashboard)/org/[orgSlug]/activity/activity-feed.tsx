@@ -124,11 +124,24 @@ export function ActivityFeed({ activities, sessions, stats }: ActivityFeedProps)
   }, [sessions, search]);
 
   const actionTypes = Object.keys(stats.actionBreakdown);
+  const hasData = activities.length > 0 || sessions.length > 0;
+
+  if (!hasData) {
+    return (
+      <div className="dash-card px-6 py-10 text-center">
+        <Zap className="mx-auto mb-3 h-8 w-8 text-[var(--landing-text-tertiary)]" />
+        <p className="font-mono text-sm text-[var(--landing-text-secondary)]">No activity yet</p>
+        <p className="mt-1 font-mono text-xs text-[var(--landing-text-tertiary)]">
+          Actions and sessions will appear here once agents start interacting with your projects.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {/* Compact stats bar */}
-      <div className="dash-card mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 px-2.5 py-1.5">
+    <div className="space-y-4">
+      {/* Stats bar */}
+      <div className="dash-card flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5">
         <span className="font-mono text-xs text-[var(--landing-text)]">
           <span className="font-bold">{stats.totalActions}</span>
           <span className="text-[var(--landing-text-tertiary)]"> actions</span>
@@ -157,7 +170,7 @@ export function ActivityFeed({ activities, sessions, stats }: ActivityFeedProps)
       </div>
 
       {/* Search + filter chips */}
-      <div className="mb-1.5">
+      <div>
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
           <Input
@@ -167,169 +180,164 @@ export function ActivityFeed({ activities, sessions, stats }: ActivityFeedProps)
             className="h-8 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-xs"
           />
         </div>
-        <div className="mt-1 flex flex-wrap gap-1">
-          <button
-            onClick={() => setActionFilter(null)}
-            className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
-              actionFilter === null
-                ? "bg-[#F97316]/15 text-[#F97316]"
-                : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
-            }`}
-          >
-            All
-          </button>
-          {actionTypes.map((action) => (
+        {actionTypes.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
             <button
-              key={action}
-              onClick={() => setActionFilter(actionFilter === action ? null : action)}
+              onClick={() => setActionFilter(null)}
               className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
-                actionFilter === action
-                  ? ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text)]"
+                actionFilter === null
+                  ? "bg-[#F97316]/15 text-[#F97316]"
                   : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
               }`}
             >
-              {ACTION_LABELS[action] ?? action}
+              All
             </button>
-          ))}
-        </div>
+            {actionTypes.map((action) => (
+              <button
+                key={action}
+                onClick={() => setActionFilter(actionFilter === action ? null : action)}
+                className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
+                  actionFilter === action
+                    ? ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text)]"
+                    : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+                }`}
+              >
+                {ACTION_LABELS[action] ?? action}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Split layout */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-        {/* Activity panel (left ~60%) */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+        {/* Activity panel */}
         <div className="md:col-span-3">
           <div className="dash-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-1.5">
+            <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-2">
               <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">Activity</span>
               <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredActivities.length}</span>
             </div>
-            <div className="max-h-[calc(100vh-280px)] overflow-y-auto">
-              {filteredActivities.length === 0 ? (
-                <div className="py-8 text-center">
-                  <Zap className="mx-auto mb-2 h-5 w-5 text-[var(--landing-text-tertiary)]" />
-                  <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No activity found</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-[var(--landing-border)]">
-                  {filteredActivities.map((a) => (
-                    <div key={a.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors">
-                      <span className={`h-2 w-2 shrink-0 rounded-full ${ACTION_DOT_BG[a.action] ?? "bg-[var(--landing-text-tertiary)]"}`} />
-                      <span className={`shrink-0 font-mono text-[11px] font-medium ${ACTION_COLORS[a.action] ?? "text-[var(--landing-text-tertiary)]"}`}>
-                        {ACTION_LABELS[a.action] ?? a.action}
-                      </span>
-                      {a.memoryKey && (
-                        <span className="min-w-0 truncate font-mono text-[11px] text-[#F97316]">{a.memoryKey}</span>
-                      )}
-                      {a.toolName && !a.memoryKey && (
-                        <span className="min-w-0 truncate font-mono text-[11px] text-amber-400">{a.toolName}</span>
-                      )}
-                      <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{a.projectName}</span>
-                      <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {filteredActivities.length === 0 ? (
+              <div className="px-4 py-6 text-center">
+                <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No matching activity</p>
+              </div>
+            ) : (
+              <div className="max-h-[32rem] overflow-y-auto divide-y divide-[var(--landing-border)]">
+                {filteredActivities.map((a) => (
+                  <div key={a.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors">
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${ACTION_DOT_BG[a.action] ?? "bg-[var(--landing-text-tertiary)]"}`} />
+                    <span className={`shrink-0 font-mono text-[11px] font-medium ${ACTION_COLORS[a.action] ?? "text-[var(--landing-text-tertiary)]"}`}>
+                      {ACTION_LABELS[a.action] ?? a.action}
+                    </span>
+                    {a.memoryKey && (
+                      <span className="min-w-0 truncate font-mono text-[11px] text-[#F97316]">{a.memoryKey}</span>
+                    )}
+                    {a.toolName && !a.memoryKey && (
+                      <span className="min-w-0 truncate font-mono text-[11px] text-amber-400">{a.toolName}</span>
+                    )}
+                    <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{a.projectName}</span>
+                    <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Sessions panel (right ~40%) */}
+        {/* Sessions panel */}
         <div className="md:col-span-2">
           <div className="dash-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-1.5">
+            <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-2">
               <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">Sessions</span>
               <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredSessions.length}</span>
             </div>
-            <div className="max-h-[calc(100vh-280px)] overflow-y-auto">
-              {filteredSessions.length === 0 ? (
-                <div className="py-8 text-center">
-                  <SquareTerminal className="mx-auto mb-2 h-5 w-5 text-[var(--landing-text-tertiary)]" />
-                  <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No sessions found</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-[var(--landing-border)]">
-                  {filteredSessions.map((s) => {
-                    const keysWritten = safeParseArray(s.keysWritten);
-                    const keysRead = safeParseArray(s.keysRead);
-                    const toolsUsed = safeParseArray(s.toolsUsed);
-                    const isExpanded = expandedSession === s.id;
+            {filteredSessions.length === 0 ? (
+              <div className="px-4 py-6 text-center">
+                <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No matching sessions</p>
+              </div>
+            ) : (
+              <div className="max-h-[32rem] overflow-y-auto divide-y divide-[var(--landing-border)]">
+                {filteredSessions.map((s) => {
+                  const keysWritten = safeParseArray(s.keysWritten);
+                  const keysRead = safeParseArray(s.keysRead);
+                  const toolsUsed = safeParseArray(s.toolsUsed);
+                  const isExpanded = expandedSession === s.id;
 
-                    return (
-                      <div key={s.id}>
-                        <button
-                          onClick={() => setExpandedSession(isExpanded ? null : s.id)}
-                          className="flex w-full items-start gap-2 px-2 py-2 text-left hover:bg-[var(--landing-surface-2)]/50 transition-colors"
-                        >
-                          <span className="mt-0.5 shrink-0 text-[var(--landing-text-tertiary)]">
-                            {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="truncate font-mono text-[11px] font-medium text-[#F97316]">
-                                {s.sessionId.length > 12 ? s.sessionId.slice(0, 12) + "…" : s.sessionId}
+                  return (
+                    <div key={s.id}>
+                      <button
+                        onClick={() => setExpandedSession(isExpanded ? null : s.id)}
+                        className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-[var(--landing-surface-2)]/50 transition-colors"
+                      >
+                        <span className="mt-0.5 shrink-0 text-[var(--landing-text-tertiary)]">
+                          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate font-mono text-[11px] font-medium text-[#F97316]">
+                              {s.sessionId.length > 12 ? s.sessionId.slice(0, 12) + "…" : s.sessionId}
+                            </span>
+                            {s.branch && (
+                              <span className="flex items-center gap-0.5 font-mono text-[10px] text-[var(--landing-text-secondary)]">
+                                <GitBranch className="h-2.5 w-2.5" />
+                                {s.branch}
                               </span>
-                              {s.branch && (
-                                <span className="flex items-center gap-0.5 font-mono text-[10px] text-[var(--landing-text-secondary)]">
-                                  <GitBranch className="h-2.5 w-2.5" />
-                                  {s.branch}
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-0.5 flex items-center gap-2 font-mono text-[10px]">
-                              {s.endedAt ? (
-                                <span className="text-[var(--landing-text-tertiary)]">ended</span>
-                              ) : (
-                                <span className="flex items-center gap-1 text-emerald-400">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                  active
-                                </span>
-                              )}
-                              {keysRead.length > 0 && <span className="text-blue-400">R:{keysRead.length}</span>}
-                              {keysWritten.length > 0 && <span className="text-emerald-400">W:{keysWritten.length}</span>}
-                              <span className="text-[var(--landing-text-tertiary)]">{relativeTime(s.startedAt)}</span>
-                              <span className="text-[var(--landing-text-tertiary)]">{s.projectName}</span>
-                            </div>
+                            )}
                           </div>
-                        </button>
+                          <div className="mt-0.5 flex items-center gap-2 font-mono text-[10px]">
+                            {s.endedAt ? (
+                              <span className="text-[var(--landing-text-tertiary)]">ended</span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-emerald-400">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                active
+                              </span>
+                            )}
+                            {keysRead.length > 0 && <span className="text-blue-400">R:{keysRead.length}</span>}
+                            {keysWritten.length > 0 && <span className="text-emerald-400">W:{keysWritten.length}</span>}
+                            <span className="text-[var(--landing-text-tertiary)]">{relativeTime(s.startedAt)}</span>
+                            <span className="text-[var(--landing-text-tertiary)]">{s.projectName}</span>
+                          </div>
+                        </div>
+                      </button>
 
-                        {/* Inline expanded detail */}
-                        {isExpanded && (
-                          <div className="border-t border-[var(--landing-border)] bg-[var(--landing-surface-2)]/30 px-3 py-2 space-y-2">
-                            {s.summary && (
-                              <p className="font-mono text-[10px] text-[var(--landing-text-secondary)]">{s.summary}</p>
-                            )}
-                            {keysWritten.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {keysWritten.map((k) => (
-                                  <Badge key={k} variant="outline" className="border-emerald-500/30 text-emerald-400 text-[9px] h-4 px-1">{k}</Badge>
-                                ))}
-                              </div>
-                            )}
-                            {keysRead.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {keysRead.map((k) => (
-                                  <Badge key={k} variant="outline" className="border-blue-500/30 text-blue-400 text-[9px] h-4 px-1">{k}</Badge>
-                                ))}
-                              </div>
-                            )}
-                            {toolsUsed.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {toolsUsed.map((t) => (
-                                  <Badge key={t} variant="outline" className="border-amber-500/30 text-amber-400 text-[9px] h-4 px-1">{t}</Badge>
-                                ))}
-                              </div>
-                            )}
-                            {!s.summary && keysWritten.length === 0 && keysRead.length === 0 && toolsUsed.length === 0 && (
-                              <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No details available</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                      {isExpanded && (
+                        <div className="border-t border-[var(--landing-border)] bg-[var(--landing-surface-2)]/30 px-4 py-2.5 space-y-2">
+                          {s.summary && (
+                            <p className="font-mono text-[10px] text-[var(--landing-text-secondary)]">{s.summary}</p>
+                          )}
+                          {keysWritten.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {keysWritten.map((k) => (
+                                <Badge key={k} variant="outline" className="border-emerald-500/30 text-emerald-400 text-[9px] h-4 px-1">{k}</Badge>
+                              ))}
+                            </div>
+                          )}
+                          {keysRead.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {keysRead.map((k) => (
+                                <Badge key={k} variant="outline" className="border-blue-500/30 text-blue-400 text-[9px] h-4 px-1">{k}</Badge>
+                              ))}
+                            </div>
+                          )}
+                          {toolsUsed.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {toolsUsed.map((t) => (
+                                <Badge key={t} variant="outline" className="border-amber-500/30 text-amber-400 text-[9px] h-4 px-1">{t}</Badge>
+                              ))}
+                            </div>
+                          )}
+                          {!s.summary && keysWritten.length === 0 && keysRead.length === 0 && toolsUsed.length === 0 && (
+                            <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No details available</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
