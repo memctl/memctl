@@ -1,0 +1,85 @@
+---
+title: Import & Export
+description: Import and export memories in various formats
+---
+
+# Import & Export
+
+## export
+
+Export memories to stdout in various formats.
+
+```bash
+npx memctl export [format]
+```
+
+| Format | Description |
+|---|---|
+| `agents_md` | AGENTS.md format (default) |
+| `cursorrules` | .cursorrules format |
+| `json` | Raw JSON |
+
+### Examples
+
+```bash
+# Export as AGENTS.md
+npx memctl export agents_md > AGENTS.md
+
+# Export as .cursorrules
+npx memctl export cursorrules > .cursorrules
+
+# Export as JSON for scripting
+npx memctl export json > backup.json
+```
+
+### Use with Aider
+
+```bash
+npx memctl export agents_md > AGENTS.md
+aider --read AGENTS.md
+```
+
+## import
+
+Import memories from a file. Headings become separate memory entries.
+
+```bash
+npx memctl import <file>
+```
+
+### How it works
+
+1. Reads the file
+2. Splits by markdown headings (`#`, `##`, `###`)
+3. Each section becomes a memory with key `agent/context/imported/<slug>`
+4. Metadata includes the source filename and original heading
+
+### Examples
+
+```bash
+# Import an AGENTS.md
+npx memctl import AGENTS.md
+
+# Import a .cursorrules file
+npx memctl import .cursorrules
+
+# Import Copilot instructions
+npx memctl import .github/copilot-instructions.md
+```
+
+### Output
+
+```
+Imported 8 sections from AGENTS.md
+```
+
+### MCP tool equivalent
+
+The `import_export` MCP tool provides the same functionality for agents:
+
+```
+Tool: import_export
+Action: agents_md_import | cursorrules_import | export_agents_md | export_memories
+```
+
+Use `dryRun: true` to preview what would be imported.

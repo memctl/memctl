@@ -1,0 +1,181 @@
+---
+title: Troubleshooting
+description: Common issues and fixes for mem/ctl setup and usage
+---
+
+# Troubleshooting
+
+## Run the doctor first
+
+```bash
+npx memctl doctor
+```
+
+This checks credentials, connectivity, org/project access, and memory capacity in one command. Fix any failing checks before investigating further.
+
+## Common errors
+
+### Token not found
+
+```
+Token not present
+```
+
+The CLI could not find an API token. Fix:
+
+1. Run `npx memctl auth` to save your token, or
+2. Set `MEMCTL_TOKEN` in your MCP config env block, or
+3. Check that `~/.memctl/config.json` exists and has a valid `profiles.default.token`
+
+### Token invalid
+
+```
+Token invalid
+```
+
+The token was found but rejected by the API. Fix:
+
+1. Go to **Settings > API Tokens** in the dashboard
+2. Generate a new token
+3. Run `npx memctl auth` again with the new token
+
+### Org or project not accessible
+
+```
+Org not accessible
+Project not accessible
+```
+
+The token is valid but doesn't have access to the specified org or project. Fix:
+
+1. Check that `MEMCTL_ORG` and `MEMCTL_PROJECT` match the slugs in your dashboard URL
+2. Verify you are a member of the organization
+3. Slugs are case-sensitive and use lowercase with hyphens
+
+### API not reachable
+
+```
+API not reachable
+```
+
+Cannot connect to the mem/ctl API. Fix:
+
+1. Check your network connection
+2. If self-hosting, verify your API URL is correct (`MEMCTL_API_URL`)
+3. Check if a firewall or proxy is blocking outbound HTTPS
+4. The CLI will fall back to offline mode automatically
+
+### Memory capacity full
+
+```
+Memory capacity full. Delete unused memories before storing new ones.
+```
+
+Your project has reached its plan limit. Fix:
+
+1. Run `npx memctl capacity` to see current usage
+2. Use `npx memctl list --sort updated` to find old memories
+3. Delete unused memories: `npx memctl cleanup`
+4. Archive instead of delete if you want to keep data: use the `memory.archive` action
+5. Upgrade your plan for higher limits
+
+### Rate limit exceeded
+
+```
+Rate limit exceeded
+```
+
+Too many write operations in a single session. The default limit is 500 writes per session.
+
+1. Wait for the current session to end and start a new one
+2. Set a higher limit with `MEMCTL_RATE_LIMIT=1000` in your MCP config env
+3. Use `memory_advanced.batch_mutate` instead of individual writes for bulk operations
+
+## MCP connection issues
+
+### Agent says "MCP server not found" or "tool not available"
+
+1. Verify the MCP config file is in the correct location for your agent (see [Agent Setup](/docs/agents))
+2. Make sure `npx` is available in your PATH
+3. Restart your IDE after editing MCP config files
+4. Check that Node.js 20+ is installed: `node --version`
+
+### Agent connects but tools fail
+
+1. Run `npx memctl doctor` to check credentials
+2. Check that `MEMCTL_ORG` and `MEMCTL_PROJECT` are set in the MCP config env block
+3. Look at your IDE's MCP server logs for error details
+
+### Slow first response
+
+On first startup, the MCP server syncs memories from the API. This can take a few seconds depending on how many memories you have. Subsequent tool calls use the local cache and are fast.
+
+## Config issues
+
+### Wrong org/project being used
+
+The CLI resolves config in this order:
+
+1. Environment variables (`MEMCTL_TOKEN`, `MEMCTL_ORG`, `MEMCTL_PROJECT`)
+2. Project config from `~/.memctl/config.json` matched by working directory
+3. Default profile token + env org/project
+
+Check each level:
+
+```bash
+# See what the CLI resolves
+npx memctl doctor
+
+# Check config file
+cat ~/.memctl/config.json
+```
+
+### Config file corrupted
+
+Delete and recreate:
+
+```bash
+rm ~/.memctl/config.json
+npx memctl auth
+```
+
+### Local cache issues
+
+If you suspect stale data from the local cache:
+
+```bash
+rm ~/.memctl/cache.db
+```
+
+The cache is rebuilt automatically on the next MCP server startup.
+
+## Data issues
+
+### Memories not syncing between team members
+
+1. Verify both team members are using the same org and project slugs
+2. Memory is stored server-side and available within 30 seconds (cache TTL)
+3. Have the other team member run `context.bootstrap` to pull fresh data
+4. Check that memories are scoped to `project` not stored with a different scope
+
+### Stale context after changes
+
+If your agent has stale data mid-session:
+
+- Use `context.bootstrap_delta` with a timestamp to get only recent changes
+- Or use `context.bootstrap` to reload everything fresh
+- The in-memory cache has a 30-second TTL, so waiting briefly also works
+
+### Pending writes not replayed
+
+If writes were queued offline and not replayed:
+
+1. Check `~/.memctl/pending-writes.json` exists and has content
+2. Ensure the API is now reachable: `npx memctl doctor`
+3. Start a new MCP server session - it replays pending writes on startup
+
+## Still stuck?
+
+- Check the [Concepts](/docs/concepts) page for how sync and caching work
+- Run `npx memctl doctor` and share the output
+- Open an issue at [github.com/memctl/memctl](https://github.com/memctl/memctl/issues)

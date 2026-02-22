@@ -1,18 +1,39 @@
-import "fumadocs-ui/style.css";
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
-import { RootProvider } from "fumadocs-ui/provider";
 import type { ReactNode } from "react";
+import { Github } from "lucide-react";
 import { source } from "@/lib/source";
+import { DocsProvider } from "@/components/docs/docs-provider";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <RootProvider>
+    <DocsProvider>
       <DocsLayout
         tree={source.pageTree}
-        nav={{ title: "mem/ctl docs" }}
+        nav={{
+          title: (
+            <span className="font-mono text-sm font-semibold tracking-tight">
+              mem<span className="text-[#F97316]">/</span>ctl{" "}
+              <span className="ml-1 text-xs font-normal opacity-50">docs</span>
+            </span>
+          ),
+          url: "/",
+        }}
+        links={[
+          {
+            type: "icon",
+            url: "https://github.com/memctl/memctl",
+            icon: <Github />,
+            text: "GitHub",
+            external: true,
+          },
+        ]}
+        sidebar={{
+          defaultOpenLevel: 1,
+          collapsible: false,
+        }}
       >
         {children}
       </DocsLayout>
-    </RootProvider>
+    </DocsProvider>
   );
 }

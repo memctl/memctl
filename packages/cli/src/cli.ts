@@ -30,6 +30,7 @@ function printUsage() {
 
 Usage:
   memctl serve              Start the MCP server (default)
+  memctl auth               Authenticate and store your API token
   memctl init               Interactive setup wizard
   memctl init --claude      Write Claude Code MCP config only
   memctl init --cursor      Write Cursor MCP config only
@@ -123,6 +124,12 @@ export async function runCli(args: string[]): Promise<void> {
       windsurf: Boolean(flags.windsurf),
       all: Boolean(flags.all),
     });
+    return;
+  }
+
+  if (command === "auth") {
+    const { runAuth } = await import("./auth.js");
+    await runAuth();
     return;
   }
 

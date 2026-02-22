@@ -1,0 +1,102 @@
+---
+title: Memory Commands
+description: List, get, search, and check capacity of memories
+---
+
+# Memory Commands
+
+## list
+
+List memories in the current project.
+
+```bash
+npx memctl list [options]
+```
+
+| Flag | Description | Default |
+|---|---|---|
+| `--limit <n>` | Max results | 50 |
+| `--sort <field>` | Sort by `updated`, `priority`, or `created` |  - |
+| `--tags <tags>` | Filter by tags |  - |
+| `--include-archived` | Include archived memories | false |
+| `--json` | Output raw JSON | false |
+
+### Example
+
+```bash
+npx memctl list --limit 10 --sort priority
+```
+
+```
+  architecture (p90) [core]
+  coding_style (p80) [style]
+  testing (p70)
+  ...
+
+10 memories
+```
+
+## get
+
+Retrieve a single memory by key.
+
+```bash
+npx memctl get <key>
+```
+
+### Example
+
+```bash
+npx memctl get architecture
+```
+
+Returns the full memory object as JSON.
+
+## search
+
+Search memories by content or key.
+
+```bash
+npx memctl search <query> [options]
+```
+
+| Flag | Description | Default |
+|---|---|---|
+| `--limit <n>` | Max results | 50 |
+| `--json` | Output raw JSON | false |
+
+### Example
+
+```bash
+npx memctl search "authentication flow"
+```
+
+```
+  agent/context/architecture/auth - We use JWT tokens for API auth...
+  agent/context/lessons_learned/oauth - OAuth refresh token gotcha...
+
+2 results
+```
+
+## capacity
+
+Show memory usage for the project and organization.
+
+```bash
+npx memctl capacity [--json]
+```
+
+### Example
+
+```bash
+npx memctl capacity
+```
+
+```
+Project: 42/500 memories
+Org:     128/2000 memories
+Usage:   8.4%
+Status:  OK
+```
+
+Status values: `OK`, `Approaching limit`, `FULL`

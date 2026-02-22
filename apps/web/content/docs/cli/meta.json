@@ -1,0 +1,5 @@
+{
+  "title": "CLI Reference",
+  "defaultOpen": true,
+  "pages": ["index", "auth", "init", "doctor", "memories", "import-export", "snapshots", "lifecycle"]
+}

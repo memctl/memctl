@@ -1,0 +1,67 @@
+---
+title: Deployment
+description: Production deployment options and checklist for mem/ctl
+---
+
+# Deployment
+
+This page covers practical production deployment guidance beyond local setup.
+
+## Choose a deployment model
+
+### mem/ctl Cloud
+
+- Fastest path for teams
+- No infrastructure management
+
+### Self-hosted
+
+- Your infrastructure and data control
+- More setup and operations work
+
+If self-hosting, start with [Self-Hosting](/docs/self-hosting).
+
+## Production checklist
+
+## Application
+
+- Build and run in production mode (`pnpm build`, `pnpm start`)
+- Use HTTPS behind a reverse proxy/load balancer
+- Enable structured logs and central log collection
+- Set health checks for API and web app
+
+## Database
+
+- Use a production libSQL/Turso-compatible database
+- Enable backups and verify restore procedure
+- Plan schema migration process before releases
+
+## Auth and security
+
+- Set strong `BETTER_AUTH_SECRET`
+- Configure OAuth providers for production callback URLs
+- Restrict admin access and rotate tokens regularly
+- Set secure cookie/domain settings for your deployment domain
+
+## Billing (optional)
+
+- Configure Stripe keys and webhook endpoint
+- Validate webhook signature handling in staging first
+
+## Operations
+
+- Keep staging and production environments separate
+- Use environment-specific config and secrets
+- Add alerting for error rates, auth failures, and latency
+- Define rollback steps for failed releases
+
+## Recommended environment split
+
+- **Local dev:** Docker + dev auth bypass
+- **Staging:** production-like build with test data
+- **Production:** real auth, monitored DB, backups, alerting
+
+## Related docs
+
+- [Local Development](/docs/local-development)
+- [Self-Hosting](/docs/self-hosting)

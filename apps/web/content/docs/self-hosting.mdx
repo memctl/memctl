@@ -7,6 +7,8 @@ description: Self-host mem/ctl on your own infrastructure
 
 mem/ctl is open source (Apache-2.0) and can be self-hosted.
 
+For local setup and day-to-day development, see [Local Development](/docs/local-development). For production planning, see [Deployment](/docs/deployment).
+
 ## Requirements
 
 - Node.js 20+
@@ -16,7 +18,7 @@ mem/ctl is open source (Apache-2.0) and can be self-hosted.
 
 ## Setup
 
-### 1. Clone the Repository
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/memctl/memctl.git
@@ -24,39 +26,53 @@ cd memctl
 pnpm install
 ```
 
-### 2. Configure Environment
-
-Copy `.env.example` to `.env` and fill in the values:
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-### 3. Set Up Database
+Fill in the required values in `.env`.
+
+### 3. Set up database
 
 ```bash
 pnpm db:push
 ```
 
-### 4. Build & Start
+### 4. Build and start
 
 ```bash
 pnpm build
 pnpm start
 ```
 
-### 5. Configure MCP Server
+### 5. Configure your agents
 
-Point your MCP server to your self-hosted instance:
+Point your MCP server to your self-hosted instance using `memctl auth` or environment variables:
+
+```bash
+MEMCTL_API_URL=https://your-instance.com/api/v1 npx memctl auth
+```
+
+Or add `MEMCTL_API_URL` to your MCP config:
 
 ```json
 {
-  "env": {
-    "MEMCTL_API_URL": "https://your-instance.com/api/v1"
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_API_URL": "https://your-instance.com/api/v1",
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
   }
 }
 ```
 
-## Docker (Coming Soon)
+## Docker (coming soon)
 
 A `docker-compose.yml` for simplified self-hosting is planned.

@@ -1,4 +1,5 @@
 {
   "title": "MCP Server",
-  "pages": ["tools", "resources", "transports"]
+  "defaultOpen": true,
+  "pages": ["index", "tools", "resources", "transports"]
 }

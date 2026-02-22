@@ -1,59 +1,92 @@
 ---
 title: Quickstart
-description: Get started with mem/ctl in 2 minutes
+description: Authenticate and connect your first agent in 2 minutes
 ---
 
 # Quickstart
 
-## 1. Create an Account
+## 1. Create an account
 
-Sign up at [memctl.com](https://memctl.com) using your GitHub account.
+Sign up at [memctl.com](https://memctl.com) with GitHub. Create an organization and project in the dashboard.
 
-## 2. Create a Project
+## 2. Authenticate
 
-After signing up, create your first organization and project in the dashboard.
+```bash
+npx memctl auth
+```
 
-## 3. Generate an API Token
+This prompts for your API token (get it from **Settings → API Tokens** in the dashboard), verifies it, and saves it to `~/.memctl/config.json`. You only do this once per machine.
 
-Go to your organization's **Tokens** page and create a new API token. Copy it — you'll need it next.
+## 3. Configure your agent
 
-## 4. Configure Your Agent
+The fastest way is the init wizard:
 
-Add mem/ctl to your MCP configuration:
+```bash
+npx memctl init
+```
+
+This walks you through selecting your IDE and writes the MCP config automatically.
+
+Or use a targeted flag to skip prompts:
+
+```bash
+npx memctl init --claude    # Claude Code
+npx memctl init --cursor    # Cursor
+npx memctl init --windsurf  # Windsurf
+npx memctl init --all       # All supported IDEs
+```
+
+After authenticating, your MCP config only needs the org and project - no token in project files:
 
 ```json
 {
   "mcpServers": {
     "memctl": {
       "command": "npx",
-      "args": ["memctl"],
+      "args": ["-y", "memctl@latest"],
       "env": {
-        "MEMCTL_TOKEN": "mctl_your_token_here",
-        "MEMCTL_ORG": "your-org-slug",
-        "MEMCTL_PROJECT": "your-project-slug"
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
       }
     }
   }
 }
 ```
 
-### Claude Code
+For agent-specific config locations and formats (VS Code, Cline, Zed, JetBrains, etc.), see the [full agent setup guides](/docs/agents).
 
-Add to `~/.claude/claude_desktop_config.json`
+## 4. Verify
 
-### Cursor
+```bash
+npx memctl doctor
+```
 
-Add to `.cursor/mcp.json` in your project root
+Or ask your agent: *"Use the memory tool with action capacity to check my memory usage."*
 
-## 5. Start Using
+## 5. Start using
 
-Your AI agent now has access to these tools:
+Your agent now has access to persistent memory. Try:
 
-- `memory_store` — Store a key-value memory
-- `memory_get` — Retrieve a memory by key
-- `memory_search` — Search memories
-- `memory_list` — List all memories
-- `memory_delete` — Delete a memory
-- `memory_update` — Update a memory
+- *"Store our coding conventions as a coding_style context entry"*
+- *"What architecture decisions have been recorded for this project?"*
+- *"Create a branch plan for the auth refactor"*
 
-Try asking your agent: "Store a memory with key 'architecture' about our project's tech stack"
+## Alternative: inline token
+
+If you prefer not to run `memctl auth` (CI, shared environments), include the token directly:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_TOKEN": "your-token",
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```

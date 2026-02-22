@@ -1,0 +1,49 @@
+---
+title: Snapshots
+description: Create and list memory snapshots
+---
+
+# Snapshots
+
+Snapshots capture a point-in-time copy of all project memories.
+
+## snapshot
+
+Create a new snapshot.
+
+```bash
+npx memctl snapshot <name> [--description <desc>]
+```
+
+### Example
+
+```bash
+npx memctl snapshot "pre-refactor" --description "Before auth system rewrite"
+```
+
+## snapshots
+
+List existing snapshots.
+
+```bash
+npx memctl snapshots [--limit <n>] [--json]
+```
+
+### Example
+
+```bash
+npx memctl snapshots
+```
+
+```
+  pre-refactor (42 memories) - 2025-01-15T10:30:00Z
+  v2-launch (38 memories) - 2025-01-10T08:00:00Z
+
+2 snapshots
+```
+
+## Use cases
+
+- **Before major refactors**  - snapshot to roll back if needed
+- **Release milestones**  - capture project context at each version
+- **Team onboarding**  - share a baseline snapshot
