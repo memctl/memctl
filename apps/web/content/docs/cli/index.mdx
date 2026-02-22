@@ -1,0 +1,48 @@
+---
+title: CLI Reference
+description: All mem/ctl CLI commands
+---
+
+# CLI Reference
+
+The mem/ctl CLI provides commands for authentication, memory management, import/export, and diagnostics.
+
+```bash
+npx memctl <command> [options]
+```
+
+## Commands
+
+| Command | Description |
+|---|---|
+| `serve` | Start the MCP server (default when no command given) |
+| [`auth`](/docs/cli/auth) | Authenticate and store your API token |
+| [`init`](/docs/cli/init) | Interactive setup wizard |
+| [`doctor`](/docs/cli/doctor) | Run diagnostics |
+| [`list`](/docs/cli/memories) | List memories |
+| [`get`](/docs/cli/memories#get) | Get a memory by key |
+| [`search`](/docs/cli/memories#search) | Search memories |
+| [`export`](/docs/cli/import-export) | Export memories |
+| [`import`](/docs/cli/import-export#import) | Import from file |
+| [`snapshot`](/docs/cli/snapshots) | Create a snapshot |
+| [`snapshots`](/docs/cli/snapshots#list) | List snapshots |
+| [`capacity`](/docs/cli/memories#capacity) | Show memory usage |
+| [`cleanup`](/docs/cli/lifecycle#cleanup) | Suggest stale memories |
+| [`lifecycle`](/docs/cli/lifecycle) | Run lifecycle policies |
+
+## Global options
+
+| Flag | Description |
+|---|---|
+| `--json` | Output raw JSON |
+| `--limit <n>` | Limit results (default: 50) |
+| `--help` | Show usage |
+
+## Environment variables
+
+| Variable | Description | Default |
+|---|---|---|
+| `MEMCTL_TOKEN` | API token | From `~/.memctl/config.json` via `memctl auth` |
+| `MEMCTL_ORG` | Organization slug | Required |
+| `MEMCTL_PROJECT` | Project slug | Required |
+| `MEMCTL_API_URL` | API base URL | `https://memctl.com/api/v1` |

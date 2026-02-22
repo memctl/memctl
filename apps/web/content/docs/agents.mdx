@@ -1,0 +1,392 @@
+---
+title: Agent Setup
+description: Configure mem/ctl in any MCP-compatible AI agent
+---
+
+# Agent Setup
+
+Every agent below connects to mem/ctl the same way  - run `npx memctl auth` once, then add your org and project to the agent's MCP config. No token in project files.
+
+```bash
+npx memctl auth
+```
+
+## Quick reference
+
+| Agent | Config location | Config key | Auto-setup |
+|---|---|---|---|
+| Claude Code | `.mcp.json` | `mcpServers` | `memctl init --claude` |
+| Cursor | `.cursor/mcp.json` | `mcpServers` | `memctl init --cursor` |
+| VS Code + Copilot | `.vscode/mcp.json` | `servers` |  - |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` | `mcpServers` | `memctl init --windsurf` |
+| Cline | Extension UI | `mcpServers` |  - |
+| Roo Code | `.roo/mcp.json` | `mcpServers` |  - |
+| Continue | `.continue/config.yaml` | `mcpServers` |  - |
+| Zed | Zed settings | `context_servers` |  - |
+| JetBrains | Settings UI |  - |  - |
+| Amazon Q | `.amazonq/mcp.json` | `mcpServers` |  - |
+| Aider | N/A |  - |  - |
+
+## Configuration
+
+<Accordions type="single">
+
+<Accordion title="Claude Code" id="claude-code">
+
+Create `.mcp.json` in your project root (can be committed to git):
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+Or use the init wizard: `npx memctl init --claude`
+
+Claude Code also supports `~/.claude/mcp.json` for global configuration.
+
+</Accordion>
+
+<Accordion title="Cursor" id="cursor">
+
+Create `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+Or use the init wizard: `npx memctl init --cursor`
+
+Restart Cursor after adding the config.
+
+</Accordion>
+
+<Accordion title="VS Code + GitHub Copilot" id="vscode">
+
+Create `.vscode/mcp.json` in your project root:
+
+```json
+{
+  "servers": {
+    "memctl": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+VS Code uses `"servers"` (not `"mcpServers"`) and requires `"type": "stdio"`.
+
+Reload the window after adding the config (`Ctrl+Shift+P` → "Reload Window").
+
+</Accordion>
+
+<Accordion title="Windsurf" id="windsurf">
+
+Add to `~/.codeium/windsurf/mcp_config.json` (global config):
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+Or use the init wizard: `npx memctl init --windsurf`
+
+Windsurf uses a single global config file, not per-project.
+
+</Accordion>
+
+<Accordion title="Cline" id="cline">
+
+1. Open VS Code → Cline extension sidebar
+2. Click the **MCP Servers** icon (plug icon)
+3. Click **Configure MCP Servers**
+4. Add to the opened `cline_mcp_settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+Config file location varies by OS:
+
+- **macOS:** `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+- **Linux:** `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+- **Windows:** `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`
+
+</Accordion>
+
+<Accordion title="Roo Code" id="roo-code">
+
+**Per-project**  - create `.roo/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+**Global**  - configure via the Roo Code extension settings UI, similar to Cline.
+
+</Accordion>
+
+<Accordion title="Continue" id="continue">
+
+<Tabs items={["YAML (recommended)", "JSON"]}>
+<Tab>
+
+Add to `.continue/config.yaml`:
+
+```yaml
+mcpServers:
+  - name: memctl
+    command: npx
+    args:
+      - "-y"
+      - "memctl@latest"
+    env:
+      MEMCTL_ORG: "your-org"
+      MEMCTL_PROJECT: "your-project"
+```
+
+</Tab>
+<Tab>
+
+Add to `.continue/config.json`:
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "memctl",
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
+
+Continue uses an **array** format for `mcpServers`  - each entry needs a `"name"` field.
+
+Continue auto-reloads config on save. If tools don't appear, restart the IDE.
+
+</Accordion>
+
+<Accordion title="Zed" id="zed">
+
+Open Zed settings (`Cmd+,`) and add:
+
+```json
+{
+  "context_servers": {
+    "memctl": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "memctl@latest"],
+        "env": {
+          "MEMCTL_ORG": "your-org",
+          "MEMCTL_PROJECT": "your-project"
+        }
+      }
+    }
+  }
+}
+```
+
+Zed's format differs from other agents:
+- Top-level key is `"context_servers"` (not `"mcpServers"`)
+- Command is nested: `"command": { "path": "...", "args": [...] }`
+- Uses `"path"` instead of `"command"` for the executable
+
+Zed picks up settings changes automatically.
+
+</Accordion>
+
+<Accordion title="JetBrains IDEs" id="jetbrains">
+
+IntelliJ IDEA, WebStorm, PyCharm, GoLand, and other JetBrains IDEs support MCP via the AI Assistant plugin.
+
+1. Open **Settings** (`Ctrl+Alt+S` / `Cmd+,`)
+2. Navigate to **Tools → AI Assistant → MCP Servers**
+3. Click **+** to add a new server
+4. Configure:
+   - Name: `memctl`
+   - Command: `npx`
+   - Arguments: `-y memctl@latest`
+   - Environment variables:
+     - `MEMCTL_ORG` = `your-org`
+     - `MEMCTL_PROJECT` = `your-project`
+5. Click **OK** / **Apply**
+
+If your IDE supports JSON config for MCP:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+Requires the **AI Assistant** plugin (bundled with JetBrains IDEs 2024.1+).
+
+</Accordion>
+
+<Accordion title="Amazon Q Developer" id="amazon-q">
+
+Create `.amazonq/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+Works in both VS Code and JetBrains versions of Amazon Q.
+
+Restart your IDE after adding the config.
+
+</Accordion>
+
+<Accordion title="Aider (CLI export)" id="aider">
+
+Aider does **not** have native MCP support. Use the mem/ctl CLI to export context and pass it as a file.
+
+```bash
+# Export context to AGENTS.md
+npx memctl export agents_md > AGENTS.md
+
+# Start Aider with context
+aider --read AGENTS.md
+```
+
+After an Aider session, import updates back:
+
+```bash
+npx memctl import AGENTS.md
+```
+
+This is a one-way sync  - re-export and re-import manually between sessions.
+
+</Accordion>
+
+<Accordion title="Other MCP-compatible agents" id="generic">
+
+For any agent that supports the MCP standard, use this config as a starting point:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+Check your agent's docs for the exact config location and key name  - most use `mcpServers` but some differ (VS Code uses `servers`, Zed uses `context_servers`).
+
+</Accordion>
+
+</Accordions>
+
+## Inline token (CI / shared environments)
+
+If you prefer not to use `memctl auth`, include the token directly in the config:
+
+```json
+{
+  "env": {
+    "MEMCTL_TOKEN": "your-token",
+    "MEMCTL_ORG": "your-org",
+    "MEMCTL_PROJECT": "your-project"
+  }
+}
+```
+
+## Verify
+
+After configuring, run `npx memctl doctor` or ask your agent to call the `memory` tool with the `capacity` action.

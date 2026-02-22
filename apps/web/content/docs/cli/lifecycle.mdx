@@ -1,0 +1,69 @@
+---
+title: Lifecycle & Cleanup
+description: Memory cleanup suggestions and lifecycle policy management
+---
+
+# Lifecycle & Cleanup
+
+## cleanup
+
+Suggest stale or expired memories for review.
+
+```bash
+npx memctl cleanup [--stale-days <n>] [--limit <n>] [--json]
+```
+
+| Flag | Description | Default |
+|---|---|---|
+| `--stale-days <n>` | Days since last update to consider stale | 30 |
+| `--limit <n>` | Max suggestions | 50 |
+
+### Example
+
+```bash
+npx memctl cleanup --stale-days 14
+```
+
+```
+Stale memories:
+  agent/context/branch_plan/old-feature - Not updated in 21 days
+  agent/context/lessons_learned/temp_fix - Not updated in 18 days
+
+Expired memories:
+  session/log/abc123 - TTL expired
+```
+
+## lifecycle
+
+Run lifecycle policies to automatically manage memories.
+
+```bash
+npx memctl lifecycle <policy1> [policy2] ...
+```
+
+### Available policies
+
+| Policy | Description |
+|---|---|
+| `archive_merged_branches` | Archive branch plans for merged branches |
+| `cleanup_expired` | Delete memories past their TTL |
+| `cleanup_session_logs` | Remove old session logs |
+| `auto_promote` | Promote frequently accessed memories |
+| `auto_demote` | Demote rarely accessed memories |
+
+### Example
+
+```bash
+npx memctl lifecycle archive_merged_branches cleanup_expired
+```
+
+### MCP tool equivalent
+
+The `memory_lifecycle` MCP tool provides the same functionality:
+
+```
+Tool: memory_lifecycle
+Actions: cleanup, suggest_cleanup, lifecycle_run, lifecycle_schedule,
+         validate_references, prune_stale, feedback, analytics,
+         lock, unlock, health
+```

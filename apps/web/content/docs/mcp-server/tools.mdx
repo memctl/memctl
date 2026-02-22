@@ -1,53 +1,205 @@
 ---
 title: MCP Tools
-description: Reference for all mem/ctl MCP tools
+description: Complete reference for all 11 mem/ctl MCP tools and their actions
 ---
 
 # MCP Tools
 
-mem/ctl exposes memory CRUD tools plus structured agent-context tools that can replace static `AGENTS.md` / `CLAUDE.md` guidance.
+mem/ctl exposes 11 tools with 90+ actions via the Model Context Protocol. Your agent calls these automatically  - this reference is for understanding what's available.
 
-## Memory tools
+## memory
 
-| Tool | Description |
+Core memory CRUD operations.
+
+| Action | Description |
 |---|---|
-| `memory_store` | Store a key-value memory (upsert by key) |
-| `memory_get` | Retrieve a memory by key |
-| `memory_search` | Search memories by key/content |
-| `memory_list` | List memories with pagination |
-| `memory_delete` | Delete a memory by key |
-| `memory_update` | Update content and/or metadata |
-| `memory_capacity` | Return memory usage, plan limit, and full/available status |
+| `store` | Store a key-value memory (upsert by key) |
+| `get` | Retrieve a memory by key |
+| `search` | Search memories by key/content |
+| `list` | List memories with pagination and sorting |
+| `delete` | Delete a memory by key |
+| `update` | Update content and/or metadata |
+| `pin` | Pin a memory (prevents cleanup) |
+| `archive` | Archive a memory |
+| `bulk_get` | Retrieve multiple memories at once |
+| `store_safe` | Store only if key doesn't exist |
+| `capacity` | Return memory usage, plan limit, and status |
 
-## Agent functionality tools
+Key parameters: `key`, `content`, `scope` (project/shared), `priority` (0-100), `tags`, `ttl` (session/pr/sprint/permanent), `query`, `limit`, `sort`
 
-These tools provide typed, queryable project guidance for AI agents:
+## memory_advanced
+
+Advanced operations for power users and automation.
+
+| Action | Description |
+|---|---|
+| `batch_mutate` | Bulk archive, delete, pin, tag, or set priority |
+| `snapshot_create` | Create a point-in-time snapshot |
+| `snapshot_list` | List snapshots |
+| `diff` | Compare memory versions |
+| `history` | View change history for a key |
+| `restore` | Restore a previous version |
+| `link` | Create a relationship between memories |
+| `traverse` | Walk memory relationships |
+| `graph` | Visualize memory relationships |
+| `contradictions` | Detect conflicting memories |
+| `quality` | Score memory quality |
+| `freshness` | Check memory staleness |
+| `size_audit` | Audit memory sizes |
+| `sunset` | Mark memories for gradual removal |
+| `undo` | Undo the last mutation |
+| `compile` | Compile related memories into a summary |
+| `change_digest` | Generate a digest of recent changes |
+| `impact` | Analyze memory access patterns |
+| `watch` | Watch a key for changes |
+| `check_duplicates` | Find duplicate/similar memories |
+| `auto_tag` | Auto-generate tags for a memory |
+| `validate_schema` | Validate memory content against schema |
+| `branch_filter` | Filter memories by branch |
+| `branch_merge` | Merge branch-specific memories |
+| `batch_ops` | Run multiple operations in sequence |
+
+## memory_lifecycle
+
+Lifecycle management, health checks, and feedback.
+
+| Action | Description |
+|---|---|
+| `cleanup` | Delete expired/stale memories |
+| `suggest_cleanup` | Suggest candidates for cleanup |
+| `lifecycle_run` | Run lifecycle policies |
+| `lifecycle_schedule` | Schedule recurring lifecycle runs |
+| `validate_references` | Check for broken memory links |
+| `prune_stale` | Remove memories not accessed in N days |
+| `feedback` | Record whether a memory was helpful |
+| `analytics` | Memory usage analytics |
+| `lock` | Lock a memory to prevent edits |
+| `unlock` | Unlock a memory |
+| `health` | Overall memory health check |
+
+## context
+
+Agent context assembly  - the structured replacement for `AGENTS.md`.
+
+| Action | Description |
+|---|---|
+| `bootstrap` | Load all context for the current session |
+| `bootstrap_compact` | Compact version (keys + summaries only) |
+| `bootstrap_delta` | Only changes since a timestamp |
+| `functionality_get` | Get items for a context type |
+| `functionality_set` | Create/update a context item |
+| `functionality_delete` | Delete a context item |
+| `functionality_list` | List all context types and items |
+| `context_for` | Get context relevant to specific files |
+| `budget` | Token-aware context budgeting |
+| `compose` | Compose context from multiple types |
+| `smart_retrieve` | AI-powered context retrieval by intent |
+| `search_org` | Search across organization projects |
+| `rules_evaluate` | Evaluate rules against current context |
+| `thread` | Threaded context for multi-turn conversations |
+
+### Built-in context types
 
 | Type | Purpose |
 |---|---|
 | `coding_style` | Naming, formatting, review rules |
-| `folder_structure` | Repository layout and domain boundaries |
-| `file_map` | Where to find key files/features |
 | `architecture` | System design and module responsibilities |
-| `workflow` | Branch/PR/deploy process |
 | `testing` | Test expectations and locations |
-| `branch_plan` | What to implement on a branch |
 | `constraints` | Hard limits and non-goals |
+| `lessons_learned` | Past mistakes and insights |
+| `workflow` | Branch/PR/deploy process |
+| `folder_structure` | Repository layout |
+| `file_map` | Where to find key files |
+| `branch_plan` | What to implement on a branch |
 
-| Tool | Description |
+## context_config
+
+Manage custom context types.
+
+| Action | Description |
 |---|---|
-| `agent_functionality_list` | List available types and saved items, with memory status and current branch |
-| `agent_functionality_get` | Get detailed items for a type, or one specific item |
-| `agent_functionality_set` | Create/update structured functionality data |
-| `agent_functionality_delete` | Delete a structured functionality item |
-| `branch_context_get` | Get branch metadata and branch plan memory |
-| `branch_context_set` | Save what should be implemented on a branch |
-| `branch_context_delete` | Delete a branch plan memory |
+| `type_create` | Create a custom context type |
+| `type_list` | List all context types (built-in + custom) |
+| `type_delete` | Delete a custom context type |
+| `template_get` | Get a template for a context type |
+
+## branch
+
+Branch context and planning.
+
+| Action | Description |
+|---|---|
+| `get` | Get branch plan and metadata |
+| `set` | Save a branch plan with checklist |
+| `delete` | Delete a branch plan |
+
+Parameters: `branch` (defaults to current git branch), `content`, `status` (planning/in_progress/review/merged), `checklist` (array of items with `label`, `done`, `notes`)
+
+## session
+
+Session tracking and agent coordination.
+
+| Action | Description |
+|---|---|
+| `start` | Start a session (auto-extracts git context) |
+| `end` | End a session with summary |
+| `history` | View session history |
+| `claims_check` | Check if files/keys are claimed by another session |
+| `claim` | Claim a resource for the current session |
+| `rate_status` | Rate the current session status |
+
+## import_export
+
+Import and export memories in various formats.
+
+| Action | Description |
+|---|---|
+| `agents_md_import` | Import from AGENTS.md content |
+| `cursorrules_import` | Import from .cursorrules content |
+| `export_agents_md` | Export as AGENTS.md |
+| `export_memories` | Export in JSON or other formats |
+
+Parameters: `content`, `dryRun` (preview only), `overwrite`, `format` (agents_md/cursorrules/json)
+
+## repo
+
+Repository scanning and onboarding.
+
+| Action | Description |
+|---|---|
+| `scan` | Scan repo structure and generate file map |
+| `scan_check` | Check if a scan is needed |
+| `onboard` | Generate onboarding context from repo |
+
+Parameters: `maxFiles` (10-5000), `includePatterns`, `excludePatterns` (glob arrays), `saveAsContext`
+
+## org
+
+Organization defaults and templates.
+
+| Action | Description |
+|---|---|
+| `defaults_list` | List org-wide defaults |
+| `defaults_set` | Set an org-wide default |
+| `defaults_apply` | Apply defaults to current project |
+| `context_diff` | Diff context between two projects |
+| `template_list` | List org templates |
+| `template_apply` | Apply a template to current project |
+| `template_create` | Create a template from current context |
+
+## activity
+
+Activity logging and inter-agent memos.
+
+| Action | Description |
+|---|---|
+| `log` | View activity log |
+| `generate_git_hooks` | Generate git hooks for auto-logging |
+| `memo_leave` | Leave a memo for the next agent session |
+| `memo_read` | Read memos from previous sessions |
+
+Parameters: `message`, `urgency`, `relatedKeys` (memory keys related to the memo)
 
 ## Memory full behavior
 
-When plan memory capacity is full:
-
-- `memory_store`, `agent_functionality_set`, and `branch_context_set` will return an error.
-- The error message tells the agent to delete unused memories first.
-- Use `memory_capacity` to check current usage and limit.
+When plan memory capacity is full, `memory.store`, `context.functionality_set`, and `branch.set` return an error telling the agent to delete unused memories first. Use `memory.capacity` to check current usage.

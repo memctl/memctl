@@ -1,0 +1,38 @@
+---
+title: REST API
+description: REST API overview for mem/ctl
+---
+
+# REST API
+
+mem/ctl provides a REST API at `https://memctl.com/api/v1` for direct HTTP access to memories, organizations, projects, and tokens.
+
+Most users interact with mem/ctl through the MCP tools (via their AI agent) or the CLI. The REST API is for custom integrations, scripting, and dashboard functionality.
+
+## Authentication
+
+All requests require a Bearer token:
+
+```
+Authorization: Bearer mctl_your_token_here
+```
+
+Generate tokens in your dashboard under **Settings → API Tokens**. Use `npx memctl auth` to store a token locally for CLI and MCP server use.
+
+Organization and project context is passed via headers:
+
+```
+X-Org-Slug: your-org
+X-Project-Slug: your-project
+```
+
+## Endpoints
+
+| Group | Endpoints | Description |
+|---|---|---|
+| Memories | `GET/POST/PATCH/DELETE /memories` | CRUD operations on key-value memories |
+| Capacity | `GET /memories/capacity` | Check memory usage and limits |
+| Organizations | `GET/POST /orgs` | List and create organizations |
+| Projects | `GET/POST /projects` | List and create projects within an org |
+| Tokens | `GET/POST/DELETE /tokens` | Manage API tokens |
+| Auth | `POST /auth/token` | Exchange session cookie for JWT |

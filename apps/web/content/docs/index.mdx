@@ -1,33 +1,34 @@
 ---
 title: Introduction
-description: mem/ctl — shared, persistent memory for AI coding agents
+description: Persistent memory for AI coding agents via the Model Context Protocol
 ---
 
 # mem/ctl
 
-**mem/ctl** is a cloud MCP server that gives AI coding agents (Claude Code, Cursor, Windsurf, etc.) shared, persistent memory scoped to projects and organizations.
+**mem/ctl** is a cloud MCP server that gives AI coding agents persistent memory across sessions. Your agent remembers coding conventions, architecture decisions, lessons learned, and project context  - stored server-side and available from any machine.
 
-## Why mem/ctl?
+## The problem
 
-AI coding agents lose context between sessions. They forget decisions, patterns, and project-specific knowledge. **mem/ctl** solves this by providing a shared memory layer that persists across sessions, machines, and IDEs.
+AI agents lose context between sessions. Every new conversation starts from zero  - your agent forgets your team's coding style, past decisions, and hard-won lessons.
 
-## Key Features
+## How mem/ctl solves it
 
-- **Shared Memory** — Store project context, decisions, and patterns that every agent on your team can access
-- **Cross-IDE** — Works with any MCP-compatible client: Claude Code, Cursor, Windsurf, and more
-- **Team Sync** — Organization-scoped projects with role-based access control
-- **Open Source** — Apache-2.0 licensed. Self-host or use our cloud
+1. **Authenticate once**  - run `npx memctl auth` to store your API token locally
+2. **Add to your MCP config**  - just org and project, no token in project files
+3. **Your agent remembers**  - context persists across sessions, machines, and IDEs
 
-## How It Works
+## What you get
 
-1. Install the MCP server: `npx memctl`
-2. Configure your AI coding agent with your project credentials
-3. Your agent can now store and retrieve memories via MCP tools
-4. All team members share the same project memories
+- **11 MCP tools** with 90+ actions for memory management, context assembly, session tracking, branching, and more
+- **9 built-in context types**  - coding style, architecture, testing, constraints, lessons learned, workflow, folder structure, file map, branch plans
+- **Cross-IDE**  - works with Claude Code, Cursor, Windsurf, VS Code, Cline, Roo Code, Continue, Zed, JetBrains, Amazon Q
+- **Team sync**  - organization-scoped projects with role-based access
+- **Offline mode**  - local SQLite cache with automatic sync
+- **Open source**  - Apache-2.0. Self-host or use the cloud
 
-## Quick Links
+## Next steps
 
-- [Quickstart](/docs/quickstart) — Get up and running in 2 minutes
-- [Installation](/docs/installation) — Detailed setup guide
-- [MCP Tools](/docs/mcp-server/tools) — Available MCP tools reference
-- [API Reference](/docs/api/endpoints) — REST API documentation
+- [Quickstart](/docs/quickstart)  - authenticate and connect in 2 minutes
+- [Agent setup guides](/docs/agents)  - configuration for every MCP client
+- [CLI reference](/docs/cli)  - all 15 commands
+- [MCP tools](/docs/mcp-server/tools)  - full tool and action reference

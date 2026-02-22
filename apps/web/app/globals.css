@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
 @import "tw-animate-css";
 
 @font-face {
@@ -605,6 +607,110 @@ body {
 @keyframes sidebar-indicator-in {
   from { opacity: 0; height: 0; }
   to { opacity: 1; height: 60%; }
+}
+
+/* ---- Fumadocs theme overrides ---- */
+
+/* Orange-accented docs theme (light) */
+:root {
+  --color-fd-primary: hsl(24 95% 53%); /* #F97316 */
+  --color-fd-primary-foreground: hsl(0 0% 100%); /* white */
+  --color-fd-ring: hsl(24 95% 53%);
+  --color-fd-background: hsl(0 0% 98%);
+  --color-fd-foreground: hsl(0 0% 9%);
+  --color-fd-muted: hsl(0 0% 96%);
+  --color-fd-muted-foreground: hsl(0 0% 45%);
+  --color-fd-card: hsl(0 0% 100%);
+  --color-fd-card-foreground: hsl(0 0% 9%);
+  --color-fd-border: hsl(0 0% 90%);
+  --color-fd-popover: hsl(0 0% 100%);
+  --color-fd-popover-foreground: hsl(0 0% 15%);
+  --color-fd-secondary: hsl(0 0% 96%);
+  --color-fd-secondary-foreground: hsl(0 0% 9%);
+  --color-fd-accent: hsl(24 100% 97%); /* light orange tint */
+  --color-fd-accent-foreground: hsl(24 95% 40%);
+}
+
+/* Orange-accented docs theme (dark) */
+.dark {
+  --color-fd-primary: hsl(24 95% 53%); /* #F97316 */
+  --color-fd-primary-foreground: hsl(0 0% 100%);
+  --color-fd-ring: hsl(24 95% 53%);
+  --color-fd-background: hsl(0 0% 4%);
+  --color-fd-foreground: hsl(0 0% 96%);
+  --color-fd-muted: hsl(0 0% 10%);
+  --color-fd-muted-foreground: hsl(0 0% 63%);
+  --color-fd-card: hsl(0 0% 7%);
+  --color-fd-card-foreground: hsl(0 0% 98%);
+  --color-fd-border: hsl(0 0% 12%);
+  --color-fd-popover: hsl(0 0% 7%);
+  --color-fd-popover-foreground: hsl(0 0% 88%);
+  --color-fd-secondary: hsl(0 0% 10%);
+  --color-fd-secondary-foreground: hsl(0 0% 98%);
+  --color-fd-accent: hsl(24 50% 8%); /* dark orange tint */
+  --color-fd-accent-foreground: hsl(24 95% 65%);
+}
+
+/* Docs: accent color on links */
+.fd-page a:not([class]) {
+  color: #F97316;
+  text-decoration-color: rgba(249, 115, 22, 0.3);
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+
+.fd-page a:not([class]):hover {
+  color: #EA580C;
+  text-decoration-color: #EA580C;
+}
+
+/* Docs: accent color on inline code */
+.fd-page :not(pre) > code {
+  color: #F97316;
+  background: hsl(24 100% 97%);
+  border: 1px solid hsl(24 80% 92%);
+}
+
+.dark .fd-page :not(pre) > code {
+  color: #FB923C;
+  background: hsl(24 50% 8%);
+  border-color: hsl(24 40% 15%);
+}
+
+/* Docs: accent on blockquote left border */
+.fd-page blockquote {
+  border-left-color: #F97316;
+}
+
+/* Docs: accent on table header border */
+.fd-page th {
+  border-bottom-color: rgba(249, 115, 22, 0.3);
+}
+
+/* Docs: sidebar active item — orange text, orange-tinted bg, no grey */
+#nd-sidebar [data-active="true"] {
+  color: hsl(24 95% 53%) !important;
+  background-color: hsl(24 95% 53% / 0.1) !important;
+}
+
+.dark #nd-sidebar [data-active="true"] {
+  color: hsl(24 95% 63%) !important;
+  background-color: hsl(24 95% 53% / 0.12) !important;
+}
+
+/* Docs: sidebar & page same background — no white/grey split */
+#nd-sidebar {
+  background-color: var(--color-fd-background) !important;
+}
+
+/* Docs: sidebar header — more horizontal padding on logo only */
+#nd-sidebar > div > div:first-child > div:first-child {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* Docs: accordion trigger accent on hover */
+.fd-page [data-orientation="vertical"] button:hover {
+  color: #F97316;
 }
 
 /* Scrollbar */

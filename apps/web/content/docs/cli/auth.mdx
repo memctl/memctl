@@ -1,0 +1,64 @@
+---
+title: auth
+description: Authenticate and store your API token locally
+---
+
+# memctl auth
+
+Store your API token locally so MCP configs only need org and project  - no token in project files.
+
+```bash
+npx memctl auth
+```
+
+## What it does
+
+1. Prompts for your API URL (defaults to `https://memctl.com/api/v1`)
+2. Prompts for your API token (from **Settings → API Tokens** in the dashboard)
+3. Verifies the token against the API
+4. Saves to `~/.memctl/config.json`
+
+## After authenticating
+
+Your MCP configs no longer need `MEMCTL_TOKEN`:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+The CLI automatically reads the token from `~/.memctl/config.json` when `MEMCTL_TOKEN` is not set.
+
+## Config file
+
+`~/.memctl/config.json` structure:
+
+```json
+{
+  "profiles": {
+    "default": {
+      "token": "mctl_...",
+      "apiUrl": "https://memctl.com/api/v1"
+    }
+  },
+  "projects": {}
+}
+```
+
+## Resolution order
+
+The CLI resolves credentials in this order:
+
+1. Environment variables (`MEMCTL_TOKEN`, `MEMCTL_ORG`, `MEMCTL_PROJECT`)
+2. Project config from `~/.memctl/config.json` (matched by working directory)
+3. Default profile token + env org/project

@@ -7,6 +7,8 @@ import {
 } from "fumadocs-ui/page";
 import { notFound } from "next/navigation";
 import defaultMdxComponents from "fumadocs-ui/mdx";
+import { Accordions, Accordion } from "fumadocs-ui/components/accordion";
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = any;
@@ -26,7 +28,15 @@ export default async function Page(props: {
       <DocsTitle>{data.title}</DocsTitle>
       <DocsDescription>{data.description}</DocsDescription>
       <DocsBody>
-        <MDX components={{ ...defaultMdxComponents }} />
+        <MDX
+          components={{
+            ...defaultMdxComponents,
+            Accordions,
+            Accordion,
+            Tabs,
+            Tab,
+          }}
+        />
       </DocsBody>
     </DocsPage>
   );

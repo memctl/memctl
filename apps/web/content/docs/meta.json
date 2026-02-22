@@ -1,13 +1,16 @@
 {
   "title": "mem/ctl",
   "pages": [
+    "---Getting Started---",
     "index",
     "quickstart",
-    "installation",
-    "configuration",
-    "...mcp-server",
-    "...dashboard",
-    "...api",
+    "agents",
+    "agents-md",
+    "---Reference---",
+    "cli",
+    "mcp-server",
+    "api",
+    "---Deployment---",
     "self-hosting"
   ]
 }
