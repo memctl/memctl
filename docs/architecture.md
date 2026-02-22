@@ -17,7 +17,6 @@ memctl/
 │       ├── lib/              # Server utilities
 │       │   ├── api-middleware.ts
 │       │   ├── rate-limit.ts
-│       │   ├── webhook-dispatch.ts
 │       │   ├── scheduler.ts
 │       │   ├── logger.ts
 │       │   └── jwt.ts
@@ -38,7 +37,7 @@ memctl/
 │   │       ├── tools/        # MCP tool handlers (11 files)
 │   │       └── resources/    # MCP resource handlers
 │   ├── db/                   # Drizzle ORM schema
-│   │   └── src/schema.ts     # 25 tables
+│   │   └── src/schema.ts     # 24 tables
 │   └── shared/               # Shared constants, validators, scoring
 │       └── src/
 │           ├── constants.ts  # Plan limits, roles
@@ -97,7 +96,7 @@ Errors at any step return the appropriate HTTP status (401, 403, 429, etc.).
 
 ## Database schema
 
-25 tables in a libSQL (SQLite-compatible) database, managed with Drizzle ORM.
+24 tables in a libSQL (SQLite-compatible) database, managed with Drizzle ORM.
 
 ### Core tables
 
@@ -123,8 +122,6 @@ Errors at any step return the appropriate HTTP status (401, 403, 429, etc.).
 | `sessionLogs` | Agent session summaries |
 | `activityLogs` | Detailed tool/action logs |
 | `apiTokens` | Bearer tokens (hashed) |
-| `webhookConfigs` | Webhook endpoints |
-| `webhookEvents` | Event queue for digest delivery |
 
 ### Key indexes
 
@@ -204,10 +201,6 @@ Request deduplication prevents duplicate in-flight GETs.
 
 Sliding-window counter per user, backed by LRU cache. Limits set by org plan (60/min free through 10K/min scale). Returns 429 with `Retry-After` header.
 
-## Webhooks
-
-Events (`memory.created`, `memory.updated`, `memory.deleted`) are queued and delivered in digest mode every 15 minutes. Deliveries signed with HMAC-SHA256 (`X-Webhook-Signature`).
-
 ## Background scheduler
 
 Runs via `node-cron`:
@@ -215,7 +208,6 @@ Runs via `node-cron`:
 | Job | Schedule | Description |
 |-----|----------|-------------|
 | Expired memory cleanup | Hourly | Deletes memories past `expiresAt` |
-| Webhook digest | Every 15 min | Batches and sends webhook events |
 | Embedding backfill | Every 6 hours | Generates missing embeddings |
 
 ## Structured logging
@@ -228,7 +220,7 @@ gzip compression via Next.js `compress: true`.
 
 ## Testing
 
-Vitest test suites cover: cache, local cache, API client, rate limiting, ETags, cosine similarity, RRF, webhooks, validators, doctor, init, session/git, tool dispatch, and relevance scoring.
+Vitest test suites cover: cache, local cache, API client, rate limiting, ETags, cosine similarity, RRF, validators, doctor, init, session/git, tool dispatch, and relevance scoring.
 
 ```bash
 pnpm test

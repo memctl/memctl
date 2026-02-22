@@ -9,7 +9,6 @@ import { getOrgMemoryCapacity, resolveOrgAndProject } from "./capacity-utils";
 import { ensureFts, ftsSearch, vectorSearch, mergeSearchResults } from "@/lib/fts";
 import { generateETag, checkConditional } from "@/lib/etag";
 import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
-import { scheduleWebhookDelivery } from "@/lib/webhook-dispatch";
 import { validateContent } from "@/lib/schema-validator";
 import { contextTypes } from "@memctl/db/schema";
 import { logger } from "@/lib/logger";
@@ -392,9 +391,6 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(),
     }).then(() => {}, () => {});
 
-    // Schedule webhook delivery (fire-and-forget)
-    scheduleWebhookDelivery(project.id);
-
     return NextResponse.json({ memory: { ...existing, ...updates } });
   }
 
@@ -462,9 +458,6 @@ export async function POST(req: NextRequest) {
     createdBy: authResult.userId,
     createdAt: now,
   }).then(() => {}, () => {});
-
-  // Schedule webhook delivery (fire-and-forget)
-  scheduleWebhookDelivery(project.id);
 
   return NextResponse.json(
     {

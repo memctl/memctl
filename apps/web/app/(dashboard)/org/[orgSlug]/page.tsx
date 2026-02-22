@@ -35,7 +35,6 @@ import {
   Clock,
   Activity,
   HeartPulse,
-  Webhook,
   Star,
   Tag,
 } from "lucide-react";
@@ -140,7 +139,6 @@ export default async function OrgDashboardPage({
     { label: "Members", icon: Users, href: `/org/${orgSlug}/members` },
     { label: "Activity", icon: Activity, href: `/org/${orgSlug}/activity` },
     { label: "Health", icon: HeartPulse, href: `/org/${orgSlug}/health` },
-    { label: "Webhooks", icon: Webhook, href: `/org/${orgSlug}/webhooks` },
   ];
 
   return (

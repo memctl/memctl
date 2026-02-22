@@ -11,7 +11,6 @@ import {
   activityLogs,
   memorySnapshots,
   memoryLocks,
-  webhookConfigs,
 } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -215,16 +214,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  // 1. Delete webhook configs
-  await db.delete(webhookConfigs).where(eq(webhookConfigs.projectId, project.id));
-
-  // 2. Delete child records by projectId
+  // 1. Delete child records by projectId
   await db.delete(memoryLocks).where(eq(memoryLocks.projectId, project.id));
   await db.delete(memorySnapshots).where(eq(memorySnapshots.projectId, project.id));
   await db.delete(activityLogs).where(eq(activityLogs.projectId, project.id));
   await db.delete(sessionLogs).where(eq(sessionLogs.projectId, project.id));
 
-  // 3. Delete project members, memories (versions cascade), then project
+  // 2. Delete project members, memories (versions cascade), then project
   await db.delete(projectMembers).where(eq(projectMembers.projectId, project.id));
   await db.delete(memories).where(eq(memories.projectId, project.id));
   await db.delete(projects).where(eq(projects.id, project.id));

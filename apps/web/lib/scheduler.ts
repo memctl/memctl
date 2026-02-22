@@ -3,7 +3,6 @@ import { db } from "./db";
 import { memories, memoryVersions, activityLogs, memoryLocks } from "@memctl/db/schema";
 import { lt, isNull, isNotNull, eq, and, sql } from "drizzle-orm";
 import { logger } from "./logger";
-import { sendPendingWebhooks } from "./webhook-dispatch";
 import { generateEmbeddings, serializeEmbedding } from "./embeddings";
 import { computeRelevanceScore } from "@memctl/shared/relevance";
 
@@ -27,18 +26,6 @@ export function initScheduler(): void {
       logger.info({ job: "cleanup-expired", affected: result.rowsAffected }, "Expired memory cleanup complete");
     } catch (err) {
       logger.error({ job: "cleanup-expired", error: String(err) }, "Expired memory cleanup failed");
-    }
-  });
-
-  // Webhook safety-net dispatch — every 5 minutes
-  cron.schedule("*/5 * * * *", async () => {
-    try {
-      const dispatched = await sendPendingWebhooks();
-      if (dispatched > 0) {
-        logger.info({ job: "webhook-digest", dispatched }, "Webhook digest sent");
-      }
-    } catch (err) {
-      logger.error({ job: "webhook-digest", error: String(err) }, "Webhook digest failed");
     }
   });
 

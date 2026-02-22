@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import {
   CheckCircle2, AlertTriangle, XCircle, Brain, Pin, Archive, Clock,
-  GitBranch, Zap, Webhook, Lock, Database, Tag, BarChart3, FolderOpen,
+  Zap, Database, Tag, FolderOpen,
 } from "lucide-react";
 
 interface HealthCheck {
@@ -27,7 +27,6 @@ interface HealthDashboardProps {
     totalExpiring: number;
     totalSessions: number;
     totalActivities: number;
-    totalWebhooks: number;
     totalActiveLocks: number;
     memoryLimit: number | null;
     usagePercent: number;

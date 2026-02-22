@@ -14,8 +14,8 @@ const PHASES = [
     label: "Index",
     title: "Push code. Context updates instantly.",
     description:
-      "memctl watches your repos via webhooks. Every push triggers re-indexing of changed files, extracting architecture patterns and storing structured memories your agents can query.",
-    code: `// GitHub webhook received
+      "memctl syncs your repositories and updates context after each push, re-indexing changed files and storing structured memories your agents can query.",
+    code: `// Repository change received
 {
   "event": "push",
   "repo": "acme/webapp",
@@ -322,7 +322,7 @@ export function FeatureShowcase() {
               className="flex flex-1 flex-col items-center px-4"
             >
               <span className="mb-1.5 font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
-                webhook
+                repo sync
               </span>
               <div className="relative h-[2px] w-full overflow-hidden rounded-full bg-[#F97316]/20">
                 <div

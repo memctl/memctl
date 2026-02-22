@@ -659,28 +659,6 @@ Create an API token.
 
 ---
 
-### Webhooks
-
-#### GET /webhooks
-
-List webhook configurations.
-
-#### POST /webhooks
-
-Create a webhook.
-
-#### PATCH /webhooks/{id}
-
-Update a webhook.
-
-#### DELETE /webhooks/{id}
-
-Delete a webhook.
-
-Webhook deliveries include `X-Webhook-Signature` (HMAC-SHA256) for verification.
-
----
-
 ### Batch Operations
 
 #### POST /batch

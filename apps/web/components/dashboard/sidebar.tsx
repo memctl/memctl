@@ -19,7 +19,6 @@ import {
   Sun,
   Moon,
   Activity,
-  Webhook,
   HeartPulse,
   Sparkles,
 } from "lucide-react";
@@ -98,11 +97,6 @@ const navItems: {
     label: "Activity",
     icon: Activity,
     href: (s) => `/org/${s}/activity`,
-  },
-  {
-    label: "Webhooks",
-    icon: Webhook,
-    href: (s) => `/org/${s}/webhooks`,
   },
   {
     label: "Health",

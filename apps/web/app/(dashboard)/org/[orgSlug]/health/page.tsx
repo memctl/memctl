@@ -12,11 +12,10 @@ import {
   projects,
   memories,
   memoryLocks,
-  webhookConfigs,
   sessionLogs,
   activityLogs,
 } from "@memctl/db/schema";
-import { eq, and, count, desc, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, count, isNotNull } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
@@ -53,7 +52,6 @@ export default async function HealthPage({
   let totalExpiring = 0;
   let totalSessions = 0;
   let totalActivities = 0;
-  let totalWebhooks = 0;
   let totalActiveLocks = 0;
 
   const projectStats: Array<{
@@ -94,9 +92,6 @@ export default async function HealthPage({
     const [actCount] = await db.select({ value: count() }).from(activityLogs).where(eq(activityLogs.projectId, project.id));
     const atc = actCount?.value ?? 0;
     totalActivities += atc;
-
-    const hooks = await db.select().from(webhookConfigs).where(eq(webhookConfigs.projectId, project.id));
-    totalWebhooks += hooks.length;
 
     const [lockCount] = await db.select({ value: count() }).from(memoryLocks).where(eq(memoryLocks.projectId, project.id));
     totalActiveLocks += lockCount?.value ?? 0;
@@ -164,7 +159,6 @@ export default async function HealthPage({
           totalExpiring,
           totalSessions,
           totalActivities,
-          totalWebhooks,
           totalActiveLocks,
           memoryLimit: memoryLimit === Infinity ? null : memoryLimit,
           usagePercent,

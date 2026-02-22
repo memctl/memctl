@@ -247,23 +247,6 @@ export const projectTemplates = sqliteTable("project_templates", {
     .$defaultFn(() => new Date()),
 });
 
-export const webhookConfigs = sqliteTable("webhook_configs", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id),
-  url: text("url").notNull(),
-  events: text("events"), // JSON array: ["memory_created","memory_updated","memory_deleted","snapshot_created"]
-  digestIntervalMinutes: integer("digest_interval_minutes").notNull().default(60),
-  lastSentAt: integer("last_sent_at", { mode: "timestamp" }),
-  isActive: integer("is_active", { mode: "boolean" }).default(true),
-  secret: text("secret"), // HMAC signing secret
-  consecutiveFailures: integer("consecutive_failures").notNull().default(0),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-
 export const apiTokens = sqliteTable("api_tokens", {
   id: text("id").primaryKey(),
   userId: text("user_id")
