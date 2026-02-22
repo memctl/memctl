@@ -11,6 +11,8 @@
     "mcp-server",
     "api",
     "---Deployment---",
+    "local-development",
+    "deployment",
     "self-hosting"
   ]
 }

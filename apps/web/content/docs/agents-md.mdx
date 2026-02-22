@@ -1,228 +1,77 @@
 ---
-title: AGENTS.md
-description: Instructions for AI agents using mem/ctl  - tools, context types, workflows
+title: AGENTS.md Docs
+description: Short copy-paste AGENTS.md template for mem/ctl MCP usage
 ---
 
 # AGENTS.md
 
-This page describes how to use mem/ctl as an AI coding agent. It covers the available MCP tools, context system, session workflow, and best practices. This is the same content exported by `npx memctl export agents_md`.
+Copy this into your repository root as `AGENTS.md`.
 
-## Overview
+```md
+# AGENTS.md
 
-mem/ctl gives you persistent memory across sessions. You have access to 11 MCP tools that let you store, retrieve, and organize project knowledge  - coding style, architecture decisions, lessons learned, branch plans, and more.
+## memctl MCP Rules
 
-## Starting a session
+MCP server name is `memctl`.
+Use `memctl` for all project memory:
+- memory/history of previous sessions
+- coding style and conventions
+- architecture and technical decisions
+- testing rules and constraints
+- branch plans and handoff notes
 
-At the start of every conversation, bootstrap your context:
+Do not keep important project context only in chat.
 
-```
-Tool: context
-Action: bootstrap
-```
+## Session Start (always)
 
-This loads all stored project context in one call  - coding style, architecture, constraints, testing conventions, active branch plan, and any memos left by previous sessions.
+1. `context.bootstrap`
+2. `session.start` with `autoExtractGit=true`
+3. `activity.memo_read`
+4. `branch.get`
 
-If you want a lighter load:
+If the project has not been scanned yet (or file map is stale), run:
+- `repo.scan` with `saveAsContext=true`
 
-```
-Tool: context
-Action: bootstrap_compact
-```
+## Before Coding
 
-Then start a session to enable activity tracking:
+Read relevant context:
+- `context.functionality_get` for: `coding_style`, `architecture`, `testing`, `constraints`, `workflow`
+- `context.context_for` for files you are touching
+- `branch.get` for current branch plan
 
-```
-Tool: session
-Action: start
-Parameter: autoExtractGit = true
-```
+## While Coding
 
-## Context types
+When user gives new conventions/decisions, store immediately:
+- `context.functionality_set` for structured project rules
+- `memory.store` for one-off decisions or references
 
-mem/ctl organizes project knowledge into typed context entries. Use the `context` tool to read and write these:
+For memory/history search:
+- `memory.search`
+- `memory.list`
 
-| Type | What to store |
-|---|---|
-| `coding_style` | Naming conventions, formatting rules, linting preferences, review standards |
-| `architecture` | System design, module responsibilities, data flow, tech stack decisions |
-| `testing` | Test framework, naming conventions, where tests live, coverage expectations |
-| `constraints` | Hard limits, non-goals, security requirements, performance budgets |
-| `lessons_learned` | Past mistakes, gotchas, workarounds, things that broke before |
-| `workflow` | Branch strategy, PR process, deploy pipeline, CI/CD |
-| `folder_structure` | Repository layout, what lives where, domain boundaries |
-| `file_map` | Key files for specific features  - "auth lives in X, payments in Y" |
-| `branch_plan` | What to implement on the current branch, with checklist |
+After each meaningful task, save branch progress:
+- `branch.set`
+- update `status`
+- update checklist items (`done: true/false`)
+- add short notes about what is finished and what is next
 
-### Reading context
+## End Of Session
 
-```
-Tool: context
-Action: functionality_get
-Parameter: type = "coding_style"
-```
+1. Save final branch progress with `branch.set`
+2. Leave handoff note (`activity.memo_leave`) if anything is pending
+3. End session with summary (`session.end`)
 
-```
-Tool: context
-Action: functionality_list
-```
+## Context Types To Use
 
-### Writing context
-
-When the user tells you about their project conventions, architecture, or preferences  - store it:
-
-```
-Tool: context
-Action: functionality_set
-Parameter: type = "coding_style"
-Parameter: id = "typescript-conventions"
-Parameter: title = "TypeScript Conventions"
-Parameter: content = "Strict mode, no any types, prefer const..."
+- `coding_style`
+- `architecture`
+- `testing`
+- `constraints`
+- `workflow`
+- `lessons_learned`
+- `folder_structure`
+- `file_map`
+- `branch_plan`
 ```
 
-### File-aware retrieval
-
-When working on specific files, get relevant context:
-
-```
-Tool: context
-Action: context_for
-Parameter: filePaths = ["src/auth/login.ts", "src/auth/session.ts"]
-```
-
-## Memory operations
-
-For general-purpose key-value storage beyond structured context types:
-
-```
-Tool: memory
-Action: store
-Parameter: key = "decision/auth-strategy"
-Parameter: content = "Using JWT with refresh tokens because..."
-Parameter: tags = ["auth", "decision"]
-Parameter: priority = 80
-```
-
-```
-Tool: memory
-Action: search
-Parameter: query = "authentication"
-```
-
-```
-Tool: memory
-Action: list
-Parameter: sort = "priority"
-Parameter: limit = 20
-```
-
-### Memory capacity
-
-Check usage before storing:
-
-```
-Tool: memory
-Action: capacity
-```
-
-When capacity is full, delete or archive unused memories before storing new ones.
-
-## Branch plans
-
-When starting work on a branch, check for an existing plan:
-
-```
-Tool: branch
-Action: get
-```
-
-Create or update a branch plan with a checklist:
-
-```
-Tool: branch
-Action: set
-Parameter: content = "Implement user authentication"
-Parameter: status = "in_progress"
-Parameter: checklist = [
-  {"label": "Add login endpoint", "done": false},
-  {"label": "Add session middleware", "done": false},
-  {"label": "Write tests", "done": false}
-]
-```
-
-Update checklist items as you complete them.
-
-## Sessions and handoff
-
-### Ending a session
-
-Before the conversation ends, summarize what was done:
-
-```
-Tool: session
-Action: end
-Parameter: summary = "Implemented login endpoint and session middleware. Tests still needed."
-Parameter: keysWritten = ["agent/context/architecture/auth"]
-```
-
-### Leaving memos
-
-Leave notes for the next agent session:
-
-```
-Tool: activity
-Action: memo_leave
-Parameter: message = "Auth tests need the mock server running  - see testing context"
-Parameter: urgency = "info"
-```
-
-### Reading memos
-
-At session start, check for memos:
-
-```
-Tool: activity
-Action: memo_read
-```
-
-## Import and export
-
-Import existing project docs:
-
-```
-Tool: import_export
-Action: agents_md_import
-Parameter: content = "<markdown content>"
-Parameter: dryRun = true
-```
-
-Export stored context:
-
-```
-Tool: import_export
-Action: export_agents_md
-```
-
-## Repository scanning
-
-On first use or when the codebase changes significantly:
-
-```
-Tool: repo
-Action: scan
-Parameter: saveAsContext = true
-```
-
-This generates a file map and folder structure, optionally saving them as context entries.
-
-## Best practices
-
-- **Bootstrap at start**  - always call `context.bootstrap` at the beginning of a session
-- **Store decisions**  - when the user makes an architectural or style decision, save it immediately
-- **Check before storing**  - use `memory.capacity` to avoid hitting limits
-- **Use context types**  - prefer structured context (`context.functionality_set`) over raw memory for project knowledge
-- **Leave memos**  - if work is unfinished, leave a memo for the next session
-- **Update branch plans**  - check off completed items as you go
-- **Be specific with keys**  - use descriptive keys like `agent/context/architecture/auth` not just `auth`
-- **Tag memories**  - use tags for easier search and organization
-- **Set priority**  - high-priority memories (80-100) surface first in bootstraps
-- **Clean up**  - archive or delete memories that are no longer relevant
+Need full tool details? See [MCP Tools](/docs/mcp-server/tools).

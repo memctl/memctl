@@ -1,0 +1,173 @@
+---
+title: Local Development
+description: Full local setup and testing workflow for API, CLI, MCP, and database
+---
+
+# Local Development
+
+Use this page for local setup plus full testing flow: web app, API, CLI, MCP, DB, and reset/recovery.
+
+## Prerequisites
+
+- Node.js 20+
+- pnpm
+- Docker Desktop (or Docker Engine + Compose)
+
+## 1) Start the stack
+
+```bash
+git clone https://github.com/memctl/memctl.git
+cd memctl
+cp .env.example .env
+docker compose up -d
+docker compose exec web pnpm db:push
+```
+
+Open `http://localhost:3000`.
+
+## 2) Configure auth for local use
+
+If you do not want to configure GitHub OAuth, use dev bypass.
+
+Set these in `.env`:
+
+```
+DEV_AUTH_BYPASS=true
+NEXT_PUBLIC_DEV_AUTH_BYPASS=true
+DEV_AUTH_BYPASS_ORG_SLUG=dev-org
+NEXT_PUBLIC_DEV_AUTH_BYPASS_ORG_SLUG=dev-org
+DEV_AUTH_BYPASS_USER_EMAIL=dev@local.memctl.test
+DEV_AUTH_BYPASS_USER_NAME=Dev User
+```
+
+## 3) Verify services are healthy
+
+```bash
+curl -sS http://localhost:3000/api/v1/health
+curl -sS http://localhost:8080/v1/health
+```
+
+Expected: both endpoints return a healthy response.
+
+## 4) Create a local API token
+
+From the dashboard:
+
+1. Sign in at `http://localhost:3000/login`
+2. Open your org
+3. Go to token settings
+4. Create token
+
+## 5) Test CLI against local API
+
+```bash
+export MEMCTL_TOKEN=your-local-token
+export MEMCTL_ORG=dev-org
+export MEMCTL_PROJECT=your-project
+export MEMCTL_API_URL=http://localhost:3000/api/v1
+```
+
+Run a quick CLI smoke test:
+
+```bash
+node packages/cli/dist/index.js doctor
+node packages/cli/dist/index.js capacity
+node packages/cli/dist/index.js list
+node packages/cli/dist/index.js search "test"
+```
+
+## 6) Test API endpoints directly
+
+```bash
+# List memories
+curl -sS "http://localhost:3000/api/v1/memories?limit=5" \
+  -H "Authorization: Bearer $MEMCTL_TOKEN"
+
+# Store a memory
+curl -sS -X POST "http://localhost:3000/api/v1/memories" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $MEMCTL_TOKEN" \
+  -d '{"key":"dev/test","content":"hello local","scope":"project"}'
+```
+
+## 7) Test MCP locally (`memctl` server)
+
+Example MCP config:
+
+```json
+{
+  "mcpServers": {
+    "memctl": {
+      "command": "node",
+      "args": ["/absolute/path/to/memctl/packages/cli/dist/index.js"],
+      "env": {
+        "MEMCTL_TOKEN": "your-local-token",
+        "MEMCTL_API_URL": "http://localhost:3000/api/v1",
+        "MEMCTL_ORG": "dev-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+Restart your MCP client/IDE after editing config.
+
+## 8) Run automated tests
+
+```bash
+# Entire repo
+pnpm test
+
+# Specific package examples
+pnpm --filter memctl test
+pnpm --filter @memctl/shared test
+
+# Watch mode example
+pnpm --filter memctl test -- --watch
+```
+
+## 9) DB operations you will use often
+
+```bash
+# Push schema after schema.ts changes
+docker compose exec web pnpm db:push
+
+# Generate migrations
+docker compose exec web pnpm db:generate
+
+# Run migrations
+docker compose exec web pnpm db:migrate
+
+# Open Drizzle Studio
+TURSO_DATABASE_URL=http://localhost:8080 TURSO_AUTH_TOKEN= pnpm --filter @memctl/db dlx drizzle-kit studio
+```
+
+## 10) Optional: Stripe webhook local testing
+
+```bash
+# In .env set STRIPE_SECRET_KEY=sk_test_...
+docker compose --profile tools up -d
+```
+
+## 11) Production-like local run
+
+```bash
+docker compose -f docker-compose.prod.yml up --build
+```
+
+## 12) Clean reset
+
+```bash
+docker compose down -v
+docker compose up --build -d
+docker compose exec web pnpm db:push
+```
+
+## Troubleshooting
+
+For deeper troubleshooting, see:
+
+- `docs/local-development.md`
+- `docs/testing-environment.md`
+- `docs/troubleshooting.md`
