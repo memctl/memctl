@@ -13,7 +13,6 @@ import {
   memories,
   memoryLocks,
   webhookConfigs,
-  webhookEvents,
   sessionLogs,
   activityLogs,
 } from "@memctl/db/schema";
@@ -55,7 +54,6 @@ export default async function HealthPage({
   let totalSessions = 0;
   let totalActivities = 0;
   let totalWebhooks = 0;
-  let totalPendingWebhookEvents = 0;
   let totalActiveLocks = 0;
 
   const projectStats: Array<{
@@ -99,11 +97,6 @@ export default async function HealthPage({
 
     const hooks = await db.select().from(webhookConfigs).where(eq(webhookConfigs.projectId, project.id));
     totalWebhooks += hooks.length;
-
-    for (const h of hooks) {
-      const [evtCount] = await db.select({ value: count() }).from(webhookEvents).where(eq(webhookEvents.webhookConfigId, h.id));
-      totalPendingWebhookEvents += evtCount?.value ?? 0;
-    }
 
     const [lockCount] = await db.select({ value: count() }).from(memoryLocks).where(eq(memoryLocks.projectId, project.id));
     totalActiveLocks += lockCount?.value ?? 0;
@@ -153,7 +146,6 @@ export default async function HealthPage({
     { name: "Database", status: "pass" as const, detail: "Connected" },
     { name: "Memory Usage", status: usagePercent >= 95 ? "fail" as const : usagePercent >= 80 ? "warn" as const : "pass" as const, detail: `${usagePercent}% (${totalMemories}/${memoryLimit === Infinity ? "∞" : memoryLimit})` },
     { name: "Active Locks", status: totalActiveLocks > 10 ? "warn" as const : "pass" as const, detail: `${totalActiveLocks} lock(s)` },
-    { name: "Pending Webhook Events", status: totalPendingWebhookEvents > 100 ? "warn" as const : "pass" as const, detail: `${totalPendingWebhookEvents} event(s)` },
     { name: "Projects", status: "pass" as const, detail: `${projectList.length} project(s)` },
     { name: "Plan", status: "pass" as const, detail: currentPlan.name },
   ];
@@ -173,7 +165,6 @@ export default async function HealthPage({
           totalSessions,
           totalActivities,
           totalWebhooks,
-          totalPendingWebhookEvents,
           totalActiveLocks,
           memoryLimit: memoryLimit === Infinity ? null : memoryLimit,
           usagePercent,

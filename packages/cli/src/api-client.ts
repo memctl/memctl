@@ -566,7 +566,6 @@ export class ApiClient {
     healthThreshold?: number;
     maxVersionsPerMemory?: number;
     activityLogMaxAgeDays?: number;
-    webhookEventMaxAgeDays?: number;
     archivePurgeDays?: number;
   }) {
     return this.request<{

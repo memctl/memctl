@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError, checkRateLimit } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, memoryVersions } from "@memctl/db/schema";
+import { memories, memoryVersions, activityLogs } from "@memctl/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { memoryUpdateSchema } from "@memctl/shared/validators";
 import { generateId } from "@/lib/utils";
 import { resolveOrgAndProject } from "../capacity-utils";
 import { generateETag, checkConditional } from "@/lib/etag";
 import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
-import { dispatchWebhooks } from "@/lib/webhook-dispatch";
+import { scheduleWebhookDelivery } from "@/lib/webhook-dispatch";
 import { validateContent } from "@/lib/schema-validator";
 import { contextTypes } from "@memctl/db/schema";
 
@@ -187,10 +187,19 @@ export async function PATCH(
     }).catch(() => {});
   }
 
-  // Dispatch webhooks (fire-and-forget)
-  dispatchWebhooks(project.id, [
-    { type: "memory.updated", payload: { key: decodedKey, projectId: project.id } },
-  ]).catch(() => {});
+  // Log activity (fire-and-forget)
+  db.insert(activityLogs).values({
+    id: generateId(),
+    projectId: project.id,
+    action: "memory_write",
+    memoryKey: decodedKey,
+    details: JSON.stringify({ changeType: "updated" }),
+    createdBy: authResult.userId,
+    createdAt: new Date(),
+  }).then(() => {}, () => {});
+
+  // Schedule webhook delivery (fire-and-forget)
+  scheduleWebhookDelivery(project.id);
 
   return NextResponse.json({
     memory: { ...existing, ...updates },
@@ -238,10 +247,19 @@ export async function DELETE(
 
   await db.delete(memories).where(eq(memories.id, existing.id));
 
-  // Dispatch webhooks (fire-and-forget)
-  dispatchWebhooks(project.id, [
-    { type: "memory.deleted", payload: { key: decodedKey, projectId: project.id } },
-  ]).catch(() => {});
+  // Log activity (fire-and-forget)
+  db.insert(activityLogs).values({
+    id: generateId(),
+    projectId: project.id,
+    action: "memory_delete",
+    memoryKey: decodedKey,
+    details: null,
+    createdBy: authResult.userId,
+    createdAt: new Date(),
+  }).then(() => {}, () => {});
+
+  // Schedule webhook delivery (fire-and-forget)
+  scheduleWebhookDelivery(project.id);
 
   return NextResponse.json({ deleted: true });
 }

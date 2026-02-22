@@ -14,7 +14,7 @@ interface HygieneDashboardProps {
   growth: Array<{ week: string; count: number }>;
   capacity: { used: number; limit: number | null; usagePercent: number };
   orgSlug: string;
-  tableSizes?: { versions: number; activityLogs: number; webhookEvents: number; expiredLocks: number };
+  tableSizes?: { versions: number; activityLogs: number; expiredLocks: number };
 }
 
 export function HygieneDashboard({
@@ -34,7 +34,7 @@ export function HygieneDashboard({
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Org-Slug": orgSlug, "X-Project-Slug": "_all" },
         body: JSON.stringify({
-          policies: ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy", "cleanup_old_versions", "cleanup_activity_logs", "cleanup_webhook_events", "cleanup_expired_locks", "purge_archived"],
+          policies: ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy", "cleanup_old_versions", "cleanup_activity_logs", "cleanup_expired_locks", "purge_archived"],
           healthThreshold: 15,
         }),
       });
@@ -136,11 +136,10 @@ export function HygieneDashboard({
             <Database className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
             <span className="font-mono text-xs font-medium text-[var(--landing-text)]">Table Health</span>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             {([
               { label: "Versions", value: tableSizes.versions, warn: 100_000 },
               { label: "Activity Logs", value: tableSizes.activityLogs, warn: 100_000 },
-              { label: "Webhook Events", value: tableSizes.webhookEvents, warn: 50_000 },
               { label: "Expired Locks", value: tableSizes.expiredLocks, warn: 10 },
             ] as const).map(({ label, value, warn }) => (
               <div key={label} className="rounded-md border border-[var(--landing-border)] p-3">
@@ -226,7 +225,7 @@ export function HygieneDashboard({
           <div className="flex-1">
             <span className="font-mono text-xs font-medium text-[var(--landing-text)]">Run Cleanup</span>
             <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-              Removes expired memories, old session logs, old versions, webhook events, expired locks, and purges archived memories.
+              Removes expired memories, old session logs, old versions, expired locks, and purges archived memories.
             </p>
           </div>
           <button

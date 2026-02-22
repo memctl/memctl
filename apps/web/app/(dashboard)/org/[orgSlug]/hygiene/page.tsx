@@ -10,7 +10,6 @@ import {
   memories,
   memoryVersions,
   activityLogs,
-  webhookEvents,
   memoryLocks,
 } from "@memctl/db/schema";
 import { eq, and, isNull, isNotNull, lt, sql } from "drizzle-orm";
@@ -133,7 +132,7 @@ export default async function HygienePage({
 
   // Query table sizes across all org projects
   const projectIds = projectList.map((p) => p.id);
-  let tableSizes = { versions: 0, activityLogs: 0, webhookEvents: 0, expiredLocks: 0 };
+  let tableSizes = { versions: 0, activityLogs: 0, expiredLocks: 0 };
   if (projectIds.length > 0) {
     const [versionCount] = await db
       .select({ count: sql<number>`COUNT(*)` })
@@ -144,11 +143,6 @@ export default async function HygienePage({
       .select({ count: sql<number>`COUNT(*)` })
       .from(activityLogs)
       .where(sql`${activityLogs.projectId} IN (${sql.join(projectIds.map((id) => sql`${id}`), sql`, `)})`);
-
-    const [webhookCount] = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(webhookEvents)
-      .where(sql`${webhookEvents.webhookConfigId} IN (SELECT id FROM webhook_configs WHERE project_id IN (${sql.join(projectIds.map((id) => sql`${id}`), sql`, `)}))`);
 
     const [lockCount] = await db
       .select({ count: sql<number>`COUNT(*)` })
@@ -163,7 +157,6 @@ export default async function HygienePage({
     tableSizes = {
       versions: versionCount?.count ?? 0,
       activityLogs: activityCount?.count ?? 0,
-      webhookEvents: webhookCount?.count ?? 0,
       expiredLocks: lockCount?.count ?? 0,
     };
   }

@@ -28,7 +28,6 @@ interface HealthDashboardProps {
     totalSessions: number;
     totalActivities: number;
     totalWebhooks: number;
-    totalPendingWebhookEvents: number;
     totalActiveLocks: number;
     memoryLimit: number | null;
     usagePercent: number;

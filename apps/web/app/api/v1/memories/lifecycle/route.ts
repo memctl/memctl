@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, sessionLogs, memoryVersions, activityLogs, webhookEvents, webhookConfigs, memoryLocks } from "@memctl/db/schema";
-import { eq, and, lt, isNull, isNotNull, like, sql, inArray } from "drizzle-orm";
+import { memories, sessionLogs, memoryVersions, activityLogs, memoryLocks } from "@memctl/db/schema";
+import { eq, and, lt, isNull, isNotNull, like, sql } from "drizzle-orm";
 import { resolveOrgAndProject } from "../capacity-utils";
 import { computeRelevanceScore } from "@memctl/shared/relevance";
 
@@ -53,7 +53,6 @@ export async function POST(req: NextRequest) {
     healthThreshold = 15,
     maxVersionsPerMemory = 50,
     activityLogMaxAgeDays = 90,
-    webhookEventMaxAgeDays = 30,
     archivePurgeDays = 90,
   } = body as {
     policies: string[];
@@ -65,7 +64,6 @@ export async function POST(req: NextRequest) {
     healthThreshold?: number;
     maxVersionsPerMemory?: number;
     activityLogMaxAgeDays?: number;
-    webhookEventMaxAgeDays?: number;
     archivePurgeDays?: number;
   };
 
@@ -296,31 +294,6 @@ export async function POST(req: NextRequest) {
             ),
           );
         results[policy] = { affected: deletedActivity.rowsAffected ?? 0 };
-        break;
-      }
-
-      case "cleanup_webhook_events": {
-        // Get project's webhook configs, then delete events by configId + age
-        const configs = await db
-          .select({ id: webhookConfigs.id })
-          .from(webhookConfigs)
-          .where(eq(webhookConfigs.projectId, context.project.id));
-        if (configs.length === 0) {
-          results[policy] = { affected: 0 };
-          break;
-        }
-        const configIds = configs.map((c) => c.id);
-        const webhookCutoff = new Date();
-        webhookCutoff.setDate(webhookCutoff.getDate() - webhookEventMaxAgeDays);
-        const deletedWebhooks = await db
-          .delete(webhookEvents)
-          .where(
-            and(
-              inArray(webhookEvents.webhookConfigId, configIds),
-              lt(webhookEvents.createdAt, webhookCutoff),
-            ),
-          );
-        results[policy] = { affected: deletedWebhooks.rowsAffected ?? 0 };
         break;
       }
 

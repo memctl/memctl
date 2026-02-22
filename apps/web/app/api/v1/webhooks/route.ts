@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { webhookConfigs, organizations, projects } from "@memctl/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { PLANS, type PlanId, PLAN_IDS } from "@memctl/shared/constants";
+import { validateWebhookUrl } from "@/lib/webhook-dispatch";
 
 function isPlanId(value: string): value is PlanId {
   return (PLAN_IDS as readonly string[]).includes(value);
@@ -88,6 +89,21 @@ export async function POST(req: NextRequest) {
     digestIntervalMinutes?: number;
     secret?: string;
   };
+
+  // Validate webhook URL (SSRF protection)
+  const urlValidation = validateWebhookUrl(url);
+  if (!urlValidation.valid) {
+    return jsonError(urlValidation.error ?? "Invalid webhook URL", 400);
+  }
+
+  // Max 5 webhooks per project
+  const [existing] = await db
+    .select({ value: count() })
+    .from(webhookConfigs)
+    .where(eq(webhookConfigs.projectId, context.project.id));
+  if ((existing?.value ?? 0) >= 5) {
+    return jsonError("Maximum of 5 webhooks per project", 400);
+  }
 
   // Enforce minimum interval of 60 minutes
   const interval = Math.max(60, digestIntervalMinutes ?? 60);

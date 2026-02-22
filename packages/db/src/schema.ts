@@ -258,29 +258,11 @@ export const webhookConfigs = sqliteTable("webhook_configs", {
   lastSentAt: integer("last_sent_at", { mode: "timestamp" }),
   isActive: integer("is_active", { mode: "boolean" }).default(true),
   secret: text("secret"), // HMAC signing secret
+  consecutiveFailures: integer("consecutive_failures").notNull().default(0),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
-
-export const webhookEvents = sqliteTable(
-  "webhook_events",
-  {
-    id: text("id").primaryKey(),
-    webhookConfigId: text("webhook_config_id")
-      .notNull()
-      .references(() => webhookConfigs.id, { onDelete: "cascade" }),
-    eventType: text("event_type").notNull(),
-    payload: text("payload").notNull(), // JSON
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    dispatchedAt: integer("dispatched_at", { mode: "timestamp" }),
-  },
-  (table) => [
-    index("webhook_events_undispatched").on(table.webhookConfigId, table.dispatchedAt),
-  ],
-);
 
 export const apiTokens = sqliteTable("api_tokens", {
   id: text("id").primaryKey(),

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError, checkRateLimit } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, memoryVersions, projects } from "@memctl/db/schema";
+import { memories, memoryVersions, projects, activityLogs } from "@memctl/db/schema";
 import { eq, and, like, isNull, inArray, desc, or, lt } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { memoryStoreSchema } from "@memctl/shared/validators";
@@ -9,7 +9,7 @@ import { getOrgMemoryCapacity, resolveOrgAndProject } from "./capacity-utils";
 import { ensureFts, ftsSearch, vectorSearch, mergeSearchResults } from "@/lib/fts";
 import { generateETag, checkConditional } from "@/lib/etag";
 import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
-import { dispatchWebhooks } from "@/lib/webhook-dispatch";
+import { scheduleWebhookDelivery } from "@/lib/webhook-dispatch";
 import { validateContent } from "@/lib/schema-validator";
 import { contextTypes } from "@memctl/db/schema";
 import { logger } from "@/lib/logger";
@@ -381,10 +381,19 @@ export async function POST(req: NextRequest) {
       }
     }).catch(() => {});
 
-    // Dispatch webhooks (fire-and-forget)
-    dispatchWebhooks(project.id, [
-      { type: "memory.updated", payload: { key, projectId: project.id } },
-    ]).catch(() => {});
+    // Log activity (fire-and-forget)
+    db.insert(activityLogs).values({
+      id: generateId(),
+      projectId: project.id,
+      action: "memory_write",
+      memoryKey: key,
+      details: JSON.stringify({ changeType: "updated" }),
+      createdBy: authResult.userId,
+      createdAt: new Date(),
+    }).then(() => {}, () => {});
+
+    // Schedule webhook delivery (fire-and-forget)
+    scheduleWebhookDelivery(project.id);
 
     return NextResponse.json({ memory: { ...existing, ...updates } });
   }
@@ -443,10 +452,19 @@ export async function POST(req: NextRequest) {
     }
   }).catch(() => {});
 
-  // Dispatch webhooks (fire-and-forget)
-  dispatchWebhooks(project.id, [
-    { type: "memory.created", payload: { key, projectId: project.id } },
-  ]).catch(() => {});
+  // Log activity (fire-and-forget)
+  db.insert(activityLogs).values({
+    id: generateId(),
+    projectId: project.id,
+    action: "memory_write",
+    memoryKey: key,
+    details: JSON.stringify({ changeType: "created" }),
+    createdBy: authResult.userId,
+    createdAt: now,
+  }).then(() => {}, () => {});
+
+  // Schedule webhook delivery (fire-and-forget)
+  scheduleWebhookDelivery(project.id);
 
   return NextResponse.json(
     {

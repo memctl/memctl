@@ -28,7 +28,7 @@ interface WebhookItem {
   createdAt: string;
   projectSlug: string;
   projectName: string;
-  pendingEvents: number;
+  consecutiveFailures: number;
 }
 
 interface WebhookManagerProps {
@@ -117,8 +117,8 @@ export function WebhookManager({ webhooks, projects, orgSlug }: WebhookManagerPr
           <div className="mt-1 font-mono text-xl font-bold text-emerald-400">{webhooks.filter((w) => w.isActive).length}</div>
         </div>
         <div className="dash-card p-3">
-          <div className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Pending Events</div>
-          <div className="mt-1 font-mono text-xl font-bold text-amber-400">{webhooks.reduce((sum, w) => sum + w.pendingEvents, 0)}</div>
+          <div className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Failed</div>
+          <div className="mt-1 font-mono text-xl font-bold text-red-400">{webhooks.filter((w) => w.consecutiveFailures >= 5).length}</div>
         </div>
       </div>
 
@@ -148,7 +148,7 @@ export function WebhookManager({ webhooks, projects, orgSlug }: WebhookManagerPr
                 <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Events</TableHead>
                 <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Status</TableHead>
                 <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Last Sent</TableHead>
-                <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Pending</TableHead>
+                <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Failures</TableHead>
                 <TableHead className="w-8"></TableHead>
               </TableRow>
             </TableHeader>
@@ -177,14 +177,16 @@ export function WebhookManager({ webhooks, projects, orgSlug }: WebhookManagerPr
                       <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[10px] text-emerald-400">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> active
                       </span>
+                    ) : !w.isActive && w.consecutiveFailures >= 5 ? (
+                      <span className="inline-flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 font-mono text-[10px] text-red-400">disabled (breaker)</span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 font-mono text-[10px] text-red-400">disabled</span>
                     )}
                   </TableCell>
                   <TableCell className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(w.lastSentAt)}</TableCell>
                   <TableCell className="font-mono text-[11px]">
-                    {w.pendingEvents > 0 ? (
-                      <span className="text-amber-400">{w.pendingEvents}</span>
+                    {w.consecutiveFailures > 0 ? (
+                      <span className={w.consecutiveFailures >= 5 ? "text-red-400" : "text-amber-400"}>{w.consecutiveFailures}</span>
                     ) : (
                       <span className="text-[var(--landing-text-tertiary)]">0</span>
                     )}

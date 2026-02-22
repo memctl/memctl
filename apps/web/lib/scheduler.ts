@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { db } from "./db";
-import { memories, memoryVersions, activityLogs, webhookEvents, memoryLocks } from "@memctl/db/schema";
+import { memories, memoryVersions, activityLogs, memoryLocks } from "@memctl/db/schema";
 import { lt, isNull, isNotNull, eq, and, sql } from "drizzle-orm";
 import { logger } from "./logger";
 import { sendPendingWebhooks } from "./webhook-dispatch";
@@ -30,8 +30,8 @@ export function initScheduler(): void {
     }
   });
 
-  // Webhook digest dispatch — every 15 minutes
-  cron.schedule("*/15 * * * *", async () => {
+  // Webhook safety-net dispatch — every 5 minutes
+  cron.schedule("*/5 * * * *", async () => {
     try {
       const dispatched = await sendPendingWebhooks();
       if (dispatched > 0) {
@@ -174,42 +174,6 @@ export function initScheduler(): void {
       logger.info({ job: "cleanup-activity-logs", affected: result.rowsAffected }, "Activity log cleanup complete");
     } catch (err) {
       logger.error({ job: "cleanup-activity-logs", error: String(err) }, "Activity log cleanup failed");
-    }
-  });
-
-  // Delete old webhook events — daily at 4:30 AM
-  const WEBHOOK_EVENT_RETENTION_DAYS = parseInt(process.env.MEMCTL_WEBHOOK_EVENT_RETENTION_DAYS ?? "30", 10);
-  cron.schedule("30 4 * * *", async () => {
-    try {
-      const dispatchedCutoff = new Date();
-      dispatchedCutoff.setDate(dispatchedCutoff.getDate() - WEBHOOK_EVENT_RETENTION_DAYS);
-      const undispatchedCutoff = new Date();
-      undispatchedCutoff.setDate(undispatchedCutoff.getDate() - 7);
-
-      // Delete dispatched events older than retention period
-      const dispatched = await db
-        .delete(webhookEvents)
-        .where(
-          and(
-            isNotNull(webhookEvents.dispatchedAt),
-            lt(webhookEvents.createdAt, dispatchedCutoff),
-          ),
-        );
-
-      // Delete undispatched events older than 7 days
-      const undispatched = await db
-        .delete(webhookEvents)
-        .where(
-          and(
-            isNull(webhookEvents.dispatchedAt),
-            lt(webhookEvents.createdAt, undispatchedCutoff),
-          ),
-        );
-
-      const total = (dispatched.rowsAffected ?? 0) + (undispatched.rowsAffected ?? 0);
-      logger.info({ job: "cleanup-webhook-events", affected: total }, "Webhook event cleanup complete");
-    } catch (err) {
-      logger.error({ job: "cleanup-webhook-events", error: String(err) }, "Webhook event cleanup failed");
     }
   });
 

@@ -11,9 +11,8 @@ import {
   organizationMembers,
   projects,
   webhookConfigs,
-  webhookEvents,
 } from "@memctl/db/schema";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { WebhookManager } from "./webhook-manager";
 
@@ -51,18 +50,13 @@ export default async function WebhooksPage({
     createdAt: string;
     projectSlug: string;
     projectName: string;
-    pendingEvents: number;
+    consecutiveFailures: number;
   }> = [];
 
   for (const project of projectList) {
     const hooks = await db.select().from(webhookConfigs).where(eq(webhookConfigs.projectId, project.id));
 
     for (const h of hooks) {
-      const [eventCount] = await db
-        .select({ value: count() })
-        .from(webhookEvents)
-        .where(eq(webhookEvents.webhookConfigId, h.id));
-
       allWebhooks.push({
         id: h.id,
         url: h.url,
@@ -74,7 +68,7 @@ export default async function WebhooksPage({
         createdAt: h.createdAt?.toISOString() ?? "",
         projectSlug: project.slug,
         projectName: project.name,
-        pendingEvents: eventCount?.value ?? 0,
+        consecutiveFailures: h.consecutiveFailures,
       });
     }
   }

@@ -329,7 +329,7 @@ export async function runCli(args: string[]): Promise<void> {
       const policies = positional;
       if (policies.length === 0) {
         console.error("Usage: memctl lifecycle <policy1> [policy2] ...");
-        console.error("Policies: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy, cleanup_old_versions, cleanup_activity_logs, cleanup_webhook_events, cleanup_expired_locks, purge_archived");
+        console.error("Policies: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy, cleanup_old_versions, cleanup_activity_logs, cleanup_expired_locks, purge_archived");
         process.exit(1);
       }
       const result = await client.runLifecycle(policies, {
@@ -364,7 +364,6 @@ export async function runCli(args: string[]): Promise<void> {
         "auto_archive_unhealthy",
         "cleanup_old_versions",
         "cleanup_activity_logs",
-        "cleanup_webhook_events",
         "cleanup_expired_locks",
         "purge_archived",
       ];
