@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  AlertTriangle, Clock, Trash2, BarChart3, HardDrive, Loader2,
+  AlertTriangle, Clock, Trash2, BarChart3, HardDrive, Loader2, Database,
 } from "lucide-react";
 
 interface HygieneDashboardProps {
@@ -14,10 +14,11 @@ interface HygieneDashboardProps {
   growth: Array<{ week: string; count: number }>;
   capacity: { used: number; limit: number | null; usagePercent: number };
   orgSlug: string;
+  tableSizes?: { versions: number; activityLogs: number; webhookEvents: number; expiredLocks: number };
 }
 
 export function HygieneDashboard({
-  healthBuckets, staleMemories, expiringMemories, growth, capacity, orgSlug,
+  healthBuckets, staleMemories, expiringMemories, growth, capacity, orgSlug, tableSizes,
 }: HygieneDashboardProps) {
   const [cleaning, setCleaning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export function HygieneDashboard({
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Org-Slug": orgSlug, "X-Project-Slug": "_all" },
         body: JSON.stringify({
-          policies: ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy"],
+          policies: ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy", "cleanup_old_versions", "cleanup_activity_logs", "cleanup_webhook_events", "cleanup_expired_locks", "purge_archived"],
           healthThreshold: 15,
         }),
       });
@@ -128,6 +129,36 @@ export function HygieneDashboard({
         </div>
       )}
 
+      {/* Table Health */}
+      {tableSizes && (
+        <div className="mb-4 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Database className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
+            <span className="font-mono text-xs font-medium text-[var(--landing-text)]">Table Health</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {([
+              { label: "Versions", value: tableSizes.versions, warn: 100_000 },
+              { label: "Activity Logs", value: tableSizes.activityLogs, warn: 100_000 },
+              { label: "Webhook Events", value: tableSizes.webhookEvents, warn: 50_000 },
+              { label: "Expired Locks", value: tableSizes.expiredLocks, warn: 10 },
+            ] as const).map(({ label, value, warn }) => (
+              <div key={label} className="rounded-md border border-[var(--landing-border)] p-3">
+                <span className="block font-mono text-[10px] text-[var(--landing-text-tertiary)]">{label}</span>
+                <span className={`font-mono text-lg font-bold ${value >= warn ? "text-amber-400" : "text-[var(--landing-text)]"}`}>
+                  {value.toLocaleString()}
+                </span>
+                {value >= warn && (
+                  <span className="block font-mono text-[9px] text-amber-400">
+                    Above threshold ({warn.toLocaleString()})
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Stale + Expiring side by side */}
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Stale Memories */}
@@ -195,7 +226,7 @@ export function HygieneDashboard({
           <div className="flex-1">
             <span className="font-mono text-xs font-medium text-[var(--landing-text)]">Run Cleanup</span>
             <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-              Removes expired memories, old session logs, and archives unhealthy memories.
+              Removes expired memories, old session logs, old versions, webhook events, expired locks, and purges archived memories.
             </p>
           </div>
           <button

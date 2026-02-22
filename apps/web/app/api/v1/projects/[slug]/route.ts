@@ -7,8 +7,14 @@ import {
   organizationMembers,
   projectMembers,
   memories,
+  sessionLogs,
+  activityLogs,
+  memorySnapshots,
+  memoryLocks,
+  webhookConfigs,
+  webhookEvents,
 } from "@memctl/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import { projectUpdateSchema } from "@memctl/shared/validators";
 
@@ -210,11 +216,26 @@ export async function DELETE(
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  // Delete project assignments (also handled by CASCADE)
+  // 1. Delete webhook events via webhook configs, then delete configs
+  const configs = await db
+    .select({ id: webhookConfigs.id })
+    .from(webhookConfigs)
+    .where(eq(webhookConfigs.projectId, project.id));
+  if (configs.length > 0) {
+    const configIds = configs.map((c) => c.id);
+    await db.delete(webhookEvents).where(inArray(webhookEvents.webhookConfigId, configIds));
+    await db.delete(webhookConfigs).where(eq(webhookConfigs.projectId, project.id));
+  }
+
+  // 2. Delete child records by projectId
+  await db.delete(memoryLocks).where(eq(memoryLocks.projectId, project.id));
+  await db.delete(memorySnapshots).where(eq(memorySnapshots.projectId, project.id));
+  await db.delete(activityLogs).where(eq(activityLogs.projectId, project.id));
+  await db.delete(sessionLogs).where(eq(sessionLogs.projectId, project.id));
+
+  // 3. Delete project members, memories (versions cascade), then project
   await db.delete(projectMembers).where(eq(projectMembers.projectId, project.id));
-  // Delete all memories
   await db.delete(memories).where(eq(memories.projectId, project.id));
-  // Then the project
   await db.delete(projects).where(eq(projects.id, project.id));
 
   return NextResponse.json({ deleted: true });

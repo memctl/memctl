@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, sessionLogs } from "@memctl/db/schema";
-import { eq, and, lt, isNull, isNotNull, like, sql } from "drizzle-orm";
+import { memories, sessionLogs, memoryVersions, activityLogs, webhookEvents, webhookConfigs, memoryLocks } from "@memctl/db/schema";
+import { eq, and, lt, isNull, isNotNull, like, sql, inArray } from "drizzle-orm";
 import { resolveOrgAndProject } from "../capacity-utils";
 import { computeRelevanceScore } from "@memctl/shared/relevance";
 
@@ -51,6 +51,10 @@ export async function POST(req: NextRequest) {
     mergedBranches = [],
     relevanceThreshold = 5.0,
     healthThreshold = 15,
+    maxVersionsPerMemory = 50,
+    activityLogMaxAgeDays = 90,
+    webhookEventMaxAgeDays = 30,
+    archivePurgeDays = 90,
   } = body as {
     policies: string[];
     sessionLogMaxAgeDays?: number;
@@ -59,6 +63,10 @@ export async function POST(req: NextRequest) {
     mergedBranches?: string[];
     relevanceThreshold?: number;
     healthThreshold?: number;
+    maxVersionsPerMemory?: number;
+    activityLogMaxAgeDays?: number;
+    webhookEventMaxAgeDays?: number;
+    archivePurgeDays?: number;
   };
 
   const results: Record<string, { affected: number; details?: string }> = {};
@@ -248,6 +256,102 @@ export async function POST(req: NextRequest) {
           }
         }
         results[policy] = { affected: archived, details: `Archived memories with health score < ${healthThreshold}` };
+        break;
+      }
+
+      case "cleanup_old_versions": {
+        // Trim old versions — keep latest N per memory, scoped to project's memories
+        const projectMemoryIds = await db
+          .select({ id: memories.id })
+          .from(memories)
+          .where(eq(memories.projectId, context.project.id));
+        if (projectMemoryIds.length === 0) {
+          results[policy] = { affected: 0 };
+          break;
+        }
+        const memIds = projectMemoryIds.map((m) => m.id);
+        const trimResult = await db.run(sql`
+          DELETE FROM memory_versions
+          WHERE id IN (
+            SELECT id FROM (
+              SELECT id, ROW_NUMBER() OVER (PARTITION BY memory_id ORDER BY version DESC) AS rn
+              FROM memory_versions
+              WHERE memory_id IN (${sql.join(memIds.map((id) => sql`${id}`), sql`, `)})
+            ) WHERE rn > ${maxVersionsPerMemory}
+          )
+        `);
+        results[policy] = { affected: trimResult.rowsAffected ?? 0 };
+        break;
+      }
+
+      case "cleanup_activity_logs": {
+        const activityCutoff = new Date();
+        activityCutoff.setDate(activityCutoff.getDate() - activityLogMaxAgeDays);
+        const deletedActivity = await db
+          .delete(activityLogs)
+          .where(
+            and(
+              eq(activityLogs.projectId, context.project.id),
+              lt(activityLogs.createdAt, activityCutoff),
+            ),
+          );
+        results[policy] = { affected: deletedActivity.rowsAffected ?? 0 };
+        break;
+      }
+
+      case "cleanup_webhook_events": {
+        // Get project's webhook configs, then delete events by configId + age
+        const configs = await db
+          .select({ id: webhookConfigs.id })
+          .from(webhookConfigs)
+          .where(eq(webhookConfigs.projectId, context.project.id));
+        if (configs.length === 0) {
+          results[policy] = { affected: 0 };
+          break;
+        }
+        const configIds = configs.map((c) => c.id);
+        const webhookCutoff = new Date();
+        webhookCutoff.setDate(webhookCutoff.getDate() - webhookEventMaxAgeDays);
+        const deletedWebhooks = await db
+          .delete(webhookEvents)
+          .where(
+            and(
+              inArray(webhookEvents.webhookConfigId, configIds),
+              lt(webhookEvents.createdAt, webhookCutoff),
+            ),
+          );
+        results[policy] = { affected: deletedWebhooks.rowsAffected ?? 0 };
+        break;
+      }
+
+      case "cleanup_expired_locks": {
+        const nowLock = new Date();
+        const deletedLocks = await db
+          .delete(memoryLocks)
+          .where(
+            and(
+              eq(memoryLocks.projectId, context.project.id),
+              lt(memoryLocks.expiresAt, nowLock),
+            ),
+          );
+        results[policy] = { affected: deletedLocks.rowsAffected ?? 0 };
+        break;
+      }
+
+      case "purge_archived": {
+        const archiveCutoff = new Date();
+        archiveCutoff.setDate(archiveCutoff.getDate() - archivePurgeDays);
+        const purged = await db
+          .delete(memories)
+          .where(
+            and(
+              eq(memories.projectId, context.project.id),
+              isNotNull(memories.archivedAt),
+              lt(memories.archivedAt, archiveCutoff),
+              isNull(memories.pinnedAt),
+            ),
+          );
+        results[policy] = { affected: purged.rowsAffected ?? 0 };
         break;
       }
 

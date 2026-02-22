@@ -564,6 +564,10 @@ export class ApiClient {
     feedbackThreshold?: number;
     mergedBranches?: string[];
     healthThreshold?: number;
+    maxVersionsPerMemory?: number;
+    activityLogMaxAgeDays?: number;
+    webhookEventMaxAgeDays?: number;
+    archivePurgeDays?: number;
   }) {
     return this.request<{
       results: Record<string, { affected: number; details?: string }>;

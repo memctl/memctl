@@ -12,7 +12,7 @@ const execFileAsync = promisify(execFile);
 export function registerMemoryLifecycleTool(server: McpServer, client: ApiClient, rl: RateLimitState) {
   server.tool(
     "memory_lifecycle",
-    "Memory lifecycle management. Actions: cleanup, suggest_cleanup, lifecycle_run, lifecycle_schedule, validate_references, prune_stale, feedback, analytics, lock, unlock, health. Policies for lifecycle_run: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy",
+    "Memory lifecycle management. Actions: cleanup, suggest_cleanup, lifecycle_run, lifecycle_schedule, validate_references, prune_stale, feedback, analytics, lock, unlock, health. Policies for lifecycle_run: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy, cleanup_old_versions, cleanup_activity_logs, cleanup_webhook_events, cleanup_expired_locks, purge_archived",
     {
       action: z.enum([
         "cleanup", "suggest_cleanup", "lifecycle_run", "lifecycle_schedule",
@@ -23,8 +23,12 @@ export function registerMemoryLifecycleTool(server: McpServer, client: ApiClient
       helpful: z.boolean().optional().describe("[feedback] true=helpful, false=unhelpful"),
       staleDays: z.number().int().min(1).max(365).optional().describe("[suggest_cleanup] Days threshold"),
       limit: z.number().int().min(1).max(200).optional().describe("[suggest_cleanup,health] Max results"),
-      policies: z.array(z.enum(["archive_merged_branches","cleanup_expired","cleanup_session_logs","auto_promote","auto_demote","auto_prune","auto_archive_unhealthy"])).optional().describe("[lifecycle_run] Policies to run"),
+      policies: z.array(z.enum(["archive_merged_branches","cleanup_expired","cleanup_session_logs","auto_promote","auto_demote","auto_prune","auto_archive_unhealthy","cleanup_old_versions","cleanup_activity_logs","cleanup_webhook_events","cleanup_expired_locks","purge_archived"])).optional().describe("[lifecycle_run] Policies to run"),
       healthThreshold: z.number().min(0).max(100).optional().describe("[lifecycle_run] Health score threshold for auto_archive_unhealthy (default: 15)"),
+      maxVersionsPerMemory: z.number().int().min(1).max(1000).optional().describe("[lifecycle_run] Max versions to keep per memory (default: 50)"),
+      activityLogMaxAgeDays: z.number().int().min(1).max(365).optional().describe("[lifecycle_run] Max activity log age in days (default: 90)"),
+      webhookEventMaxAgeDays: z.number().int().min(1).max(365).optional().describe("[lifecycle_run] Max webhook event age in days (default: 30)"),
+      archivePurgeDays: z.number().int().min(1).max(365).optional().describe("[lifecycle_run] Days before archived memories are purged (default: 90)"),
       mergedBranches: z.array(z.string()).optional().describe("[lifecycle_run] Merged branch names"),
       sessionLogMaxAgeDays: z.number().int().min(1).max(365).optional().describe("[lifecycle_run,lifecycle_schedule] Max session log age"),
       accessThreshold: z.number().int().optional().describe("[lifecycle_schedule] Promote threshold"),
@@ -57,7 +61,7 @@ export function registerMemoryLifecycleTool(server: McpServer, client: ApiClient
           }
           case "lifecycle_run": {
             if (!params.policies?.length) return errorResponse("Missing param", "policies required");
-            const result = await client.runLifecycle(params.policies, { mergedBranches: params.mergedBranches, sessionLogMaxAgeDays: params.sessionLogMaxAgeDays, healthThreshold: params.healthThreshold });
+            const result = await client.runLifecycle(params.policies, { mergedBranches: params.mergedBranches, sessionLogMaxAgeDays: params.sessionLogMaxAgeDays, healthThreshold: params.healthThreshold, maxVersionsPerMemory: params.maxVersionsPerMemory, activityLogMaxAgeDays: params.activityLogMaxAgeDays, webhookEventMaxAgeDays: params.webhookEventMaxAgeDays, archivePurgeDays: params.archivePurgeDays });
             const summary = Object.entries(result.results).map(([policy, r]) => `${policy}: ${r.affected} affected${r.details ? ` (${r.details})` : ""}`).join("\n");
             return textResponse(`Lifecycle policies executed:\n${summary}`);
           }

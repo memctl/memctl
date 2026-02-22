@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { db } from "./db";
-import { memories } from "@memctl/db/schema";
-import { lt, isNull, isNotNull, eq } from "drizzle-orm";
+import { memories, memoryVersions, activityLogs, webhookEvents, memoryLocks } from "@memctl/db/schema";
+import { lt, isNull, isNotNull, eq, and, sql } from "drizzle-orm";
 import { logger } from "./logger";
 import { sendPendingWebhooks } from "./webhook-dispatch";
 import { generateEmbeddings, serializeEmbedding } from "./embeddings";
@@ -127,6 +127,110 @@ export function initScheduler(): void {
       logger.info({ job: "auto-prune", pruned, threshold: PRUNE_THRESHOLD }, "Auto-prune complete");
     } catch (err) {
       logger.error({ job: "auto-prune", error: String(err) }, "Auto-prune failed");
+    }
+  });
+
+  // Delete expired memory locks — every hour at :30
+  cron.schedule("30 * * * *", async () => {
+    try {
+      const now = new Date();
+      const result = await db
+        .delete(memoryLocks)
+        .where(lt(memoryLocks.expiresAt, now));
+      logger.info({ job: "cleanup-expired-locks", affected: result.rowsAffected }, "Expired lock cleanup complete");
+    } catch (err) {
+      logger.error({ job: "cleanup-expired-locks", error: String(err) }, "Expired lock cleanup failed");
+    }
+  });
+
+  // Trim old memory versions — daily at 4 AM, keep latest N per memory
+  const MAX_VERSIONS = parseInt(process.env.MEMCTL_MAX_VERSIONS ?? "50", 10);
+  cron.schedule("0 4 * * *", async () => {
+    try {
+      const result = await db.run(sql`
+        DELETE FROM memory_versions
+        WHERE id IN (
+          SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER (PARTITION BY memory_id ORDER BY version DESC) AS rn
+            FROM memory_versions
+          ) WHERE rn > ${MAX_VERSIONS}
+        )
+      `);
+      logger.info({ job: "trim-versions", affected: result.rowsAffected }, "Version trimming complete");
+    } catch (err) {
+      logger.error({ job: "trim-versions", error: String(err) }, "Version trimming failed");
+    }
+  });
+
+  // Delete old activity logs — daily at 4:15 AM
+  const ACTIVITY_LOG_RETENTION_DAYS = parseInt(process.env.MEMCTL_ACTIVITY_LOG_RETENTION_DAYS ?? "90", 10);
+  cron.schedule("15 4 * * *", async () => {
+    try {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - ACTIVITY_LOG_RETENTION_DAYS);
+      const result = await db
+        .delete(activityLogs)
+        .where(lt(activityLogs.createdAt, cutoff));
+      logger.info({ job: "cleanup-activity-logs", affected: result.rowsAffected }, "Activity log cleanup complete");
+    } catch (err) {
+      logger.error({ job: "cleanup-activity-logs", error: String(err) }, "Activity log cleanup failed");
+    }
+  });
+
+  // Delete old webhook events — daily at 4:30 AM
+  const WEBHOOK_EVENT_RETENTION_DAYS = parseInt(process.env.MEMCTL_WEBHOOK_EVENT_RETENTION_DAYS ?? "30", 10);
+  cron.schedule("30 4 * * *", async () => {
+    try {
+      const dispatchedCutoff = new Date();
+      dispatchedCutoff.setDate(dispatchedCutoff.getDate() - WEBHOOK_EVENT_RETENTION_DAYS);
+      const undispatchedCutoff = new Date();
+      undispatchedCutoff.setDate(undispatchedCutoff.getDate() - 7);
+
+      // Delete dispatched events older than retention period
+      const dispatched = await db
+        .delete(webhookEvents)
+        .where(
+          and(
+            isNotNull(webhookEvents.dispatchedAt),
+            lt(webhookEvents.createdAt, dispatchedCutoff),
+          ),
+        );
+
+      // Delete undispatched events older than 7 days
+      const undispatched = await db
+        .delete(webhookEvents)
+        .where(
+          and(
+            isNull(webhookEvents.dispatchedAt),
+            lt(webhookEvents.createdAt, undispatchedCutoff),
+          ),
+        );
+
+      const total = (dispatched.rowsAffected ?? 0) + (undispatched.rowsAffected ?? 0);
+      logger.info({ job: "cleanup-webhook-events", affected: total }, "Webhook event cleanup complete");
+    } catch (err) {
+      logger.error({ job: "cleanup-webhook-events", error: String(err) }, "Webhook event cleanup failed");
+    }
+  });
+
+  // Permanently delete old archived memories — weekly Sunday at 5 AM
+  const ARCHIVE_PURGE_DAYS = parseInt(process.env.MEMCTL_ARCHIVE_PURGE_DAYS ?? "90", 10);
+  cron.schedule("0 5 * * 0", async () => {
+    try {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - ARCHIVE_PURGE_DAYS);
+      const result = await db
+        .delete(memories)
+        .where(
+          and(
+            isNotNull(memories.archivedAt),
+            lt(memories.archivedAt, cutoff),
+            isNull(memories.pinnedAt),
+          ),
+        );
+      logger.info({ job: "purge-archived", affected: result.rowsAffected }, "Archive purge complete");
+    } catch (err) {
+      logger.error({ job: "purge-archived", error: String(err) }, "Archive purge failed");
     }
   });
 

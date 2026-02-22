@@ -8,6 +8,10 @@ import {
   organizationMembers,
   projects,
   memories,
+  memoryVersions,
+  activityLogs,
+  webhookEvents,
+  memoryLocks,
 } from "@memctl/db/schema";
 import { eq, and, isNull, isNotNull, lt, sql } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
@@ -127,6 +131,43 @@ export default async function HygienePage({
     .slice(-12)
     .map(([week, count]) => ({ week, count }));
 
+  // Query table sizes across all org projects
+  const projectIds = projectList.map((p) => p.id);
+  let tableSizes = { versions: 0, activityLogs: 0, webhookEvents: 0, expiredLocks: 0 };
+  if (projectIds.length > 0) {
+    const [versionCount] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(memoryVersions)
+      .where(sql`${memoryVersions.memoryId} IN (SELECT id FROM memories WHERE project_id IN (${sql.join(projectIds.map((id) => sql`${id}`), sql`, `)}))`);
+
+    const [activityCount] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(activityLogs)
+      .where(sql`${activityLogs.projectId} IN (${sql.join(projectIds.map((id) => sql`${id}`), sql`, `)})`);
+
+    const [webhookCount] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(webhookEvents)
+      .where(sql`${webhookEvents.webhookConfigId} IN (SELECT id FROM webhook_configs WHERE project_id IN (${sql.join(projectIds.map((id) => sql`${id}`), sql`, `)}))`);
+
+    const [lockCount] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(memoryLocks)
+      .where(
+        and(
+          sql`${memoryLocks.projectId} IN (${sql.join(projectIds.map((id) => sql`${id}`), sql`, `)})`,
+          lt(memoryLocks.expiresAt, new Date()),
+        ),
+      );
+
+    tableSizes = {
+      versions: versionCount?.count ?? 0,
+      activityLogs: activityCount?.count ?? 0,
+      webhookEvents: webhookCount?.count ?? 0,
+      expiredLocks: lockCount?.count ?? 0,
+    };
+  }
+
   const memoryLimit = currentPlan.memoryLimitOrg;
   const usagePercent = memoryLimit === Infinity ? 0 : Math.round((totalMemories / memoryLimit) * 100);
 
@@ -145,6 +186,7 @@ export default async function HygienePage({
           usagePercent,
         }}
         orgSlug={orgSlug}
+        tableSizes={tableSizes}
       />
     </div>
   );

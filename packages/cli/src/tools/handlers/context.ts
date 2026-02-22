@@ -117,7 +117,7 @@ async function handleBootstrap(client: ApiClient, params: Record<string, unknown
         }
       } catch { /* policy not found, use defaults */ }
       return await client.runLifecycle(
-        ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy"],
+        ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy", "cleanup_expired_locks"],
         { healthThreshold: 15 },
       );
     } catch { return null; }
@@ -195,7 +195,7 @@ async function handleBootstrapCompact(client: ApiClient) {
         }
       } catch { /* policy not found, use defaults */ }
       return await client.runLifecycle(
-        ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy"],
+        ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy", "cleanup_expired_locks"],
         { healthThreshold: 15 },
       );
     } catch { return null; }
