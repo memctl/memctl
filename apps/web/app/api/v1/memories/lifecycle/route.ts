@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     feedbackThreshold = 3,
     mergedBranches = [],
     relevanceThreshold = 5.0,
+    healthThreshold = 15,
   } = body as {
     policies: string[];
     sessionLogMaxAgeDays?: number;
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
     feedbackThreshold?: number;
     mergedBranches?: string[];
     relevanceThreshold?: number;
+    healthThreshold?: number;
   };
 
   const results: Record<string, { affected: number; details?: string }> = {};
@@ -198,6 +200,54 @@ export async function POST(req: NextRequest) {
           }
         }
         results[policy] = { affected: pruned, details: `Archived memories with relevance < ${relevanceThreshold}` };
+        break;
+      }
+
+      case "auto_archive_unhealthy": {
+        // Archive non-pinned memories with health score below threshold
+        const unhealthyMems = await db
+          .select()
+          .from(memories)
+          .where(
+            and(
+              eq(memories.projectId, context.project.id),
+              isNull(memories.archivedAt),
+              isNull(memories.pinnedAt),
+            ),
+          );
+        const nowMs = Date.now();
+        let archived = 0;
+        for (const mem of unhealthyMems) {
+          const ageDays = mem.createdAt
+            ? (nowMs - mem.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+            : 0;
+          const daysSinceAccess = mem.lastAccessedAt
+            ? (nowMs - mem.lastAccessedAt.getTime()) / (1000 * 60 * 60 * 24)
+            : Infinity;
+          const accessCnt = mem.accessCount ?? 0;
+          const helpfulCnt = mem.helpfulCount ?? 0;
+          const unhelpfulCnt = mem.unhelpfulCount ?? 0;
+
+          const ageFactor = Math.max(0, 25 - ageDays / 14);
+          const accessFactor = Math.min(25, accessCnt * 2.5);
+          const feedbackFactor = 12.5 + Math.min(12.5, Math.max(-12.5, (helpfulCnt - unhelpfulCnt) * 2.5));
+          const freshnessFactor = daysSinceAccess === Infinity ? 0 : Math.max(0, 25 - daysSinceAccess / 7);
+          const healthScore = Math.round((ageFactor + accessFactor + feedbackFactor + freshnessFactor) * 100) / 100;
+
+          if (healthScore < healthThreshold) {
+            let existingTags: string[] = [];
+            if (mem.tags) {
+              try { existingTags = JSON.parse(mem.tags) as string[]; } catch { /* ignore */ }
+            }
+            const newTags = [...new Set([...existingTags, "auto:decayed"])];
+            await db
+              .update(memories)
+              .set({ archivedAt: new Date(), tags: JSON.stringify(newTags) })
+              .where(eq(memories.id, mem.id));
+            archived++;
+          }
+        }
+        results[policy] = { affected: archived, details: `Archived memories with health score < ${healthThreshold}` };
         break;
       }
 

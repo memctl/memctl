@@ -7,7 +7,7 @@ const command = args[0];
 // If a CLI command is given (and it's not "serve"), run the CLI
 const cliCommands = [
   "list", "get", "search", "export", "import", "snapshot", "snapshots",
-  "capacity", "cleanup", "lifecycle", "init", "auth", "doctor", "help", "--help", "-h",
+  "capacity", "cleanup", "lifecycle", "gc", "init", "auth", "doctor", "help", "--help", "-h",
 ];
 
 if (command && cliCommands.includes(command)) {

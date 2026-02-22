@@ -1,25 +1,16 @@
 # memctl docs
 
-Documentation for memctl — persistent memory for AI coding agents.
+**User-facing documentation lives at [memctl.com/docs](https://memctl.com/docs)** (source: `apps/web/content/docs/`).
 
-**Full docs live at [memctl.com/docs](https://memctl.com/docs)**
+This directory contains **internal developer reference** only — things not published on the website.
 
-## Quick start
+## Files
 
-```bash
-npx memctl auth
-npx memctl doctor
-```
-
-## Local docs files
-
-These files are developer reference for the codebase:
-
-- [Getting Started](./getting-started.md)
-- [IDE Setup](./ide-setup.md)
-- [CLI Reference](./cli-reference.md)
-- [MCP Tools Reference](./mcp-tools-reference.md)
-
-## Web docs
-
-The primary documentation source is the Fumadocs site in `apps/web/content/docs/`.
+- [API Reference](./api-reference.md) — Complete REST API endpoint documentation
+- [Architecture](./architecture.md) — Monorepo structure, database schema, search pipeline, caching layers
+- [Contributing](./contributing.md) — How to add tools, CLI commands, API endpoints, and submit PRs
+- [Agent Context System](./agent-context-system.md) — Context types, token budgeting, smart retrieval, conditional rules
+- [Organization & Teams](./organization-and-teams.md) — Org structure, roles, defaults, templates, cross-project features
+- [Environment Examples](./env-examples.md) — Example `.env` configurations for common scenarios
+- [Billing & Plans](./billing-plan-example.md) — Plan catalog, Stripe setup, checkout behavior
+- [Testing Environment](./testing-environment.md) — Test auth, Stripe testing, Docker setup

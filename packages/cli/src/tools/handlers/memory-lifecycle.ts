@@ -12,23 +12,30 @@ const execFileAsync = promisify(execFile);
 export function registerMemoryLifecycleTool(server: McpServer, client: ApiClient, rl: RateLimitState) {
   server.tool(
     "memory_lifecycle",
-    "Memory lifecycle management. Actions: cleanup, suggest_cleanup, lifecycle_run, lifecycle_schedule, validate_references, prune_stale, feedback, analytics, lock, unlock, health",
+    "Memory lifecycle management. Actions: cleanup, suggest_cleanup, lifecycle_run, lifecycle_schedule, validate_references, prune_stale, feedback, analytics, lock, unlock, health. Policies for lifecycle_run: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy",
     {
       action: z.enum([
         "cleanup", "suggest_cleanup", "lifecycle_run", "lifecycle_schedule",
         "validate_references", "prune_stale", "feedback", "analytics",
-        "lock", "unlock", "health",
+        "lock", "unlock", "health", "policy_get", "policy_set",
       ]).describe("Which operation to perform"),
       key: z.string().optional().describe("[feedback,lock,unlock] Memory key"),
       helpful: z.boolean().optional().describe("[feedback] true=helpful, false=unhelpful"),
       staleDays: z.number().int().min(1).max(365).optional().describe("[suggest_cleanup] Days threshold"),
       limit: z.number().int().min(1).max(200).optional().describe("[suggest_cleanup,health] Max results"),
-      policies: z.array(z.enum(["archive_merged_branches","cleanup_expired","cleanup_session_logs","auto_promote","auto_demote"])).optional().describe("[lifecycle_run] Policies to run"),
+      policies: z.array(z.enum(["archive_merged_branches","cleanup_expired","cleanup_session_logs","auto_promote","auto_demote","auto_prune","auto_archive_unhealthy"])).optional().describe("[lifecycle_run] Policies to run"),
+      healthThreshold: z.number().min(0).max(100).optional().describe("[lifecycle_run] Health score threshold for auto_archive_unhealthy (default: 15)"),
       mergedBranches: z.array(z.string()).optional().describe("[lifecycle_run] Merged branch names"),
       sessionLogMaxAgeDays: z.number().int().min(1).max(365).optional().describe("[lifecycle_run,lifecycle_schedule] Max session log age"),
       accessThreshold: z.number().int().optional().describe("[lifecycle_schedule] Promote threshold"),
       feedbackThreshold: z.number().int().optional().describe("[lifecycle_schedule] Demote threshold"),
       archiveStale: z.boolean().optional().describe("[prune_stale] Archive stale references"),
+      policyConfig: z.object({
+        autoCleanupOnBootstrap: z.boolean().optional(),
+        maxStaleDays: z.number().int().min(1).max(365).optional(),
+        autoArchiveHealthBelow: z.number().min(0).max(100).optional(),
+        maxMemories: z.number().int().min(1).optional(),
+      }).optional().describe("[policy_set] Cleanup policy configuration"),
       lockedBy: z.string().optional().describe("[lock,unlock] Lock holder ID"),
       ttlSeconds: z.number().int().min(5).max(600).optional().describe("[lock] Lock TTL"),
     },
@@ -50,7 +57,7 @@ export function registerMemoryLifecycleTool(server: McpServer, client: ApiClient
           }
           case "lifecycle_run": {
             if (!params.policies?.length) return errorResponse("Missing param", "policies required");
-            const result = await client.runLifecycle(params.policies, { mergedBranches: params.mergedBranches, sessionLogMaxAgeDays: params.sessionLogMaxAgeDays });
+            const result = await client.runLifecycle(params.policies, { mergedBranches: params.mergedBranches, sessionLogMaxAgeDays: params.sessionLogMaxAgeDays, healthThreshold: params.healthThreshold });
             const summary = Object.entries(result.results).map(([policy, r]) => `${policy}: ${r.affected} affected${r.details ? ` (${r.details})` : ""}`).join("\n");
             return textResponse(`Lifecycle policies executed:\n${summary}`);
           }
@@ -113,6 +120,24 @@ export function registerMemoryLifecycleTool(server: McpServer, client: ApiClient
               total: result.memories.length, unhealthyCount: unhealthy.length, memories: result.memories,
               hint: unhealthy.length > 0 ? `${unhealthy.length} memories have health score below 40.` : "All memories are in good health.",
             }, null, 2));
+          }
+          case "policy_get": {
+            const POLICY_KEY = "agent/config/cleanup_policy";
+            const defaults = { autoCleanupOnBootstrap: true, maxStaleDays: 30, autoArchiveHealthBelow: 15, maxMemories: 500 };
+            try {
+              const mem = await client.getMemory(POLICY_KEY) as { memory?: { content?: string } };
+              if (mem?.memory?.content) {
+                const config = JSON.parse(mem.memory.content);
+                return textResponse(JSON.stringify({ ...defaults, ...config, source: "project" }, null, 2));
+              }
+            } catch { /* not found */ }
+            return textResponse(JSON.stringify({ ...defaults, source: "defaults" }, null, 2));
+          }
+          case "policy_set": {
+            if (!params.policyConfig) return errorResponse("Missing param", "policyConfig required");
+            const POLICY_KEY = "agent/config/cleanup_policy";
+            await client.storeMemory(POLICY_KEY, JSON.stringify(params.policyConfig), { type: "system_config" }, { priority: 100, tags: ["system:config"] });
+            return textResponse(`Cleanup policy saved. Config: ${JSON.stringify(params.policyConfig)}`);
           }
           default:
             return errorResponse("Unknown action", params.action);

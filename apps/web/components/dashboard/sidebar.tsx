@@ -21,6 +21,7 @@ import {
   Activity,
   Webhook,
   HeartPulse,
+  Sparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -107,6 +108,11 @@ const navItems: {
     label: "Health",
     icon: HeartPulse,
     href: (s) => `/org/${s}/health`,
+  },
+  {
+    label: "Hygiene",
+    icon: Sparkles,
+    href: (s) => `/org/${s}/hygiene`,
   },
   {
     label: "Settings",

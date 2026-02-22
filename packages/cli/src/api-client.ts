@@ -563,6 +563,7 @@ export class ApiClient {
     accessThreshold?: number;
     feedbackThreshold?: number;
     mergedBranches?: string[];
+    healthThreshold?: number;
   }) {
     return this.request<{
       results: Record<string, { affected: number; details?: string }>;
@@ -660,6 +661,7 @@ export class ApiClient {
         priority: number;
         accessCount: number;
         lastAccessedAt: unknown;
+        isPinned: boolean;
       }>;
     }>("GET", `/memories/health?limit=${limit}`);
   }

@@ -134,11 +134,27 @@ async function handleStore(client: ApiClient, rl: RateLimitState, params: Record
       }
     } catch { /* ignore */ }
 
+    // Auto-eviction: if near capacity, archive lowest-health non-pinned memories
+    let evictionMsg = "";
+    try {
+      const cap = await client.getMemoryCapacity();
+      if (cap.isFull || cap.isSoftFull) {
+        const health = await client.getHealthScores(200);
+        const evictable = health.memories.filter((m) => !m.isPinned).slice(0, 3);
+        if (evictable.length > 0) {
+          const evictKeys = evictable.map((m) => m.key);
+          await client.batchMutate(evictKeys, "archive");
+          evictionMsg = ` Auto-archived ${evictKeys.length} low-health memories to free space: ${evictKeys.join(", ")}.`;
+        }
+      }
+    } catch { /* ignore eviction errors */ }
+
     await client.storeMemory(key, content, metadata, { scope, priority, tags: resolvedTags.length > 0 ? resolvedTags : undefined, expiresAt: resolvedExpiry });
     const scopeMsg = scope === "shared" ? " [shared across org]" : "";
     const ttlMsg = ttl ? ` [ttl: ${ttl}]` : "";
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
-    return textResponse(`Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${rateWarn}`);
+    const writeWarn = rl.getSessionWriteWarning() ?? "";
+    return textResponse(`Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${evictionMsg}${rateWarn}${writeWarn}`);
   } catch (error) {
     if (hasMemoryFullError(error)) {
       return errorResponse("Error storing memory", `${error instanceof Error ? error.message : String(error)} Use memory delete or archive to free space.`);
@@ -294,7 +310,8 @@ async function handleUpdate(client: ApiClient, rl: RateLimitState, params: Recor
     } catch { /* ignore */ }
 
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
-    return textResponse(`Memory updated: ${key}${impactWarning}${rateWarn}`);
+    const writeWarn = rl.getSessionWriteWarning() ?? "";
+    return textResponse(`Memory updated: ${key}${impactWarning}${rateWarn}${writeWarn}`);
   } catch (error) {
     return errorResponse("Error updating memory", error);
   }
