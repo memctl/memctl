@@ -19,11 +19,24 @@ This prompts for your API token (get it from **Settings → API Tokens** in the 
 
 ## 3. Configure your agent
 
-After authenticating, your MCP config only needs the org and project  - no token in project files:
+The fastest way is the init wizard:
 
-### Claude Code
+```bash
+npx memctl init
+```
 
-Create `.mcp.json` in your project root:
+This walks you through selecting your IDE and writes the MCP config automatically.
+
+Or use a targeted flag to skip prompts:
+
+```bash
+npx memctl init --claude    # Claude Code
+npx memctl init --cursor    # Cursor
+npx memctl init --windsurf  # Windsurf
+npx memctl init --all       # All supported IDEs
+```
+
+After authenticating, your MCP config only needs the org and project - no token in project files:
 
 ```json
 {
@@ -40,46 +53,7 @@ Create `.mcp.json` in your project root:
 }
 ```
 
-### Cursor
-
-Create `.cursor/mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "memctl": {
-      "command": "npx",
-      "args": ["-y", "memctl@latest"],
-      "env": {
-        "MEMCTL_ORG": "your-org",
-        "MEMCTL_PROJECT": "your-project"
-      }
-    }
-  }
-}
-```
-
-### VS Code + GitHub Copilot
-
-Create `.vscode/mcp.json` in your project root:
-
-```json
-{
-  "servers": {
-    "memctl": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "memctl@latest"],
-      "env": {
-        "MEMCTL_ORG": "your-org",
-        "MEMCTL_PROJECT": "your-project"
-      }
-    }
-  }
-}
-```
-
-For other agents, see the [full agent setup guides](/docs/agents).
+For agent-specific config locations and formats (VS Code, Cline, Zed, JetBrains, etc.), see the [full agent setup guides](/docs/agents).
 
 ## 4. Verify
 

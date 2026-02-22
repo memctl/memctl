@@ -4,6 +4,7 @@
     "---Getting Started---",
     "index",
     "quickstart",
+    "concepts",
     "agents",
     "agents-md",
     "---Reference---",
@@ -13,6 +14,8 @@
     "---Deployment---",
     "local-development",
     "deployment",
-    "self-hosting"
+    "self-hosting",
+    "---Help---",
+    "troubleshooting"
   ]
 }

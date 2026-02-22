@@ -1,11 +1,11 @@
 ---
-title: AGENTS.md Docs
-description: Short copy-paste AGENTS.md template for mem/ctl MCP usage
+title: AGENTS.md
+description: Copy-paste AGENTS.md template for mem/ctl MCP usage
 ---
 
 # AGENTS.md
 
-Copy this into your repository root as `AGENTS.md`.
+Copy this into your repository root as `AGENTS.md`. This works with any MCP-compatible agent (Claude Code, Cursor, VS Code, Windsurf, Cline, etc.).
 
 ```md
 # AGENTS.md
@@ -21,13 +21,14 @@ Use `memctl` for all project memory:
 - branch plans and handoff notes
 
 Do not keep important project context only in chat.
+Always store decisions, conventions, and lessons learned in memctl so they persist.
 
 ## Session Start (always)
 
-1. `context.bootstrap`
-2. `session.start` with `autoExtractGit=true`
-3. `activity.memo_read`
-4. `branch.get`
+1. `context.bootstrap` - load all project context
+2. `session.start` with `autoExtractGit=true` - register this session
+3. `activity.memo_read` - check for notes from the last session
+4. `branch.get` - load the current branch plan if one exists
 
 If the project has not been scanned yet (or file map is stale), run:
 - `repo.scan` with `saveAsContext=true`
@@ -36,42 +37,71 @@ If the project has not been scanned yet (or file map is stale), run:
 
 Read relevant context:
 - `context.functionality_get` for: `coding_style`, `architecture`, `testing`, `constraints`, `workflow`
-- `context.context_for` for files you are touching
-- `branch.get` for current branch plan
+- `context.context_for` for files you are about to touch
+- `branch.get` for current branch plan and checklist
 
 ## While Coding
 
-When user gives new conventions/decisions, store immediately:
-- `context.functionality_set` for structured project rules
-- `memory.store` for one-off decisions or references
+When user gives new conventions or decisions, store immediately:
+- `context.functionality_set` for structured project rules (coding style, architecture, testing, etc.)
+- `memory.store` for one-off decisions, references, or notes
 
 For memory/history search:
-- `memory.search`
-- `memory.list`
+- `memory.search` - search by content
+- `memory.list` - browse by priority or recency
 
 After each meaningful task, save branch progress:
-- `branch.set`
-- update `status`
-- update checklist items (`done: true/false`)
-- add short notes about what is finished and what is next
+- `branch.set` with updated `status`, checklist items (`done: true/false`), and short notes
 
 ## End Of Session
 
 1. Save final branch progress with `branch.set`
-2. Leave handoff note (`activity.memo_leave`) if anything is pending
-3. End session with summary (`session.end`)
+2. Leave handoff note (`activity.memo_leave`) if anything is pending or unfinished
+3. End session with summary (`session.end`) including what was done and what keys were modified
 
-## Context Types To Use
+## Do Not
 
-- `coding_style`
-- `architecture`
-- `testing`
-- `constraints`
-- `workflow`
-- `lessons_learned`
-- `folder_structure`
-- `file_map`
-- `branch_plan`
+- Do not store secrets, tokens, passwords, or API keys in memctl
+- Do not store large file contents or binary data
+- Do not skip `context.bootstrap` at the start of a session
+- Do not keep important decisions only in chat without storing them
+- Do not create duplicate memories - search first with `memory.search`
+- Do not ignore memos from previous sessions
+
+## Context Types
+
+- `coding_style` - naming, formatting, linting rules
+- `architecture` - system design, modules, tech stack
+- `testing` - framework, conventions, coverage rules
+- `constraints` - hard limits, non-goals, security rules
+- `workflow` - branch strategy, PR process, CI/CD
+- `lessons_learned` - past mistakes, gotchas
+- `folder_structure` - repo layout
+- `file_map` - key files per feature
+- `branch_plan` - current branch implementation plan
+```
+
+## Importing and exporting
+
+You can also generate this file from your stored context:
+
+```bash
+# Export stored context as AGENTS.md
+npx memctl export agents_md > AGENTS.md
+
+# Import an existing AGENTS.md into memctl
+npx memctl import AGENTS.md
+
+# Export as .cursorrules for Cursor
+npx memctl export cursorrules > .cursorrules
+```
+
+Or via MCP tools:
+
+```
+import_export.export_agents_md   - generate AGENTS.md from stored context
+import_export.agents_md_import   - parse and import AGENTS.md content (supports dryRun)
+import_export.cursorrules_import - parse and import .cursorrules content
 ```
 
 Need full tool details? See [MCP Tools](/docs/mcp-server/tools).

@@ -1,0 +1,201 @@
+---
+title: Concepts
+description: How mem/ctl stores, syncs, and shares memory across agents and teams
+---
+
+# Concepts
+
+## Data model
+
+mem/ctl organizes data in a hierarchy:
+
+```
+Organization
+  └── Project
+        ├── Memories (key-value pairs)
+        ├── Context entries (typed, structured)
+        ├── Branch plans (per git branch)
+        ├── Sessions (agent activity logs)
+        └── Snapshots (point-in-time backups)
+```
+
+**Organizations** group projects and team members. **Projects** scope all data - two agents on the same org and project share the same memory pool.
+
+### Memories
+
+The core unit. Each memory has:
+
+| Field | Description |
+|---|---|
+| `key` | Unique identifier (e.g. `agent/context/architecture/auth`) |
+| `content` | Free-form text content |
+| `priority` | 0-100, higher surfaces first in bootstraps and searches |
+| `tags` | Array of labels for filtering |
+| `scope` | `project` (default) or `shared` (org-wide) |
+| `ttl` | Expiry policy: `session`, `pr`, `sprint`, or `permanent` |
+| `metadata` | Arbitrary JSON for tool-specific data |
+
+### Context entries
+
+Context entries are memories with structured types. They use the key pattern `agent/context/{type}/{id}` and have 9 built-in types:
+
+| Type | What to store |
+|---|---|
+| `coding_style` | Naming, formatting, linting, review standards |
+| `architecture` | System design, modules, data flow, tech stack |
+| `testing` | Framework, naming, locations, coverage rules |
+| `constraints` | Hard limits, non-goals, security, performance budgets |
+| `lessons_learned` | Past mistakes, gotchas, workarounds |
+| `workflow` | Branch strategy, PR process, CI/CD, deploy pipeline |
+| `folder_structure` | Repository layout and domain boundaries |
+| `file_map` | Key files per feature area |
+| `branch_plan` | Implementation plan for the current branch |
+
+You can also create custom context types per organization using the `context_config` tool.
+
+### Branch plans
+
+Branch plans are context entries scoped to a git branch. They include:
+
+- Implementation description
+- Status (`planning`, `in_progress`, `review`, `merged`)
+- Checklist with items and completion state
+- Automatically associated with the current branch name
+
+### Sessions
+
+Sessions track agent activity within a conversation:
+
+- Start/end timestamps
+- Which memories were read and written
+- Which tools were used
+- Summary of what was accomplished
+- Git context (branch, commits, diffs)
+
+Sessions enable handoff between conversations. The next agent session can see what the previous one did and pick up where it left off.
+
+## Where data is stored
+
+All memory is stored **server-side** in the mem/ctl cloud API (or your self-hosted instance). There is no local-only mode - the API is the source of truth.
+
+The CLI maintains a **local cache** for performance and offline resilience, but it is never the primary store.
+
+```
+Agent (IDE)
+  └── MCP Server (memctl CLI)
+        ├── In-memory cache (30s TTL)
+        ├── Local SQLite cache (~/.memctl/cache.db)
+        └── Cloud API (source of truth)
+              └── Database (Turso/SQLite)
+```
+
+### Why cloud-first matters for teams
+
+Because all data lives server-side, any team member with access to the same org and project sees the same memories. There is no merge conflict or sync delay beyond the cache TTL. When one agent stores a coding convention, every other team member's agent picks it up on the next bootstrap.
+
+## Caching and sync
+
+The CLI uses a three-tier cache to minimize API calls while keeping data fresh.
+
+### Tier 1: In-memory cache
+
+- **TTL**: 30 seconds
+- **Stale window**: 120 seconds (serves stale data while revalidating in the background)
+- **ETag support**: Skips data transfer if the API returns 304 Not Modified
+- **Request deduplication**: Multiple concurrent reads for the same key share a single API call
+
+This means within a single agent session, repeated reads of the same memory hit the API at most once every 30 seconds.
+
+### Tier 2: Local SQLite cache
+
+- **Location**: `~/.memctl/cache.db`
+- **Scope**: Separated by `{org}:{project}`
+- **Sync**: Incremental delta sync on startup (fetches only changes since last sync)
+- **Fallback**: If SQLite is unavailable, falls back to an in-memory Map
+
+On MCP server startup, the CLI:
+1. Pings the API to check connectivity
+2. If online and first run: fetches up to 100 memories to populate the cache
+3. If online and not first run: runs an incremental delta sync (only changes since last sync timestamp)
+4. If offline: operates from the local cache
+
+### Tier 3: Pending writes queue
+
+- **Location**: `~/.memctl/pending-writes.json`
+- **Purpose**: Queues failed writes when the API is unreachable
+- **Replay**: Can be replayed when connectivity is restored
+
+### Freshness indicators
+
+Every API response includes a freshness indicator:
+
+| State | Meaning |
+|---|---|
+| `fresh` | Directly from the API |
+| `cached` | From in-memory cache, within TTL |
+| `stale` | From in-memory cache, past TTL but revalidating |
+| `offline` | From local SQLite cache, API unreachable |
+
+## Team collaboration
+
+### How teams share context
+
+All team members working on the same project share the same memory pool. When anyone stores or updates a memory, it is immediately available to others (within cache TTL).
+
+Typical team workflow:
+
+1. **Tech lead** sets up org defaults (coding style, architecture, constraints)
+2. **Developers** join the org and project
+3. Org defaults are applied to the project via `org.defaults_apply`
+4. Each developer's agent bootstraps on session start and receives the shared context
+5. As developers add lessons learned, update architecture docs, or modify conventions, changes propagate to the whole team
+
+### Organization features
+
+| Feature | Description |
+|---|---|
+| **Org defaults** | Centrally managed memory entries applied to all projects |
+| **Templates** | Reusable memory bundles for new project setup |
+| **Context diff** | Compare context between two projects in the same org |
+| **Cross-project search** | Search memories across all projects in the org |
+
+### Concurrent access
+
+mem/ctl handles concurrent access from multiple agents:
+
+- **Optimistic concurrency**: Uses ETag-based `If-Match` headers to detect conflicts on writes
+- **Session claims**: Agents can claim resources (files, memory keys) to signal exclusive access
+- **Watch**: Monitor specific keys for changes made by other sessions
+
+## Offline mode
+
+When the API is unreachable:
+
+1. **Reads** fall back to the local SQLite cache
+2. **Writes** are queued in `~/.memctl/pending-writes.json`
+3. The CLI retries connectivity periodically
+4. When the API becomes available again, pending writes can be replayed
+
+Offline mode is automatic - no configuration needed. The agent continues working with cached data and queues mutations for later sync.
+
+## Rate limiting
+
+Write operations (`memory.store`, `memory.delete`, `memory.update`, `batch_mutate`) are rate-limited per session:
+
+- **Default**: 500 writes per session
+- **Configurable**: Set `MEMCTL_RATE_LIMIT` environment variable
+- **Warning**: At 80% usage, the CLI warns the agent
+- **Blocked**: At 100%, writes are rejected until the session resets
+
+Read operations are not rate-limited.
+
+## Memory lifecycle
+
+Memories can be managed with lifecycle policies:
+
+- **TTL expiry**: Memories with `ttl` set to `session`, `pr`, or `sprint` expire automatically
+- **Archive**: Soft-delete that keeps data but hides from search
+- **Cleanup**: Remove expired or stale memories
+- **Pin**: Prevent a memory from being cleaned up
+- **Sunset**: Mark a memory for gradual removal with a deadline
+- **Lock/unlock**: Prevent edits to critical memories

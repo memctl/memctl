@@ -25,7 +25,24 @@ Core memory CRUD operations.
 | `store_safe` | Store only if key doesn't exist |
 | `capacity` | Return memory usage, plan limit, and status |
 
-Key parameters: `key`, `content`, `scope` (project/shared), `priority` (0-100), `tags`, `ttl` (session/pr/sprint/permanent), `query`, `limit`, `sort`
+### Parameters
+
+| Parameter | Used by | Description |
+|---|---|---|
+| `key` | store, get, delete, update, pin, archive | Unique memory identifier |
+| `content` | store, update | Text content of the memory |
+| `scope` | store | `project` (default) or `shared` (org-wide) |
+| `priority` | store, update | 0-100, higher surfaces first in searches and bootstraps |
+| `tags` | store, update | Array of string labels for filtering |
+| `ttl` | store | Expiry: `session`, `pr`, `sprint`, or `permanent` |
+| `query` | search | Search string matched against key and content |
+| `limit` | search, list | Max results (default 50) |
+| `sort` | list | Sort by `updated`, `priority`, or `created` |
+| `keys` | bulk_get | Array of keys to retrieve |
+| `includeArchived` | list, search | Include archived memories (default false) |
+| `onDuplicate` | store | Behavior on existing key: `warn`, `skip`, or `merge` |
+
+Write operations (`store`, `delete`, `update`) are [rate-limited](/docs/concepts#rate-limiting).
 
 ## memory_advanced
 
@@ -79,7 +96,7 @@ Lifecycle management, health checks, and feedback.
 
 ## context
 
-Agent context assembly  - the structured replacement for `AGENTS.md`.
+Agent context assembly - the structured replacement for `AGENTS.md`.
 
 | Action | Description |
 |---|---|
@@ -98,6 +115,20 @@ Agent context assembly  - the structured replacement for `AGENTS.md`.
 | `rules_evaluate` | Evaluate rules against current context |
 | `thread` | Threaded context for multi-turn conversations |
 
+### Key parameters
+
+| Parameter | Used by | Description |
+|---|---|---|
+| `type` | functionality_get, functionality_set, functionality_delete | Context type slug (e.g. `coding_style`) |
+| `id` | functionality_set, functionality_delete | Entry identifier within the type |
+| `title` | functionality_set | Human-readable title for the entry |
+| `content` | functionality_set | Text content of the context entry |
+| `filePaths` | context_for | Array of file paths to find relevant context for |
+| `since` | bootstrap_delta | ISO timestamp to get only changes after |
+| `maxTokens` | budget | Maximum token budget for context assembly |
+| `types` | compose | Array of context types to include |
+| `query` | smart_retrieve, search_org | Natural language intent or search query |
+
 ### Built-in context types
 
 | Type | Purpose |
@@ -111,6 +142,8 @@ Agent context assembly  - the structured replacement for `AGENTS.md`.
 | `folder_structure` | Repository layout |
 | `file_map` | Where to find key files |
 | `branch_plan` | What to implement on a branch |
+
+Context entries are stored as memories with keys following the pattern `agent/context/{type}/{id}`. See [Concepts](/docs/concepts#context-entries) for details.
 
 ## context_config
 
@@ -137,7 +170,7 @@ Parameters: `branch` (defaults to current git branch), `content`, `status` (plan
 
 ## session
 
-Session tracking and agent coordination.
+Session tracking and agent coordination. See [Concepts](/docs/concepts#sessions) for how sessions enable handoff between conversations.
 
 | Action | Description |
 |---|---|
@@ -147,6 +180,15 @@ Session tracking and agent coordination.
 | `claims_check` | Check if files/keys are claimed by another session |
 | `claim` | Claim a resource for the current session |
 | `rate_status` | Rate the current session status |
+
+### Key parameters
+
+| Parameter | Used by | Description |
+|---|---|---|
+| `autoExtractGit` | start | Extract branch, commits, and diffs since last session |
+| `summary` | end | What was accomplished in this session |
+| `keysWritten` | end | Array of memory keys modified during the session |
+| `key` | claim, claims_check | Resource identifier to claim or check |
 
 ## import_export
 

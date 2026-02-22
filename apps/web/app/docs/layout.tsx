@@ -1,5 +1,6 @@
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import type { ReactNode } from "react";
+import { Github } from "lucide-react";
 import { source } from "@/lib/source";
 import { DocsProvider } from "@/components/docs/docs-provider";
 
@@ -17,6 +18,15 @@ export default function Layout({ children }: { children: ReactNode }) {
           ),
           url: "/",
         }}
+        links={[
+          {
+            type: "icon",
+            url: "https://github.com/memctl/memctl",
+            icon: <Github />,
+            text: "GitHub",
+            external: true,
+          },
+        ]}
         sidebar={{
           defaultOpenLevel: 1,
           collapsible: false,
