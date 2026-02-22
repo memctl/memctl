@@ -703,7 +703,7 @@ body {
 }
 
 /* Docs: sidebar header — more horizontal padding on logo only */
-#nd-sidebar > div > div:first-child > div:first-child {
+#nd-sidebar > div > div:first-child > a:first-child {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
 }
