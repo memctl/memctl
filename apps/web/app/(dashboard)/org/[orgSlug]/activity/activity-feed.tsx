@@ -376,67 +376,45 @@ export function ActivityFeed({
     );
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Stats bar */}
-      <div className="dash-card flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5">
-        <span className="font-mono text-xs text-[var(--landing-text)]">
-          <span className="font-bold">{stats.totalActions}</span>
-          <span className="text-[var(--landing-text-tertiary)]"> actions</span>
-        </span>
-        <span className="text-[var(--landing-text-tertiary)]">·</span>
-        <span className="font-mono text-xs text-emerald-400">
-          <span className="font-bold">{stats.activeSessions}</span>
-          <span className="text-[var(--landing-text-tertiary)]"> active</span>
-        </span>
-        <span className="text-[var(--landing-text-tertiary)]">·</span>
-        <span className="font-mono text-xs text-[var(--landing-text)]">
-          <span className="font-bold">{stats.totalSessions}</span>
-          <span className="text-[var(--landing-text-tertiary)]"> sessions</span>
-        </span>
-        {hasAuditLogs && (
-          <>
-            <span className="text-[var(--landing-text-tertiary)]">·</span>
-            <span className="font-mono text-xs text-violet-400">
-              <span className="font-bold">{auditLogs.length}</span>
-              <span className="text-[var(--landing-text-tertiary)]"> events</span>
-            </span>
-          </>
-        )}
-        {hasFiltersActive && (
-          <>
-            <span className="text-[var(--landing-text-tertiary)]">·</span>
-            <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">(filtered)</span>
-          </>
-        )}
-        <div className="ml-auto flex items-center gap-1.5">
-          {Object.entries(stats.actionBreakdown).map(([action, count]) => (
-            <span
-              key={action}
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-medium ${ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)]"}`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${ACTION_DOT_BG[action] ?? "bg-[var(--landing-text-tertiary)]"}`} />
-              {ACTION_LABELS[action] ?? action}:{count}
-            </span>
-          ))}
-        </div>
-      </div>
+  const activeFilterCount = [
+    !!search,
+    !!actionFilter,
+    sourceFilter !== "all",
+    !!dateRange,
+  ].filter(Boolean).length;
 
-      {/* Search + filter chips */}
-      <div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
-          <Input
-            placeholder="Search actions, sessions, keys…"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="h-8 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-xs"
-          />
+  return (
+    <div className="space-y-3">
+      {/* Unified toolbar */}
+      <div className="dash-card overflow-hidden">
+        {/* Search row */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--landing-border)]">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+            <Input
+              placeholder="Search actions, sessions, keys…"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="h-7 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 font-mono text-xs placeholder:text-[var(--landing-text-tertiary)]/60"
+            />
+          </div>
+          <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
+          {hasFiltersActive && (
+            <button
+              onClick={clearAllFilters}
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--landing-surface-2)] px-2 py-1 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors"
+            >
+              <X className="h-2.5 w-2.5" />
+              Clear{activeFilterCount > 1 ? ` (${activeFilterCount})` : ""}
+            </button>
+          )}
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {/* Source filter (only if audit logs exist) */}
+
+        {/* Filter chips row */}
+        <div className="flex items-center gap-3 px-3 py-1.5">
+          {/* Source filter group */}
           {hasAuditLogs && (
-            <>
+            <div className="flex items-center gap-1">
               {(["all", "usage", "dashboard"] as const).map((source) => (
                 <button
                   key={source}
@@ -445,53 +423,91 @@ export function ActivityFeed({
                     sourceFilter === source
                       ? source === "dashboard"
                         ? "bg-violet-500/15 text-violet-400"
-                        : source === "usage"
-                          ? "bg-[#F97316]/15 text-[#F97316]"
-                          : "bg-[#F97316]/15 text-[#F97316]"
+                        : "bg-[#F97316]/15 text-[#F97316]"
                       : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
                   }`}
                 >
                   {source === "all" ? "All" : source === "usage" ? "Usage" : "Dashboard"}
                 </button>
               ))}
-              <span className="mx-1 self-center text-[var(--landing-border)]">|</span>
-            </>
+            </div>
           )}
-          {/* Action type filters */}
-          {!hasAuditLogs && (
-            <button
-              onClick={() => handleActionFilterChange(null)}
-              className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
-                actionFilter === null
-                  ? "bg-[#F97316]/15 text-[#F97316]"
-                  : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
-              }`}
-            >
-              All
-            </button>
-          )}
-          {sourceFilter !== "dashboard" && actionTypes.map((action) => (
-            <button
-              key={action}
-              onClick={() => handleActionFilterChange(actionFilter === action ? null : action)}
-              className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
-                actionFilter === action
-                  ? ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text)]"
-                  : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
-              }`}
-            >
-              {ACTION_LABELS[action] ?? action}
-            </button>
-          ))}
 
-          {/* Date range picker */}
-          <span className="mx-1 self-center text-[var(--landing-border)]">|</span>
-          <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
+          {/* Separator dot */}
+          {hasAuditLogs && sourceFilter !== "dashboard" && actionTypes.length > 0 && (
+            <span className="h-3 w-px bg-[var(--landing-border)]" />
+          )}
+
+          {/* Action type filter group */}
+          {sourceFilter !== "dashboard" && actionTypes.length > 0 && (
+            <div className="flex items-center gap-1">
+              {!hasAuditLogs && (
+                <button
+                  onClick={() => handleActionFilterChange(null)}
+                  className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
+                    actionFilter === null
+                      ? "bg-[#F97316]/15 text-[#F97316]"
+                      : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+                  }`}
+                >
+                  All
+                </button>
+              )}
+              {actionTypes.map((action) => (
+                <button
+                  key={action}
+                  onClick={() => handleActionFilterChange(actionFilter === action ? null : action)}
+                  className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
+                    actionFilter === action
+                      ? ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text)]"
+                      : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+                  }`}
+                >
+                  {ACTION_LABELS[action] ?? action}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Stats pushed to the right */}
+          <div className="ml-auto flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-1.5">
+              {Object.entries(stats.actionBreakdown).map(([action, count]) => (
+                <span
+                  key={action}
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-medium ${ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)]"}`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${ACTION_DOT_BG[action] ?? "bg-[var(--landing-text-tertiary)]"}`} />
+                  {ACTION_LABELS[action] ?? action}:{count}
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 font-mono text-[10px]">
+              <span className="text-[var(--landing-text)]">
+                <span className="font-bold">{stats.totalActions}</span>
+                <span className="text-[var(--landing-text-tertiary)]"> acts</span>
+              </span>
+              <span className="text-emerald-400">
+                <span className="font-bold">{stats.activeSessions}</span>
+                <span className="text-[var(--landing-text-tertiary)]"> live</span>
+              </span>
+              <span className="text-[var(--landing-text)]">
+                <span className="font-bold">{stats.totalSessions}</span>
+                <span className="text-[var(--landing-text-tertiary)]"> sess</span>
+              </span>
+              {hasAuditLogs && (
+                <span className="text-violet-400">
+                  <span className="font-bold">{auditLogs.length}</span>
+                  <span className="text-[var(--landing-text-tertiary)]"> evt</span>
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Split layout */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
         {/* Activity panel */}
         <div className="md:col-span-3">
           <div className="dash-card overflow-hidden">
@@ -499,34 +515,36 @@ export function ActivityFeed({
               <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 {sourceFilter === "dashboard" ? "Dashboard events" : sourceFilter === "usage" ? "Usage activity" : "Activity"}
               </span>
-              <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredTimeline.length}</span>
+              <div className="flex items-center gap-2">
+                {hasFiltersActive && (
+                  <span className="rounded-full bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[9px] font-medium text-[#F97316]">filtered</span>
+                )}
+                <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredTimeline.length}</span>
+              </div>
             </div>
             {isSmartMode && activityFeed.isFiltering ? (
               <ActivitySkeleton />
             ) : filteredTimeline.length === 0 ? (
-              <div className="px-4 py-6 text-center">
-                {hasFiltersActive ? (
-                  <>
-                    <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No activity matching your filters</p>
-                    <button
-                      onClick={clearAllFilters}
-                      className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--landing-surface-2)] px-2.5 py-0.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors"
-                    >
-                      <X className="h-3 w-3" />
-                      Clear filters
-                    </button>
-                  </>
-                ) : (
-                  <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No matching activity</p>
+              <div className="px-4 py-8 text-center">
+                <Search className="mx-auto mb-2 h-5 w-5 text-[var(--landing-text-tertiary)]/50" />
+                <p className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+                  {hasFiltersActive ? "No activity matching your filters" : "No activity recorded"}
+                </p>
+                {hasFiltersActive && (
+                  <p className="mt-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]/60">
+                    Try adjusting your search or date range
+                  </p>
                 )}
               </div>
             ) : (
-              <div className="max-h-[32rem] overflow-y-auto divide-y divide-[var(--landing-border)]">
-                {filteredTimeline.map((item) => {
+              <div className="max-h-[32rem] overflow-y-auto">
+                {filteredTimeline.map((item, idx) => {
+                  const isLast = idx === filteredTimeline.length - 1;
+
                   if (item.type === "activity") {
                     const a = item.data as ActivityItem;
                     return (
-                      <div key={item.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors">
+                      <div key={item.id} className={`flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors${isLast ? "" : " border-b border-[var(--landing-border)]"}`}>
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${ACTION_DOT_BG[a.action] ?? "bg-[var(--landing-text-tertiary)]"}`} />
                         <span className={`shrink-0 font-mono text-[11px] font-medium ${ACTION_COLORS[a.action] ?? "text-[var(--landing-text-tertiary)]"}`}>
                           {ACTION_LABELS[a.action] ?? a.action}
@@ -548,7 +566,7 @@ export function ActivityFeed({
                   const detail = formatAuditDetails(a.action, a.details, a.targetUserName);
 
                   return (
-                    <div key={item.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors">
+                    <div key={item.id} className={`flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors${isLast ? "" : " border-b border-[var(--landing-border)]"}`}>
                       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${AUDIT_DOT_BG[a.action] ?? "bg-violet-400"}`} />
                       <AuditIcon className={`h-3 w-3 shrink-0 ${AUDIT_COLORS[a.action] ?? "text-violet-400"}`} />
                       <span className={`shrink-0 font-mono text-[11px] font-medium ${AUDIT_COLORS[a.action] ?? "text-violet-400"}`}>
@@ -571,7 +589,7 @@ export function ActivityFeed({
                 {isSmartMode && (
                   <>
                     {activityFeed.isLoading && <PulsingDots />}
-                    <div ref={sentinelRef} className="h-1" />
+                    <div ref={sentinelRef} />
                   </>
                 )}
               </div>
@@ -584,22 +602,32 @@ export function ActivityFeed({
           <div className="dash-card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-2">
               <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">Sessions</span>
-              <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredSessions.length}</span>
+              <div className="flex items-center gap-2">
+                {stats.activeSessions > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[9px] font-medium text-emerald-400">
+                    <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                    {stats.activeSessions} live
+                  </span>
+                )}
+                <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredSessions.length}</span>
+              </div>
             </div>
             {filteredSessions.length === 0 ? (
-              <div className="px-4 py-6 text-center">
-                <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No matching sessions</p>
+              <div className="px-4 py-8 text-center">
+                <GitBranch className="mx-auto mb-2 h-5 w-5 text-[var(--landing-text-tertiary)]/50" />
+                <p className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">No sessions found</p>
               </div>
             ) : (
-              <div className="max-h-[32rem] overflow-y-auto divide-y divide-[var(--landing-border)]">
-                {filteredSessions.map((s) => {
+              <div className="max-h-[32rem] overflow-y-auto">
+                {filteredSessions.map((s, idx) => {
                   const keysWritten = safeParseArray(s.keysWritten);
                   const keysRead = safeParseArray(s.keysRead);
                   const toolsUsed = safeParseArray(s.toolsUsed);
                   const isExpanded = expandedSession === s.id;
+                  const isLastSession = idx === filteredSessions.length - 1;
 
                   return (
-                    <div key={s.id}>
+                    <div key={s.id} className={isLastSession ? "" : "border-b border-[var(--landing-border)]"}>
                       <button
                         onClick={() => setExpandedSession(isExpanded ? null : s.id)}
                         className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-[var(--landing-surface-2)]/50 transition-colors"
@@ -673,13 +701,24 @@ export function ActivityFeed({
 
                 {/* Sessions load more button */}
                 {isSmartMode && sessionsApiPath && sessionFeed.hasMore && (
-                  <div className="px-3 py-2">
+                  <div className="border-t border-[var(--landing-border)] px-3 py-2.5">
                     <button
                       onClick={sessionFeed.loadMore}
                       disabled={sessionFeed.isLoading}
-                      className="w-full rounded-md bg-[var(--landing-surface-2)] py-1.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors disabled:opacity-50"
+                      className="w-full rounded-md border border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 py-1.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)] transition-all disabled:opacity-50"
                     >
-                      {sessionFeed.isLoading ? "Loading…" : "Load more sessions"}
+                      {sessionFeed.isLoading ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-1 w-1 rounded-full bg-[var(--landing-text-tertiary)] animate-pulse" />
+                          <span className="h-1 w-1 rounded-full bg-[var(--landing-text-tertiary)] animate-pulse [animation-delay:150ms]" />
+                          <span className="h-1 w-1 rounded-full bg-[var(--landing-text-tertiary)] animate-pulse [animation-delay:300ms]" />
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          <ChevronDown className="h-3 w-3" />
+                          Load more sessions
+                        </span>
+                      )}
                     </button>
                   </div>
                 )}
