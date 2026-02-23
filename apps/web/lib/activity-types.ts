@@ -6,6 +6,7 @@ export interface ActivityItem {
   details: string | null;
   sessionId: string | null;
   projectName: string;
+  createdByName: string | null;
   createdAt: string;
 }
 

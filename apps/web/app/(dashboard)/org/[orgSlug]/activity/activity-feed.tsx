@@ -320,7 +320,8 @@ export function ActivityFeed({
             a.action.toLowerCase().includes(q) ||
             (a.memoryKey && a.memoryKey.toLowerCase().includes(q)) ||
             (a.toolName && a.toolName.toLowerCase().includes(q)) ||
-            a.projectName.toLowerCase().includes(q)
+            a.projectName.toLowerCase().includes(q) ||
+            (a.createdByName && a.createdByName.toLowerCase().includes(q))
           );
         }
         if (item.type === "audit") {
@@ -555,7 +556,10 @@ export function ActivityFeed({
                         {a.toolName && !a.memoryKey && (
                           <span className="min-w-0 truncate font-mono text-[11px] text-amber-400">{a.toolName}</span>
                         )}
-                        <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:inline">{a.projectName}</span>
+                        {a.createdByName && (
+                          <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-secondary)] sm:inline">{a.createdByName}</span>
+                        )}
+                        <span className={`${a.createdByName ? "" : "ml-auto "}hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:inline`}>{a.projectName}</span>
                         <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
                       </div>
                     );

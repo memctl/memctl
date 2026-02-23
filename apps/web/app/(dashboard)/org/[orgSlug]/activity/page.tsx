@@ -66,8 +66,19 @@ export default async function ActivityPage({
   const [activityList, sessionList, auditList] = await Promise.all([
     accessibleProjectIds.length > 0
       ? db
-          .select()
+          .select({
+            id: activityLogs.id,
+            action: activityLogs.action,
+            toolName: activityLogs.toolName,
+            memoryKey: activityLogs.memoryKey,
+            details: activityLogs.details,
+            sessionId: activityLogs.sessionId,
+            projectId: activityLogs.projectId,
+            createdAt: activityLogs.createdAt,
+            createdByName: users.name,
+          })
           .from(activityLogs)
+          .leftJoin(users, eq(activityLogs.createdBy, users.id))
           .where(inArray(activityLogs.projectId, accessibleProjectIds))
           .orderBy(desc(activityLogs.createdAt))
           .limit(50)
@@ -105,6 +116,7 @@ export default async function ActivityPage({
     details: a.details,
     sessionId: a.sessionId,
     projectName: projectNameMap[a.projectId] ?? "Unknown",
+    createdByName: a.createdByName ?? null,
     createdAt: a.createdAt?.toISOString() ?? "",
   }));
 
