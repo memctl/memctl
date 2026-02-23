@@ -19,7 +19,7 @@ import { count } from "drizzle-orm";
 import Link from "next/link";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
-import { formatLimitValue, isUnlimited } from "@/lib/plans";
+import { formatLimitValue, isUnlimited, getOrgLimits } from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -60,6 +60,7 @@ export default async function OrgDashboardPage({
   if (!member) redirect("/");
 
   const currentPlan = PLANS[org.planId as PlanId] ?? PLANS.free;
+  const limits = getOrgLimits(org);
 
   const [projectCount, memberCount, tokenCount, projectList] = await Promise.all([
     db.select({ value: count() }).from(projects).where(eq(projects.orgId, org.id)).then((r) => r[0]?.value ?? 0),
@@ -113,8 +114,8 @@ export default async function OrgDashboardPage({
   recentSessions.sort((a, b) => (b.startedAt?.getTime() ?? 0) - (a.startedAt?.getTime() ?? 0));
   recentSessions.splice(5);
 
-  const memoryLimit = currentPlan.memoryLimitOrg;
-  const usagePercent = memoryLimit === Infinity ? 0 : Math.round((totalMemories / memoryLimit) * 100);
+  const memoryLimit = limits.memoryLimitOrg;
+  const usagePercent = isUnlimited(memoryLimit) ? 0 : Math.round((totalMemories / memoryLimit) * 100);
 
   function relativeTime(d: Date | null): string {
     if (!d) return "";
@@ -172,7 +173,7 @@ export default async function OrgDashboardPage({
       </div>
 
       {/* Capacity bar */}
-      {memoryLimit !== Infinity && (
+      {!isUnlimited(memoryLimit) && (
         <div className="mb-4 dash-card p-3">
           <div className="flex items-center justify-between mb-1.5">
             <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">Memory Capacity</span>
@@ -330,7 +331,7 @@ export default async function OrgDashboardPage({
               <div className="flex justify-between"><span>Projects</span><span className="text-[var(--landing-text)]">{projectCount}/{formatLimitValue(org.projectLimit)}</span></div>
               <div className="flex justify-between"><span>Members</span><span className="text-[var(--landing-text)]">{memberCount}/{formatLimitValue(org.memberLimit)}</span></div>
               <div className="flex justify-between"><span>Tokens</span><span className="text-[var(--landing-text)]">{tokenCount}</span></div>
-              <div className="flex justify-between"><span>Memories</span><span className="text-[var(--landing-text)]">{totalMemories}/{memoryLimit === Infinity ? "∞" : memoryLimit}</span></div>
+              <div className="flex justify-between"><span>Memories</span><span className="text-[var(--landing-text)]">{totalMemories}/{formatLimitValue(memoryLimit)}</span></div>
             </div>
           </div>
         </div>

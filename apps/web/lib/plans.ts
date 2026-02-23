@@ -1,7 +1,7 @@
 import { PLAN_IDS, PLANS, type PlanId } from "@memctl/shared/constants";
 
 /** Sentinel value for "unlimited" in SQLite integer columns (Infinity is not storable). */
-const UNLIMITED_SENTINEL = 999999;
+export const UNLIMITED_SENTINEL = 999999;
 
 export function isSelfHosted(): boolean {
   return process.env.SELF_HOSTED === "true";
@@ -24,7 +24,7 @@ export function getDefaultPlanId(): PlanId {
 }
 
 /** Clamp Infinity → UNLIMITED_SENTINEL for SQLite storage. */
-function clampLimit(value: number): number {
+export function clampLimit(value: number): number {
   return value === Infinity ? UNLIMITED_SENTINEL : value;
 }
 
@@ -32,6 +32,10 @@ export function getOrgCreationLimits(planId?: PlanId): {
   planId: PlanId;
   projectLimit: number;
   memberLimit: number;
+  memoryLimitPerProject: null;
+  memoryLimitOrg: null;
+  apiRatePerMinute: null;
+  customLimits: false;
 } {
   const resolvedPlan = planId ?? getDefaultPlanId();
   const plan = PLANS[resolvedPlan] ?? PLANS.free;
@@ -39,6 +43,38 @@ export function getOrgCreationLimits(planId?: PlanId): {
     planId: resolvedPlan,
     projectLimit: clampLimit(plan.projectLimit),
     memberLimit: clampLimit(plan.memberLimit),
+    memoryLimitPerProject: null,
+    memoryLimitOrg: null,
+    apiRatePerMinute: null,
+    customLimits: false,
+  };
+}
+
+export interface OrgLimits {
+  projectLimit: number;
+  memberLimit: number;
+  memoryLimitPerProject: number;
+  memoryLimitOrg: number;
+  apiRatePerMinute: number;
+}
+
+export function getOrgLimits(org: {
+  planId: string;
+  planOverride: string | null;
+  projectLimit: number;
+  memberLimit: number;
+  memoryLimitPerProject: number | null;
+  memoryLimitOrg: number | null;
+  apiRatePerMinute: number | null;
+}): OrgLimits {
+  const planId = getEffectivePlanId(org);
+  const plan = PLANS[planId] ?? PLANS.free;
+  return {
+    projectLimit: org.projectLimit,
+    memberLimit: org.memberLimit,
+    memoryLimitPerProject: org.memoryLimitPerProject ?? clampLimit(plan.memoryLimitPerProject),
+    memoryLimitOrg: org.memoryLimitOrg ?? clampLimit(plan.memoryLimitOrg),
+    apiRatePerMinute: org.apiRatePerMinute ?? clampLimit(plan.apiRatePerMinute),
   };
 }
 

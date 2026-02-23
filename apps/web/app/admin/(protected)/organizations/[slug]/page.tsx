@@ -10,7 +10,7 @@ import {
 import { eq, count } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
-import { getEffectivePlanId } from "@/lib/plans";
+import { getEffectivePlanId, getOrgLimits, isUnlimited, formatLimitValue, clampLimit } from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import {
   Table,
@@ -53,6 +53,7 @@ export default async function AdminOrgDetailPage({
 
   const effectivePlanId = getEffectivePlanId(org);
   const currentPlan = PLANS[effectivePlanId] ?? PLANS.free;
+  const limits = getOrgLimits(org);
 
   const [owner] = await db
     .select()
@@ -104,11 +105,11 @@ export default async function AdminOrgDetailPage({
     },
     {
       label: "Projects",
-      value: `${projectList.length} / ${currentPlan.projectLimit === Infinity ? "\u221E" : currentPlan.projectLimit}`,
+      value: `${projectList.length} / ${formatLimitValue(limits.projectLimit)}`,
     },
     {
       label: "Members",
-      value: `${memberList.length} / ${currentPlan.memberLimit === Infinity ? "\u221E" : currentPlan.memberLimit}`,
+      value: `${memberList.length} / ${formatLimitValue(limits.memberLimit)}`,
     },
     { label: "Memories", value: totalMemories.toLocaleString() },
     {
@@ -315,8 +316,15 @@ export default async function AdminOrgDetailPage({
             planOverride: org.planOverride,
             projectLimit: org.projectLimit,
             memberLimit: org.memberLimit,
+            memoryLimitPerProject: org.memoryLimitPerProject,
+            memoryLimitOrg: org.memoryLimitOrg,
+            apiRatePerMinute: org.apiRatePerMinute,
+            customLimits: org.customLimits,
             ownerId: org.ownerId,
             adminNotes: org.adminNotes,
+            planDefaultMemoryPerProject: clampLimit(currentPlan.memoryLimitPerProject),
+            planDefaultMemoryOrg: clampLimit(currentPlan.memoryLimitOrg),
+            planDefaultApiRate: clampLimit(currentPlan.apiRatePerMinute),
           }}
           members={memberUsers.map((m) => ({
             userId: m.userId,

@@ -37,6 +37,10 @@ export const organizations = sqliteTable("organizations", {
   statusChangedBy: text("status_changed_by"),
   adminNotes: text("admin_notes"),
   planOverride: text("plan_override"),
+  memoryLimitPerProject: integer("memory_limit_per_project"),
+  memoryLimitOrg: integer("memory_limit_org"),
+  apiRatePerMinute: integer("api_rate_per_minute"),
+  customLimits: integer("custom_limits", { mode: "boolean" }).default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

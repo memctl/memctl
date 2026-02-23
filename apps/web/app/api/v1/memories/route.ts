@@ -394,11 +394,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ memory: { ...existing, ...updates } });
   }
 
-  const capacity = await getOrgMemoryCapacity(org.id, org.planId, project.id, org.planOverride);
+  const capacity = await getOrgMemoryCapacity(org, project.id);
 
   // Hard block only on org-wide limit (abuse prevention)
   if (capacity.isFull) {
-    const limitText = Number.isFinite(capacity.orgLimit) ? capacity.orgLimit : "∞";
+    const limitText = capacity.orgLimit < 999999 ? capacity.orgLimit : "∞";
     return NextResponse.json(
       {
         error: `Organization memory limit reached (${capacity.orgUsed}/${limitText}). Delete or archive existing memories before storing new ones.`,

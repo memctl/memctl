@@ -22,12 +22,7 @@ export async function GET(req: NextRequest) {
     return jsonError("Project not found", 404);
   }
 
-  const capacity = await getOrgMemoryCapacity(
-    context.org.id,
-    context.org.planId,
-    context.project.id,
-    context.org.planOverride,
-  );
+  const capacity = await getOrgMemoryCapacity(context.org, context.project.id);
 
   // Compute relevance distribution for active memories
   const activeMemories = await db

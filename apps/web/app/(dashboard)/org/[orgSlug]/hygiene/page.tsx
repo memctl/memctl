@@ -15,6 +15,7 @@ import {
 import { eq, and, isNull, isNotNull, lt, sql } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
+import { getOrgLimits, isUnlimited } from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { HygieneDashboard } from "./hygiene-dashboard";
 
@@ -41,6 +42,7 @@ export default async function HygienePage({
   if (!member) redirect("/");
 
   const currentPlan = PLANS[org.planId as PlanId] ?? PLANS.free;
+  const limits = getOrgLimits(org);
   const projectList = await db.select().from(projects).where(eq(projects.orgId, org.id));
 
   const now = new Date();
@@ -161,8 +163,8 @@ export default async function HygienePage({
     };
   }
 
-  const memoryLimit = currentPlan.memoryLimitOrg;
-  const usagePercent = memoryLimit === Infinity ? 0 : Math.round((totalMemories / memoryLimit) * 100);
+  const memoryLimit = limits.memoryLimitOrg;
+  const usagePercent = isUnlimited(memoryLimit) ? 0 : Math.round((totalMemories / memoryLimit) * 100);
 
   return (
     <div>
@@ -175,7 +177,7 @@ export default async function HygienePage({
         growth={growth}
         capacity={{
           used: totalMemories,
-          limit: memoryLimit === Infinity ? null : memoryLimit,
+          limit: isUnlimited(memoryLimit) ? null : memoryLimit,
           usagePercent,
         }}
         orgSlug={orgSlug}

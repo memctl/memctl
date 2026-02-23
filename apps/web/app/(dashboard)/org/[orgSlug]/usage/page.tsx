@@ -17,6 +17,7 @@ import {
 import { eq, and, count, isNull, isNotNull } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
+import { getOrgLimits, isUnlimited as isUnlimitedValue } from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { Progress } from "@/components/ui/progress";
 import { UsageCharts } from "./usage-charts";
@@ -42,6 +43,7 @@ export default async function UsagePage({
   if (!member) redirect("/");
 
   const currentPlan = PLANS[org.planId as PlanId] ?? PLANS.free;
+  const limits = getOrgLimits(org);
   const projectList = await db.select().from(projects).where(eq(projects.orgId, org.id));
 
   const [memberCount] = await db.select({ value: count() }).from(organizationMembers).where(eq(organizationMembers.orgId, org.id));
@@ -92,12 +94,12 @@ export default async function UsagePage({
     .map(([tag, count]) => ({ tag, count }));
 
   const usageItems = [
-    { label: "Projects", current: projectList.length, limit: currentPlan.projectLimit },
-    { label: "Members", current: memberCount?.value ?? 0, limit: currentPlan.memberLimit },
-    { label: "Memories", current: totalMemories, limit: currentPlan.memoryLimitOrg },
+    { label: "Projects", current: projectList.length, limit: limits.projectLimit },
+    { label: "Members", current: memberCount?.value ?? 0, limit: limits.memberLimit },
+    { label: "Memories", current: totalMemories, limit: limits.memoryLimitOrg },
     { label: "API Calls", current: 0, limit: currentPlan.apiCallLimit },
-    { label: "Sessions", current: totalSessions, limit: Infinity },
-    { label: "Activity Logs", current: totalActivities, limit: Infinity },
+    { label: "Sessions", current: totalSessions, limit: 999999 },
+    { label: "Activity Logs", current: totalActivities, limit: 999999 },
   ];
 
   return (
@@ -107,19 +109,19 @@ export default async function UsagePage({
       {/* Plan Usage - 3 columns for density */}
       <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {usageItems.map((item) => {
-          const isUnlimited = item.limit === Infinity;
-          const percentage = isUnlimited ? 0 : Math.min((item.current / item.limit) * 100, 100);
+          const unlimited = isUnlimitedValue(item.limit);
+          const percentage = unlimited ? 0 : Math.min((item.current / item.limit) * 100, 100);
 
           return (
             <div key={item.label} className="dash-card glass-border relative p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">{item.label}</span>
                 <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-                  {item.current.toLocaleString()} / {isUnlimited ? "∞" : item.limit.toLocaleString()}
+                  {item.current.toLocaleString()} / {unlimited ? "∞" : item.limit.toLocaleString()}
                 </span>
               </div>
               <Progress
-                value={isUnlimited ? 0 : percentage}
+                value={unlimited ? 0 : percentage}
                 className={`h-1.5 bg-[var(--landing-surface-2)] ${
                   percentage >= 90 ? "[&>div]:bg-red-500" : percentage >= 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-[#F97316]"
                 }`}

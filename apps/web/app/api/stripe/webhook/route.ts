@@ -51,17 +51,38 @@ export async function POST(req: NextRequest) {
         const planId = getPlanFromPriceId(priceId);
 
         if (planId) {
+          const [existingOrg] = await db
+            .select({ customLimits: organizations.customLimits })
+            .from(organizations)
+            .where(eq(organizations.slug, orgSlug))
+            .limit(1);
+
           const plan = PLANS[planId];
-          await db
-            .update(organizations)
-            .set({
-              stripeSubscriptionId: subscriptionId,
-              planId,
-              projectLimit: plan.projectLimit,
-              memberLimit: plan.memberLimit,
-              updatedAt: new Date(),
-            })
-            .where(eq(organizations.slug, orgSlug));
+          if (existingOrg?.customLimits) {
+            // Only update planId, preserve admin-set limits
+            await db
+              .update(organizations)
+              .set({
+                stripeSubscriptionId: subscriptionId,
+                planId,
+                updatedAt: new Date(),
+              })
+              .where(eq(organizations.slug, orgSlug));
+          } else {
+            await db
+              .update(organizations)
+              .set({
+                stripeSubscriptionId: subscriptionId,
+                planId,
+                projectLimit: plan.projectLimit,
+                memberLimit: plan.memberLimit,
+                memoryLimitPerProject: null,
+                memoryLimitOrg: null,
+                apiRatePerMinute: null,
+                updatedAt: new Date(),
+              })
+              .where(eq(organizations.slug, orgSlug));
+          }
         }
 
         // Track promo code redemption
@@ -125,33 +146,73 @@ export async function POST(req: NextRequest) {
       const planId = getPlanFromPriceId(priceId);
 
       if (planId) {
+        const [existingOrg] = await db
+          .select({ customLimits: organizations.customLimits })
+          .from(organizations)
+          .where(eq(organizations.stripeSubscriptionId, subscription.id))
+          .limit(1);
+
         const plan = PLANS[planId];
-        await db
-          .update(organizations)
-          .set({
-            planId,
-            projectLimit: plan.projectLimit,
-            memberLimit: plan.memberLimit,
-            updatedAt: new Date(),
-          })
-          .where(eq(organizations.stripeSubscriptionId, subscription.id));
+        if (existingOrg?.customLimits) {
+          await db
+            .update(organizations)
+            .set({
+              planId,
+              updatedAt: new Date(),
+            })
+            .where(eq(organizations.stripeSubscriptionId, subscription.id));
+        } else {
+          await db
+            .update(organizations)
+            .set({
+              planId,
+              projectLimit: plan.projectLimit,
+              memberLimit: plan.memberLimit,
+              memoryLimitPerProject: null,
+              memoryLimitOrg: null,
+              apiRatePerMinute: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(organizations.stripeSubscriptionId, subscription.id));
+        }
       }
       break;
     }
 
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
+
+      const [existingOrg] = await db
+        .select({ customLimits: organizations.customLimits })
+        .from(organizations)
+        .where(eq(organizations.stripeSubscriptionId, subscription.id))
+        .limit(1);
+
       const freePlan = PLANS.free;
-      await db
-        .update(organizations)
-        .set({
-          planId: "free",
-          stripeSubscriptionId: null,
-          projectLimit: freePlan.projectLimit,
-          memberLimit: freePlan.memberLimit,
-          updatedAt: new Date(),
-        })
-        .where(eq(organizations.stripeSubscriptionId, subscription.id));
+      if (existingOrg?.customLimits) {
+        await db
+          .update(organizations)
+          .set({
+            planId: "free",
+            stripeSubscriptionId: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizations.stripeSubscriptionId, subscription.id));
+      } else {
+        await db
+          .update(organizations)
+          .set({
+            planId: "free",
+            stripeSubscriptionId: null,
+            projectLimit: freePlan.projectLimit,
+            memberLimit: freePlan.memberLimit,
+            memoryLimitPerProject: null,
+            memoryLimitOrg: null,
+            apiRatePerMinute: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizations.stripeSubscriptionId, subscription.id));
+      }
       break;
     }
 

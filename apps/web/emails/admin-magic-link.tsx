@@ -2,7 +2,6 @@ import {
   Section,
   Text,
   Link,
-  Hr,
 } from "@react-email/components";
 import { EmailLayout } from "./components/email-layout";
 
@@ -14,43 +13,45 @@ interface AdminMagicLinkEmailProps {
 export function AdminMagicLinkEmail({ url, email }: AdminMagicLinkEmailProps) {
   return (
     <EmailLayout preview="Your admin login link for memctl">
+      {/* Card */}
       <Section style={card}>
-        {/* Badge */}
-        <table cellPadding="0" cellSpacing="0" role="presentation" style={{ margin: "0 auto 24px" }}>
-          <tr>
-            <td style={badge}>ADMIN ACCESS</td>
-          </tr>
-        </table>
+        {/* Mono label */}
+        <Text style={label}>ADMIN LOGIN</Text>
 
-        <Text style={heading}>Sign in to your admin panel</Text>
+        <Text style={heading}>Sign in to the admin panel</Text>
 
-        <Text style={cardText}>
-          Use the link below to authenticate. For security, this link
-          is single-use and expires in 5 minutes.
+        <Text style={body}>
+          Click the button below to authenticate. This link is single-use
+          and expires in 5 minutes.
         </Text>
 
-        <Section style={buttonContainer}>
-          <Link href={url} style={button}>
-            Sign in
+        {/* CTA */}
+        <Section style={btnWrap}>
+          <Link href={url} style={btn}>
+            Sign in &rarr;
           </Link>
         </Section>
+      </Section>
 
-        <Hr style={cardDivider} />
-
+      {/* Meta row */}
+      <Section style={metaCard}>
         <table cellPadding="0" cellSpacing="0" role="presentation" style={{ width: "100%" }}>
           <tr>
-            <td style={metaLabel}>Account</td>
-            <td style={metaValue}>{email}</td>
-          </tr>
-          <tr>
-            <td style={metaLabel}>Expires</td>
-            <td style={metaValue}>5 minutes</td>
+            <td style={metaCell}>
+              <Text style={metaLabel}>Account</Text>
+              <Text style={metaValue}>{email}</Text>
+            </td>
+            <td style={metaCell}>
+              <Text style={metaLabel}>Expires</Text>
+              <Text style={metaValue}>5 minutes</Text>
+            </td>
           </tr>
         </table>
       </Section>
 
-      <Text style={fallback}>
-        If the button doesn&apos;t work, copy this URL into your browser:
+      {/* Fallback */}
+      <Text style={fallbackText}>
+        Button not working? Copy this URL into your browser:
       </Text>
       <Text style={urlText}>{url}</Text>
     </EmailLayout>
@@ -60,88 +61,100 @@ export function AdminMagicLinkEmail({ url, email }: AdminMagicLinkEmailProps) {
 export default AdminMagicLinkEmail;
 
 const card: React.CSSProperties = {
-  backgroundColor: "#0D0D0D",
-  borderRadius: "12px",
-  border: "1px solid #1A1A1A",
-  padding: "36px 32px",
-  marginBottom: "24px",
+  backgroundColor: "#111111",
+  borderRadius: "8px",
+  border: "1px solid #1E1E1E",
+  padding: "32px 28px",
+  marginBottom: "12px",
 };
 
-const badge: React.CSSProperties = {
+const label: React.CSSProperties = {
+  fontFamily:
+    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
   fontSize: "10px",
-  fontWeight: 700,
-  letterSpacing: "0.1em",
+  fontWeight: 600,
+  letterSpacing: "0.12em",
   color: "#F97316",
-  backgroundColor: "rgba(249, 115, 22, 0.08)",
-  border: "1px solid rgba(249, 115, 22, 0.15)",
-  borderRadius: "100px",
-  padding: "4px 14px",
-  display: "inline-block",
+  margin: "0 0 20px",
 };
 
 const heading: React.CSSProperties = {
-  fontSize: "22px",
+  fontSize: "20px",
   fontWeight: 700,
-  color: "#E5E5E5",
-  textAlign: "center" as const,
-  margin: "0 0 12px",
+  color: "#F5F5F5",
   letterSpacing: "-0.02em",
+  margin: "0 0 12px",
+  lineHeight: "1.3",
 };
 
-const cardText: React.CSSProperties = {
+const body: React.CSSProperties = {
   fontSize: "14px",
-  color: "#888888",
+  color: "#A1A1A1",
   lineHeight: "22px",
   margin: "0 0 28px",
+};
+
+const btnWrap: React.CSSProperties = {
   textAlign: "center" as const,
 };
 
-const buttonContainer: React.CSSProperties = {
-  textAlign: "center" as const,
-  marginBottom: "28px",
-};
-
-const button: React.CSSProperties = {
+const btn: React.CSSProperties = {
   backgroundColor: "#F97316",
   color: "#FFFFFF",
-  fontSize: "14px",
+  fontSize: "13px",
   fontWeight: 600,
+  fontFamily:
+    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
   textDecoration: "none",
-  borderRadius: "8px",
-  padding: "12px 40px",
+  borderRadius: "6px",
+  padding: "10px 32px",
   display: "inline-block",
 };
 
-const cardDivider: React.CSSProperties = {
-  borderColor: "#1A1A1A",
-  borderTopWidth: "1px",
-  margin: "0 0 16px",
+const metaCard: React.CSSProperties = {
+  backgroundColor: "#111111",
+  borderRadius: "8px",
+  border: "1px solid #1E1E1E",
+  padding: "16px 20px",
+  marginBottom: "24px",
+};
+
+const metaCell: React.CSSProperties = {
+  width: "50%",
+  verticalAlign: "top" as const,
 };
 
 const metaLabel: React.CSSProperties = {
-  fontSize: "12px",
-  color: "#555555",
-  padding: "4px 0",
-  width: "70px",
-  verticalAlign: "top" as const,
-};
-
-const metaValue: React.CSSProperties = {
-  fontSize: "12px",
-  color: "#999999",
-  padding: "4px 0",
-  verticalAlign: "top" as const,
-};
-
-const fallback: React.CSSProperties = {
-  fontSize: "12px",
-  color: "#444444",
+  fontFamily:
+    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+  fontSize: "9px",
+  fontWeight: 600,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase" as const,
+  color: "#666666",
   margin: "0 0 4px",
 };
 
+const metaValue: React.CSSProperties = {
+  fontFamily:
+    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+  fontSize: "12px",
+  color: "#A1A1A1",
+  margin: "0",
+};
+
+const fallbackText: React.CSSProperties = {
+  fontSize: "12px",
+  color: "#525252",
+  margin: "0 0 6px",
+};
+
 const urlText: React.CSSProperties = {
+  fontFamily:
+    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
   fontSize: "11px",
-  color: "#333333",
+  color: "#444444",
   wordBreak: "break-all" as const,
   margin: "0",
+  lineHeight: "18px",
 };

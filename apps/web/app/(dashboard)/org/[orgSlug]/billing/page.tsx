@@ -11,7 +11,7 @@ import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { BillingClient } from "@/components/dashboard/billing-client";
-import { isSelfHosted } from "@/lib/plans";
+import { isSelfHosted, getOrgLimits, isUnlimited, formatLimitValue } from "@/lib/plans";
 import { Server, Infinity as InfinityIcon, Shield, Check, FolderOpen, Users, Brain, Zap, Lock, Database, Globe } from "lucide-react";
 
 export default async function BillingPage({
@@ -70,9 +70,10 @@ export default async function BillingPage({
 
   const planId = (org.planId as PlanId) ?? "free";
   const currentPlan = PLANS[planId] ?? PLANS.free;
+  const limits = getOrgLimits(org);
 
   const formatLimit = (val: number) =>
-    val === Infinity ? "Unlimited" : val.toLocaleString();
+    isUnlimited(val) ? "Unlimited" : val.toLocaleString();
 
   const selfHosted = isSelfHosted();
 
@@ -165,9 +166,9 @@ export default async function BillingPage({
                 { label: "Plan", value: currentPlan.name },
                 { label: "Billing", value: "Disabled" },
                 { label: "Auth mode", value: "Invite-only" },
-                { label: "Projects", value: formatLimit(currentPlan.projectLimit) },
-                { label: "Members", value: formatLimit(currentPlan.memberLimit) },
-                { label: "Memories / project", value: formatLimit(currentPlan.memoryLimitPerProject) },
+                { label: "Projects", value: formatLimit(limits.projectLimit) },
+                { label: "Members", value: formatLimit(limits.memberLimit) },
+                { label: "Memories / project", value: formatLimit(limits.memoryLimitPerProject) },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-center justify-between px-3 py-2">
                   <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">{label}</span>
@@ -206,11 +207,11 @@ export default async function BillingPage({
 
         <div className="mt-6 grid grid-cols-2 gap-6 md:grid-cols-4">
           {[
-            { label: "Projects", value: formatLimit(currentPlan.projectLimit) },
-            { label: "Members", value: formatLimit(currentPlan.memberLimit) },
+            { label: "Projects", value: formatLimit(limits.projectLimit) },
+            { label: "Members", value: formatLimit(limits.memberLimit) },
             {
               label: "Memories / project",
-              value: formatLimit(currentPlan.memoryLimitPerProject),
+              value: formatLimit(limits.memoryLimitPerProject),
             },
             {
               label: "API calls / month",

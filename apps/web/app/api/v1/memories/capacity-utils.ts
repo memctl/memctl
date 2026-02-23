@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { memories, organizations, organizationMembers, projectMembers, projects } from "@memctl/db/schema";
-import { PLANS } from "@memctl/shared/constants";
-import { getEffectivePlanId } from "@/lib/plans";
+import { getOrgLimits, isUnlimited } from "@/lib/plans";
 import { and, count, eq, inArray, isNull } from "drizzle-orm";
 
 export async function resolveOrgAndProject(
@@ -69,21 +68,27 @@ export async function resolveOrgAndProject(
  * - hardLimit (org-wide): actual storage block when reached
  */
 export async function getOrgMemoryCapacity(
-  orgId: string,
-  rawPlanId: string,
+  org: {
+    id: string;
+    planId: string;
+    planOverride: string | null;
+    projectLimit: number;
+    memberLimit: number;
+    memoryLimitPerProject: number | null;
+    memoryLimitOrg: number | null;
+    apiRatePerMinute: number | null;
+  },
   projectId?: string,
-  planOverride?: string | null,
 ) {
-  const planId = getEffectivePlanId({ planId: rawPlanId, planOverride: planOverride ?? null });
-  const plan = PLANS[planId];
-  const softLimit = plan.memoryLimitPerProject;
-  const hardLimit = plan.memoryLimitOrg;
+  const limits = getOrgLimits(org);
+  const softLimit = limits.memoryLimitPerProject;
+  const hardLimit = limits.memoryLimitOrg;
 
   // Count org-wide memories (for hard limit check, exclude archived)
   const orgProjects = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(eq(projects.orgId, orgId));
+    .where(eq(projects.orgId, org.id));
 
   let orgUsed = 0;
   if (orgProjects.length > 0) {
@@ -115,13 +120,13 @@ export async function getOrgMemoryCapacity(
   }
 
   // Hard-full: org-wide limit exceeded (actual block)
-  const isHardFull = Number.isFinite(hardLimit) && orgUsed >= hardLimit;
+  const isHardFull = !isUnlimited(hardLimit) && orgUsed >= hardLimit;
 
   // Soft-full: project limit exceeded (warning, not blocking)
-  const isSoftFull = Number.isFinite(softLimit) && projectUsed >= softLimit;
+  const isSoftFull = !isUnlimited(softLimit) && projectUsed >= softLimit;
 
   // Approaching soft limit (>80%)
-  const isApproaching = Number.isFinite(softLimit) && projectUsed >= softLimit * 0.8;
+  const isApproaching = !isUnlimited(softLimit) && projectUsed >= softLimit * 0.8;
 
   return {
     used: projectId ? projectUsed : orgUsed,
@@ -132,7 +137,7 @@ export async function getOrgMemoryCapacity(
     isFull: isHardFull,
     isSoftFull,
     isApproaching,
-    usageRatio: projectId && Number.isFinite(softLimit) && softLimit > 0
+    usageRatio: projectId && !isUnlimited(softLimit) && softLimit > 0
       ? Math.min(1, projectUsed / softLimit)
       : null,
   };

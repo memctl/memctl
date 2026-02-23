@@ -23,51 +23,38 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
       <Head />
       <Preview>{preview}</Preview>
       <Body style={body}>
-        {/* Top accent bar */}
-        <Section style={accentBar} />
+        <Container style={outerWrap}>
+          {/* Orange top rule */}
+          <div style={topRule} />
 
-        <Container style={container}>
-          {/* Header */}
-          <Section style={header}>
-            <table cellPadding="0" cellSpacing="0" role="presentation" style={{ margin: "0 auto" }}>
-              <tr>
-                <td style={{ paddingRight: "8px", verticalAlign: "middle" }}>
-                  <div style={logoMark}>
-                    <span style={{ color: "#FFFFFF", fontSize: "16px", lineHeight: "1" }}>&#9656;</span>
-                  </div>
-                </td>
-                <td style={{ verticalAlign: "middle" }}>
-                  <Text style={logoText}>memctl</Text>
-                </td>
-              </tr>
-            </table>
-          </Section>
+          <Container style={container}>
+            {/* Logo */}
+            <Section style={header}>
+              <Text style={logo}>
+                <span style={logoChevron}>&#9656;</span> memctl
+              </Text>
+            </Section>
 
-          {/* Content */}
-          <Section style={content}>{children}</Section>
+            {/* Content */}
+            <Section style={content}>{children}</Section>
 
-          {/* Footer */}
-          <Section style={footer}>
-            <Hr style={divider} />
-            <Text style={footerLinks}>
-              <Link href={`${APP_URL}/privacy`} style={footerLink}>
-                Privacy
-              </Link>
-              <span style={{ color: "#333333", padding: "0 8px" }}>/</span>
-              <Link href={`${APP_URL}/terms`} style={footerLink}>
-                Terms
-              </Link>
-              <span style={{ color: "#333333", padding: "0 8px" }}>/</span>
-              <Link href={`${APP_URL}/docs`} style={footerLink}>
-                Docs
-              </Link>
-            </Text>
-            <Text style={footerCompany}>
-              Mindroot Ltd, Company No. 16543299
-              <br />
-              71-75 Shelton Street, London, WC2H 9JQ
-            </Text>
-          </Section>
+            {/* Footer */}
+            <Section style={footer}>
+              <Hr style={divider} />
+              <Text style={footerNav}>
+                <Link href={APP_URL} style={footerLink}>memctl.com</Link>
+                {" \u00B7 "}
+                <Link href={`${APP_URL}/docs`} style={footerLink}>Docs</Link>
+                {" \u00B7 "}
+                <Link href={`${APP_URL}/privacy`} style={footerLink}>Privacy</Link>
+                {" \u00B7 "}
+                <Link href={`${APP_URL}/terms`} style={footerLink}>Terms</Link>
+              </Text>
+              <Text style={copyright}>
+                &copy; 2026 Mindroot Ltd, 71-75 Shelton Street, London WC2H 9JQ
+              </Text>
+            </Section>
+          </Container>
         </Container>
       </Body>
     </Html>
@@ -75,45 +62,46 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
 }
 
 const body: React.CSSProperties = {
-  backgroundColor: "#050505",
+  backgroundColor: "#0A0A0A",
   fontFamily:
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   margin: "0",
   padding: "0",
 };
 
-const accentBar: React.CSSProperties = {
-  height: "3px",
-  background: "linear-gradient(90deg, #F97316 0%, #F97316 40%, transparent 100%)",
+const outerWrap: React.CSSProperties = {
+  maxWidth: "100%",
+  margin: "0",
+  padding: "0",
+};
+
+const topRule: React.CSSProperties = {
+  height: "2px",
+  backgroundColor: "#F97316",
 };
 
 const container: React.CSSProperties = {
-  maxWidth: "520px",
+  maxWidth: "540px",
   margin: "0 auto",
-  padding: "48px 24px 40px",
+  padding: "40px 24px 32px",
 };
 
 const header: React.CSSProperties = {
-  textAlign: "center" as const,
-  paddingBottom: "40px",
+  paddingBottom: "32px",
 };
 
-const logoMark: React.CSSProperties = {
-  width: "28px",
-  height: "28px",
-  borderRadius: "6px",
-  backgroundColor: "#F97316",
-  display: "inline-flex",
-  textAlign: "center" as const,
-  lineHeight: "28px",
-};
-
-const logoText: React.CSSProperties = {
-  fontSize: "20px",
+const logo: React.CSSProperties = {
+  fontSize: "18px",
   fontWeight: 700,
   color: "#E5E5E5",
-  letterSpacing: "-0.03em",
+  letterSpacing: "-0.02em",
   margin: "0",
+  fontFamily:
+    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+};
+
+const logoChevron: React.CSSProperties = {
+  color: "#F97316",
 };
 
 const content: React.CSSProperties = {
@@ -121,29 +109,30 @@ const content: React.CSSProperties = {
 };
 
 const footer: React.CSSProperties = {
-  paddingTop: "24px",
+  paddingTop: "8px",
 };
 
 const divider: React.CSSProperties = {
-  borderColor: "#1A1A1A",
+  borderColor: "#1E1E1E",
   borderTopWidth: "1px",
-  margin: "0 0 24px",
+  margin: "0 0 20px",
 };
 
-const footerLinks: React.CSSProperties = {
-  textAlign: "center" as const,
-  fontSize: "12px",
-  color: "#555555",
-  margin: "0 0 16px",
+const footerNav: React.CSSProperties = {
+  fontFamily:
+    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+  fontSize: "11px",
+  color: "#525252",
+  margin: "0 0 8px",
+  letterSpacing: "0.01em",
 };
 
 const footerLink: React.CSSProperties = {
-  color: "#555555",
+  color: "#525252",
   textDecoration: "none",
 };
 
-const footerCompany: React.CSSProperties = {
-  textAlign: "center" as const,
+const copyright: React.CSSProperties = {
   fontSize: "11px",
   color: "#333333",
   lineHeight: "18px",

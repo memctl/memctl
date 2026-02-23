@@ -11,6 +11,8 @@ import {
 import { eq, and, count } from "drizzle-orm";
 import { adminOrgActionSchema } from "@memctl/shared/validators";
 import { nanoid } from "nanoid";
+import { PLANS } from "@memctl/shared/constants";
+import { getEffectivePlanId } from "@/lib/plans";
 
 export async function GET(
   _req: NextRequest,
@@ -166,17 +168,54 @@ export async function PATCH(
       details = {
         previousProjectLimit: org.projectLimit,
         previousMemberLimit: org.memberLimit,
+        previousMemoryLimitPerProject: org.memoryLimitPerProject,
+        previousMemoryLimitOrg: org.memoryLimitOrg,
+        previousApiRatePerMinute: org.apiRatePerMinute,
         newProjectLimit: action.projectLimit ?? org.projectLimit,
         newMemberLimit: action.memberLimit ?? org.memberLimit,
+        newMemoryLimitPerProject: action.memoryLimitPerProject ?? org.memoryLimitPerProject,
+        newMemoryLimitOrg: action.memoryLimitOrg ?? org.memoryLimitOrg,
+        newApiRatePerMinute: action.apiRatePerMinute ?? org.apiRatePerMinute,
       };
-      const updates: Record<string, unknown> = { updatedAt: now };
+      const updates: Record<string, unknown> = { updatedAt: now, customLimits: true };
       if (action.projectLimit !== undefined)
         updates.projectLimit = action.projectLimit;
       if (action.memberLimit !== undefined)
         updates.memberLimit = action.memberLimit;
+      if (action.memoryLimitPerProject !== undefined)
+        updates.memoryLimitPerProject = action.memoryLimitPerProject;
+      if (action.memoryLimitOrg !== undefined)
+        updates.memoryLimitOrg = action.memoryLimitOrg;
+      if (action.apiRatePerMinute !== undefined)
+        updates.apiRatePerMinute = action.apiRatePerMinute;
       await db
         .update(organizations)
         .set(updates)
+        .where(eq(organizations.id, org.id));
+      break;
+    }
+
+    case "reset_limits": {
+      const effectivePlanId = getEffectivePlanId(org);
+      const plan = PLANS[effectivePlanId] ?? PLANS.free;
+      details = {
+        previousCustomLimits: org.customLimits,
+        previousMemoryLimitPerProject: org.memoryLimitPerProject,
+        previousMemoryLimitOrg: org.memoryLimitOrg,
+        previousApiRatePerMinute: org.apiRatePerMinute,
+        resetToPlan: effectivePlanId,
+      };
+      await db
+        .update(organizations)
+        .set({
+          projectLimit: plan.projectLimit === Infinity ? 999999 : plan.projectLimit,
+          memberLimit: plan.memberLimit === Infinity ? 999999 : plan.memberLimit,
+          memoryLimitPerProject: null,
+          memoryLimitOrg: null,
+          apiRatePerMinute: null,
+          customLimits: false,
+          updatedAt: now,
+        })
         .where(eq(organizations.id, org.id));
       break;
     }
@@ -248,20 +287,17 @@ export async function PATCH(
     }
   }
 
-  const actionName =
-    action.action === "suspend"
-      ? "org_suspended"
-      : action.action === "ban"
-        ? "org_banned"
-        : action.action === "reactivate"
-          ? "org_reactivated"
-          : action.action === "override_plan"
-            ? "plan_overridden"
-            : action.action === "override_limits"
-              ? "limits_overridden"
-              : action.action === "transfer_ownership"
-                ? "ownership_transferred"
-                : "notes_updated";
+  const actionNameMap: Record<string, string> = {
+    suspend: "org_suspended",
+    ban: "org_banned",
+    reactivate: "org_reactivated",
+    override_plan: "plan_overridden",
+    override_limits: "limits_overridden",
+    reset_limits: "limits_reset",
+    transfer_ownership: "ownership_transferred",
+    update_notes: "notes_updated",
+  };
+  const actionName = actionNameMap[action.action] ?? action.action;
 
   await db.insert(adminActions).values({
     id: nanoid(),

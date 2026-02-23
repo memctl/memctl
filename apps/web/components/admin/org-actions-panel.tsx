@@ -31,8 +31,15 @@ interface OrgActionsPanelProps {
     planOverride: string | null;
     projectLimit: number;
     memberLimit: number;
+    memoryLimitPerProject: number | null;
+    memoryLimitOrg: number | null;
+    apiRatePerMinute: number | null;
+    customLimits: boolean | null;
     ownerId: string;
     adminNotes: string | null;
+    planDefaultMemoryPerProject: number;
+    planDefaultMemoryOrg: number;
+    planDefaultApiRate: number;
   };
   members: { userId: string; name: string; email: string; role: string }[];
 }
@@ -61,6 +68,15 @@ export function OrgActionsPanel({ org, members }: OrgActionsPanelProps) {
   // Limits
   const [projectLimit, setProjectLimit] = useState(org.projectLimit);
   const [memberLimit, setMemberLimit] = useState(org.memberLimit);
+  const [memoryLimitPerProject, setMemoryLimitPerProject] = useState<string>(
+    org.memoryLimitPerProject != null ? String(org.memoryLimitPerProject) : "",
+  );
+  const [memoryLimitOrg, setMemoryLimitOrg] = useState<string>(
+    org.memoryLimitOrg != null ? String(org.memoryLimitOrg) : "",
+  );
+  const [apiRatePerMinute, setApiRatePerMinute] = useState<string>(
+    org.apiRatePerMinute != null ? String(org.apiRatePerMinute) : "",
+  );
 
   // Ownership
   const [newOwnerId, setNewOwnerId] = useState("");
@@ -209,9 +225,16 @@ export function OrgActionsPanel({ org, members }: OrgActionsPanelProps) {
 
       {/* Limits section */}
       <div className="p-3 border-b border-[var(--landing-border)]">
-        <span className="block mb-2 font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
-          Limits
-        </span>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+            Limits
+          </span>
+          {org.customLimits && (
+            <span className="rounded-full bg-[#F97316]/10 px-2 py-0.5 font-mono text-[9px] font-medium text-[#F97316]">
+              Custom
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <div>
             <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
@@ -237,22 +260,81 @@ export function OrgActionsPanel({ org, members }: OrgActionsPanelProps) {
               className="h-7 font-mono text-[11px]"
             />
           </div>
+          <div>
+            <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              Memory / project
+            </label>
+            <Input
+              type="number"
+              min={1}
+              value={memoryLimitPerProject}
+              onChange={(e) => setMemoryLimitPerProject(e.target.value)}
+              placeholder={String(org.planDefaultMemoryPerProject)}
+              className="h-7 font-mono text-[11px]"
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              Memory org-wide
+            </label>
+            <Input
+              type="number"
+              min={1}
+              value={memoryLimitOrg}
+              onChange={(e) => setMemoryLimitOrg(e.target.value)}
+              placeholder={String(org.planDefaultMemoryOrg)}
+              className="h-7 font-mono text-[11px]"
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              API rate / min
+            </label>
+            <Input
+              type="number"
+              min={1}
+              value={apiRatePerMinute}
+              onChange={(e) => setApiRatePerMinute(e.target.value)}
+              placeholder={String(org.planDefaultApiRate)}
+              className="h-7 font-mono text-[11px]"
+            />
+          </div>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 font-mono text-[11px]"
-          onClick={() =>
-            doAction({
-              action: "override_limits",
-              projectLimit,
-              memberLimit,
-            })
-          }
-          disabled={loading}
-        >
-          Save Limits
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 font-mono text-[11px]"
+            onClick={() => {
+              const body: Record<string, unknown> = {
+                action: "override_limits",
+                projectLimit,
+                memberLimit,
+              };
+              if (memoryLimitPerProject)
+                body.memoryLimitPerProject = Number(memoryLimitPerProject);
+              if (memoryLimitOrg)
+                body.memoryLimitOrg = Number(memoryLimitOrg);
+              if (apiRatePerMinute)
+                body.apiRatePerMinute = Number(apiRatePerMinute);
+              doAction(body);
+            }}
+            disabled={loading}
+          >
+            Save Limits
+          </Button>
+          {org.customLimits && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 font-mono text-[11px] text-amber-500 border-amber-500/30 hover:bg-amber-500/10"
+              onClick={() => doAction({ action: "reset_limits" })}
+              disabled={loading}
+            >
+              Reset to Plan Defaults
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Ownership section */}

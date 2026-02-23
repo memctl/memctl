@@ -18,6 +18,7 @@ import {
 import { eq, and, count, isNotNull } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
+import { getOrgLimits, isUnlimited } from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { HealthDashboard } from "./health-dashboard";
 
@@ -42,6 +43,7 @@ export default async function HealthPage({
   if (!member) redirect("/");
 
   const currentPlan = PLANS[org.planId as PlanId] ?? PLANS.free;
+  const limits = getOrgLimits(org);
   const projectList = await db.select().from(projects).where(eq(projects.orgId, org.id));
 
   // Aggregate stats across all projects
@@ -134,12 +136,12 @@ export default async function HealthPage({
     .slice(0, 20)
     .map(([tag, count]) => ({ tag, count }));
 
-  const memoryLimit = currentPlan.memoryLimitOrg;
-  const usagePercent = memoryLimit === Infinity ? 0 : Math.round((totalMemories / memoryLimit) * 100);
+  const memoryLimit = limits.memoryLimitOrg;
+  const usagePercent = isUnlimited(memoryLimit) ? 0 : Math.round((totalMemories / memoryLimit) * 100);
 
   const checks = [
     { name: "Database", status: "pass" as const, detail: "Connected" },
-    { name: "Memory Usage", status: usagePercent >= 95 ? "fail" as const : usagePercent >= 80 ? "warn" as const : "pass" as const, detail: `${usagePercent}% (${totalMemories}/${memoryLimit === Infinity ? "∞" : memoryLimit})` },
+    { name: "Memory Usage", status: usagePercent >= 95 ? "fail" as const : usagePercent >= 80 ? "warn" as const : "pass" as const, detail: `${usagePercent}% (${totalMemories}/${isUnlimited(memoryLimit) ? "∞" : memoryLimit})` },
     { name: "Active Locks", status: totalActiveLocks > 10 ? "warn" as const : "pass" as const, detail: `${totalActiveLocks} lock(s)` },
     { name: "Projects", status: "pass" as const, detail: `${projectList.length} project(s)` },
     { name: "Plan", status: "pass" as const, detail: currentPlan.name },
@@ -160,7 +162,7 @@ export default async function HealthPage({
           totalSessions,
           totalActivities,
           totalActiveLocks,
-          memoryLimit: memoryLimit === Infinity ? null : memoryLimit,
+          memoryLimit: isUnlimited(memoryLimit) ? null : memoryLimit,
           usagePercent,
         }}
         priorityBuckets={priorityBuckets}

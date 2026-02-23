@@ -6,7 +6,7 @@ import { sessions, organizations, organizationMembers, projectMembers, projects 
 import { eq, and, inArray } from "drizzle-orm";
 import { logger, generateRequestId } from "./logger";
 import { rateLimit } from "./rate-limit";
-import { getEffectivePlanId } from "./plans";
+import { getOrgLimits } from "./plans";
 
 export interface AuthContext {
   userId: string;
@@ -218,14 +218,23 @@ export async function checkRateLimit(
   authContext: AuthContext,
 ): Promise<NextResponse | null> {
   const [org] = await db
-    .select({ planId: organizations.planId, planOverride: organizations.planOverride })
+    .select({
+      planId: organizations.planId,
+      planOverride: organizations.planOverride,
+      projectLimit: organizations.projectLimit,
+      memberLimit: organizations.memberLimit,
+      memoryLimitPerProject: organizations.memoryLimitPerProject,
+      memoryLimitOrg: organizations.memoryLimitOrg,
+      apiRatePerMinute: organizations.apiRatePerMinute,
+    })
     .from(organizations)
     .where(eq(organizations.id, authContext.orgId))
     .limit(1);
 
   if (!org) return null;
 
-  const result = rateLimit(authContext.userId, getEffectivePlanId(org));
+  const limits = getOrgLimits(org);
+  const result = rateLimit(authContext.userId, limits.apiRatePerMinute);
 
   if (!result.allowed) {
     const res = NextResponse.json(

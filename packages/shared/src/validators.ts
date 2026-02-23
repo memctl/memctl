@@ -106,7 +106,11 @@ export const adminOrgActionSchema = z.discriminatedUnion("action", [
     action: z.literal("override_limits"),
     projectLimit: z.number().int().min(1).optional(),
     memberLimit: z.number().int().min(1).optional(),
+    memoryLimitPerProject: z.number().int().min(1).optional(),
+    memoryLimitOrg: z.number().int().min(1).optional(),
+    apiRatePerMinute: z.number().int().min(1).optional(),
   }),
+  z.object({ action: z.literal("reset_limits") }),
   z.object({ action: z.literal("transfer_ownership"), newOwnerId: z.string().min(1) }),
   z.object({ action: z.literal("update_notes"), notes: z.string().max(4096) }),
 ]);
