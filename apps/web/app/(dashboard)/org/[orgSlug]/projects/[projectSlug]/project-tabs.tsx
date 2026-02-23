@@ -3,7 +3,7 @@
 import { Suspense, useRef, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Brain, Zap, Trash2, Settings, Users } from "lucide-react";
+import { Brain, Zap, Trash2, Settings, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { MemoryBrowser } from "@/components/dashboard/memories/memory-browser";
 import { ActivityFeed } from "../../activity/activity-feed";
 import { HygieneDashboard } from "../../hygiene/hygiene-dashboard";
@@ -152,25 +152,54 @@ function ProjectTabsInner({
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
   const navRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 1);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
 
   const updateIndicator = useCallback(() => {
     const el = tabRefs.current.get(currentTab);
-    const nav = navRef.current;
-    if (el && nav) {
-      const navRect = nav.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
+    if (el) {
       setIndicator({
-        left: elRect.left - navRect.left,
-        width: elRect.width,
+        left: el.offsetLeft,
+        width: el.offsetWidth,
       });
     }
   }, [currentTab]);
 
   useEffect(() => {
     updateIndicator();
+    checkScroll();
     window.addEventListener("resize", updateIndicator);
-    return () => window.removeEventListener("resize", updateIndicator);
-  }, [updateIndicator]);
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      window.removeEventListener("resize", updateIndicator);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [updateIndicator, checkScroll]);
+
+  // Scroll active tab into view on change
+  useEffect(() => {
+    const el = tabRefs.current.get(currentTab);
+    const container = scrollRef.current;
+    if (el && container) {
+      const elLeft = el.offsetLeft;
+      const elRight = elLeft + el.offsetWidth;
+      const visLeft = container.scrollLeft;
+      const visRight = visLeft + container.clientWidth;
+      if (elLeft < visLeft) {
+        container.scrollTo({ left: elLeft - 8, behavior: "smooth" });
+      } else if (elRight > visRight) {
+        container.scrollTo({ left: elRight - container.clientWidth + 8, behavior: "smooth" });
+      }
+    }
+  }, [currentTab]);
 
   const handleTabChange = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -190,7 +219,27 @@ function ProjectTabsInner({
     <div>
       {/* Tab bar */}
       <div ref={navRef} className="relative mb-6 border-b border-[var(--landing-border)]">
-        <div className="flex">
+        {canScrollLeft && (
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ left: -120, behavior: "smooth" })}
+            className="absolute left-0 top-0 bottom-0 z-10 flex w-8 items-center justify-start bg-gradient-to-r from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pl-1"
+          >
+            <ChevronLeft className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
+          </button>
+        )}
+        {canScrollRight && (
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ left: 120, behavior: "smooth" })}
+            className="absolute right-0 top-0 bottom-0 z-10 flex w-8 items-center justify-end bg-gradient-to-l from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pr-1"
+          >
+            <ChevronRight className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
+          </button>
+        )}
+        <div
+          ref={scrollRef}
+          className="relative flex overflow-x-auto scrollbar-hide"
+          onScroll={() => { checkScroll(); updateIndicator(); }}
+        >
           {tabs.map((tab) => {
             const isActive = tab.id === currentTab;
             const Icon = tab.icon;
@@ -201,7 +250,7 @@ function ProjectTabsInner({
                   if (el) tabRefs.current.set(tab.id, el);
                 }}
                 onClick={() => handleTabChange(tab.id)}
-                className="relative flex items-center gap-1.5 px-4 py-2.5 font-mono text-xs font-medium transition-colors outline-none"
+                className="relative flex shrink-0 items-center gap-1.5 px-4 py-2.5 font-mono text-xs font-medium transition-colors outline-none"
                 style={{
                   color: isActive
                     ? "var(--landing-text)"
@@ -225,15 +274,15 @@ function ProjectTabsInner({
               </button>
             );
           })}
-        </div>
 
-        {/* Animated underline */}
-        <motion.div
-          className="absolute bottom-0 h-0.5 bg-[#F97316]"
-          animate={{ left: indicator.left, width: indicator.width }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          style={{ borderRadius: "1px" }}
-        />
+          {/* Animated underline (inside scroll container so it tracks scroll) */}
+          <motion.div
+            className="absolute bottom-0 h-0.5 bg-[#F97316]"
+            animate={{ left: indicator.left, width: indicator.width }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            style={{ borderRadius: "1px" }}
+          />
+        </div>
       </div>
 
       {/* Animated content */}

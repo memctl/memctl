@@ -395,7 +395,7 @@ export function ActivityFeed({
               placeholder="Search actions, sessions, keys…"
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="h-7 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 font-mono text-xs placeholder:text-[var(--landing-text-tertiary)]/60"
+              className="h-9 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 font-mono text-xs placeholder:text-[var(--landing-text-tertiary)]/60 md:h-7"
             />
           </div>
           <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
@@ -411,7 +411,7 @@ export function ActivityFeed({
         </div>
 
         {/* Filter chips row */}
-        <div className="flex items-center gap-3 px-3 py-1.5">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-1.5 sm:gap-3">
           {/* Source filter group */}
           {hasAuditLogs && (
             <div className="flex items-center gap-1">
@@ -555,7 +555,7 @@ export function ActivityFeed({
                         {a.toolName && !a.memoryKey && (
                           <span className="min-w-0 truncate font-mono text-[11px] text-amber-400">{a.toolName}</span>
                         )}
-                        <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{a.projectName}</span>
+                        <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:inline">{a.projectName}</span>
                         <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
                       </div>
                     );
@@ -577,7 +577,7 @@ export function ActivityFeed({
                           {detail}
                         </span>
                       )}
-                      <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                      <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:inline">
                         {a.actorName}
                       </span>
                       <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>

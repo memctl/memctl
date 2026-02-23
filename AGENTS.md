@@ -114,6 +114,19 @@ When modifying dependencies or build config, verify both Dockerfiles still work.
 - Empty states need a lucide icon + short message + hint when caused by filters.
 - Loading: skeletons during filter changes, pulsing dots during infinite scroll.
 
+### Responsiveness
+
+- All layouts must work on 320px+ (mobile), 768px+ (tablet), 1024px+ (desktop).
+- Sidebar is hidden on mobile (`hidden md:flex`), rendered in a Sheet drawer via `MobileSidebarSheet`.
+- Responsive padding on main content: `px-4 py-4 md:px-8 md:py-6`.
+- Tab bars use `overflow-x-auto scrollbar-hide` with `shrink-0` on each tab button.
+- Tables with >4 columns: wrap in `overflow-x-auto` or hide columns with `hidden sm:table-cell` / `hidden md:table-cell` / `hidden lg:table-cell`.
+- Grids need intermediate breakpoints (e.g. `grid-cols-2 md:grid-cols-4 lg:grid-cols-6`).
+- Filter/chip rows use `flex-wrap`.
+- Touch targets: min 36px on mobile (`h-9 md:h-7` or `h-9 md:h-8`).
+- Filter popovers: `w-64 sm:w-72`.
+- Page header rows with actions: `flex-wrap gap-3` so buttons stack below on narrow screens.
+
 ## Architecture
 
 - **Auth**: better-auth with GitHub OAuth + magic link + dev bypass. Dashboard uses cookie-based `auth.api.getSession()`. API routes use Bearer tokens via `authenticateRequest()`.

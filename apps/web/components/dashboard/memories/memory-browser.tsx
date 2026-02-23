@@ -523,7 +523,7 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
     <TooltipProvider delayDuration={200}>
       <div>
         {/* Stats bar - dense info strip */}
-        <div className="mb-3 flex items-center gap-2 overflow-x-auto">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5">
             <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">Active</span>
             <span className="font-mono text-[11px] font-bold text-[var(--landing-text)]">{totalActive}</span>
@@ -536,13 +536,13 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
             <Pin className="h-3 w-3 text-[#F97316]" />
             <span className="font-mono text-[11px] font-bold text-[var(--landing-text)]">{totalPinned}</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5">
+          <div className="hidden items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5 sm:flex">
             <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">Avg Pri</span>
             <span className="font-mono text-[11px] font-bold text-[#F97316]">{avgPriority}</span>
           </div>
-          <div className="h-4 w-px bg-[var(--landing-border)]" />
+          <div className="hidden h-4 w-px bg-[var(--landing-border)] md:block" />
           {/* Relevance mini-bars */}
-          <div className="flex items-center gap-1">
+          <div className="hidden items-center gap-1 md:flex">
             <Tooltip><TooltipTrigger asChild>
               <div className="flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-1">
                 <div className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -571,37 +571,37 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
           <div className="flex-1" />
           <button
             onClick={() => setShowShortcuts(true)}
-            className="flex items-center gap-1 rounded bg-[var(--landing-surface-2)] px-2 py-1 text-[10px] font-mono text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors"
+            className="hidden items-center gap-1 rounded bg-[var(--landing-surface-2)] px-2 py-1 text-[10px] font-mono text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors sm:flex"
           >
             <Keyboard className="h-3 w-3" /> <span className="hidden sm:inline">?</span>
           </button>
         </div>
 
         {/* Toolbar */}
-        <div className="mb-2 flex items-center gap-2">
-          <div className="relative flex-1">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-auto sm:flex-1">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
             <Input
               ref={searchRef}
-              placeholder="Search key, content, tag… (press /)"
+              placeholder="Search key, content, tag…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-8 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-xs"
+              className="h-9 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-xs md:h-8"
             />
           </div>
 
           {/* Filter popover */}
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1 border-[var(--landing-border)] text-xs relative">
+              <Button variant="outline" size="sm" className="h-9 gap-1 border-[var(--landing-border)] text-xs relative md:h-8">
                 <Filter className="h-3 w-3" />
-                Filters
+                <span className="hidden sm:inline">Filters</span>
                 {activeFilterCount > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#F97316] text-[9px] font-bold text-white">{activeFilterCount}</span>
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 bg-[var(--landing-surface)] border-[var(--landing-border)] p-3" align="end">
+            <PopoverContent className="w-64 bg-[var(--landing-surface)] border-[var(--landing-border)] p-3 sm:w-72" align="end">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">Advanced Filters</span>
@@ -664,15 +664,15 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
             </PopoverContent>
           </Popover>
 
-          <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)} className="h-8 gap-1 border-[var(--landing-border)] text-xs">
+          <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)} className="h-9 gap-1 border-[var(--landing-border)] text-xs md:h-8">
             <Archive className="h-3 w-3" />
-            {showArchived ? "Hide" : "Show"} Archived
+            <span className="hidden sm:inline">{showArchived ? "Hide" : "Show"} Archived</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} className="h-8 gap-1 border-[var(--landing-border)] text-xs">
+          <Button variant="outline" size="sm" onClick={handleExport} className="h-9 gap-1 border-[var(--landing-border)] text-xs md:h-8">
             <Download className="h-3 w-3" />
           </Button>
           <label>
-            <Button variant="outline" size="sm" asChild className="h-8 gap-1 border-[var(--landing-border)] text-xs cursor-pointer">
+            <Button variant="outline" size="sm" asChild className="h-9 gap-1 border-[var(--landing-border)] text-xs cursor-pointer md:h-8">
               <span><Upload className="h-3 w-3" /></span>
             </Button>
             <input type="file" accept=".json" className="hidden" onChange={handleImport} />
@@ -700,7 +700,7 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
 
         {/* Type tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-2 h-7 flex-wrap bg-[var(--landing-surface)] gap-0">
+          <TabsList className="mb-2 h-auto flex-wrap bg-[var(--landing-surface)] gap-0">
             <TabsTrigger value="all" className="h-6 text-[10px] px-2">
               All ({memories.filter((m) => showArchived || !m.archivedAt).length})
             </TabsTrigger>
@@ -717,7 +717,7 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
           </TabsList>
 
           {/* Table */}
-          <div className="dash-card overflow-hidden" ref={tableRef}>
+          <div className="dash-card overflow-x-auto" ref={tableRef}>
             {filteredMemories.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Search className="mb-2 h-6 w-6 text-[var(--landing-text-tertiary)]" />
@@ -741,17 +741,17 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
                       Key <SortIcon field="key" />
                     </TableHead>
                     <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2">Content</TableHead>
-                    <TableHead className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2 w-14" onClick={() => toggleSort("relevance")}>
+                    <TableHead className="hidden cursor-pointer font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2 w-14 sm:table-cell" onClick={() => toggleSort("relevance")}>
                       Rel <SortIcon field="relevance" />
                     </TableHead>
-                    <TableHead className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2 w-12" onClick={() => toggleSort("priority")}>
+                    <TableHead className="hidden cursor-pointer font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2 w-12 sm:table-cell" onClick={() => toggleSort("priority")}>
                       Pri <SortIcon field="priority" />
                     </TableHead>
-                    <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2">Tags</TableHead>
-                    <TableHead className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2 w-14" onClick={() => toggleSort("accessCount")}>
+                    <TableHead className="hidden font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2 md:table-cell">Tags</TableHead>
+                    <TableHead className="hidden cursor-pointer font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2 w-14 lg:table-cell" onClick={() => toggleSort("accessCount")}>
                       Hits <SortIcon field="accessCount" />
                     </TableHead>
-                    <TableHead className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2 w-16" onClick={() => toggleSort("updated")}>
+                    <TableHead className="hidden cursor-pointer font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2 w-16 lg:table-cell" onClick={() => toggleSort("updated")}>
                       Age <SortIcon field="updated" />
                     </TableHead>
                     <TableHead className="w-[100px] font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] px-2">Acts</TableHead>
@@ -817,7 +817,7 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="px-2 py-1.5">
+                        <TableCell className="hidden px-2 py-1.5 sm:table-cell">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className={`inline-flex items-center rounded px-1 py-0.5 font-mono text-[10px] font-bold ${bucket.bg} ${bucket.color}`}>
@@ -829,14 +829,14 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
-                        <TableCell className="font-mono text-[11px] px-2 py-1.5">
+                        <TableCell className="hidden font-mono text-[11px] px-2 py-1.5 sm:table-cell">
                           {(m.priority ?? 0) > 0 && (
                             <span className="inline-flex items-center gap-0.5 text-[#F97316]">
                               <Star className="h-2.5 w-2.5" />{m.priority}
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="px-2 py-1.5">
+                        <TableCell className="hidden px-2 py-1.5 md:table-cell">
                           <div className="flex flex-wrap gap-0.5">
                             {parseTags(m.tags).slice(0, 3).map((tag) => (
                               <Badge key={tag} variant="outline" className="border-[var(--landing-border)] text-[9px] h-4 px-1 py-0">{tag}</Badge>
@@ -846,10 +846,10 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-[11px] text-[var(--landing-text-tertiary)] px-2 py-1.5">
+                        <TableCell className="hidden font-mono text-[11px] text-[var(--landing-text-tertiary)] px-2 py-1.5 lg:table-cell">
                           {m.accessCount ?? 0}
                         </TableCell>
-                        <TableCell className="font-mono text-[11px] text-[var(--landing-text-tertiary)] px-2 py-1.5">
+                        <TableCell className="hidden font-mono text-[11px] text-[var(--landing-text-tertiary)] px-2 py-1.5 lg:table-cell">
                           {relativeTime(m.updatedAt)}
                         </TableCell>
                         <TableCell className="px-2 py-1.5">

@@ -34,7 +34,7 @@ export function TrustBar() {
         className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.2] [mask-image:linear-gradient(to_bottom,black_20%,transparent_80%)]"
         aria-hidden="true"
       />
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-12 gap-y-4 px-6 lg:px-8">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-4 px-6 sm:gap-x-8 lg:gap-x-12 lg:px-8">
         {TRUST_ITEMS.map((item) => (
           <div
             key={item.label}

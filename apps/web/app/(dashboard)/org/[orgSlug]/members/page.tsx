@@ -195,7 +195,7 @@ export default async function MembersPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <PageHeader
           badge="Team"
           title="Members"
@@ -210,7 +210,7 @@ export default async function MembersPage({
       </div>
 
       {/* Stats grid */}
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
         {[
           { icon: Users, label: "Total", value: members.length, sub: `of ${formatLimitValue(org.memberLimit)}`, color: "text-[var(--landing-text)]" },
           { icon: Crown, label: "Owners", value: ownerCount, sub: null, color: "text-[#F97316]" },
@@ -235,22 +235,23 @@ export default async function MembersPage({
 
       {/* Members table */}
       <div className="dash-card overflow-hidden">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
               <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Member
               </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+              <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell">
                 Email
               </TableHead>
               <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Role
               </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+              <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] md:table-cell">
                 Projects
               </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+              <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] lg:table-cell">
                 Joined
               </TableHead>
               <TableHead className="w-12" />
@@ -294,7 +295,7 @@ export default async function MembersPage({
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-[var(--landing-text-secondary)]">
+                  <TableCell className="hidden font-mono text-xs text-[var(--landing-text-secondary)] sm:table-cell">
                     {member.user?.email}
                   </TableCell>
                   <TableCell>
@@ -306,7 +307,7 @@ export default async function MembersPage({
                       {member.role}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {isOwnerOrAdmin ? (
                       <span className="font-mono text-xs text-[var(--landing-text-tertiary)]">
                         All projects
@@ -318,7 +319,7 @@ export default async function MembersPage({
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-[var(--landing-text-tertiary)]">
+                  <TableCell className="hidden font-mono text-xs text-[var(--landing-text-tertiary)] lg:table-cell">
                     {member.createdAt.toLocaleDateString()}
                   </TableCell>
                   <TableCell>
@@ -336,6 +337,7 @@ export default async function MembersPage({
             })}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Role distribution */}

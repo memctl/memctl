@@ -146,7 +146,7 @@ export default async function OrgDashboardPage({
       <PageHeader title={org.name} description={`${currentPlan.name} plan`} />
 
       {/* Stats grid - 6 columns, dense */}
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {[
           { icon: FolderOpen, label: "Projects", value: projectCount, sub: isUnlimited(org.projectLimit) ? "unlimited" : `${org.projectLimit - projectCount} left`, color: "text-[var(--landing-text)]" },
           { icon: Brain, label: "Memories", value: totalMemories, sub: `${usagePercent}% used`, color: "text-[var(--landing-text)]" },
