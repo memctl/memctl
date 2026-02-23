@@ -58,6 +58,7 @@ import {
   Search,
   ChevronDown,
   X,
+  Loader2,
 } from "lucide-react";
 
 interface PromoCode {
@@ -1008,9 +1009,10 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
               <Button
                 onClick={handleSubmit}
                 disabled={submitting || (!editingId && !showBulk && !form.code) || !form.discountAmount}
-                className="w-full bg-[#F97316] text-white hover:bg-[#EA580C]"
+                variant="outline"
+                className="w-full font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10"
               >
-                {submitting ? "..." : editingId ? "Save Changes" : showBulk ? "Generate Codes" : "Create Code"}
+                {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : editingId ? "Save Changes" : showBulk ? "Generate Codes" : "Create Code"}
               </Button>
             </div>
 

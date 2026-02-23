@@ -346,6 +346,8 @@ export default async function AdminOrgDetailPage({
             customLimits: org.customLimits,
             ownerId: org.ownerId,
             adminNotes: org.adminNotes,
+            planDefaultProjectLimit: currentPlan.projectLimit === Infinity ? 999999 : currentPlan.projectLimit,
+            planDefaultMemberLimit: currentPlan.memberLimit === Infinity ? 999999 : currentPlan.memberLimit,
             planDefaultMemoryPerProject: clampLimit(currentPlan.memoryLimitPerProject),
             planDefaultMemoryOrg: clampLimit(currentPlan.memoryLimitOrg),
             planDefaultApiRate: clampLimit(currentPlan.apiRatePerMinute),

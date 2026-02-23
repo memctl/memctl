@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { PLAN_IDS } from "@memctl/shared/constants";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 const selectPopoverCls =
   "bg-[var(--landing-surface)] border-[var(--landing-border)] text-[var(--landing-text)] shadow-xl";
@@ -245,11 +246,12 @@ export function PlanTemplateForm({
             Cancel
           </Button>
           <Button
-            className="font-mono bg-[#F97316] hover:bg-[#F97316]/80"
+            variant="outline"
+            className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10"
             onClick={handleSubmit}
             disabled={loading || !name.trim()}
           >
-            {template ? "Save" : "Create"}
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : template ? "Save" : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>

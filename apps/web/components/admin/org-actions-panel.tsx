@@ -22,6 +22,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { PLAN_IDS, type PlanId } from "@memctl/shared/constants";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 interface OrgActionsPanelProps {
   org: {
@@ -39,6 +40,8 @@ interface OrgActionsPanelProps {
     customLimits: boolean | null;
     ownerId: string;
     adminNotes: string | null;
+    planDefaultProjectLimit: number;
+    planDefaultMemberLimit: number;
     planDefaultMemoryPerProject: number;
     planDefaultMemoryOrg: number;
     planDefaultApiRate: number;
@@ -214,7 +217,9 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "override_plan", planId: planOverride === "none" ? null : (planOverride as PlanId) })} disabled={loading}>Apply</Button>
+              <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "override_plan", planId: planOverride === "none" ? null : (planOverride as PlanId) })} disabled={loading}>
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
+              </Button>
             </div>
           </div>
         </div>
@@ -254,13 +259,15 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="font-mono" onClick={() => {
+            <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => {
               const body: Record<string, unknown> = { action: "override_limits", projectLimit, memberLimit };
               if (memoryLimitPerProject) body.memoryLimitPerProject = Number(memoryLimitPerProject);
               if (memoryLimitOrg) body.memoryLimitOrg = Number(memoryLimitOrg);
               if (apiRatePerMinute) body.apiRatePerMinute = Number(apiRatePerMinute);
               doAction(body);
-            }} disabled={loading}>Save Limits</Button>
+            }} disabled={loading}>
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Limits"}
+            </Button>
             {org.customLimits && (
               <Button variant="outline" className="font-mono text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => doAction({ action: "reset_limits" })} disabled={loading}>Reset to Defaults</Button>
             )}
@@ -288,7 +295,9 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                   <FieldLabel>Duration (days)</FieldLabel>
                   <Input type="number" min={1} max={365} value={trialDays} onChange={(e) => setTrialDays(Number(e.target.value))} className="font-mono" />
                 </div>
-                <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "start_trial", durationDays: trialDays })} disabled={loading}>Start Trial</Button>
+                <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "start_trial", durationDays: trialDays })} disabled={loading}>
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Start Trial"}
+                </Button>
               </div>
             )}
           </div>
@@ -330,7 +339,9 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                   <Switch checked={subMetering} onCheckedChange={setSubMetering} className="data-[state=checked]:bg-[#F97316]" />
                   Enable metered billing
                 </label>
-                <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "create_subscription", priceInCents: Math.round(Number(subPriceDollars) * 100), interval: subInterval, enableMetering: subMetering })} disabled={loading || !subPriceDollars}>Create Subscription</Button>
+                <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "create_subscription", priceInCents: Math.round(Number(subPriceDollars) * 100), interval: subInterval, enableMetering: subMetering })} disabled={loading || !subPriceDollars}>
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Create Subscription"}
+                </Button>
               </div>
             )}
           </div>
@@ -358,7 +369,9 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "apply_template", templateId: selectedTemplate })} disabled={loading || !selectedTemplate}>Apply</Button>
+              <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "apply_template", templateId: selectedTemplate })} disabled={loading || !selectedTemplate}>
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
+              </Button>
             </div>
           </div>
 
@@ -375,7 +388,9 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                 <FieldLabel>Date</FieldLabel>
                 <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="font-mono" />
               </div>
-              <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "set_expiry", expiresAt: new Date(expiryDate).getTime() })} disabled={loading || !expiryDate}>Set</Button>
+              <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "set_expiry", expiresAt: new Date(expiryDate).getTime() })} disabled={loading || !expiryDate}>
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Set"}
+              </Button>
               {org.planExpiresAt && (
                 <Button variant="outline" className="font-mono text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => doAction({ action: "clear_expiry" })} disabled={loading}>Clear</Button>
               )}
@@ -406,13 +421,15 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             <FieldLabel>Notes</FieldLabel>
             <Textarea value={contractNotes} onChange={(e) => setContractNotes(e.target.value)} rows={2} className="font-mono resize-none" placeholder="Deal details, contact info, etc." />
           </div>
-          <Button variant="outline" className="font-mono" onClick={() => doAction({
+          <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({
             action: "update_contract",
             contractValue: contractValueDollars ? Math.round(Number(contractValueDollars) * 100) : null,
             contractNotes: contractNotes || null,
             contractStartDate: contractStart ? new Date(contractStart).getTime() : null,
             contractEndDate: contractEnd ? new Date(contractEnd).getTime() : null,
-          })} disabled={loading}>Save Contract</Button>
+          })} disabled={loading}>
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Contract"}
+          </Button>
         </div>
       </div>
 
@@ -436,13 +453,15 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" className="font-mono" onClick={() => setShowTransferConfirm(true)} disabled={loading || !newOwnerId}>Transfer</Button>
+              <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => setShowTransferConfirm(true)} disabled={loading || !newOwnerId}>Transfer</Button>
             </div>
           </div>
           <div className="p-4">
             <SectionLabel>Admin Notes</SectionLabel>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="mb-2 font-mono resize-none" placeholder="Internal notes (not visible to org members)" />
-            <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "update_notes", notes })} disabled={loading}>Save Notes</Button>
+            <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "update_notes", notes })} disabled={loading}>
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Notes"}
+            </Button>
           </div>
         </div>
       </div>
