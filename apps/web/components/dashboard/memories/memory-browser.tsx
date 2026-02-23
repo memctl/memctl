@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -216,8 +217,26 @@ function ConfirmDialog({
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserProps) {
+export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: MemoryBrowserProps) {
   const router = useRouter();
+
+  // Optimistic local overrides (cleared when server props arrive)
+  const [localOverrides, setLocalOverrides] = useState<Map<string, Partial<MemoryItem>>>(new Map());
+  const prevMemoriesRef = useRef(memoriesProp);
+  useEffect(() => {
+    if (prevMemoriesRef.current !== memoriesProp) {
+      prevMemoriesRef.current = memoriesProp;
+      setLocalOverrides(new Map());
+    }
+  }, [memoriesProp]);
+
+  const memories = useMemo(() => {
+    if (localOverrides.size === 0) return memoriesProp;
+    return memoriesProp.map((m) => {
+      const override = localOverrides.get(m.id);
+      return override ? { ...m, ...override } : m;
+    });
+  }, [memoriesProp, localOverrides]);
 
   // State
   const [search, setSearch] = useState("");
@@ -242,10 +261,6 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
   const [filterPriorityRange, setFilterPriorityRange] = useState<[number, number]>([0, 100]);
   const [filterRelevance, setFilterRelevance] = useState<string>("all");
   const [filterPinned, setFilterPinned] = useState<string>("all");
-
-  // Inline editing
-  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
-  const [inlineEditContent, setInlineEditContent] = useState("");
 
   // Confirmation dialog
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
@@ -376,22 +391,23 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
           e.preventDefault();
           if (focusedIndex >= 0 && focusedIndex < filteredMemories.length) {
             const m = filteredMemories[focusedIndex];
-            setInlineEditId(m.id);
-            setInlineEditContent(m.content);
+            setSelectedMemory(m);
+            setEditContent(m.content);
+            setViewMode("edit");
           }
           break;
         }
         case "d": {
           if (focusedIndex >= 0 && focusedIndex < filteredMemories.length) {
             e.preventDefault();
-            requestDelete(filteredMemories[focusedIndex]);
+            requestDeleteRef.current(filteredMemories[focusedIndex]);
           }
           break;
         }
         case "p": {
           if (focusedIndex >= 0 && focusedIndex < filteredMemories.length) {
             e.preventDefault();
-            requestPin(filteredMemories[focusedIndex]);
+            requestPinRef.current(filteredMemories[focusedIndex]);
           }
           break;
         }
@@ -403,7 +419,6 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
         case "Escape": {
           setSelectedIds(new Set());
           setFocusedIndex(-1);
-          setInlineEditId(null);
           break;
         }
         case "?": {
@@ -474,48 +489,49 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
     setSelectedMemory(m); setViewMode("history"); setLoadingVersions(true);
     try {
       const res = await fetch(`/api/v1/memories/versions?key=${encodeURIComponent(m.key)}`, { headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug } });
-      if (res.ok) { const data = await res.json(); setVersions(data.versions ?? []); }
-    } catch { /* silent */ }
+      if (res.ok) {
+        const data = await res.json();
+        setVersions(data.versions ?? []);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? `Failed to load versions (${res.status})`);
+      }
+    } catch {
+      toast.error("Network error loading versions");
+    }
     setLoadingVersions(false);
   };
 
-  // Confirmed actions
-  const requestSave = () => {
+  // Direct save (no confirmation - user already opened the edit dialog)
+  const handleSave = async () => {
     if (!selectedMemory) return;
-    setConfirmAction({
-      title: "Save changes",
-      description: `Save edits to "${selectedMemory.key}"? A new version will be created.`,
-      variant: "default",
-      onConfirm: async () => {
-        setActionLoading(true);
-        try {
-          await fetch(`/api/v1/memories/${encodeURIComponent(selectedMemory.key)}`, { method: "PATCH", headers: apiHeaders, body: JSON.stringify({ content: editContent }) });
-          setConfirmAction(null);
-          setViewMode(null);
-          refresh();
-        } catch { /* silent */ }
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/memories/${encodeURIComponent(selectedMemory.key)}`, { method: "PATCH", headers: apiHeaders, body: JSON.stringify({ content: editContent }) });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? `Failed to save (${res.status})`);
         setActionLoading(false);
-      },
-    });
+        return;
+      }
+      const now = new Date().toISOString();
+      setLocalOverrides((prev) => {
+        const next = new Map(prev);
+        next.set(selectedMemory.id, { content: editContent, updatedAt: now });
+        return next;
+      });
+      setSelectedMemory({ ...selectedMemory, content: editContent, updatedAt: now });
+      setViewMode(null);
+      toast.success("Memory saved");
+      refresh();
+    } catch {
+      toast.error("Network error saving memory");
+    }
+    setActionLoading(false);
   };
 
-  const requestInlineSave = (m: MemoryItem) => {
-    setConfirmAction({
-      title: "Save changes",
-      description: `Save edits to "${m.key}"? A new version will be created.`,
-      variant: "default",
-      onConfirm: async () => {
-        setActionLoading(true);
-        try {
-          await fetch(`/api/v1/memories/${encodeURIComponent(m.key)}`, { method: "PATCH", headers: apiHeaders, body: JSON.stringify({ content: inlineEditContent }) });
-          setConfirmAction(null);
-          setInlineEditId(null);
-          refresh();
-        } catch { /* silent */ }
-        setActionLoading(false);
-      },
-    });
-  };
+  // Confirmed actions
+
 
   const requestArchive = (m: MemoryItem, archive: boolean) => {
     setConfirmAction({
@@ -527,10 +543,18 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
       onConfirm: async () => {
         setActionLoading(true);
         try {
-          await fetch("/api/v1/memories/archive", { method: "POST", headers: apiHeaders, body: JSON.stringify({ key: m.key, archive }) });
+          const res = await fetch("/api/v1/memories/archive", { method: "POST", headers: apiHeaders, body: JSON.stringify({ key: m.key, archive }) });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            toast.error(data.error ?? `Failed to ${archive ? "archive" : "restore"} (${res.status})`);
+          } else {
+            toast.success(archive ? "Memory archived" : "Memory restored");
+          }
           setConfirmAction(null);
           refresh();
-        } catch { /* silent */ }
+        } catch {
+          toast.error("Network error");
+        }
         setActionLoading(false);
       },
     });
@@ -544,10 +568,18 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
       onConfirm: async () => {
         setActionLoading(true);
         try {
-          await fetch(`/api/v1/memories/${encodeURIComponent(m.key)}`, { method: "DELETE", headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug } });
+          const res = await fetch(`/api/v1/memories/${encodeURIComponent(m.key)}`, { method: "DELETE", headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug } });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            toast.error(data.error ?? `Failed to delete (${res.status})`);
+          } else {
+            toast.success("Memory deleted");
+          }
           setConfirmAction(null);
           refresh();
-        } catch { /* silent */ }
+        } catch {
+          toast.error("Network error");
+        }
         setActionLoading(false);
       },
     });
@@ -564,14 +596,28 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
       onConfirm: async () => {
         setActionLoading(true);
         try {
-          await fetch("/api/v1/memories/pin", { method: "POST", headers: apiHeaders, body: JSON.stringify({ key: m.key, pin }) });
+          const res = await fetch("/api/v1/memories/pin", { method: "POST", headers: apiHeaders, body: JSON.stringify({ key: m.key, pin }) });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            toast.error(data.error ?? `Failed to ${pin ? "pin" : "unpin"} (${res.status})`);
+          } else {
+            toast.success(pin ? "Memory pinned" : "Memory unpinned");
+          }
           setConfirmAction(null);
           refresh();
-        } catch { /* silent */ }
+        } catch {
+          toast.error("Network error");
+        }
         setActionLoading(false);
       },
     });
   };
+
+  // Stable refs for keyboard handler (declared after functions)
+  const requestDeleteRef = useRef(requestDelete);
+  requestDeleteRef.current = requestDelete;
+  const requestPinRef = useRef(requestPin);
+  requestPinRef.current = requestPin;
 
   // Batch actions
   const requestBatchDelete = () => {
@@ -581,12 +627,20 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
       variant: "destructive",
       onConfirm: async () => {
         setActionLoading(true);
+        let failed = 0;
         for (const id of selectedIds) {
           const m = memories.find((mem) => mem.id === id);
-          if (m) await fetch(`/api/v1/memories/${encodeURIComponent(m.key)}`, { method: "DELETE", headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug } });
+          if (!m) continue;
+          try {
+            const res = await fetch(`/api/v1/memories/${encodeURIComponent(m.key)}`, { method: "DELETE", headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug } });
+            if (!res.ok) failed++;
+          } catch { failed++; }
         }
+        if (failed > 0) toast.error(`Failed to delete ${failed} of ${selectedIds.size} memories`);
+        else toast.success(`Deleted ${selectedIds.size} memories`);
         setConfirmAction(null);
         setSelectedIds(new Set());
+        setActionLoading(false);
         refresh();
       },
     });
@@ -599,12 +653,20 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
       variant: "warning",
       onConfirm: async () => {
         setActionLoading(true);
+        let failed = 0;
         for (const id of selectedIds) {
           const m = memories.find((mem) => mem.id === id);
-          if (m) await fetch("/api/v1/memories/archive", { method: "POST", headers: apiHeaders, body: JSON.stringify({ key: m.key, archive: true }) });
+          if (!m) continue;
+          try {
+            const res = await fetch("/api/v1/memories/archive", { method: "POST", headers: apiHeaders, body: JSON.stringify({ key: m.key, archive: true }) });
+            if (!res.ok) failed++;
+          } catch { failed++; }
         }
+        if (failed > 0) toast.error(`Failed to archive ${failed} of ${selectedIds.size} memories`);
+        else toast.success(`Archived ${selectedIds.size} memories`);
         setConfirmAction(null);
         setSelectedIds(new Set());
+        setActionLoading(false);
         refresh();
       },
     });
@@ -634,20 +696,22 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
         variant: "warning",
         onConfirm: async () => {
           setActionLoading(true);
+          let failed = 0;
           for (const item of data) {
-            await fetch("/api/v1/memories", { method: "POST", headers: apiHeaders, body: JSON.stringify(item) });
+            try {
+              const res = await fetch("/api/v1/memories", { method: "POST", headers: apiHeaders, body: JSON.stringify(item) });
+              if (!res.ok) failed++;
+            } catch { failed++; }
           }
+          if (failed > 0) toast.error(`Failed to import ${failed} of ${data.length} memories`);
+          else toast.success(`Imported ${data.length} memories`);
           setConfirmAction(null);
+          setActionLoading(false);
           refresh();
         },
       });
     } catch {
-      setConfirmAction({
-        title: "Import failed",
-        description: "The file does not contain valid JSON.",
-        variant: "destructive",
-        onConfirm: async () => { setConfirmAction(null); },
-      });
+      toast.error("Invalid JSON file");
     }
     // Reset file input so the same file can be re-imported
     e.target.value = "";
@@ -1004,8 +1068,6 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
                   const bucket = getRelevanceBucket(relevance);
                   const isSelected = selectedIds.has(m.id);
                   const isFocused = idx === focusedIndex;
-                  const isInlineEditing = inlineEditId === m.id;
-
                   return (
                     <TableRow
                       key={m.id}
@@ -1031,42 +1093,9 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[280px] px-2 py-1.5">
-                        {isInlineEditing ? (
-                          <div className="flex gap-1">
-                            <Textarea
-                              value={inlineEditContent}
-                              onChange={(e) => setInlineEditContent(e.target.value)}
-                              className="min-h-[60px] border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-1.5 font-mono text-[11px]"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === "Escape") { setInlineEditId(null); e.stopPropagation(); }
-                                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { requestInlineSave(m); e.stopPropagation(); }
-                              }}
-                            />
-                            <div className="flex flex-col gap-0.5">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" onClick={() => requestInlineSave(m)} disabled={actionLoading} className="h-5 w-5 bg-[#F97316] p-0 text-[10px] text-white">
-                                    {actionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCheck className="h-3 w-3" />}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">Save changes (Cmd+Enter)</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" variant="ghost" onClick={() => setInlineEditId(null)} className="h-5 w-5 p-0 text-[10px]">
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">Cancel (Esc)</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="line-clamp-2 font-mono text-[11px] text-[var(--landing-text-secondary)]">
-                            {m.content.length > 150 ? m.content.slice(0, 150) + "..." : m.content}
-                          </span>
-                        )}
+                        <span className="line-clamp-2 font-mono text-[11px] text-[var(--landing-text-secondary)]">
+                          {m.content.length > 150 ? m.content.slice(0, 150) + "..." : m.content}
+                        </span>
                       </TableCell>
                       <TableCell className="hidden px-2 py-1.5 sm:table-cell">
                         <Tooltip>
@@ -1117,8 +1146,8 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
                             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openView(m); }} className="h-6 w-6 p-0"><Eye className="h-3 w-3" /></Button>
                           </TooltipTrigger><TooltipContent>View details</TooltipContent></Tooltip>
                           <Tooltip><TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setInlineEditId(m.id); setInlineEditContent(m.content); }} className="h-6 w-6 p-0"><Pencil className="h-3 w-3" /></Button>
-                          </TooltipTrigger><TooltipContent>Edit inline (e)</TooltipContent></Tooltip>
+                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedMemory(m); setEditContent(m.content); setViewMode("edit"); }} className="h-6 w-6 p-0"><Pencil className="h-3 w-3" /></Button>
+                          </TooltipTrigger><TooltipContent>Edit (e)</TooltipContent></Tooltip>
                           <Tooltip><TooltipTrigger asChild>
                             <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); requestPin(m); }} className={`h-6 w-6 p-0 ${m.pinnedAt ? "text-[#F97316]" : ""}`}><Pin className="h-3 w-3" /></Button>
                           </TooltipTrigger><TooltipContent>{m.pinnedAt ? "Unpin (p)" : "Pin (p)"}</TooltipContent></Tooltip>
@@ -1202,21 +1231,107 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
 
         {/* Edit Dialog */}
         <Dialog open={viewMode === "edit"} onOpenChange={() => setViewMode(null)}>
-          <DialogContent className="max-w-2xl bg-[var(--landing-surface)]">
-            <DialogHeader>
-              <DialogTitle className="font-mono text-sm">Edit: {selectedMemory?.key}</DialogTitle>
-              <DialogDescription className="text-[11px]">Changes are versioned automatically.</DialogDescription>
+          <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col overflow-hidden bg-[var(--landing-surface)]">
+            <DialogHeader className="shrink-0 pb-0">
+              <DialogTitle className="flex items-center gap-2 font-mono text-sm text-[#F97316]">
+                {selectedMemory?.pinnedAt && <Pin className="h-3.5 w-3.5" />}
+                {selectedMemory?.key}
+              </DialogTitle>
+              <DialogDescription className="sr-only">Edit memory content</DialogDescription>
             </DialogHeader>
-            <Textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              className="min-h-[300px] border-[var(--landing-border)] bg-[var(--landing-code-bg)] font-mono text-xs"
-            />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewMode(null)} className="border-[var(--landing-border)]">Cancel</Button>
-              <Button onClick={requestSave} disabled={actionLoading} className="bg-[#F97316] text-white hover:bg-[#EA580C]">
+
+            {/* Context strip */}
+            {selectedMemory && (
+              <div className="flex flex-wrap items-center gap-2 border-b border-[var(--landing-border)] pb-3">
+                <div className="flex items-center gap-1 rounded bg-[var(--landing-surface-2)] px-2 py-1">
+                  <Star className="h-3 w-3 text-[#F97316]" />
+                  <span className="font-mono text-[10px] text-[var(--landing-text-secondary)]">
+                    Pri {selectedMemory.priority ?? 0}
+                  </span>
+                </div>
+                <div className={`flex items-center gap-1 rounded px-2 py-1 ${getRelevanceBucket(computeRelevance(selectedMemory)).bg}`}>
+                  <span className={`font-mono text-[10px] font-bold ${getRelevanceBucket(computeRelevance(selectedMemory)).color}`}>
+                    {getRelevanceBucket(computeRelevance(selectedMemory)).label}
+                  </span>
+                  <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                    {Math.round(computeRelevance(selectedMemory))}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 rounded bg-[var(--landing-surface-2)] px-2 py-1">
+                  <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                    {selectedMemory.accessCount ?? 0} hits
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 rounded bg-[var(--landing-surface-2)] px-2 py-1">
+                  <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                    {relativeTime(selectedMemory.updatedAt)}
+                  </span>
+                </div>
+                {parseTags(selectedMemory.tags).map((tag) => (
+                  <Badge key={tag} variant="outline" className="h-5 border-[var(--landing-border)] px-1.5 text-[10px]">{tag}</Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Editor area */}
+            <div className="flex min-h-0 flex-1 flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Content</span>
+                <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                  {editContent.length} chars
+                  {selectedMemory && editContent !== selectedMemory.content && (
+                    <span className="ml-2 text-[#F97316]">modified</span>
+                  )}
+                </span>
+              </div>
+              <Textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="min-h-[280px] flex-1 resize-y border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-3 font-mono text-xs leading-relaxed"
+                onKeyDown={(e) => {
+                  if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    handleSave();
+                  }
+                }}
+              />
+              <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                A new version will be created on save.
+                <kbd className="ml-2 rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)] px-1 py-0.5 text-[9px]">Cmd+S</kbd> to save.
+              </p>
+            </div>
+
+            {/* Metadata preview */}
+            {selectedMemory?.metadata && (
+              <details className="shrink-0 text-xs">
+                <summary className="cursor-pointer font-mono text-[10px] text-[var(--landing-text-tertiary)]">Metadata (read-only)</summary>
+                <pre className="mt-1 max-h-24 overflow-auto rounded bg-[var(--landing-code-bg)] p-2 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                  {JSON.stringify(JSON.parse(selectedMemory.metadata), null, 2)}
+                </pre>
+              </details>
+            )}
+
+            <DialogFooter className="shrink-0 gap-2 border-t border-[var(--landing-border)] pt-3 sm:gap-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { if (selectedMemory) { setEditContent(selectedMemory.content); } }}
+                disabled={!selectedMemory || editContent === selectedMemory?.content}
+                className="mr-auto border-[var(--landing-border)] text-xs"
+              >
+                Reset
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setViewMode(null)} className="border-[var(--landing-border)] text-xs">
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={actionLoading || !selectedMemory || editContent === selectedMemory?.content}
+                className="bg-[#F97316] text-xs text-white hover:bg-[#EA580C]"
+              >
                 {actionLoading && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                {actionLoading ? "Saving..." : "Save"}
+                {actionLoading ? "Saving..." : "Save changes"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1272,7 +1387,7 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
                 ["j / k", "Navigate up/down"],
                 ["Space", "Toggle selection"],
                 ["Enter", "View memory"],
-                ["e", "Inline edit"],
+                ["e", "Edit memory"],
                 ["d", "Delete focused"],
                 ["p", "Pin/unpin focused"],
                 ["/", "Focus search"],
