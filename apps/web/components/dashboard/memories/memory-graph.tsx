@@ -15,6 +15,7 @@ import {
   forceCollide,
 } from "d3-force";
 import type { Simulation, SimulationLinkDatum } from "d3-force";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Search,
   ZoomIn,
@@ -851,143 +852,163 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
           />
 
           {/* Tooltip */}
-          {hoveredNode && !dragNodeRef.current && (
-            <div
-              className="pointer-events-none absolute z-20 max-w-[220px] rounded border border-[var(--landing-border)] bg-[var(--landing-surface)] px-2.5 py-1.5 shadow-lg"
-              style={{
-                left: Math.min(tooltipPos.x + 12, canvasSize.w - 230),
-                top: Math.min(tooltipPos.y - 10, canvasSize.h - 80),
-              }}
-            >
-              <p className="truncate font-mono text-[10px] font-medium text-[#F97316]">
-                {hoveredNode.id}
-              </p>
-              <p className="mt-0.5 line-clamp-2 text-[10px] text-[var(--landing-text-tertiary)]">
-                {hoveredNode.content.slice(0, 120)}
-                {hoveredNode.content.length > 120 ? "..." : ""}
-              </p>
-            </div>
-          )}
+          <AnimatePresence>
+            {hoveredNode && !dragNodeRef.current && (
+              <motion.div
+                key={hoveredNode.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.12 }}
+                className="pointer-events-none absolute z-20 max-w-[220px] rounded border border-[var(--landing-border)] bg-[var(--landing-surface)] px-2.5 py-1.5 shadow-lg"
+                style={{
+                  left: Math.min(tooltipPos.x + 12, canvasSize.w - 230),
+                  top: Math.min(tooltipPos.y - 10, canvasSize.h - 80),
+                }}
+              >
+                <p className="truncate font-mono text-[10px] font-medium text-[#F97316]">
+                  {hoveredNode.id}
+                </p>
+                <p className="mt-0.5 line-clamp-2 text-[10px] text-[var(--landing-text-tertiary)]">
+                  {hoveredNode.content.slice(0, 120)}
+                  {hoveredNode.content.length > 120 ? "..." : ""}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Detail panel */}
-        {selectedNode && (
-          <div className="dash-card w-full shrink-0 space-y-3 overflow-y-auto p-4 md:max-h-[500px] md:w-72">
-            <div className="flex items-start justify-between gap-2">
-              <p className="break-all font-mono text-xs font-medium text-[#F97316]">
-                {selectedNode.id}
-              </p>
-              <button
-                onClick={() => setSelectedNode(null)}
-                className="shrink-0 text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            <div>
-              <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Content
-              </p>
-              <p className="text-xs leading-relaxed text-[var(--landing-text-secondary)]">
-                {selectedNode.content.slice(0, 200)}
-                {selectedNode.content.length > 200 ? "..." : ""}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                  Priority
+        <AnimatePresence>
+          {selectedNode && (
+            <motion.div
+              key="detail-panel"
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 12 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="dash-card w-full shrink-0 space-y-3 overflow-y-auto p-4 md:max-h-[500px] md:w-72"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="break-all font-mono text-xs font-medium text-[#F97316]">
+                  {selectedNode.id}
                 </p>
-                <div className="mt-1 flex items-center gap-2">
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--landing-surface-2)]">
-                    <div
-                      className="h-full rounded-full bg-[#F97316]"
-                      style={{
-                        width: `${Math.min(selectedNode.priority, 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="font-mono text-[10px] text-[var(--landing-text-secondary)]">
-                    {selectedNode.priority}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                  Relevance
-                </p>
-                <div className="mt-1 flex items-center gap-2">
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--landing-surface-2)]">
-                    <div
-                      className="h-full rounded-full bg-[#F97316]"
-                      style={{
-                        width: `${Math.min(selectedNode.relevance, 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="font-mono text-[10px] text-[var(--landing-text-secondary)]">
-                    {selectedNode.relevance.toFixed(1)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-[10px]">
-              <span className="font-mono text-[var(--landing-text-tertiary)]">
-                Accessed {selectedNode.accessCount}x
-              </span>
-              {selectedNode.pinned && (
-                <Badge
-                  variant="outline"
-                  className="h-4 gap-0.5 border-[#F97316]/30 px-1 text-[10px] text-[#F97316]"
+                <button
+                  onClick={() => setSelectedNode(null)}
+                  className="shrink-0 text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
                 >
-                  <Pin className="h-2.5 w-2.5" />
-                  Pinned
-                </Badge>
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <div>
+                <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Content
+                </p>
+                <p className="text-xs leading-relaxed text-[var(--landing-text-secondary)]">
+                  {selectedNode.content.slice(0, 200)}
+                  {selectedNode.content.length > 200 ? "..." : ""}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                    Priority
+                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--landing-surface-2)]">
+                      <motion.div
+                        className="h-full rounded-full bg-[#F97316]"
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${Math.min(selectedNode.priority, 100)}%`,
+                        }}
+                        transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+                      />
+                    </div>
+                    <span className="font-mono text-[10px] text-[var(--landing-text-secondary)]">
+                      {selectedNode.priority}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                    Relevance
+                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--landing-surface-2)]">
+                      <motion.div
+                        className="h-full rounded-full bg-[#F97316]"
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${Math.min(selectedNode.relevance, 100)}%`,
+                        }}
+                        transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
+                      />
+                    </div>
+                    <span className="font-mono text-[10px] text-[var(--landing-text-secondary)]">
+                      {selectedNode.relevance.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-[10px]">
+                <span className="font-mono text-[var(--landing-text-tertiary)]">
+                  Accessed {selectedNode.accessCount}x
+                </span>
+                {selectedNode.pinned && (
+                  <Badge
+                    variant="outline"
+                    className="h-4 gap-0.5 border-[#F97316]/30 px-1 text-[10px] text-[#F97316]"
+                  >
+                    <Pin className="h-2.5 w-2.5" />
+                    Pinned
+                  </Badge>
+                )}
+              </div>
+
+              {selectedNode.tags.length > 0 && (
+                <div>
+                  <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                    Tags
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedNode.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="outline"
+                        className="h-4 px-1.5 font-mono text-[10px]"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               )}
-            </div>
 
-            {selectedNode.tags.length > 0 && (
-              <div>
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                  Tags
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {selectedNode.tags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      className="h-4 px-1.5 font-mono text-[10px]"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
+              {selectedRelated.length > 0 && (
+                <div>
+                  <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                    Connected ({selectedRelated.length})
+                  </p>
+                  <div className="space-y-1">
+                    {selectedRelated.map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => navigateToNode(key)}
+                        className="block w-full truncate rounded bg-[var(--landing-surface-2)] px-2 py-1 text-left font-mono text-[10px] text-[var(--landing-text-secondary)] transition-colors hover:bg-[var(--landing-surface-2)]/80 hover:text-[#F97316]"
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {selectedRelated.length > 0 && (
-              <div>
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                  Connected ({selectedRelated.length})
-                </p>
-                <div className="space-y-1">
-                  {selectedRelated.map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => navigateToNode(key)}
-                      className="block w-full truncate rounded bg-[var(--landing-surface-2)] px-2 py-1 text-left font-mono text-[10px] text-[var(--landing-text-secondary)] transition-colors hover:bg-[var(--landing-surface-2)]/80 hover:text-[#F97316]"
-                    >
-                      {key}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
