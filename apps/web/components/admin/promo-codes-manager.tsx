@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -387,9 +388,11 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
     fetchCodes();
   };
 
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   const deleteCode = async (code: PromoCode) => {
-    if (!confirm(`Deactivate promo code "${code.code}"?`)) return;
     await fetch(`/api/v1/admin/promo-codes/${code.id}`, { method: "DELETE" });
+    setDeleteConfirmId(null);
     fetchCodes();
   };
 
@@ -597,13 +600,15 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                       />
                     </TableCell>
                     <TableCell>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => copyCode(code.code)}
-                        className="font-mono text-sm font-medium text-[var(--landing-text)] transition-colors hover:text-[#F97316]"
+                        className="h-auto p-0 font-mono text-sm font-medium text-[var(--landing-text)] hover:text-[#F97316] hover:bg-transparent"
                         title="Click to copy"
                       >
                         {code.code}
-                      </button>
+                      </Button>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-[var(--landing-text-secondary)]">
                       {formatDiscount(code)}
@@ -662,7 +667,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                             <Power className="mr-2 h-4 w-4" />
                             {code.active ? "Deactivate" : "Activate"}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => deleteCode(code)} className="text-red-500 focus:text-red-500">
+                          <DropdownMenuItem onClick={() => setDeleteConfirmId(code.id)} className="text-red-500 focus:text-red-500">
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -843,13 +848,15 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
               {!editingId && (
                 <div className="space-y-2">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setShowBulk(!showBulk)}
-                    className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+                    className="h-auto p-0 font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] hover:bg-transparent"
                   >
-                    <ChevronDown className={`h-3 w-3 transition-transform ${showBulk ? "rotate-180" : ""}`} />
+                    <ChevronDown className={`mr-2 h-3 w-3 transition-transform ${showBulk ? "rotate-180" : ""}`} />
                     Bulk Generation
-                  </button>
+                  </Button>
                   {showBulk && (
                     <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
                       <div className="space-y-1">
@@ -988,9 +995,9 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                       return (
                         <span key={orgId} className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] text-blue-500">
                           {org?.name ?? orgId}
-                          <button onClick={() => setForm({ ...form, restrictedToOrgs: form.restrictedToOrgs.filter((id) => id !== orgId) })}>
+                          <Button variant="ghost" size="sm" className="h-auto w-auto p-0 hover:bg-transparent" onClick={() => setForm({ ...form, restrictedToOrgs: form.restrictedToOrgs.filter((id) => id !== orgId) })}>
                             <X className="h-3 w-3" />
-                          </button>
+                          </Button>
                         </span>
                       );
                     })}
@@ -1119,6 +1126,33 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <DialogContent style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+          <DialogHeader>
+            <DialogTitle className="font-mono text-[var(--landing-text)]">Deactivate Promo Code</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[var(--landing-text-secondary)]">
+            Are you sure you want to deactivate &ldquo;{codes.find((c) => c.id === deleteConfirmId)?.code}&rdquo;?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDeleteConfirmId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                const code = codes.find((c) => c.id === deleteConfirmId);
+                if (code) deleteCode(code);
+              }}
+            >
+              Deactivate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Detail Sheet */}
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
         <SheetContent className="w-[500px] overflow-y-auto sm:max-w-[500px]">
@@ -1179,7 +1213,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                 }}>
                   <Copy className="mr-2 h-4 w-4" /> Clone
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => { deleteCode(detailCode); setDetailOpen(false); }} className="border-red-500/20 text-red-500 hover:bg-red-500/10">
+                <Button size="sm" variant="outline" onClick={() => { setDetailOpen(false); setDeleteConfirmId(detailCode.id); }} className="border-red-500/20 text-red-500 hover:bg-red-500/10">
                   <Trash2 className="mr-2 h-4 w-4" /> Delete
                 </Button>
               </div>

@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface DeleteEntryButtonProps {
   version: string;
@@ -34,7 +35,7 @@ export function DeleteEntryButton({ version, title }: DeleteEntryButtonProps) {
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "Failed to delete entry");
+        toast.error(data.error || "Failed to delete entry");
       }
     } finally {
       setDeleting(false);
@@ -44,9 +45,9 @@ export function DeleteEntryButton({ version, title }: DeleteEntryButtonProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="text-xs font-medium text-red-500 transition-colors hover:text-red-400">
+        <Button variant="ghost" size="sm" className="h-auto p-0 text-xs font-medium text-red-500 hover:text-red-400 hover:bg-transparent">
           Delete
-        </button>
+        </Button>
       </DialogTrigger>
       <DialogContent className="border-[var(--landing-border)] bg-[var(--landing-surface)]">
         <DialogHeader>

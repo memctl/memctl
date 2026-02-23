@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Users,
@@ -215,7 +216,7 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
       <div className="px-3 py-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-all duration-200 hover:bg-[var(--landing-surface-2)] focus:outline-none">
+            <Button variant="ghost" className="flex h-auto w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-all duration-200 hover:bg-[var(--landing-surface-2)] focus:outline-none">
               <Avatar className="h-8 w-8 border border-[var(--landing-border)]">
                 {user.image && (
                   <AvatarImage src={user.image} alt={user.name} />
@@ -233,7 +234,7 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
                 </span>
               </div>
               <ChevronsUpDown className="h-4 w-4 shrink-0 text-[var(--landing-text-tertiary)]" />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start"

@@ -20,6 +20,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PLAN_IDS } from "@memctl/shared/constants";
+import { toast } from "sonner";
+
+const selectPopoverCls =
+  "bg-[var(--landing-surface)] border-[var(--landing-border)] text-[var(--landing-text)] shadow-xl";
+const selectItemCls =
+  "font-mono text-[11px] text-[var(--landing-text-secondary)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]";
+const dialogCls =
+  "bg-[var(--landing-surface)] border-[var(--landing-border)] text-[var(--landing-text)] shadow-xl";
 
 interface PlanTemplateFormProps {
   open: boolean;
@@ -92,7 +100,7 @@ export function PlanTemplateForm({
 
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error ?? "Failed to save template");
+        toast.error(data.error ?? "Failed to save template");
         return;
       }
 
@@ -105,9 +113,9 @@ export function PlanTemplateForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className={`${dialogCls} max-w-md`}>
         <DialogHeader>
-          <DialogTitle className="font-mono text-sm">
+          <DialogTitle className="font-mono text-sm text-[var(--landing-text)]">
             {template ? "Edit Template" : "New Template"}
           </DialogTitle>
         </DialogHeader>
@@ -119,7 +127,7 @@ export function PlanTemplateForm({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-7 font-mono text-[11px]"
+              className="h-8 font-mono text-[11px]"
               placeholder="Enterprise Standard"
             />
           </div>
@@ -140,12 +148,12 @@ export function PlanTemplateForm({
               Base plan
             </label>
             <Select value={basePlanId} onValueChange={setBasePlanId}>
-              <SelectTrigger className="h-7 font-mono text-[11px]">
+              <SelectTrigger className="h-8 font-mono text-[11px]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className={selectPopoverCls}>
                 {PLAN_IDS.map((id) => (
-                  <SelectItem key={id} value={id}>
+                  <SelectItem key={id} value={id} className={selectItemCls}>
                     {id}
                   </SelectItem>
                 ))}
@@ -162,7 +170,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={projectLimit}
                 onChange={(e) => setProjectLimit(e.target.value)}
-                className="h-7 font-mono text-[11px]"
+                className="h-8 font-mono text-[11px]"
               />
             </div>
             <div>
@@ -174,7 +182,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={memberLimit}
                 onChange={(e) => setMemberLimit(e.target.value)}
-                className="h-7 font-mono text-[11px]"
+                className="h-8 font-mono text-[11px]"
               />
             </div>
             <div>
@@ -186,7 +194,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={memoryLimitPerProject}
                 onChange={(e) => setMemoryLimitPerProject(e.target.value)}
-                className="h-7 font-mono text-[11px]"
+                className="h-8 font-mono text-[11px]"
               />
             </div>
             <div>
@@ -198,7 +206,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={memoryLimitOrg}
                 onChange={(e) => setMemoryLimitOrg(e.target.value)}
-                className="h-7 font-mono text-[11px]"
+                className="h-8 font-mono text-[11px]"
               />
             </div>
             <div>
@@ -210,7 +218,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={apiRatePerMinute}
                 onChange={(e) => setApiRatePerMinute(e.target.value)}
-                className="h-7 font-mono text-[11px]"
+                className="h-8 font-mono text-[11px]"
               />
             </div>
             <div>
@@ -223,7 +231,7 @@ export function PlanTemplateForm({
                 value={priceDollars}
                 onChange={(e) => setPriceDollars(e.target.value)}
                 placeholder="Optional"
-                className="h-7 font-mono text-[11px]"
+                className="h-8 font-mono text-[11px]"
               />
             </div>
           </div>
@@ -232,14 +240,14 @@ export function PlanTemplateForm({
           <Button
             variant="outline"
             size="sm"
-            className="h-7 font-mono text-[11px]"
+            className="h-8 font-mono text-[11px]"
             onClick={() => onOpenChange(false)}
           >
             Cancel
           </Button>
           <Button
             size="sm"
-            className="h-7 font-mono text-[11px] bg-[#F97316] hover:bg-[#F97316]/80"
+            className="h-8 font-mono text-[11px] bg-[#F97316] hover:bg-[#F97316]/80"
             onClick={handleSubmit}
             disabled={loading || !name.trim()}
           >

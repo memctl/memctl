@@ -51,7 +51,10 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
                 <Link href={`${APP_URL}/terms`} style={footerLink}>Terms</Link>
               </Text>
               <Text style={copyright}>
-                &copy; 2026 Mindroot Ltd, 71-75 Shelton Street, London WC2H 9JQ
+                &copy; 2026 Mindroot Ltd &middot; Company No. 16543299 &middot; England and Wales
+              </Text>
+              <Text style={address}>
+                71-75 Shelton Street, London WC2H 9JQ
               </Text>
             </Section>
           </Container>
@@ -136,5 +139,12 @@ const copyright: React.CSSProperties = {
   fontSize: "11px",
   color: "#333333",
   lineHeight: "18px",
+  margin: "0 0 4px",
+};
+
+const address: React.CSSProperties = {
+  fontSize: "10px",
+  color: "#333333",
+  lineHeight: "16px",
   margin: "0",
 };

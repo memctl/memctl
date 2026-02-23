@@ -7,6 +7,8 @@ import Link from "next/link";
 import { AuthBackground } from "@/components/auth/auth-background";
 import { TerminalLines } from "@/components/auth/terminal-lines";
 import { ThemeSwitcher } from "@/components/landing/theme-switcher";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const BLOCKED_PREFIXES = ["team@", "noreply@", "hello@", "info@", "support@"];
 
@@ -196,7 +198,7 @@ export default function AdminLoginPage() {
                     >
                       Email address
                     </label>
-                    <input
+                    <Input
                       id="email"
                       type="email"
                       value={email}
@@ -206,7 +208,7 @@ export default function AdminLoginPage() {
                       }}
                       placeholder="you@memctl.com"
                       required
-                      className="mb-4 w-full rounded-lg border border-[var(--landing-border)] bg-[var(--landing-bg)] px-3 py-2.5 font-mono text-sm text-[var(--landing-text)] placeholder:text-[var(--landing-text-tertiary)] focus:border-[#F97316]/50 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
+                      className="mb-4 font-mono"
                     />
 
                     <AnimatePresence>
@@ -222,10 +224,10 @@ export default function AdminLoginPage() {
                       )}
                     </AnimatePresence>
 
-                    <button
+                    <Button
                       type="submit"
                       disabled={loading}
-                      className="group w-full rounded-lg bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#EA580C] hover:shadow-[0_0_20px_rgba(249,115,22,0.25)] disabled:opacity-50"
+                      className="w-full bg-[#F97316] text-white hover:bg-[#EA580C] hover:shadow-[0_0_20px_rgba(249,115,22,0.25)]"
                     >
                       {loading ? (
                         <span className="flex items-center justify-center gap-2">
@@ -249,7 +251,7 @@ export default function AdminLoginPage() {
                       ) : (
                         "Send magic link"
                       )}
-                    </button>
+                    </Button>
                   </form>
 
                   <p className="mt-4 text-center text-xs text-[var(--landing-text-tertiary)]">

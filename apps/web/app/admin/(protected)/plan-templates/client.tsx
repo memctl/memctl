@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PlanTemplateForm } from "@/components/admin/plan-template-form";
+import { toast } from "sonner";
 
 interface Template {
   id: string;
@@ -48,7 +49,7 @@ export function PlanTemplatesClient({
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error ?? "Failed to archive");
+        toast.error(data.error ?? "Failed to archive");
         return;
       }
       router.refresh();
@@ -144,7 +145,7 @@ export function PlanTemplatesClient({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-6 px-2 font-mono text-[10px]"
+                          className="h-7 px-2 font-mono text-[10px]"
                           onClick={() => {
                             setEditTemplate(t);
                             setShowForm(true);
@@ -155,7 +156,7 @@ export function PlanTemplatesClient({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-6 px-2 font-mono text-[10px] text-red-500 border-red-500/30 hover:bg-red-500/10"
+                          className="h-7 px-2 font-mono text-[10px] text-red-500 border-red-500/30 hover:bg-red-500/10"
                           onClick={() => handleArchive(t.id)}
                           disabled={archiving === t.id}
                         >

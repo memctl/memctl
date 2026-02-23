@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 
 interface UserAdminToggleProps {
   userId: string;
@@ -31,18 +32,11 @@ export function UserAdminToggle({
   };
 
   return (
-    <button
-      onClick={handleToggle}
+    <Switch
+      checked={isAdmin}
+      onCheckedChange={handleToggle}
       disabled={loading}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 ${
-        isAdmin ? "bg-[#F97316]" : "bg-[var(--landing-border)]"
-      }`}
-    >
-      <span
-        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-          isAdmin ? "translate-x-4.5" : "translate-x-0.5"
-        }`}
-      />
-    </button>
+      className="data-[state=checked]:bg-[#F97316]"
+    />
   );
 }
