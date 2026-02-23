@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,17 +56,22 @@ export function MemberRowActions({
   const isSelf = member.userId === currentUserId;
 
   const handleRoleChange = async (newRole: "admin" | "member") => {
-    const res = await fetch(`/api/v1/orgs/${orgSlug}/members`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memberId: member.id, role: newRole }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      alert(data?.error ?? "Failed to update role");
-      return;
+    try {
+      const res = await fetch(`/api/v1/orgs/${orgSlug}/members`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: member.id, role: newRole }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to update role");
+        return;
+      }
+      toast.success(`Role updated to ${newRole}`);
+      router.refresh();
+    } catch {
+      toast.error("Network error");
     }
-    router.refresh();
   };
 
   const handleRemove = async () => {
@@ -77,17 +83,22 @@ export function MemberRowActions({
       return;
     }
 
-    const res = await fetch(`/api/v1/orgs/${orgSlug}/members`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memberId: member.id }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      alert(data?.error ?? "Failed to remove member");
-      return;
+    try {
+      const res = await fetch(`/api/v1/orgs/${orgSlug}/members`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: member.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to remove member");
+        return;
+      }
+      toast.success("Member removed");
+      router.refresh();
+    } catch {
+      toast.error("Network error");
     }
-    router.refresh();
   };
 
   return (

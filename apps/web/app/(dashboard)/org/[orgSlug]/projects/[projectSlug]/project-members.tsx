@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Avatar,
   AvatarFallback,
@@ -97,27 +98,35 @@ export function ProjectMembers({
     memberId: string,
     newRole: "admin" | "member",
   ) => {
-    const res = await fetch(`/api/v1/orgs/${orgSlug}/members`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memberId, role: newRole }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      alert(data?.error ?? "Failed to update role");
-      return;
+    try {
+      const res = await fetch(`/api/v1/orgs/${orgSlug}/members`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId, role: newRole }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to update role");
+        return;
+      }
+      toast.success(`Role updated to ${newRole}`);
+      router.refresh();
+    } catch {
+      toast.error("Network error");
     }
-    router.refresh();
   };
 
-  const handleRemoveFromProject = async (memberId: string, userId: string) => {
+  const handleRemoveFromProject = async (memberId: string, _userId: string) => {
     setSaving(memberId);
     try {
-      // Get current assignments, then remove this project
       const getRes = await fetch(
         `/api/v1/orgs/${orgSlug}/members/${memberId}/projects`,
       );
-      if (!getRes.ok) return;
+      if (!getRes.ok) {
+        const data = await getRes.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to load assignments");
+        return;
+      }
       const { projectIds } = await getRes.json();
       const updated = (projectIds as string[]).filter(
         (id: string) => id !== projectId,
@@ -137,7 +146,13 @@ export function ProjectMembers({
             m.id === memberId ? { ...m, assignedToProject: false } : m,
           ),
         );
+        toast.success("Member removed from project");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to update assignments");
       }
+    } catch {
+      toast.error("Network error");
     } finally {
       setSaving(null);
     }
@@ -149,7 +164,11 @@ export function ProjectMembers({
       const getRes = await fetch(
         `/api/v1/orgs/${orgSlug}/members/${memberId}/projects`,
       );
-      if (!getRes.ok) return;
+      if (!getRes.ok) {
+        const data = await getRes.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to load assignments");
+        return;
+      }
       const { projectIds } = await getRes.json();
       const updated = [...new Set([...(projectIds as string[]), projectId])];
 
@@ -167,8 +186,14 @@ export function ProjectMembers({
             m.id === memberId ? { ...m, assignedToProject: true } : m,
           ),
         );
+        toast.success("Member added to project");
         setAddDialogOpen(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to update assignments");
       }
+    } catch {
+      toast.error("Network error");
     } finally {
       setSaving(null);
     }

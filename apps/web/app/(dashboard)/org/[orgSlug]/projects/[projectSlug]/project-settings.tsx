@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,7 +47,7 @@ export function ProjectSettings({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch(`/api/v1/projects/${projectSlug}?org=${orgSlug}`, {
+      const res = await fetch(`/api/v1/projects/${projectSlug}?org=${orgSlug}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,7 +55,15 @@ export function ProjectSettings({
           description: description || undefined,
         }),
       });
-      router.refresh();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to save project settings");
+      } else {
+        toast.success("Project settings saved");
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error");
     } finally {
       setSaving(false);
     }
@@ -67,9 +76,15 @@ export function ProjectSettings({
         method: "DELETE",
       });
       if (res.ok) {
+        toast.success("Project deleted");
         router.push(`/org/${orgSlug}`);
         router.refresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to delete project");
       }
+    } catch {
+      toast.error("Network error");
     } finally {
       setDeleting(false);
     }

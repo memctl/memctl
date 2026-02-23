@@ -3,8 +3,9 @@
 import { Suspense, useRef, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Brain, Zap, Trash2, Settings, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Brain, Zap, Trash2, Settings, Users, ChevronLeft, ChevronRight, Network } from "lucide-react";
 import { MemoryBrowser } from "@/components/dashboard/memories/memory-browser";
+import { MemoryGraph } from "@/components/dashboard/memories/memory-graph";
 import { ActivityFeed } from "../../activity/activity-feed";
 import { HygieneDashboard } from "../../hygiene/hygiene-dashboard";
 import type { ProjectSettingsProps } from "./project-settings";
@@ -39,6 +40,7 @@ interface ActivityItem {
   details: string | null;
   sessionId: string | null;
   projectName: string;
+  createdByName: string | null;
   createdAt: string;
 }
 
@@ -108,6 +110,7 @@ const TAB_DEFS: Array<{
   adminOnly?: boolean;
 }> = [
   { id: "memories", label: "Memories", icon: Brain },
+  { id: "graph", label: "Graph", icon: Network },
   { id: "members", label: "Members", icon: Users, adminOnly: true },
   { id: "activity", label: "Activity", icon: Zap, adminOnly: true },
   { id: "cleanup", label: "Cleanup", icon: Trash2 },
@@ -315,6 +318,10 @@ function ProjectTabsInner({
                 />
               )}
             </>
+          )}
+
+          {currentTab === "graph" && (
+            <MemoryGraph memories={memories} />
           )}
 
           {currentTab === "members" && isAdmin && (

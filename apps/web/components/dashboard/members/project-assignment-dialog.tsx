@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -68,12 +69,15 @@ export function ProjectAssignmentDialog({
         },
       );
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        alert(data?.error ?? "Failed to update assignments");
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to update assignments");
         return;
       }
+      toast.success("Project assignments updated");
       onSave(Array.from(selected));
       onOpenChange(false);
+    } catch {
+      toast.error("Network error");
     } finally {
       setSaving(false);
     }

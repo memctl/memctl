@@ -115,8 +115,19 @@ export default async function ProjectDetailPage({
       .orderBy(desc(memories.updatedAt))
       .limit(500),
     db
-      .select()
+      .select({
+        id: activityLogs.id,
+        action: activityLogs.action,
+        toolName: activityLogs.toolName,
+        memoryKey: activityLogs.memoryKey,
+        details: activityLogs.details,
+        sessionId: activityLogs.sessionId,
+        projectId: activityLogs.projectId,
+        createdAt: activityLogs.createdAt,
+        createdByName: users.name,
+      })
       .from(activityLogs)
+      .leftJoin(users, eq(activityLogs.createdBy, users.id))
       .where(eq(activityLogs.projectId, project.id))
       .orderBy(desc(activityLogs.createdAt))
       .limit(50),
@@ -189,6 +200,7 @@ export default async function ProjectDetailPage({
     details: a.details,
     sessionId: a.sessionId,
     projectName: project.name,
+    createdByName: a.createdByName ?? null,
     createdAt: a.createdAt?.toISOString() ?? "",
   }));
 

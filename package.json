@@ -12,7 +12,8 @@
     "test": "turbo test",
     "db:generate": "pnpm --filter @memctl/db generate",
     "db:migrate": "pnpm --filter @memctl/db migrate",
-    "db:push": "pnpm --filter @memctl/db push"
+    "db:push": "pnpm --filter @memctl/db push",
+    "db:seed-graph": "npx tsx apps/web/scripts/seed-graph.ts"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

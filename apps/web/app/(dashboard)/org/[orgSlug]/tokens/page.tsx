@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,13 +42,22 @@ export default function TokensPage() {
   const [revoking, setRevoking] = useState(false);
 
   const fetchTokens = useCallback(async () => {
-    const url = showAll
-      ? `/api/v1/tokens?org=${orgSlug}&all=true`
-      : `/api/v1/tokens?org=${orgSlug}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    setTokens(data.tokens ?? []);
-    if (data.role) setRole(data.role);
+    try {
+      const url = showAll
+        ? `/api/v1/tokens?org=${orgSlug}&all=true`
+        : `/api/v1/tokens?org=${orgSlug}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to load tokens");
+        return;
+      }
+      const data = await res.json();
+      setTokens(data.tokens ?? []);
+      if (data.role) setRole(data.role);
+    } catch {
+      toast.error("Network error loading tokens");
+    }
   }, [orgSlug, showAll]);
 
   useEffect(() => {
@@ -64,11 +74,16 @@ export default function TokensPage() {
         body: JSON.stringify({ name: newTokenName }),
       });
       const data = await res.json();
-      if (data.token) {
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to create token");
+      } else if (data.token) {
         setCreatedToken(data.token);
         setNewTokenName("");
+        toast.success("Token created");
         await fetchTokens();
       }
+    } catch {
+      toast.error("Network error");
     } finally {
       setLoading(false);
     }
@@ -78,12 +93,20 @@ export default function TokensPage() {
     if (!revokeTarget) return;
     setRevoking(true);
     try {
-      await fetch(
+      const res = await fetch(
         `/api/v1/tokens?id=${revokeTarget.id}&org=${orgSlug}`,
         { method: "DELETE" },
       );
-      setTokens(tokens.filter((t) => t.id !== revokeTarget.id));
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to revoke token");
+      } else {
+        setTokens(tokens.filter((t) => t.id !== revokeTarget.id));
+        toast.success("Token revoked");
+      }
       setRevokeTarget(null);
+    } catch {
+      toast.error("Network error");
     } finally {
       setRevoking(false);
     }

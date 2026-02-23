@@ -30,6 +30,8 @@ npx vitest run                                 # Run tests
 pnpm db:push                                   # Push schema to DB
 pnpm db:generate                               # Generate migrations
 pnpm db:migrate                                # Run migrations
+pnpm db:seed-graph                             # Seed graph demo data
+pnpm db:seed-graph <slug>                      # Seed into specific project
 ```
 
 ## Environments

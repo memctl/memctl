@@ -62,6 +62,24 @@ docker compose exec web pnpm db:generate
 docker compose exec web pnpm db:migrate
 ```
 
+### Seed sample data
+
+To populate a project with interconnected memories for testing the Graph tab:
+
+```bash
+docker compose exec web pnpm db:seed-graph
+```
+
+Or target a specific project by slug:
+
+```bash
+docker compose exec web pnpm db:seed-graph my-project
+```
+
+This inserts ~30 memories organized into clusters with `relatedKeys` relationships, plus orphan nodes. Re-running deletes old seed data first.
+
+### Drizzle Studio
+
 To open Drizzle Studio against the local database:
 
 ```bash

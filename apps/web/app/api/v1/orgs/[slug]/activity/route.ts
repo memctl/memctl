@@ -71,7 +71,8 @@ export async function GET(
   // Fetch activities
   let activities: Array<{
     id: string; action: string; toolName: string | null; memoryKey: string | null;
-    details: string | null; sessionId: string | null; projectName: string; createdAt: string;
+    details: string | null; sessionId: string | null; projectName: string;
+    createdByName: string | null; createdAt: string;
   }> = [];
   let activityHasMore = false;
 
@@ -88,8 +89,19 @@ export async function GET(
     }
 
     const rows = await db
-      .select()
+      .select({
+        id: activityLogs.id,
+        action: activityLogs.action,
+        toolName: activityLogs.toolName,
+        memoryKey: activityLogs.memoryKey,
+        details: activityLogs.details,
+        sessionId: activityLogs.sessionId,
+        projectId: activityLogs.projectId,
+        createdAt: activityLogs.createdAt,
+        createdByName: users.name,
+      })
       .from(activityLogs)
+      .leftJoin(users, eq(activityLogs.createdBy, users.id))
       .where(and(...conditions))
       .orderBy(desc(activityLogs.createdAt))
       .limit(limit + 1);
@@ -102,6 +114,7 @@ export async function GET(
       details: a.details,
       sessionId: a.sessionId,
       projectName: projectNameMap[a.projectId] ?? "Unknown",
+      createdByName: a.createdByName ?? null,
       createdAt: a.createdAt?.toISOString() ?? "",
     }));
 
