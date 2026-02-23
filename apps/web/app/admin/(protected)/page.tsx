@@ -4,8 +4,9 @@ import {
   organizations,
   projects,
   memories,
+  onboardingResponses,
 } from "@memctl/db/schema";
-import { count, desc } from "drizzle-orm";
+import { count, desc, isNotNull } from "drizzle-orm";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import {
   Table,
@@ -20,9 +21,21 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar";
+import { getEffectivePlanId, isActiveTrial } from "@/lib/plans";
+import { STRIPE_PLANS } from "@/lib/stripe";
+import { OverviewCharts } from "./overview-charts";
 
 export default async function AdminOverviewPage() {
-  const [userCount, orgCount, projectCount, memoryCount] = await Promise.all([
+  const [
+    userCount,
+    orgCount,
+    projectCount,
+    memoryCount,
+    allUserTimestamps,
+    allOrgs,
+    referrerAgg,
+    recentUsers,
+  ] = await Promise.all([
     db
       .select({ value: count() })
       .from(users)
@@ -39,49 +52,98 @@ export default async function AdminOverviewPage() {
       .select({ value: count() })
       .from(memories)
       .then((r) => r[0]?.value ?? 0),
+    db
+      .select({ createdAt: users.createdAt })
+      .from(users),
+    db
+      .select({
+        createdAt: organizations.createdAt,
+        planId: organizations.planId,
+        planOverride: organizations.planOverride,
+        trialEndsAt: organizations.trialEndsAt,
+        planExpiresAt: organizations.planExpiresAt,
+        contractValue: organizations.contractValue,
+      })
+      .from(organizations),
+    db
+      .select({
+        source: onboardingResponses.heardFrom,
+        count: count(),
+      })
+      .from(onboardingResponses)
+      .where(isNotNull(onboardingResponses.heardFrom))
+      .groupBy(onboardingResponses.heardFrom),
+    db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt))
+      .limit(10),
   ]);
 
-  const recentUsers = await db
-    .select()
-    .from(users)
-    .orderBy(desc(users.createdAt))
-    .limit(10);
+  const selfHosted = process.env.SELF_HOSTED === "true";
 
-  const allOrgs = await db.select().from(organizations);
+  // Compute effective plan per org and derive revenue stats
+  let mrr = 0;
+  let paidOrgs = 0;
+  let activeTrials = 0;
+
+  const orgEntries = allOrgs.map((org) => {
+    const effectivePlan = getEffectivePlanId(org);
+
+    if (effectivePlan !== "free") {
+      if (effectivePlan === "enterprise" && org.contractValue) {
+        mrr += Math.round(org.contractValue / 12);
+      } else {
+        mrr += STRIPE_PLANS[effectivePlan]?.price ?? 0;
+      }
+      paidOrgs++;
+    }
+
+    if (isActiveTrial(org)) {
+      activeTrials++;
+    }
+
+    return {
+      createdAt: org.createdAt.getTime(),
+      effectivePlanId: effectivePlan,
+      contractValue: org.contractValue,
+    };
+  });
+
+  const signupTimestamps = allUserTimestamps.map((u) => u.createdAt.getTime());
+
+  const referrerData = referrerAgg
+    .filter((r): r is typeof r & { source: string } => r.source !== null)
+    .map((r) => ({ source: r.source, count: r.count }));
+
+  // Plan breakdown for the table
   const planBreakdown: Record<string, number> = {};
-  for (const org of allOrgs) {
-    planBreakdown[org.planId] = (planBreakdown[org.planId] || 0) + 1;
+  for (const org of orgEntries) {
+    planBreakdown[org.effectivePlanId] =
+      (planBreakdown[org.effectivePlanId] || 0) + 1;
   }
-
-  const stats = [
-    { label: "Users", value: userCount },
-    { label: "Organizations", value: orgCount },
-    { label: "Projects", value: projectCount },
-    { label: "Memories", value: memoryCount.toLocaleString() },
-    { label: "Health", value: "OK" },
-  ];
 
   return (
     <div>
       <PageHeader badge="Admin" title="Platform Overview" />
 
-      <div className="mb-4 grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className="dash-card p-3"
-          >
-            <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
-              {s.label}
-            </span>
-            <span className="block text-lg font-semibold text-[var(--landing-text)]">
-              {s.value}
-            </span>
-          </div>
-        ))}
-      </div>
+      <OverviewCharts
+        signupTimestamps={signupTimestamps}
+        orgEntries={orgEntries}
+        referrerData={referrerData}
+        stats={{
+          users: userCount,
+          orgs: orgCount,
+          projects: projectCount,
+          memories: memoryCount,
+          mrr,
+          paidOrgs,
+          activeTrials,
+        }}
+        selfHosted={selfHosted}
+      />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {/* Recent Signups */}
         <div className="dash-card overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
