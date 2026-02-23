@@ -13,9 +13,10 @@ import {
   sessionLogs,
   memoryVersions,
   memoryLocks,
+  auditLogs,
   users,
 } from "@memctl/db/schema";
-import { eq, and, desc, lt, sql } from "drizzle-orm";
+import { eq, and, desc, lt, or, sql } from "drizzle-orm";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { ProjectTabs } from "./project-tabs";
 
@@ -105,8 +106,8 @@ export default async function ProjectDetailPage({
     if (!assignment) redirect(`/org/${orgSlug}`);
   }
 
-  // Fetch memories, activity, and sessions in parallel
-  const [memoryList, activityList, sessionList] = await Promise.all([
+  // Fetch memories, activity, sessions, and audit logs in parallel
+  const [memoryList, activityList, sessionList, auditList] = await Promise.all([
     db
       .select()
       .from(memories)
@@ -125,6 +126,26 @@ export default async function ProjectDetailPage({
       .where(eq(sessionLogs.projectId, project.id))
       .orderBy(desc(sessionLogs.startedAt))
       .limit(50),
+    db
+      .select({
+        id: auditLogs.id,
+        action: auditLogs.action,
+        actorId: auditLogs.actorId,
+        targetUserId: auditLogs.targetUserId,
+        details: auditLogs.details,
+        createdAt: auditLogs.createdAt,
+        actorName: users.name,
+      })
+      .from(auditLogs)
+      .leftJoin(users, eq(auditLogs.actorId, users.id))
+      .where(
+        or(
+          eq(auditLogs.projectId, project.id),
+          and(eq(auditLogs.orgId, org.id), sql`${auditLogs.projectId} IS NULL`),
+        ),
+      )
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(100),
   ]);
 
   const activeCount = memoryList.filter((m) => !m.archivedAt).length;
@@ -183,6 +204,29 @@ export default async function ProjectDetailPage({
     startedAt: s.startedAt?.toISOString() ?? "",
     endedAt: s.endedAt?.toISOString() ?? null,
     projectName: project.name,
+  }));
+
+  // Build target user name map for audit logs
+  const targetUserIds = [...new Set(auditList.map((a) => a.targetUserId).filter(Boolean))] as string[];
+  const targetUserMap: Record<string, string> = {};
+  if (targetUserIds.length > 0) {
+    const targetUsers = await db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(sql`${users.id} IN ${targetUserIds}`);
+    for (const u of targetUsers) {
+      targetUserMap[u.id] = u.name;
+    }
+  }
+
+  // Serialize audit logs
+  const serializedAuditLogs = auditList.map((a) => ({
+    id: a.id,
+    action: a.action,
+    actorName: a.actorName ?? "Unknown",
+    targetUserName: a.targetUserId ? (targetUserMap[a.targetUserId] ?? "Unknown") : null,
+    details: a.details,
+    createdAt: a.createdAt?.toISOString() ?? "",
   }));
 
   // Activity stats
@@ -361,6 +405,7 @@ export default async function ProjectDetailPage({
         memories={serializedMemories}
         mcpConfig={mcpConfig}
         activities={serializedActivities}
+        auditLogs={serializedAuditLogs}
         sessions={serializedSessions}
         activityStats={{
           totalActions: serializedActivities.length,

@@ -71,6 +71,15 @@ interface HygieneData {
   tableSizes?: { versions: number; activityLogs: number; expiredLocks: number };
 }
 
+interface AuditLogItem {
+  id: string;
+  action: string;
+  actorName: string;
+  targetUserName: string | null;
+  details: string | null;
+  createdAt: string;
+}
+
 export interface ProjectTabsProps {
   orgSlug: string;
   projectSlug: string;
@@ -80,6 +89,7 @@ export interface ProjectTabsProps {
   memories: SerializedMemory[];
   mcpConfig: string;
   activities: ActivityItem[];
+  auditLogs: AuditLogItem[];
   sessions: SessionItem[];
   activityStats: ActivityStats;
   hygieneData: HygieneData;
@@ -109,6 +119,7 @@ function ProjectTabsInner({
   memories,
   mcpConfig,
   activities,
+  auditLogs,
   sessions,
   activityStats,
   hygieneData,
@@ -262,6 +273,7 @@ function ProjectTabsInner({
           {currentTab === "activity" && isAdmin && (
             <ActivityFeed
               activities={activities}
+              auditLogs={auditLogs}
               sessions={sessions}
               stats={activityStats}
             />

@@ -15,6 +15,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { projectUpdateSchema } from "@memctl/shared/validators";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(
   req: NextRequest,
@@ -159,6 +160,17 @@ export async function PATCH(
     .where(eq(projects.id, project.id))
     .limit(1);
 
+  await logAudit({
+    orgId: org.id,
+    projectId: project.id,
+    actorId: session.user.id,
+    action: "project_updated",
+    details: {
+      ...(parsed.data.name ? { name: parsed.data.name } : {}),
+      ...(parsed.data.description !== undefined ? { description: parsed.data.description } : {}),
+    },
+  });
+
   return NextResponse.json({ project: updated });
 }
 
@@ -213,6 +225,14 @@ export async function DELETE(
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
+
+  // Log audit before deleting (projectId is nullable in audit_logs, so it survives deletion)
+  await logAudit({
+    orgId: org.id,
+    actorId: session.user.id,
+    action: "project_deleted",
+    details: { name: project.name, slug: project.slug },
+  });
 
   // 1. Delete child records by projectId
   await db.delete(memoryLocks).where(eq(memoryLocks.projectId, project.id));

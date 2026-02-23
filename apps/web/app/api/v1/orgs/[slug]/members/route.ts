@@ -10,6 +10,7 @@ import {
 import { eq, and, count } from "drizzle-orm";
 import { headers } from "next/headers";
 import { memberRoleUpdateSchema } from "@memctl/shared/validators";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(
   req: NextRequest,
@@ -153,10 +154,20 @@ export async function PATCH(
     return NextResponse.json({ error: "Cannot change owner role" }, { status: 400 });
   }
 
+  const oldRole = targetMember.role;
+
   await db
     .update(organizationMembers)
     .set({ role: parsed.data.role })
     .where(eq(organizationMembers.id, targetMember.id));
+
+  await logAudit({
+    orgId: org.id,
+    actorId: session.user.id,
+    action: "role_changed",
+    targetUserId: targetMember.userId,
+    details: { oldRole, newRole: parsed.data.role },
+  });
 
   return NextResponse.json({ success: true, role: parsed.data.role });
 }
@@ -248,6 +259,14 @@ export async function DELETE(
   await db
     .delete(organizationMembers)
     .where(eq(organizationMembers.id, targetMember.id));
+
+  await logAudit({
+    orgId: org.id,
+    actorId: session.user.id,
+    action: "member_removed",
+    targetUserId: targetMember.userId,
+    details: { role: targetMember.role },
+  });
 
   return NextResponse.json({ deleted: true });
 }

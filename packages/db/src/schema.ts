@@ -488,6 +488,30 @@ export const promoRedemptions = sqliteTable(
   ],
 );
 
+export const auditLogs = sqliteTable(
+  "audit_logs",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    projectId: text("project_id").references(() => projects.id),
+    actorId: text("actor_id")
+      .notNull()
+      .references(() => users.id),
+    action: text("action").notNull(), // "role_changed" | "member_removed" | "member_assigned" | "member_unassigned" | "project_created" | "project_updated" | "project_deleted"
+    targetUserId: text("target_user_id").references(() => users.id),
+    details: text("details"), // JSON object with extra context
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("audit_org_created").on(table.orgId, table.createdAt),
+    index("audit_project_created").on(table.projectId, table.createdAt),
+  ],
+);
+
 export const blogPosts = sqliteTable("blog_posts", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),

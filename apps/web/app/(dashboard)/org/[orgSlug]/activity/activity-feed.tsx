@@ -4,7 +4,8 @@ import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Search, Zap, GitBranch, SquareTerminal, ChevronDown, ChevronRight,
+  Search, Zap, GitBranch, ChevronDown, ChevronRight,
+  Shield, UserPlus, UserMinus, FolderPlus, FolderEdit, FolderX,
 } from "lucide-react";
 
 interface ActivityItem {
@@ -15,6 +16,15 @@ interface ActivityItem {
   details: string | null;
   sessionId: string | null;
   projectName: string;
+  createdAt: string;
+}
+
+interface AuditLogItem {
+  id: string;
+  action: string;
+  actorName: string;
+  targetUserName: string | null;
+  details: string | null;
   createdAt: string;
 }
 
@@ -33,6 +43,7 @@ interface SessionItem {
 
 interface ActivityFeedProps {
   activities: ActivityItem[];
+  auditLogs?: AuditLogItem[];
   sessions: SessionItem[];
   stats: {
     totalActions: number;
@@ -82,34 +93,155 @@ const ACTION_LABELS: Record<string, string> = {
   tool_call: "tool",
 };
 
+// Audit log styling
+const AUDIT_COLORS: Record<string, string> = {
+  role_changed: "text-violet-400",
+  member_removed: "text-red-400",
+  member_assigned: "text-cyan-400",
+  member_unassigned: "text-orange-400",
+  project_created: "text-emerald-400",
+  project_updated: "text-blue-400",
+  project_deleted: "text-red-400",
+};
+
+const AUDIT_DOT_BG: Record<string, string> = {
+  role_changed: "bg-violet-400",
+  member_removed: "bg-red-400",
+  member_assigned: "bg-cyan-400",
+  member_unassigned: "bg-orange-400",
+  project_created: "bg-emerald-400",
+  project_updated: "bg-blue-400",
+  project_deleted: "bg-red-400",
+};
+
+const AUDIT_ICONS: Record<string, typeof Shield> = {
+  role_changed: Shield,
+  member_removed: UserMinus,
+  member_assigned: UserPlus,
+  member_unassigned: UserMinus,
+  project_created: FolderPlus,
+  project_updated: FolderEdit,
+  project_deleted: FolderX,
+};
+
+const AUDIT_LABELS: Record<string, string> = {
+  role_changed: "Role changed",
+  member_removed: "Member removed",
+  member_assigned: "Member assigned",
+  member_unassigned: "Member unassigned",
+  project_created: "Project created",
+  project_updated: "Project updated",
+  project_deleted: "Project deleted",
+};
+
+function formatAuditDetails(action: string, details: string | null, targetUserName: string | null): string {
+  const parsed = details ? (() => { try { return JSON.parse(details); } catch { return null; } })() : null;
+
+  switch (action) {
+    case "role_changed":
+      if (parsed?.oldRole && parsed?.newRole) {
+        return `${targetUserName ?? "User"}: ${parsed.oldRole} → ${parsed.newRole}`;
+      }
+      return targetUserName ?? "";
+    case "member_removed":
+      return targetUserName ?? "User";
+    case "member_assigned":
+    case "member_unassigned":
+      return targetUserName ?? "User";
+    case "project_created":
+      return parsed?.name ?? "";
+    case "project_updated":
+      if (parsed?.name) return `name: ${parsed.name}`;
+      return "";
+    case "project_deleted":
+      return parsed?.name ?? "";
+    default:
+      return targetUserName ?? "";
+  }
+}
+
+type SourceFilter = "all" | "usage" | "dashboard";
+
 function safeParseArray(s: string | null): string[] {
   if (!s) return [];
   try { const parsed = JSON.parse(s); return Array.isArray(parsed) ? parsed : []; }
   catch { return []; }
 }
 
-export function ActivityFeed({ activities, sessions, stats }: ActivityFeedProps) {
+// Unified timeline item
+interface TimelineItem {
+  id: string;
+  type: "activity" | "audit";
+  createdAt: string;
+  data: ActivityItem | AuditLogItem;
+}
+
+export function ActivityFeed({ activities, auditLogs, sessions, stats }: ActivityFeedProps) {
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState<string | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
 
-  const filteredActivities = useMemo(() => {
-    let result = activities;
-    if (actionFilter) {
-      result = result.filter((a) => a.action === actionFilter);
+  const hasAuditLogs = (auditLogs?.length ?? 0) > 0;
+
+  // Build unified timeline
+  const timeline = useMemo(() => {
+    const items: TimelineItem[] = [];
+
+    if (sourceFilter !== "dashboard") {
+      for (const a of activities) {
+        items.push({ id: a.id, type: "activity", createdAt: a.createdAt, data: a });
+      }
     }
+
+    if (sourceFilter !== "usage" && auditLogs) {
+      for (const a of auditLogs) {
+        items.push({ id: `audit-${a.id}`, type: "audit", createdAt: a.createdAt, data: a });
+      }
+    }
+
+    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return items;
+  }, [activities, auditLogs, sourceFilter]);
+
+  const filteredTimeline = useMemo(() => {
+    let result = timeline;
+
+    if (actionFilter) {
+      result = result.filter((item) => {
+        if (item.type === "activity") return (item.data as ActivityItem).action === actionFilter;
+        if (item.type === "audit") return (item.data as AuditLogItem).action === actionFilter;
+        return false;
+      });
+    }
+
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(
-        (a) =>
-          a.action.toLowerCase().includes(q) ||
-          (a.memoryKey && a.memoryKey.toLowerCase().includes(q)) ||
-          (a.toolName && a.toolName.toLowerCase().includes(q)) ||
-          a.projectName.toLowerCase().includes(q),
-      );
+      result = result.filter((item) => {
+        if (item.type === "activity") {
+          const a = item.data as ActivityItem;
+          return (
+            a.action.toLowerCase().includes(q) ||
+            (a.memoryKey && a.memoryKey.toLowerCase().includes(q)) ||
+            (a.toolName && a.toolName.toLowerCase().includes(q)) ||
+            a.projectName.toLowerCase().includes(q)
+          );
+        }
+        if (item.type === "audit") {
+          const a = item.data as AuditLogItem;
+          return (
+            a.action.toLowerCase().includes(q) ||
+            a.actorName.toLowerCase().includes(q) ||
+            (a.targetUserName && a.targetUserName.toLowerCase().includes(q)) ||
+            (AUDIT_LABELS[a.action] ?? a.action).toLowerCase().includes(q)
+          );
+        }
+        return false;
+      });
     }
+
     return result;
-  }, [activities, search, actionFilter]);
+  }, [timeline, search, actionFilter]);
 
   const filteredSessions = useMemo(() => {
     if (!search) return sessions;
@@ -124,7 +256,7 @@ export function ActivityFeed({ activities, sessions, stats }: ActivityFeedProps)
   }, [sessions, search]);
 
   const actionTypes = Object.keys(stats.actionBreakdown);
-  const hasData = activities.length > 0 || sessions.length > 0;
+  const hasData = activities.length > 0 || sessions.length > 0 || hasAuditLogs;
 
   if (!hasData) {
     return (
@@ -156,6 +288,15 @@ export function ActivityFeed({ activities, sessions, stats }: ActivityFeedProps)
           <span className="font-bold">{stats.totalSessions}</span>
           <span className="text-[var(--landing-text-tertiary)]"> sessions</span>
         </span>
+        {hasAuditLogs && (
+          <>
+            <span className="text-[var(--landing-text-tertiary)]">·</span>
+            <span className="font-mono text-xs text-violet-400">
+              <span className="font-bold">{auditLogs!.length}</span>
+              <span className="text-[var(--landing-text-tertiary)]"> events</span>
+            </span>
+          </>
+        )}
         <div className="ml-auto flex items-center gap-1.5">
           {Object.entries(stats.actionBreakdown).map(([action, count]) => (
             <span
@@ -180,8 +321,35 @@ export function ActivityFeed({ activities, sessions, stats }: ActivityFeedProps)
             className="h-8 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-xs"
           />
         </div>
-        {actionTypes.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {/* Source filter (only if audit logs exist) */}
+          {hasAuditLogs && (
+            <>
+              {(["all", "usage", "dashboard"] as const).map((source) => (
+                <button
+                  key={source}
+                  onClick={() => {
+                    setSourceFilter(source);
+                    setActionFilter(null);
+                  }}
+                  className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
+                    sourceFilter === source
+                      ? source === "dashboard"
+                        ? "bg-violet-500/15 text-violet-400"
+                        : source === "usage"
+                          ? "bg-[#F97316]/15 text-[#F97316]"
+                          : "bg-[#F97316]/15 text-[#F97316]"
+                      : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+                  }`}
+                >
+                  {source === "all" ? "All" : source === "usage" ? "Usage" : "Dashboard"}
+                </button>
+              ))}
+              <span className="mx-1 self-center text-[var(--landing-border)]">|</span>
+            </>
+          )}
+          {/* Action type filters */}
+          {!hasAuditLogs && (
             <button
               onClick={() => setActionFilter(null)}
               className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
@@ -192,21 +360,21 @@ export function ActivityFeed({ activities, sessions, stats }: ActivityFeedProps)
             >
               All
             </button>
-            {actionTypes.map((action) => (
-              <button
-                key={action}
-                onClick={() => setActionFilter(actionFilter === action ? null : action)}
-                className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
-                  actionFilter === action
-                    ? ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text)]"
-                    : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
-                }`}
-              >
-                {ACTION_LABELS[action] ?? action}
-              </button>
-            ))}
-          </div>
-        )}
+          )}
+          {sourceFilter !== "dashboard" && actionTypes.map((action) => (
+            <button
+              key={action}
+              onClick={() => setActionFilter(actionFilter === action ? null : action)}
+              className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
+                actionFilter === action
+                  ? ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text)]"
+                  : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+              }`}
+            >
+              {ACTION_LABELS[action] ?? action}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Split layout */}
@@ -215,31 +383,62 @@ export function ActivityFeed({ activities, sessions, stats }: ActivityFeedProps)
         <div className="md:col-span-3">
           <div className="dash-card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-2">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">Activity</span>
-              <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredActivities.length}</span>
+              <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                {sourceFilter === "dashboard" ? "Dashboard events" : sourceFilter === "usage" ? "Usage activity" : "Activity"}
+              </span>
+              <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredTimeline.length}</span>
             </div>
-            {filteredActivities.length === 0 ? (
+            {filteredTimeline.length === 0 ? (
               <div className="px-4 py-6 text-center">
                 <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No matching activity</p>
               </div>
             ) : (
               <div className="max-h-[32rem] overflow-y-auto divide-y divide-[var(--landing-border)]">
-                {filteredActivities.map((a) => (
-                  <div key={a.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors">
-                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${ACTION_DOT_BG[a.action] ?? "bg-[var(--landing-text-tertiary)]"}`} />
-                    <span className={`shrink-0 font-mono text-[11px] font-medium ${ACTION_COLORS[a.action] ?? "text-[var(--landing-text-tertiary)]"}`}>
-                      {ACTION_LABELS[a.action] ?? a.action}
-                    </span>
-                    {a.memoryKey && (
-                      <span className="min-w-0 truncate font-mono text-[11px] text-[#F97316]">{a.memoryKey}</span>
-                    )}
-                    {a.toolName && !a.memoryKey && (
-                      <span className="min-w-0 truncate font-mono text-[11px] text-amber-400">{a.toolName}</span>
-                    )}
-                    <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{a.projectName}</span>
-                    <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
-                  </div>
-                ))}
+                {filteredTimeline.map((item) => {
+                  if (item.type === "activity") {
+                    const a = item.data as ActivityItem;
+                    return (
+                      <div key={item.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors">
+                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${ACTION_DOT_BG[a.action] ?? "bg-[var(--landing-text-tertiary)]"}`} />
+                        <span className={`shrink-0 font-mono text-[11px] font-medium ${ACTION_COLORS[a.action] ?? "text-[var(--landing-text-tertiary)]"}`}>
+                          {ACTION_LABELS[a.action] ?? a.action}
+                        </span>
+                        {a.memoryKey && (
+                          <span className="min-w-0 truncate font-mono text-[11px] text-[#F97316]">{a.memoryKey}</span>
+                        )}
+                        {a.toolName && !a.memoryKey && (
+                          <span className="min-w-0 truncate font-mono text-[11px] text-amber-400">{a.toolName}</span>
+                        )}
+                        <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{a.projectName}</span>
+                        <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
+                      </div>
+                    );
+                  }
+
+                  // Audit log item
+                  const a = item.data as AuditLogItem;
+                  const AuditIcon = AUDIT_ICONS[a.action] ?? Shield;
+                  const detail = formatAuditDetails(a.action, a.details, a.targetUserName);
+
+                  return (
+                    <div key={item.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors">
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${AUDIT_DOT_BG[a.action] ?? "bg-violet-400"}`} />
+                      <AuditIcon className={`h-3 w-3 shrink-0 ${AUDIT_COLORS[a.action] ?? "text-violet-400"}`} />
+                      <span className={`shrink-0 font-mono text-[11px] font-medium ${AUDIT_COLORS[a.action] ?? "text-violet-400"}`}>
+                        {AUDIT_LABELS[a.action] ?? a.action}
+                      </span>
+                      {detail && (
+                        <span className="min-w-0 truncate font-mono text-[11px] text-[var(--landing-text-secondary)]">
+                          {detail}
+                        </span>
+                      )}
+                      <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                        {a.actorName}
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
