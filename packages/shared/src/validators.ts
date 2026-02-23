@@ -127,7 +127,6 @@ export const adminOrgActionSchema = z.discriminatedUnion("action", [
     action: z.literal("create_subscription"),
     priceInCents: z.number().int().min(100),
     interval: z.enum(["month", "year"]).default("month"),
-    enableMetering: z.boolean().default(false),
   }),
   z.object({ action: z.literal("cancel_subscription") }),
   z.object({

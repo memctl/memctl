@@ -222,8 +222,6 @@ export async function POST(req: NextRequest) {
           .set({
             planId: "free",
             stripeSubscriptionId: null,
-            stripeMeteredItemId: null,
-            meteredBilling: false,
             updatedAt: new Date(),
           })
           .where(eq(organizations.stripeSubscriptionId, subscription.id));
@@ -233,8 +231,6 @@ export async function POST(req: NextRequest) {
           .set({
             planId: "free",
             stripeSubscriptionId: null,
-            stripeMeteredItemId: null,
-            meteredBilling: false,
             projectLimit: freePlan.projectLimit,
             memberLimit: freePlan.memberLimit,
             memoryLimitPerProject: null,

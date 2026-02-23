@@ -387,33 +387,22 @@ export async function PATCH(
         interval: action.interval,
       });
 
-      const meteredPriceId = action.enableMetering
-        ? (process.env.STRIPE_METERED_PRICE_ID ?? undefined)
-        : undefined;
-
-      const { subscriptionId, meteredItemId } = await createAdminSubscription({
+      const { subscriptionId } = await createAdminSubscription({
         customerId,
         priceId,
         orgSlug: org.slug,
-        meteredPriceId,
       });
 
       details = {
         subscriptionId,
         priceInCents: action.priceInCents,
         interval: action.interval,
-        enableMetering: action.enableMetering,
-        meteredItemId: meteredItemId ?? null,
       };
 
       const subUpdates: Record<string, unknown> = {
         stripeSubscriptionId: subscriptionId,
         updatedAt: now,
       };
-      if (meteredItemId) {
-        subUpdates.stripeMeteredItemId = meteredItemId;
-        subUpdates.meteredBilling = true;
-      }
       await db
         .update(organizations)
         .set(subUpdates)
@@ -441,8 +430,6 @@ export async function PATCH(
         .update(organizations)
         .set({
           stripeSubscriptionId: null,
-          stripeMeteredItemId: null,
-          meteredBilling: false,
           updatedAt: now,
         })
         .where(eq(organizations.id, org.id));

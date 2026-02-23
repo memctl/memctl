@@ -17,9 +17,10 @@ import { toast } from "sonner";
 interface DeleteEntryButtonProps {
   version: string;
   title: string;
+  onDeleted?: () => void;
 }
 
-export function DeleteEntryButton({ version, title }: DeleteEntryButtonProps) {
+export function DeleteEntryButton({ version, title, onDeleted }: DeleteEntryButtonProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -32,7 +33,11 @@ export function DeleteEntryButton({ version, title }: DeleteEntryButtonProps) {
       });
       if (res.ok) {
         setOpen(false);
-        router.refresh();
+        if (onDeleted) {
+          onDeleted();
+        } else {
+          router.refresh();
+        }
       } else {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error || "Failed to delete entry");

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -12,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PlanTemplateForm } from "@/components/admin/plan-template-form";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
 
 interface Template {
@@ -40,6 +42,17 @@ export function PlanTemplatesClient({
   const [showForm, setShowForm] = useState(false);
   const [editTemplate, setEditTemplate] = useState<Template | null>(null);
   const [archiving, setArchiving] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!searchQuery) return templates;
+    const q = searchQuery.toLowerCase();
+    return templates.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        (t.description && t.description.toLowerCase().includes(q)),
+    );
+  }, [templates, searchQuery]);
 
   async function handleArchive(id: string) {
     setArchiving(id);
@@ -60,7 +73,16 @@ export function PlanTemplatesClient({
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+          <Input
+            placeholder="Search name or description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <Button
           className="font-mono bg-[#F97316] hover:bg-[#F97316]/80"
           onClick={() => {
@@ -98,17 +120,19 @@ export function PlanTemplatesClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {templates.length === 0 ? (
+              {filtered.length === 0 ? (
                 <TableRow className="border-[var(--landing-border)]">
                   <TableCell
                     colSpan={6}
                     className="py-8 text-center font-mono text-sm text-[var(--landing-text-tertiary)]"
                   >
-                    No templates yet
+                    {searchQuery
+                      ? "No templates match your search"
+                      : "No templates yet"}
                   </TableCell>
                 </TableRow>
               ) : (
-                templates.map((t) => (
+                filtered.map((t) => (
                   <TableRow
                     key={t.id}
                     className="border-[var(--landing-border)]"

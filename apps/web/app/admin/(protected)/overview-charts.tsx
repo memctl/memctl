@@ -176,6 +176,12 @@ function formatDollars(cents: number): string {
   return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function formatDollarsCompact(cents: number): string {
+  const dollars = cents / 100;
+  if (dollars >= 1000) return `$${(dollars / 1000).toFixed(dollars % 1000 === 0 ? 0 : 1)}K`;
+  return `$${dollars.toFixed(0)}`;
+}
+
 const signupChartConfig = {
   signups: { label: "Signups", color: "#F97316" },
 } satisfies ChartConfig;
@@ -334,7 +340,7 @@ export function OverviewCharts({
       )}
 
       {/* ── Signups: full width with embedded period selector ── */}
-      <div className="dash-card p-4">
+      <div className="dash-card min-w-0 overflow-hidden p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
             Signups
@@ -393,7 +399,7 @@ export function OverviewCharts({
       {!selfHosted ? (
         <div className="grid gap-2 lg:grid-cols-3">
           {/* Revenue: 2 cols */}
-          <div className="lg:col-span-2 dash-card p-4">
+          <div className="lg:col-span-2 dash-card min-w-0 overflow-hidden p-4">
             <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Revenue (MRR)
             </span>
@@ -417,7 +423,8 @@ export function OverviewCharts({
                   tick={{ fontSize: 9, fill: "var(--landing-text-tertiary)" }}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v: number) => formatDollars(v)}
+                  width={45}
+                  tickFormatter={(v: number) => formatDollarsCompact(v)}
                 />
                 <ChartTooltip
                   content={
@@ -493,7 +500,7 @@ export function OverviewCharts({
           </div>
 
           {/* Referrer: 2 cols, horizontal layout */}
-          <div className="lg:col-span-2 dash-card p-4">
+          <div className="lg:col-span-2 dash-card min-w-0 overflow-hidden p-4">
             <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Referrers
             </span>
@@ -504,8 +511,8 @@ export function OverviewCharts({
                 </p>
               </div>
             ) : (
-              <div className="flex items-center gap-6">
-                <div className="h-[160px] w-[160px] shrink-0">
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+                <div className="h-[140px] w-[140px] shrink-0 sm:h-[160px] sm:w-[160px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -525,7 +532,7 @@ export function OverviewCharts({
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex-1 space-y-1.5">
+                <div className="w-full flex-1 space-y-1.5">
                   {referrerEntries.map((entry) => (
                     <div key={entry.name} className="flex items-center gap-2">
                       <div
@@ -555,7 +562,7 @@ export function OverviewCharts({
             data={planDistribution}
             empty="No organizations yet"
           />
-          <div className="lg:col-span-2 dash-card p-4">
+          <div className="lg:col-span-2 dash-card min-w-0 overflow-hidden p-4">
             <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Referrers
             </span>
@@ -566,8 +573,8 @@ export function OverviewCharts({
                 </p>
               </div>
             ) : (
-              <div className="flex items-center gap-6">
-                <div className="h-[160px] w-[160px] shrink-0">
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+                <div className="h-[140px] w-[140px] shrink-0 sm:h-[160px] sm:w-[160px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -587,7 +594,7 @@ export function OverviewCharts({
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex-1 space-y-1.5">
+                <div className="w-full flex-1 space-y-1.5">
                   {referrerEntries.map((entry) => (
                     <div key={entry.name} className="flex items-center gap-2">
                       <div

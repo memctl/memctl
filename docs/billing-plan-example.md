@@ -88,7 +88,6 @@ Key source files:
 Admin-created enterprise subscriptions use custom Stripe prices (no checkout redirect). See `apps/web/lib/stripe.ts`:
 - `createCustomPrice()` -- creates a one-off Stripe price for the enterprise deal
 - `createAdminSubscription()` -- attaches the price to the org's Stripe customer
-- `reportMemoryUsage()` -- reports metered usage for memory overage billing
 
 Plan templates (`packages/db/src/schema.ts` `planTemplates` table) let admins define reusable limit configurations and apply them to orgs.
 
@@ -99,6 +98,5 @@ STRIPE_LITE_PRICE_ID=price_123
 STRIPE_PRO_PRICE_ID=price_456
 STRIPE_BUSINESS_PRICE_ID=price_789
 STRIPE_SCALE_PRICE_ID=price_abc
-STRIPE_METERED_PRICE_ID=price_metered_xyz
 CRON_SECRET=your-cron-secret
 ```

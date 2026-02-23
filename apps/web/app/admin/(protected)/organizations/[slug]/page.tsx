@@ -355,7 +355,6 @@ export default async function AdminOrgDetailPage({
             planExpiresAt: org.planExpiresAt?.toISOString() ?? null,
             stripeSubscriptionId: org.stripeSubscriptionId,
             stripeCustomerId: org.stripeCustomerId,
-            meteredBilling: org.meteredBilling,
             contractValue: org.contractValue,
             contractNotes: org.contractNotes,
             contractStartDate: org.contractStartDate?.toISOString() ?? null,

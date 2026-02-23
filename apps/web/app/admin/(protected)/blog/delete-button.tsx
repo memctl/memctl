@@ -17,9 +17,10 @@ import { toast } from "sonner";
 interface DeletePostButtonProps {
   slug: string;
   title: string;
+  onDeleted?: () => void;
 }
 
-export function DeletePostButton({ slug, title }: DeletePostButtonProps) {
+export function DeletePostButton({ slug, title, onDeleted }: DeletePostButtonProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -30,7 +31,11 @@ export function DeletePostButton({ slug, title }: DeletePostButtonProps) {
       const res = await fetch(`/api/v1/blog/${slug}`, { method: "DELETE" });
       if (res.ok) {
         setOpen(false);
-        router.refresh();
+        if (onDeleted) {
+          onDeleted();
+        } else {
+          router.refresh();
+        }
       } else {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error || "Failed to delete post");

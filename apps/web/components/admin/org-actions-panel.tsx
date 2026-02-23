@@ -19,7 +19,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
 import { PLAN_IDS, type PlanId } from "@memctl/shared/constants";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -50,7 +49,6 @@ interface OrgActionsPanelProps {
     planExpiresAt: string | null;
     stripeSubscriptionId: string | null;
     stripeCustomerId: string | null;
-    meteredBilling: boolean | null;
     contractValue: number | null;
     contractNotes: string | null;
     contractStartDate: string | null;
@@ -122,7 +120,6 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
   const trialActive = org.trialEndsAt && new Date(org.trialEndsAt) > new Date();
   const [subPriceDollars, setSubPriceDollars] = useState("200");
   const [subInterval, setSubInterval] = useState<"month" | "year">("month");
-  const [subMetering, setSubMetering] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(
     org.planExpiresAt ? new Date(org.planExpiresAt) : undefined,
@@ -340,9 +337,6 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
               <div className="mt-2">
                 <div className="mb-2 rounded-md bg-[var(--landing-code-bg)] px-3 py-2 font-mono text-[10px] text-[var(--landing-text-secondary)] break-all border border-[var(--landing-border)]">
                   {org.stripeSubscriptionId}
-                  {org.meteredBilling && (
-                    <span className="ml-2 rounded-full bg-[#F97316]/10 px-1.5 py-0.5 text-[9px] text-[#F97316]">metered</span>
-                  )}
                 </div>
                 <Button variant="outline" className="font-mono text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => doAction({ action: "cancel_subscription" })} disabled={loading}>Cancel Subscription</Button>
               </div>
@@ -366,11 +360,7 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                     </Select>
                   </div>
                 </div>
-                <label className="flex items-center gap-2 font-mono text-[11px] text-[var(--landing-text-secondary)] cursor-pointer">
-                  <Switch checked={subMetering} onCheckedChange={setSubMetering} className="data-[state=checked]:bg-[#F97316]" />
-                  Enable metered billing
-                </label>
-                <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "create_subscription", priceInCents: Math.round(Number(subPriceDollars) * 100), interval: subInterval, enableMetering: subMetering })} disabled={loading || !subPriceDollars}>
+                <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "create_subscription", priceInCents: Math.round(Number(subPriceDollars) * 100), interval: subInterval })} disabled={loading || !subPriceDollars}>
                   {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Create Subscription"}
                 </Button>
               </div>

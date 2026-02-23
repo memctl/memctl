@@ -141,41 +141,15 @@ export async function createAdminSubscription(params: {
   customerId: string;
   priceId: string;
   orgSlug: string;
-  meteredPriceId?: string;
-}): Promise<{ subscriptionId: string; meteredItemId?: string }> {
+}): Promise<{ subscriptionId: string }> {
   const s = getStripe();
-  const items: { price: string }[] = [{ price: params.priceId }];
-  if (params.meteredPriceId) {
-    items.push({ price: params.meteredPriceId });
-  }
   const subscription = await s.subscriptions.create({
     customer: params.customerId,
-    items,
+    items: [{ price: params.priceId }],
     metadata: { orgSlug: params.orgSlug, adminCreated: "true" },
   });
 
-  let meteredItemId: string | undefined;
-  if (params.meteredPriceId) {
-    const meteredItem = subscription.items.data.find(
-      (item) => item.price.id === params.meteredPriceId,
-    );
-    meteredItemId = meteredItem?.id;
-  }
-
-  return { subscriptionId: subscription.id, meteredItemId };
-}
-
-export async function reportMemoryUsage(params: {
-  subscriptionItemId: string;
-  memoryCount: number;
-  timestamp?: number;
-}): Promise<void> {
-  const s = getStripe();
-  await s.subscriptionItems.createUsageRecord(params.subscriptionItemId, {
-    quantity: params.memoryCount,
-    timestamp: params.timestamp ?? Math.floor(Date.now() / 1000),
-    action: "set",
-  });
+  return { subscriptionId: subscription.id };
 }
 
 export async function cancelAdminSubscription(
