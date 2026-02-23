@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,12 +29,20 @@ export function OrgSettingsForm({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch(`/api/v1/orgs/${orgSlug}`, {
+      const res = await fetch(`/api/v1/orgs/${orgSlug}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, companyName, taxId }),
       });
-      router.refresh();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to save settings");
+      } else {
+        toast.success("Settings saved");
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error");
     } finally {
       setSaving(false);
     }

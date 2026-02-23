@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -100,15 +101,23 @@ export function InviteMemberDialog({
   };
 
   const handleRevoke = async (invitationId: string) => {
-    const res = await fetch(`/api/v1/orgs/${orgSlug}/invitations`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invitationId }),
-    });
+    try {
+      const res = await fetch(`/api/v1/orgs/${orgSlug}/invitations`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invitationId }),
+      });
 
-    if (res.ok) {
-      setPendingInvitations((prev) => prev.filter((i) => i.id !== invitationId));
-      router.refresh();
+      if (res.ok) {
+        setPendingInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+        toast.success("Invitation revoked");
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to revoke invitation");
+      }
+    } catch {
+      toast.error("Network error");
     }
   };
 

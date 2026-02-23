@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, CreditCard, FileText, Ticket, X, ChevronDown } from "lucide-react";
@@ -143,7 +144,13 @@ export function BillingClient({
         }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to start checkout");
+      } else if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast.error("Network error");
     } finally {
       setLoading(null);
     }
@@ -156,7 +163,13 @@ export function BillingClient({
         method: "POST",
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to open billing portal");
+      } else if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast.error("Network error");
     } finally {
       setLoading(null);
     }
