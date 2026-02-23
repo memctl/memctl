@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { ApiClient } from "./api-client.js";
 
 function getClient(): ApiClient {
@@ -37,9 +38,17 @@ Usage:
   memctl init --windsurf    Write Windsurf MCP config only
   memctl init --all         Write all IDE configs
   memctl doctor             Run diagnostics
+  memctl whoami             Show current config and identity
+  memctl status             Show connection status and capacity
+  memctl version            Show CLI version
   memctl list [options]     List memories
   memctl get <key>          Get a memory by key
   memctl search <query>     Search memories
+  memctl delete <key>       Delete a memory (prompts for confirmation)
+  memctl pin <key>          Pin a memory
+  memctl unpin <key>        Unpin a memory
+  memctl archive <key>      Archive a memory
+  memctl unarchive <key>    Unarchive a memory
   memctl export [format]    Export memories (agents_md | cursorrules | json)
   memctl import <file>      Import from .cursorrules / copilot-instructions
   memctl snapshot <name>    Create a snapshot
@@ -53,6 +62,8 @@ Options:
   --limit <n>               Limit results (default: 50)
   --format <fmt>            Export format: agents_md, cursorrules, json (default: agents_md)
   --json                    Output raw JSON
+  --force                   Skip confirmation prompts
+  --version                 Show CLI version
 
 Environment:
   MEMCTL_TOKEN              API token (required, or use memctl init)
@@ -112,6 +123,13 @@ export async function runCli(args: string[]): Promise<void> {
     return;
   }
 
+  if (command === "version" || flags.version) {
+    const require = createRequire(import.meta.url);
+    const pkg = require("../package.json") as { version: string };
+    console.log(`memctl ${pkg.version}`);
+    return;
+  }
+
   if (command === "serve") {
     // Handled by index.ts - should not reach here
     return;
@@ -137,6 +155,60 @@ export async function runCli(args: string[]): Promise<void> {
   if (command === "doctor") {
     const { runDoctor } = await import("./doctor.js");
     await runDoctor();
+    return;
+  }
+
+  if (command === "whoami") {
+    const { loadConfigForCwd, getConfigPath } = await import("./config.js");
+    const configPath = getConfigPath();
+    const resolved = await loadConfigForCwd();
+    console.log(`Config:   ${configPath}`);
+    if (resolved) {
+      const masked = resolved.token.length > 8
+        ? resolved.token.slice(0, 8) + "..."
+        : "***";
+      const source = process.env.MEMCTL_TOKEN ? "env" : "file";
+      console.log(`API URL:  ${resolved.baseUrl}`);
+      console.log(`Org:      ${resolved.org}`);
+      console.log(`Project:  ${resolved.project}`);
+      console.log(`Token:    ${masked} (${source})`);
+    } else {
+      console.log(`Status:   Not configured`);
+      console.log(`Run "memctl auth" and "memctl init" to get started.`);
+    }
+    return;
+  }
+
+  if (command === "status") {
+    const { loadConfigForCwd } = await import("./config.js");
+    const resolved = await loadConfigForCwd();
+    if (!resolved) {
+      console.log("Not configured. Run \"memctl auth\" and \"memctl init\" to get started.");
+      return;
+    }
+    console.log(`Org:      ${resolved.org}`);
+    console.log(`Project:  ${resolved.project}`);
+    console.log(`API URL:  ${resolved.baseUrl}`);
+    const statusClient = new ApiClient(resolved);
+    const online = await statusClient.ping();
+    console.log(`Status:   ${online ? "online" : "offline"}`);
+    if (online) {
+      try {
+        const cap = await statusClient.getMemoryCapacity();
+        const pct = cap.usageRatio != null ? (cap.usageRatio * 100).toFixed(1) : "?";
+        console.log(`Capacity: ${cap.used}/${cap.limit} (${pct}%)`);
+      } catch { /* ignore */ }
+      try {
+        const sessions = await statusClient.getSessionLogs(1);
+        if (sessions.sessionLogs.length > 0) {
+          const last = sessions.sessionLogs[0]!;
+          const when = last.endedAt
+            ? new Date(last.endedAt as string).toLocaleString()
+            : "in progress";
+          console.log(`Last session: ${last.sessionId} (${when})`);
+        }
+      } catch { /* ignore */ }
+    }
     return;
   }
 
@@ -393,6 +465,61 @@ export async function runCli(args: string[]): Promise<void> {
           else if (cap.isApproaching) console.log("Status: Approaching limit");
           else console.log("Status: OK");
         } catch { /* ignore */ }
+      }
+      break;
+    }
+
+    case "delete": {
+      const key = positional[0];
+      if (!key) {
+        console.error("Usage: memctl delete <key>");
+        process.exit(1);
+      }
+      if (!flags.force) {
+        const rl = await import("node:readline/promises");
+        const iface = rl.createInterface({ input: process.stdin, output: process.stdout });
+        const answer = await iface.question(`Delete "${key}"? [y/N] `);
+        iface.close();
+        if (answer.toLowerCase() !== "y") {
+          console.log("Aborted.");
+          return;
+        }
+      }
+      await client.deleteMemory(key);
+      console.log(`Deleted: ${key}`);
+      break;
+    }
+
+    case "pin":
+    case "unpin": {
+      const key = positional[0];
+      if (!key) {
+        console.error(`Usage: memctl ${command} <key>`);
+        process.exit(1);
+      }
+      const pin = command === "pin";
+      const result = await client.pinMemory(key, pin);
+      if (json) {
+        out(result, true);
+      } else {
+        console.log(`${pin ? "Pinned" : "Unpinned"}: ${key}`);
+      }
+      break;
+    }
+
+    case "archive":
+    case "unarchive": {
+      const key = positional[0];
+      if (!key) {
+        console.error(`Usage: memctl ${command} <key>`);
+        process.exit(1);
+      }
+      const archive = command === "archive";
+      const result = await client.archiveMemory(key, archive);
+      if (json) {
+        out(result, true);
+      } else {
+        console.log(`${archive ? "Archived" : "Unarchived"}: ${key}`);
       }
       break;
     }
