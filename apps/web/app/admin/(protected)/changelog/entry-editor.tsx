@@ -48,7 +48,7 @@ const categoryOptions: { value: Category; label: string; color: string }[] = [
 const selectPopoverCls =
   "bg-[var(--landing-surface)] border-[var(--landing-border)] text-[var(--landing-text)] shadow-xl";
 const selectItemCls =
-  "font-mono text-[11px] text-[var(--landing-text-secondary)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]";
+  "font-mono text-[var(--landing-text-secondary)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]";
 
 export function EntryEditor({ mode, initialData }: EntryEditorProps) {
   const router = useRouter();
@@ -247,7 +247,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
                     value={item.category}
                     onValueChange={(val) => updateItem(index, "category", val)}
                   >
-                    <SelectTrigger className="h-7 w-[130px] font-mono text-[11px]">
+                    <SelectTrigger className="w-[130px] font-mono">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className={selectPopoverCls}>

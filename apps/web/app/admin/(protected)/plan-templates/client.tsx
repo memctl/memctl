@@ -62,8 +62,7 @@ export function PlanTemplatesClient({
     <>
       <div className="mb-4 flex justify-end">
         <Button
-          size="sm"
-          className="h-8 font-mono text-[11px] bg-[#F97316] hover:bg-[#F97316]/80"
+          className="font-mono bg-[#F97316] hover:bg-[#F97316]/80"
           onClick={() => {
             setEditTemplate(null);
             setShowForm(true);
@@ -145,7 +144,7 @@ export function PlanTemplatesClient({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-7 px-2 font-mono text-[10px]"
+                          className="font-mono"
                           onClick={() => {
                             setEditTemplate(t);
                             setShowForm(true);
@@ -156,7 +155,7 @@ export function PlanTemplatesClient({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-7 px-2 font-mono text-[10px] text-red-500 border-red-500/30 hover:bg-red-500/10"
+                          className="font-mono text-red-500 border-red-500/30 hover:bg-red-500/10"
                           onClick={() => handleArchive(t.id)}
                           disabled={archiving === t.id}
                         >

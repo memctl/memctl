@@ -64,7 +64,7 @@ const statusBadgeStyles: Record<string, string> = {
 };
 
 const selectPopoverCls = "bg-[var(--landing-surface)] border-[var(--landing-border)] text-[var(--landing-text)] shadow-xl";
-const selectItemCls = "font-mono text-[11px] text-[var(--landing-text-secondary)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]";
+const selectItemCls = "font-mono text-[var(--landing-text-secondary)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]";
 const dialogCls = "bg-[var(--landing-surface)] border-[var(--landing-border)] text-[var(--landing-text)] shadow-xl";
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
@@ -186,11 +186,11 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             <div className="flex gap-2">
               {org.status === "active" ? (
                 <>
-                  <Button size="sm" variant="outline" className="h-8 font-mono text-[11px] text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => setStatusDialog("suspend")} disabled={loading}>Suspend</Button>
-                  <Button size="sm" variant="outline" className="h-8 font-mono text-[11px] text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setStatusDialog("ban")} disabled={loading}>Ban</Button>
+                  <Button variant="outline" className="font-mono text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => setStatusDialog("suspend")} disabled={loading}>Suspend</Button>
+                  <Button variant="outline" className="font-mono text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => setStatusDialog("ban")} disabled={loading}>Ban</Button>
                 </>
               ) : (
-                <Button size="sm" variant="outline" className="h-8 font-mono text-[11px] text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10" onClick={() => doAction({ action: "reactivate" })} disabled={loading}>Reactivate</Button>
+                <Button variant="outline" className="font-mono text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10" onClick={() => doAction({ action: "reactivate" })} disabled={loading}>Reactivate</Button>
               )}
             </div>
           </div>
@@ -204,7 +204,7 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             </p>
             <div className="flex gap-2">
               <Select value={planOverride} onValueChange={setPlanOverride}>
-                <SelectTrigger size="sm" className="h-8 font-mono text-[11px] flex-1">
+                <SelectTrigger className="font-mono flex-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className={selectPopoverCls}>
@@ -214,7 +214,7 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                   ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" variant="outline" className="h-8 font-mono text-[11px]" onClick={() => doAction({ action: "override_plan", planId: planOverride === "none" ? null : (planOverride as PlanId) })} disabled={loading}>Apply</Button>
+              <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "override_plan", planId: planOverride === "none" ? null : (planOverride as PlanId) })} disabled={loading}>Apply</Button>
             </div>
           </div>
         </div>
@@ -234,27 +234,27 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
             <div>
               <FieldLabel>Project limit</FieldLabel>
-              <Input type="number" min={1} value={projectLimit} onChange={(e) => setProjectLimit(Number(e.target.value))} className="h-8 font-mono text-[11px]" />
+              <Input type="number" min={1} value={projectLimit} onChange={(e) => setProjectLimit(Number(e.target.value))} className="font-mono" />
             </div>
             <div>
               <FieldLabel>Member limit</FieldLabel>
-              <Input type="number" min={1} value={memberLimit} onChange={(e) => setMemberLimit(Number(e.target.value))} className="h-8 font-mono text-[11px]" />
+              <Input type="number" min={1} value={memberLimit} onChange={(e) => setMemberLimit(Number(e.target.value))} className="font-mono" />
             </div>
             <div>
               <FieldLabel>Memory / project</FieldLabel>
-              <Input type="number" min={1} value={memoryLimitPerProject} onChange={(e) => setMemoryLimitPerProject(e.target.value)} placeholder={String(org.planDefaultMemoryPerProject)} className="h-8 font-mono text-[11px]" />
+              <Input type="number" min={1} value={memoryLimitPerProject} onChange={(e) => setMemoryLimitPerProject(e.target.value)} placeholder={String(org.planDefaultMemoryPerProject)} className="font-mono" />
             </div>
             <div>
               <FieldLabel>Memory org-wide</FieldLabel>
-              <Input type="number" min={1} value={memoryLimitOrg} onChange={(e) => setMemoryLimitOrg(e.target.value)} placeholder={String(org.planDefaultMemoryOrg)} className="h-8 font-mono text-[11px]" />
+              <Input type="number" min={1} value={memoryLimitOrg} onChange={(e) => setMemoryLimitOrg(e.target.value)} placeholder={String(org.planDefaultMemoryOrg)} className="font-mono" />
             </div>
             <div>
               <FieldLabel>API rate / min</FieldLabel>
-              <Input type="number" min={1} value={apiRatePerMinute} onChange={(e) => setApiRatePerMinute(e.target.value)} placeholder={String(org.planDefaultApiRate)} className="h-8 font-mono text-[11px]" />
+              <Input type="number" min={1} value={apiRatePerMinute} onChange={(e) => setApiRatePerMinute(e.target.value)} placeholder={String(org.planDefaultApiRate)} className="font-mono" />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="h-8 font-mono text-[11px]" onClick={() => {
+            <Button variant="outline" className="font-mono" onClick={() => {
               const body: Record<string, unknown> = { action: "override_limits", projectLimit, memberLimit };
               if (memoryLimitPerProject) body.memoryLimitPerProject = Number(memoryLimitPerProject);
               if (memoryLimitOrg) body.memoryLimitOrg = Number(memoryLimitOrg);
@@ -262,7 +262,7 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
               doAction(body);
             }} disabled={loading}>Save Limits</Button>
             {org.customLimits && (
-              <Button size="sm" variant="outline" className="h-8 font-mono text-[11px] text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => doAction({ action: "reset_limits" })} disabled={loading}>Reset to Defaults</Button>
+              <Button variant="outline" className="font-mono text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => doAction({ action: "reset_limits" })} disabled={loading}>Reset to Defaults</Button>
             )}
           </div>
         </div>
@@ -280,15 +280,15 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                 <div className="mb-3 rounded-md bg-amber-500/10 px-3 py-2 font-mono text-[11px] text-amber-500 border border-amber-500/20">
                   Active until {new Date(org.trialEndsAt!).toLocaleDateString()}
                 </div>
-                <Button size="sm" variant="outline" className="h-8 font-mono text-[11px] text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => doAction({ action: "end_trial" })} disabled={loading}>End Trial</Button>
+                <Button variant="outline" className="font-mono text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => doAction({ action: "end_trial" })} disabled={loading}>End Trial</Button>
               </div>
             ) : (
               <div className="flex gap-2 items-end mt-2">
                 <div className="flex-1">
                   <FieldLabel>Duration (days)</FieldLabel>
-                  <Input type="number" min={1} max={365} value={trialDays} onChange={(e) => setTrialDays(Number(e.target.value))} className="h-8 font-mono text-[11px]" />
+                  <Input type="number" min={1} max={365} value={trialDays} onChange={(e) => setTrialDays(Number(e.target.value))} className="font-mono" />
                 </div>
-                <Button size="sm" variant="outline" className="h-8 font-mono text-[11px]" onClick={() => doAction({ action: "start_trial", durationDays: trialDays })} disabled={loading}>Start Trial</Button>
+                <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "start_trial", durationDays: trialDays })} disabled={loading}>Start Trial</Button>
               </div>
             )}
           </div>
@@ -304,19 +304,19 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                     <span className="ml-2 rounded-full bg-[#F97316]/10 px-1.5 py-0.5 text-[9px] text-[#F97316]">metered</span>
                   )}
                 </div>
-                <Button size="sm" variant="outline" className="h-8 font-mono text-[11px] text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => doAction({ action: "cancel_subscription" })} disabled={loading}>Cancel Subscription</Button>
+                <Button variant="outline" className="font-mono text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={() => doAction({ action: "cancel_subscription" })} disabled={loading}>Cancel Subscription</Button>
               </div>
             ) : (
               <div className="space-y-2 mt-2">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <FieldLabel>Price ($)</FieldLabel>
-                    <Input type="number" min={1} value={subPriceDollars} onChange={(e) => setSubPriceDollars(e.target.value)} className="h-8 font-mono text-[11px]" />
+                    <Input type="number" min={1} value={subPriceDollars} onChange={(e) => setSubPriceDollars(e.target.value)} className="font-mono" />
                   </div>
                   <div>
                     <FieldLabel>Interval</FieldLabel>
                     <Select value={subInterval} onValueChange={(v) => setSubInterval(v as "month" | "year")}>
-                      <SelectTrigger size="sm" className="h-8 font-mono text-[11px]">
+                      <SelectTrigger className="font-mono">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className={selectPopoverCls}>
@@ -330,7 +330,7 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                   <Switch checked={subMetering} onCheckedChange={setSubMetering} className="data-[state=checked]:bg-[#F97316]" />
                   Enable metered billing
                 </label>
-                <Button size="sm" variant="outline" className="h-8 font-mono text-[11px]" onClick={() => doAction({ action: "create_subscription", priceInCents: Math.round(Number(subPriceDollars) * 100), interval: subInterval, enableMetering: subMetering })} disabled={loading || !subPriceDollars}>Create Subscription</Button>
+                <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "create_subscription", priceInCents: Math.round(Number(subPriceDollars) * 100), interval: subInterval, enableMetering: subMetering })} disabled={loading || !subPriceDollars}>Create Subscription</Button>
               </div>
             )}
           </div>
@@ -349,7 +349,7 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             </div>
             <div className="flex gap-2">
               <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                <SelectTrigger size="sm" className="h-8 font-mono text-[11px] flex-1">
+                <SelectTrigger className="font-mono flex-1">
                   <SelectValue placeholder="Select template" />
                 </SelectTrigger>
                 <SelectContent className={selectPopoverCls}>
@@ -358,7 +358,7 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                   ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" variant="outline" className="h-8 font-mono text-[11px]" onClick={() => doAction({ action: "apply_template", templateId: selectedTemplate })} disabled={loading || !selectedTemplate}>Apply</Button>
+              <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "apply_template", templateId: selectedTemplate })} disabled={loading || !selectedTemplate}>Apply</Button>
             </div>
           </div>
 
@@ -373,11 +373,11 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             <div className="flex gap-2 items-end">
               <div className="flex-1">
                 <FieldLabel>Date</FieldLabel>
-                <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="h-8 font-mono text-[11px]" />
+                <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="font-mono" />
               </div>
-              <Button size="sm" variant="outline" className="h-8 font-mono text-[11px]" onClick={() => doAction({ action: "set_expiry", expiresAt: new Date(expiryDate).getTime() })} disabled={loading || !expiryDate}>Set</Button>
+              <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "set_expiry", expiresAt: new Date(expiryDate).getTime() })} disabled={loading || !expiryDate}>Set</Button>
               {org.planExpiresAt && (
-                <Button size="sm" variant="outline" className="h-8 font-mono text-[11px] text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => doAction({ action: "clear_expiry" })} disabled={loading}>Clear</Button>
+                <Button variant="outline" className="font-mono text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => doAction({ action: "clear_expiry" })} disabled={loading}>Clear</Button>
               )}
             </div>
           </div>
@@ -391,22 +391,22 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
             <div>
               <FieldLabel>Annual value ($)</FieldLabel>
-              <Input type="number" min={0} value={contractValueDollars} onChange={(e) => setContractValueDollars(e.target.value)} placeholder="0" className="h-8 font-mono text-[11px]" />
+              <Input type="number" min={0} value={contractValueDollars} onChange={(e) => setContractValueDollars(e.target.value)} placeholder="0" className="font-mono" />
             </div>
             <div>
               <FieldLabel>Start date</FieldLabel>
-              <Input type="date" value={contractStart} onChange={(e) => setContractStart(e.target.value)} className="h-8 font-mono text-[11px]" />
+              <Input type="date" value={contractStart} onChange={(e) => setContractStart(e.target.value)} className="font-mono" />
             </div>
             <div>
               <FieldLabel>End date</FieldLabel>
-              <Input type="date" value={contractEnd} onChange={(e) => setContractEnd(e.target.value)} className="h-8 font-mono text-[11px]" />
+              <Input type="date" value={contractEnd} onChange={(e) => setContractEnd(e.target.value)} className="font-mono" />
             </div>
           </div>
           <div className="mb-3">
             <FieldLabel>Notes</FieldLabel>
-            <Textarea value={contractNotes} onChange={(e) => setContractNotes(e.target.value)} rows={2} className="font-mono text-[11px] resize-none" placeholder="Deal details, contact info, etc." />
+            <Textarea value={contractNotes} onChange={(e) => setContractNotes(e.target.value)} rows={2} className="font-mono resize-none" placeholder="Deal details, contact info, etc." />
           </div>
-          <Button size="sm" variant="outline" className="h-8 font-mono text-[11px]" onClick={() => doAction({
+          <Button variant="outline" className="font-mono" onClick={() => doAction({
             action: "update_contract",
             contractValue: contractValueDollars ? Math.round(Number(contractValueDollars) * 100) : null,
             contractNotes: contractNotes || null,
@@ -427,7 +427,7 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             </p>
             <div className="flex gap-2">
               <Select value={newOwnerId} onValueChange={setNewOwnerId}>
-                <SelectTrigger size="sm" className="h-8 font-mono text-[11px] flex-1">
+                <SelectTrigger className="font-mono flex-1">
                   <SelectValue placeholder="Select member" />
                 </SelectTrigger>
                 <SelectContent className={selectPopoverCls}>
@@ -436,13 +436,13 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
                   ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" variant="outline" className="h-8 font-mono text-[11px]" onClick={() => setShowTransferConfirm(true)} disabled={loading || !newOwnerId}>Transfer</Button>
+              <Button variant="outline" className="font-mono" onClick={() => setShowTransferConfirm(true)} disabled={loading || !newOwnerId}>Transfer</Button>
             </div>
           </div>
           <div className="p-4">
             <SectionLabel>Admin Notes</SectionLabel>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="mb-2 font-mono text-[11px] resize-none" placeholder="Internal notes (not visible to org members)" />
-            <Button size="sm" variant="outline" className="h-8 font-mono text-[11px]" onClick={() => doAction({ action: "update_notes", notes })} disabled={loading}>Save Notes</Button>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="mb-2 font-mono resize-none" placeholder="Internal notes (not visible to org members)" />
+            <Button variant="outline" className="font-mono" onClick={() => doAction({ action: "update_notes", notes })} disabled={loading}>Save Notes</Button>
           </div>
         </div>
       </div>
@@ -455,10 +455,10 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
               {statusDialog} Organization
             </DialogTitle>
           </DialogHeader>
-          <Textarea value={statusReason} onChange={(e) => setStatusReason(e.target.value)} rows={3} className="font-mono text-[11px] resize-none" placeholder="Reason (required)" />
+          <Textarea value={statusReason} onChange={(e) => setStatusReason(e.target.value)} rows={3} className="font-mono resize-none" placeholder="Reason (required)" />
           <DialogFooter>
-            <Button variant="outline" size="sm" className="h-8 font-mono text-[11px]" onClick={() => { setStatusDialog(null); setStatusReason(""); }}>Cancel</Button>
-            <Button size="sm" className={`h-8 font-mono text-[11px] ${statusDialog === "ban" ? "bg-red-500 hover:bg-red-600" : "bg-amber-500 hover:bg-amber-600"}`} onClick={handleStatusAction} disabled={!statusReason.trim() || loading}>Confirm {statusDialog}</Button>
+            <Button variant="outline" className="font-mono" onClick={() => { setStatusDialog(null); setStatusReason(""); }}>Cancel</Button>
+            <Button className={`font-mono ${statusDialog === "ban" ? "bg-red-500 hover:bg-red-600" : "bg-amber-500 hover:bg-amber-600"}`} onClick={handleStatusAction} disabled={!statusReason.trim() || loading}>Confirm {statusDialog}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -473,8 +473,8 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             This will transfer ownership to <span className="text-[var(--landing-text)]">{members.find((m) => m.userId === newOwnerId)?.name}</span>. The current owner will be demoted to admin. This action is logged.
           </p>
           <DialogFooter>
-            <Button variant="outline" size="sm" className="h-8 font-mono text-[11px]" onClick={() => setShowTransferConfirm(false)}>Cancel</Button>
-            <Button size="sm" className="h-8 font-mono text-[11px] bg-[#F97316] hover:bg-[#F97316]/80" onClick={() => { doAction({ action: "transfer_ownership", newOwnerId }); setShowTransferConfirm(false); setNewOwnerId(""); }} disabled={loading}>Confirm Transfer</Button>
+            <Button variant="outline" className="font-mono" onClick={() => setShowTransferConfirm(false)}>Cancel</Button>
+            <Button className="font-mono bg-[#F97316] hover:bg-[#F97316]/80" onClick={() => { doAction({ action: "transfer_ownership", newOwnerId }); setShowTransferConfirm(false); setNewOwnerId(""); }} disabled={loading}>Confirm Transfer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

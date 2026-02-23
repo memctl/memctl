@@ -25,7 +25,7 @@ import { toast } from "sonner";
 const selectPopoverCls =
   "bg-[var(--landing-surface)] border-[var(--landing-border)] text-[var(--landing-text)] shadow-xl";
 const selectItemCls =
-  "font-mono text-[11px] text-[var(--landing-text-secondary)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]";
+  "font-mono text-[var(--landing-text-secondary)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]";
 const dialogCls =
   "bg-[var(--landing-surface)] border-[var(--landing-border)] text-[var(--landing-text)] shadow-xl";
 
@@ -127,7 +127,7 @@ export function PlanTemplateForm({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-8 font-mono text-[11px]"
+              className="font-mono"
               placeholder="Enterprise Standard"
             />
           </div>
@@ -139,7 +139,7 @@ export function PlanTemplateForm({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="font-mono text-[11px] resize-none"
+              className="font-mono resize-none"
               placeholder="Optional description"
             />
           </div>
@@ -148,7 +148,7 @@ export function PlanTemplateForm({
               Base plan
             </label>
             <Select value={basePlanId} onValueChange={setBasePlanId}>
-              <SelectTrigger className="h-8 font-mono text-[11px]">
+              <SelectTrigger className="font-mono">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className={selectPopoverCls}>
@@ -170,7 +170,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={projectLimit}
                 onChange={(e) => setProjectLimit(e.target.value)}
-                className="h-8 font-mono text-[11px]"
+                className="font-mono"
               />
             </div>
             <div>
@@ -182,7 +182,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={memberLimit}
                 onChange={(e) => setMemberLimit(e.target.value)}
-                className="h-8 font-mono text-[11px]"
+                className="font-mono"
               />
             </div>
             <div>
@@ -194,7 +194,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={memoryLimitPerProject}
                 onChange={(e) => setMemoryLimitPerProject(e.target.value)}
-                className="h-8 font-mono text-[11px]"
+                className="font-mono"
               />
             </div>
             <div>
@@ -206,7 +206,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={memoryLimitOrg}
                 onChange={(e) => setMemoryLimitOrg(e.target.value)}
-                className="h-8 font-mono text-[11px]"
+                className="font-mono"
               />
             </div>
             <div>
@@ -218,7 +218,7 @@ export function PlanTemplateForm({
                 min={1}
                 value={apiRatePerMinute}
                 onChange={(e) => setApiRatePerMinute(e.target.value)}
-                className="h-8 font-mono text-[11px]"
+                className="font-mono"
               />
             </div>
             <div>
@@ -231,7 +231,7 @@ export function PlanTemplateForm({
                 value={priceDollars}
                 onChange={(e) => setPriceDollars(e.target.value)}
                 placeholder="Optional"
-                className="h-8 font-mono text-[11px]"
+                className="font-mono"
               />
             </div>
           </div>
@@ -239,15 +239,13 @@ export function PlanTemplateForm({
         <DialogFooter>
           <Button
             variant="outline"
-            size="sm"
-            className="h-8 font-mono text-[11px]"
+            className="font-mono"
             onClick={() => onOpenChange(false)}
           >
             Cancel
           </Button>
           <Button
-            size="sm"
-            className="h-8 font-mono text-[11px] bg-[#F97316] hover:bg-[#F97316]/80"
+            className="font-mono bg-[#F97316] hover:bg-[#F97316]/80"
             onClick={handleSubmit}
             disabled={loading || !name.trim()}
           >
