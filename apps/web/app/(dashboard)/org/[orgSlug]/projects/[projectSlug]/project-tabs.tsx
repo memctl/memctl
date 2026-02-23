@@ -190,7 +190,7 @@ function ProjectTabsInner({
     <div>
       {/* Tab bar */}
       <div ref={navRef} className="relative mb-6 border-b border-[var(--landing-border)]">
-        <div className="flex">
+        <div className="flex overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => {
             const isActive = tab.id === currentTab;
             const Icon = tab.icon;
@@ -201,7 +201,7 @@ function ProjectTabsInner({
                   if (el) tabRefs.current.set(tab.id, el);
                 }}
                 onClick={() => handleTabChange(tab.id)}
-                className="relative flex items-center gap-1.5 px-4 py-2.5 font-mono text-xs font-medium transition-colors outline-none"
+                className="relative flex shrink-0 items-center gap-1.5 px-4 py-2.5 font-mono text-xs font-medium transition-colors outline-none"
                 style={{
                   color: isActive
                     ? "var(--landing-text)"

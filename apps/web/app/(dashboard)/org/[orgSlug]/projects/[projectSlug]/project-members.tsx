@@ -187,7 +187,7 @@ export function ProjectMembers({
   return (
     <div className="space-y-4">
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {[
           { icon: Crown, label: "Owners", value: ownerCount, color: "text-[#F97316]" },
           { icon: Shield, label: "Admins", value: adminCount, color: "text-blue-400" },
@@ -233,6 +233,7 @@ export function ProjectMembers({
             </Button>
           )}
         </div>
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
@@ -242,7 +243,7 @@ export function ProjectMembers({
               <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Role
               </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+              <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell">
                 Joined
               </TableHead>
               <TableHead className="w-12" />
@@ -291,7 +292,7 @@ export function ProjectMembers({
                       {m.role}
                     </span>
                   </TableCell>
-                  <TableCell className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+                  <TableCell className="hidden font-mono text-[11px] text-[var(--landing-text-tertiary)] sm:table-cell">
                     {new Date(m.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
@@ -347,6 +348,7 @@ export function ProjectMembers({
             })}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Add member dialog */}

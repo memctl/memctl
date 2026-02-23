@@ -191,6 +191,7 @@ export function HealthDashboard({
           <div className="px-4 py-2.5 border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
             <span className="font-mono text-xs font-medium text-[var(--landing-text)]">Project Breakdown</span>
           </div>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
@@ -229,6 +230,7 @@ export function HealthDashboard({
               })}
             </TableBody>
           </Table>
+          </div>
         </div>
       </div>
     </TooltipProvider>

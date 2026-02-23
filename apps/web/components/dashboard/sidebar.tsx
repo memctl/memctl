@@ -57,6 +57,7 @@ interface SidebarProps {
     image?: string | null;
   };
   userRole: "owner" | "admin" | "member";
+  onNavigate?: () => void;
 }
 
 const MAX_VISIBLE_PROJECTS = 7;
@@ -136,6 +137,7 @@ export function Sidebar({
   totalProjectCount,
   user,
   userRole,
+  onNavigate,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -158,7 +160,7 @@ export function Sidebar({
     : user.email[0].toUpperCase();
 
   return (
-    <nav className="flex w-72 flex-col border-r border-[var(--landing-border)] bg-[var(--landing-surface)]">
+    <nav className="flex h-full w-72 flex-col border-r border-[var(--landing-border)] bg-[var(--landing-surface)]">
       {/* Org Switcher */}
       <div className="px-3 pt-3 pb-2">
         <DropdownMenu>
@@ -213,6 +215,7 @@ export function Sidebar({
             >
               <Link
                 href="/onboarding"
+                onClick={onNavigate}
                 className="flex items-center gap-3"
               >
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[var(--landing-surface-2)]">
@@ -245,6 +248,7 @@ export function Sidebar({
               <Link
                 key={item.label}
                 href={href}
+                onClick={onNavigate}
                 className={cn(
                   "relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
                   isActive
@@ -288,6 +292,7 @@ export function Sidebar({
             ) : (
               <Link
                 href={`/org/${orgSlug}/projects/new`}
+                onClick={onNavigate}
                 className="rounded-md p-1 text-[var(--landing-text-tertiary)] transition-colors hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)]"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -305,6 +310,7 @@ export function Sidebar({
                 ) : (
                   <Link
                     href={`/org/${orgSlug}/projects/new`}
+                    onClick={onNavigate}
                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-[var(--landing-text-tertiary)] transition-colors hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)]"
                   >
                     <Plus className="h-4 w-4 shrink-0" />
@@ -321,6 +327,7 @@ export function Sidebar({
                       <Link
                         key={project.id}
                         href={projectHref}
+                        onClick={onNavigate}
                         className={cn(
                           "relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
                           isActive
@@ -339,6 +346,7 @@ export function Sidebar({
                   {overflowCount > 0 && (
                     <Link
                       href={`/org/${orgSlug}/projects`}
+                      onClick={onNavigate}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-xs text-[var(--landing-text-tertiary)] transition-colors hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)]"
                     >
                       <span className="ml-7">+ {overflowCount} more</span>

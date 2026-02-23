@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Sidebar } from "@/components/dashboard/sidebar";
-import { Header } from "@/components/dashboard/header";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { db } from "@/lib/db";
 import {
   organizations,
@@ -143,27 +142,24 @@ export default async function DashboardLayout({
   const totalProjectCount = userRole === "member" ? filteredCount : (projectCountResult[0]?.value ?? 0);
 
   return (
-    <div className="flex h-screen bg-[var(--landing-bg)]">
-      <Sidebar
-        orgSlug={orgSlug}
-        currentOrg={{
+    <DashboardShell
+      orgSlug={orgSlug}
+      orgName={currentOrg.name}
+      sidebarProps={{
+        orgSlug,
+        currentOrg: {
           name: currentOrg.name,
           slug: currentOrg.slug,
           planId: currentOrg.planId,
-        }}
-        userOrgs={userOrgs}
-        projects={sidebarProjects}
-        totalProjectCount={totalProjectCount}
-        user={session.user}
-        userRole={userRole}
-      />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header
-          orgSlug={orgSlug}
-          orgName={currentOrg.name}
-        />
-        <main className="flex-1 overflow-auto bg-[var(--landing-bg)] px-8 py-6">{children}</main>
-      </div>
-    </div>
+        },
+        userOrgs,
+        projects: sidebarProjects,
+        totalProjectCount,
+        user: session.user,
+        userRole,
+      }}
+    >
+      {children}
+    </DashboardShell>
   );
 }
