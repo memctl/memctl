@@ -77,7 +77,23 @@ This starts:
 docker compose exec web pnpm db:push
 ```
 
-## 6. Test dashboard login
+## 6. Seed sample data (optional)
+
+To populate a project with sample memories for testing the Graph tab visualization:
+
+```bash
+docker compose exec web pnpm db:seed-graph
+```
+
+This inserts ~30 memories with relatedKeys relationships forming clusters and orphan nodes. To target a specific project:
+
+```bash
+docker compose exec web pnpm db:seed-graph my-project
+```
+
+If no project slug is given, the script finds the first project under the dev org. Safe to re-run (deletes old seed data first).
+
+## 7. Test dashboard login
 
 Open `http://localhost:3000/login` and sign in with GitHub.
 
@@ -85,7 +101,7 @@ There is no built-in local username/password. Dashboard auth is GitHub OAuth.
 
 If dev bypass is enabled, `/login` also shows a `Continue with Dev Bypass` button that jumps directly to `/{orgSlug}`.
 
-## 7. Admin testing options
+## 8. Admin testing options
 
 Admin login (`/admin/login`) uses magic link and only allows `@memctl.com` addresses.
 
@@ -117,7 +133,7 @@ TURSO_DATABASE_URL=http://localhost:8080 TURSO_AUTH_TOKEN= pnpm --filter @memctl
 3. In `users`, set `is_admin` to `1` for your user.
 4. Open `http://localhost:3000/admin`.
 
-## 8. Stripe testing (optional)
+## 9. Stripe testing (optional)
 
 If you want checkout/webhooks:
 
@@ -128,7 +144,7 @@ If you want checkout/webhooks:
 docker compose --profile tools up -d
 ```
 
-## 9. Production-like local test (optional)
+## 10. Production-like local test (optional)
 
 ```bash
 docker compose -f docker-compose.prod.yml up --build
