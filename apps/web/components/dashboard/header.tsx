@@ -67,19 +67,22 @@ export function Header({ orgSlug, orgName }: HeaderProps) {
         </span>
       </Link>
       <Separator orientation="vertical" className="mx-3 data-[orientation=vertical]:h-4 bg-[var(--landing-border)]" />
-      <div className="min-w-0 overflow-hidden">
+      <div className="min-w-0">
         <Breadcrumb>
           <BreadcrumbList className="text-sm flex-nowrap">
             {crumbs.map((crumb, i) => {
               const isLast = i === crumbs.length - 1;
               return (
-                <span key={`${crumb.href ?? crumb.label}-${i}`} className="contents">
+                <span
+                  key={`${crumb.href ?? crumb.label}-${i}`}
+                  className={isLast ? "contents" : "hidden contents sm:!contents"}
+                >
                   {i > 0 && (
                     <BreadcrumbSeparator className="text-[var(--landing-text-tertiary)]">
                       <ChevronRight className="size-3.5" />
                     </BreadcrumbSeparator>
                   )}
-                  <BreadcrumbItem>
+                  <BreadcrumbItem className="min-w-0">
                     {isLast ? (
                       <BreadcrumbPage className="truncate font-medium text-[var(--landing-text)]">
                         {crumb.label}

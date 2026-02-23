@@ -152,25 +152,54 @@ function ProjectTabsInner({
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
   const navRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 1);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
 
   const updateIndicator = useCallback(() => {
     const el = tabRefs.current.get(currentTab);
-    const nav = navRef.current;
-    if (el && nav) {
-      const navRect = nav.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
+    if (el) {
       setIndicator({
-        left: elRect.left - navRect.left,
-        width: elRect.width,
+        left: el.offsetLeft,
+        width: el.offsetWidth,
       });
     }
   }, [currentTab]);
 
   useEffect(() => {
     updateIndicator();
+    checkScroll();
     window.addEventListener("resize", updateIndicator);
-    return () => window.removeEventListener("resize", updateIndicator);
-  }, [updateIndicator]);
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      window.removeEventListener("resize", updateIndicator);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [updateIndicator, checkScroll]);
+
+  // Scroll active tab into view on change
+  useEffect(() => {
+    const el = tabRefs.current.get(currentTab);
+    const container = scrollRef.current;
+    if (el && container) {
+      const elLeft = el.offsetLeft;
+      const elRight = elLeft + el.offsetWidth;
+      const visLeft = container.scrollLeft;
+      const visRight = visLeft + container.clientWidth;
+      if (elLeft < visLeft) {
+        container.scrollTo({ left: elLeft - 8, behavior: "smooth" });
+      } else if (elRight > visRight) {
+        container.scrollTo({ left: elRight - container.clientWidth + 8, behavior: "smooth" });
+      }
+    }
+  }, [currentTab]);
 
   const handleTabChange = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -190,7 +219,17 @@ function ProjectTabsInner({
     <div>
       {/* Tab bar */}
       <div ref={navRef} className="relative mb-6 border-b border-[var(--landing-border)]">
-        <div className="flex overflow-x-auto scrollbar-hide">
+        {canScrollLeft && (
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-6 bg-gradient-to-r from-[var(--landing-bg)] to-transparent" />
+        )}
+        {canScrollRight && (
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-6 bg-gradient-to-r from-transparent to-[var(--landing-bg)]" />
+        )}
+        <div
+          ref={scrollRef}
+          className="relative flex overflow-x-auto scrollbar-hide"
+          onScroll={() => { checkScroll(); updateIndicator(); }}
+        >
           {tabs.map((tab) => {
             const isActive = tab.id === currentTab;
             const Icon = tab.icon;
@@ -225,15 +264,15 @@ function ProjectTabsInner({
               </button>
             );
           })}
-        </div>
 
-        {/* Animated underline */}
-        <motion.div
-          className="absolute bottom-0 h-0.5 bg-[#F97316]"
-          animate={{ left: indicator.left, width: indicator.width }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          style={{ borderRadius: "1px" }}
-        />
+          {/* Animated underline (inside scroll container so it tracks scroll) */}
+          <motion.div
+            className="absolute bottom-0 h-0.5 bg-[#F97316]"
+            animate={{ left: indicator.left, width: indicator.width }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            style={{ borderRadius: "1px" }}
+          />
+        </div>
       </div>
 
       {/* Animated content */}

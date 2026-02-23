@@ -125,6 +125,7 @@ When modifying dependencies or build config, verify both Dockerfiles still work.
 - Filter/chip rows use `flex-wrap`.
 - Touch targets: min 36px on mobile (`h-9 md:h-7` or `h-9 md:h-8`).
 - Filter popovers: `w-64 sm:w-72`.
+- Page header rows with actions: `flex-wrap gap-3` so buttons stack below on narrow screens.
 
 ## Architecture
 

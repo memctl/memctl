@@ -555,7 +555,7 @@ export function ActivityFeed({
                         {a.toolName && !a.memoryKey && (
                           <span className="min-w-0 truncate font-mono text-[11px] text-amber-400">{a.toolName}</span>
                         )}
-                        <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{a.projectName}</span>
+                        <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:inline">{a.projectName}</span>
                         <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
                       </div>
                     );
@@ -577,7 +577,7 @@ export function ActivityFeed({
                           {detail}
                         </span>
                       )}
-                      <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                      <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:inline">
                         {a.actorName}
                       </span>
                       <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>

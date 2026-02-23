@@ -523,7 +523,7 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
     <TooltipProvider delayDuration={200}>
       <div>
         {/* Stats bar - dense info strip */}
-        <div className="mb-3 flex items-center gap-2 overflow-x-auto">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5">
             <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">Active</span>
             <span className="font-mono text-[11px] font-bold text-[var(--landing-text)]">{totalActive}</span>
@@ -536,13 +536,13 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
             <Pin className="h-3 w-3 text-[#F97316]" />
             <span className="font-mono text-[11px] font-bold text-[var(--landing-text)]">{totalPinned}</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5">
+          <div className="hidden items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5 sm:flex">
             <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">Avg Pri</span>
             <span className="font-mono text-[11px] font-bold text-[#F97316]">{avgPriority}</span>
           </div>
-          <div className="h-4 w-px bg-[var(--landing-border)]" />
+          <div className="hidden h-4 w-px bg-[var(--landing-border)] md:block" />
           {/* Relevance mini-bars */}
-          <div className="flex items-center gap-1">
+          <div className="hidden items-center gap-1 md:flex">
             <Tooltip><TooltipTrigger asChild>
               <div className="flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-1">
                 <div className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -571,7 +571,7 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
           <div className="flex-1" />
           <button
             onClick={() => setShowShortcuts(true)}
-            className="flex items-center gap-1 rounded bg-[var(--landing-surface-2)] px-2 py-1 text-[10px] font-mono text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors"
+            className="hidden items-center gap-1 rounded bg-[var(--landing-surface-2)] px-2 py-1 text-[10px] font-mono text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors sm:flex"
           >
             <Keyboard className="h-3 w-3" /> <span className="hidden sm:inline">?</span>
           </button>
@@ -579,11 +579,11 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
 
         {/* Toolbar */}
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <div className="relative flex-1">
+          <div className="relative w-full sm:w-auto sm:flex-1">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
             <Input
               ref={searchRef}
-              placeholder="Search key, content, tag… (press /)"
+              placeholder="Search key, content, tag…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-xs md:h-8"
@@ -593,9 +593,9 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
           {/* Filter popover */}
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1 border-[var(--landing-border)] text-xs relative">
+              <Button variant="outline" size="sm" className="h-9 gap-1 border-[var(--landing-border)] text-xs relative md:h-8">
                 <Filter className="h-3 w-3" />
-                Filters
+                <span className="hidden sm:inline">Filters</span>
                 {activeFilterCount > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#F97316] text-[9px] font-bold text-white">{activeFilterCount}</span>
                 )}
@@ -664,15 +664,15 @@ export function MemoryBrowser({ memories, orgSlug, projectSlug }: MemoryBrowserP
             </PopoverContent>
           </Popover>
 
-          <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)} className="h-8 gap-1 border-[var(--landing-border)] text-xs">
+          <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)} className="h-9 gap-1 border-[var(--landing-border)] text-xs md:h-8">
             <Archive className="h-3 w-3" />
-            {showArchived ? "Hide" : "Show"} Archived
+            <span className="hidden sm:inline">{showArchived ? "Hide" : "Show"} Archived</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} className="h-8 gap-1 border-[var(--landing-border)] text-xs">
+          <Button variant="outline" size="sm" onClick={handleExport} className="h-9 gap-1 border-[var(--landing-border)] text-xs md:h-8">
             <Download className="h-3 w-3" />
           </Button>
           <label>
-            <Button variant="outline" size="sm" asChild className="h-8 gap-1 border-[var(--landing-border)] text-xs cursor-pointer">
+            <Button variant="outline" size="sm" asChild className="h-9 gap-1 border-[var(--landing-border)] text-xs cursor-pointer md:h-8">
               <span><Upload className="h-3 w-3" /></span>
             </Button>
             <input type="file" accept=".json" className="hidden" onChange={handleImport} />
