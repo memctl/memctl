@@ -140,9 +140,9 @@ export function LogoCloud() {
 
         {/* Single row marquee */}
         <div className="relative overflow-hidden">
-          <div className="absolute left-0 top-0 z-10 h-full w-24 bg-gradient-to-r from-[var(--landing-bg)] to-transparent" />
-          <div className="absolute right-0 top-0 z-10 h-full w-24 bg-gradient-to-l from-[var(--landing-bg)] to-transparent" />
-          <div className="flex animate-marquee">
+          <div className="absolute left-0 top-0 z-10 h-full w-16 bg-gradient-to-r from-[var(--landing-bg)] to-transparent sm:w-24" />
+          <div className="absolute right-0 top-0 z-10 h-full w-16 bg-gradient-to-l from-[var(--landing-bg)] to-transparent sm:w-24" />
+          <div className="flex will-change-transform [animation:marquee_40s_linear_infinite]">
             {[...LOGOS, ...LOGOS].map((logo, i) => (
               <LogoItem key={i} logo={logo} />
             ))}
