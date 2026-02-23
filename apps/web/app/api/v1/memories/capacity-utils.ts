@@ -1,11 +1,8 @@
 import { db } from "@/lib/db";
 import { memories, organizations, organizationMembers, projectMembers, projects } from "@memctl/db/schema";
-import { PLAN_IDS, PLANS, type PlanId } from "@memctl/shared/constants";
+import { PLANS } from "@memctl/shared/constants";
+import { getEffectivePlanId } from "@/lib/plans";
 import { and, count, eq, inArray, isNull } from "drizzle-orm";
-
-function isPlanId(value: string): value is PlanId {
-  return (PLAN_IDS as readonly string[]).includes(value);
-}
 
 export async function resolveOrgAndProject(
   orgSlug: string,
@@ -19,6 +16,7 @@ export async function resolveOrgAndProject(
     .limit(1);
 
   if (!org) return null;
+  if (org.status !== "active") return null;
 
   const [project] = await db
     .select()
@@ -70,8 +68,13 @@ export async function resolveOrgAndProject(
  * - softLimit (per-project): agents get a warning when approaching this
  * - hardLimit (org-wide): actual storage block when reached
  */
-export async function getOrgMemoryCapacity(orgId: string, rawPlanId: string, projectId?: string) {
-  const planId = isPlanId(rawPlanId) ? rawPlanId : "free";
+export async function getOrgMemoryCapacity(
+  orgId: string,
+  rawPlanId: string,
+  projectId?: string,
+  planOverride?: string | null,
+) {
+  const planId = getEffectivePlanId({ planId: rawPlanId, planOverride: planOverride ?? null });
   const plan = PLANS[planId];
   const softLimit = plan.memoryLimitPerProject;
   const hardLimit = plan.memoryLimitOrg;

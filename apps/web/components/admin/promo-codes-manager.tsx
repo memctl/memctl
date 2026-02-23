@@ -474,14 +474,14 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
             placeholder="Search by code or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 border-[var(--landing-border)] bg-[var(--landing-surface)]"
+            className="pl-9"
           />
         </div>
         <Select value={filterCampaign} onValueChange={setFilterCampaign}>
-          <SelectTrigger className="w-[160px] border-[var(--landing-border)] bg-[var(--landing-surface)]">
+          <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Campaign" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
             <SelectItem value="all">All Campaigns</SelectItem>
             {campaigns.map((c) => (
               <SelectItem key={c} value={c}>{c}</SelectItem>
@@ -489,10 +489,10 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px] border-[var(--landing-border)] bg-[var(--landing-surface)]">
+          <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
@@ -502,10 +502,10 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           </SelectContent>
         </Select>
         <Select value={filterDiscountType} onValueChange={setFilterDiscountType}>
-          <SelectTrigger className="w-[150px] border-[var(--landing-border)] bg-[var(--landing-surface)]">
+          <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Discount Type" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="percent">Percentage</SelectItem>
             <SelectItem value="fixed">Fixed Amount</SelectItem>
@@ -522,14 +522,14 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
       {/* Bulk Actions */}
       {selectedIds.size > 0 && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] p-3">
+        <div className="mb-4 flex items-center gap-3 rounded-lg border p-3">
           <span className="text-sm text-[var(--landing-text-secondary)]">
             {selectedIds.size} selected
           </span>
-          <Button size="sm" variant="outline" onClick={() => bulkToggle(true)} className="border-[var(--landing-border)]">
+          <Button size="sm" variant="outline" onClick={() => bulkToggle(true)}>
             Activate
           </Button>
-          <Button size="sm" variant="outline" onClick={() => bulkToggle(false)} className="border-[var(--landing-border)]">
+          <Button size="sm" variant="outline" onClick={() => bulkToggle(false)}>
             Deactivate
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
@@ -678,33 +678,32 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-5" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
           <DialogHeader>
-            <DialogTitle className="font-mono">
+            <DialogTitle className="font-mono text-[var(--landing-text)]">
               {editingId ? "Edit Promo Code" : "Create Promo Code"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-            {/* Left: Form */}
-            <div className="space-y-6">
-              {/* Code */}
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-[1fr_1fr_300px]">
+            {/* Column 1: Identity + Discount + Duration + Scheduling */}
+            <div className="space-y-3">
               {!editingId && (
-                <div className="space-y-2">
-                  <Label className="font-mono text-xs">Code</Label>
+                <div className="space-y-1">
+                  <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Code</Label>
                   <div className="flex gap-2">
                     <Input
                       value={form.code}
                       onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "") })}
                       placeholder="LAUNCH50"
-                      className="font-mono border-[var(--landing-border)]"
+                      className="font-mono"
                       disabled={showBulk}
                     />
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setForm({ ...form, code: generateRandomCode() })}
-                      className="shrink-0 border-[var(--landing-border)]"
+                      className="shrink-0"
                       disabled={showBulk}
                     >
                       <Shuffle className="h-4 w-4" />
@@ -713,53 +712,48 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                 </div>
               )}
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label className="font-mono text-xs">Description (internal)</Label>
-                <Textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Partner deal with Acme Corp"
-                  className="border-[var(--landing-border)]"
-                  rows={2}
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Campaign</Label>
+                  <Input
+                    value={form.campaign}
+                    onChange={(e) => setForm({ ...form, campaign: e.target.value })}
+                    placeholder="launch-2026"
+                    list="campaign-list"
+                  />
+                  <datalist id="campaign-list">
+                    {campaigns.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Description</Label>
+                  <Input
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Partner deal with Acme"
+                  />
+                </div>
               </div>
 
-              {/* Campaign */}
-              <div className="space-y-2">
-                <Label className="font-mono text-xs">Campaign</Label>
-                <Input
-                  value={form.campaign}
-                  onChange={(e) => setForm({ ...form, campaign: e.target.value })}
-                  placeholder="launch-2026"
-                  className="border-[var(--landing-border)]"
-                  list="campaign-list"
-                />
-                <datalist id="campaign-list">
-                  {campaigns.map((c) => (
-                    <option key={c} value={c} />
-                  ))}
-                </datalist>
-              </div>
-
-              {/* Discount */}
-              <div className="space-y-3">
-                <Label className="font-mono text-xs">Discount</Label>
-                <div className="flex gap-3">
+              <div className="space-y-1">
+                <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Discount</Label>
+                <div className="flex flex-wrap gap-2">
                   <Select
                     value={form.discountType}
                     onValueChange={(v) => setForm({ ...form, discountType: v as "percent" | "fixed" })}
                     disabled={!!editingId}
                   >
-                    <SelectTrigger className="w-[140px] border-[var(--landing-border)]">
+                    <SelectTrigger className="w-[120px]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
                       <SelectItem value="percent">Percentage</SelectItem>
-                      <SelectItem value="fixed">Fixed Amount</SelectItem>
+                      <SelectItem value="fixed">Fixed</SelectItem>
                     </SelectContent>
                   </Select>
-                  <div className="relative flex-1">
+                  <div className="relative min-w-[100px] flex-1">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--landing-text-tertiary)]">
                       {form.discountType === "percent" ? "%" : "$"}
                     </span>
@@ -768,7 +762,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                       value={form.discountAmount}
                       onChange={(e) => setForm({ ...form, discountAmount: e.target.value })}
                       placeholder={form.discountType === "percent" ? "50" : "500"}
-                      className="pl-8 border-[var(--landing-border)]"
+                      className="pl-8"
                       disabled={!!editingId}
                     />
                   </div>
@@ -778,10 +772,10 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                       onValueChange={(v) => setForm({ ...form, currency: v })}
                       disabled={!!editingId}
                     >
-                      <SelectTrigger className="w-[100px] border-[var(--landing-border)]">
+                      <SelectTrigger className="w-[90px]">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
                         <SelectItem value="usd">USD</SelectItem>
                         <SelectItem value="eur">EUR</SelectItem>
                         <SelectItem value="gbp">GBP</SelectItem>
@@ -791,19 +785,18 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                 </div>
               </div>
 
-              {/* Duration */}
-              <div className="space-y-3">
-                <Label className="font-mono text-xs">Duration</Label>
-                <div className="flex gap-3">
+              <div className="space-y-1">
+                <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Duration</Label>
+                <div className="flex flex-wrap gap-2">
                   <Select
                     value={form.duration}
                     onValueChange={(v) => setForm({ ...form, duration: v as "once" | "repeating" | "forever" })}
                     disabled={!!editingId}
                   >
-                    <SelectTrigger className="w-[140px] border-[var(--landing-border)]">
+                    <SelectTrigger className="w-[120px]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
                       <SelectItem value="once">Once</SelectItem>
                       <SelectItem value="repeating">Repeating</SelectItem>
                       <SelectItem value="forever">Forever</SelectItem>
@@ -817,206 +810,193 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                         max={36}
                         value={form.durationInMonths}
                         onChange={(e) => setForm({ ...form, durationInMonths: e.target.value })}
-                        className="w-20 border-[var(--landing-border)]"
+                        className="w-20"
                         disabled={!!editingId}
                       />
-                      <span className="text-sm text-[var(--landing-text-secondary)]">months</span>
+                      <span className="text-xs text-[var(--landing-text-secondary)]">months</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Restrictions */}
-              <div className="space-y-4">
-                <Label className="font-mono text-xs">Restrictions</Label>
-
-                {/* Applicable plans */}
-                <div className="space-y-2">
-                  <span className="text-xs text-[var(--landing-text-secondary)]">Applicable Plans</span>
-                  <div className="flex flex-wrap gap-3">
-                    {PLAN_OPTIONS.map((plan) => (
-                      <label key={plan} className="flex items-center gap-2">
-                        <Checkbox
-                          checked={form.applicablePlans.includes(plan)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setForm({ ...form, applicablePlans: [...form.applicablePlans, plan] });
-                            } else {
-                              setForm({ ...form, applicablePlans: form.applicablePlans.filter((p) => p !== plan) });
-                            }
-                          }}
-                        />
-                        <span className="text-sm capitalize text-[var(--landing-text)]">{plan}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {form.applicablePlans.length === 0 && (
-                    <p className="text-[11px] text-[var(--landing-text-tertiary)]">No selection = all plans</p>
-                  )}
-                </div>
-
-                {/* Minimum plan tier */}
-                <div className="space-y-2">
-                  <span className="text-xs text-[var(--landing-text-secondary)]">Minimum Plan Tier</span>
-                  <Select value={form.minimumPlanTier} onValueChange={(v) => setForm({ ...form, minimumPlanTier: v === "none" ? "" : v })}>
-                    <SelectTrigger className="w-[160px] border-[var(--landing-border)]">
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PLAN_TIER_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value || "none"} value={opt.value || "none"}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Restricted to orgs */}
-                <div className="space-y-2">
-                  <span className="text-xs text-[var(--landing-text-secondary)]">Restricted to Organizations</span>
-                  <Select
-                    value=""
-                    onValueChange={(v) => {
-                      if (v && !form.restrictedToOrgs.includes(v)) {
-                        setForm({ ...form, restrictedToOrgs: [...form.restrictedToOrgs, v] });
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="border-[var(--landing-border)]">
-                      <SelectValue placeholder="Add organization..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {orgList
-                        .filter((o) => !form.restrictedToOrgs.includes(o.id))
-                        .map((org) => (
-                          <SelectItem key={org.id} value={org.id}>
-                            {org.name} ({org.slug})
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  {form.restrictedToOrgs.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {form.restrictedToOrgs.map((orgId) => {
-                        const org = orgList.find((o) => o.id === orgId);
-                        return (
-                          <span key={orgId} className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] text-blue-500">
-                            {org?.name ?? orgId}
-                            <button onClick={() => setForm({ ...form, restrictedToOrgs: form.restrictedToOrgs.filter((id) => id !== orgId) })}>
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Max redemptions */}
-                <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Scheduling</Label>
+                <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <span className="text-xs text-[var(--landing-text-secondary)]">Max Total Redemptions</span>
-                    <Input
-                      type="number"
-                      value={form.maxRedemptions}
-                      onChange={(e) => setForm({ ...form, maxRedemptions: e.target.value })}
-                      placeholder="Unlimited"
-                      className="border-[var(--landing-border)]"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-[var(--landing-text-secondary)]">Max Per Org</span>
-                    <Input
-                      type="number"
-                      value={form.maxRedemptionsPerOrg}
-                      onChange={(e) => setForm({ ...form, maxRedemptionsPerOrg: e.target.value })}
-                      className="border-[var(--landing-border)]"
-                    />
-                  </div>
-                </div>
-
-                {/* Boolean toggles */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-[var(--landing-text)]">First subscription only</span>
-                    <Switch
-                      checked={form.firstSubscriptionOnly}
-                      onCheckedChange={(v) => setForm({ ...form, firstSubscriptionOnly: v })}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-[var(--landing-text)]">No previous promo</span>
-                    <Switch
-                      checked={form.noPreviousPromo}
-                      onCheckedChange={(v) => setForm({ ...form, noPreviousPromo: v })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Scheduling */}
-              <div className="space-y-3">
-                <Label className="font-mono text-xs">Scheduling</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <span className="text-xs text-[var(--landing-text-secondary)]">Starts At</span>
+                    <span className="text-[10px] text-[var(--landing-text-tertiary)]">Starts</span>
                     <Input
                       type="datetime-local"
                       value={form.startsAt}
                       onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
-                      className="border-[var(--landing-border)]"
                     />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-xs text-[var(--landing-text-secondary)]">Expires At</span>
+                    <span className="text-[10px] text-[var(--landing-text-tertiary)]">Expires</span>
                     <Input
                       type="datetime-local"
                       value={form.expiresAt}
                       onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-                      className="border-[var(--landing-border)]"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Bulk generation */}
               {!editingId && (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <button
                     onClick={() => setShowBulk(!showBulk)}
-                    className="flex items-center gap-2 text-sm text-[var(--landing-text-secondary)] hover:text-[var(--landing-text)]"
+                    className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
                   >
-                    <ChevronDown className={`h-4 w-4 transition-transform ${showBulk ? "rotate-180" : ""}`} />
+                    <ChevronDown className={`h-3 w-3 transition-transform ${showBulk ? "rotate-180" : ""}`} />
                     Bulk Generation
                   </button>
                   {showBulk && (
-                    <div className="grid grid-cols-2 gap-3 rounded-lg border border-[var(--landing-border)] p-3">
+                    <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
                       <div className="space-y-1">
-                        <span className="text-xs text-[var(--landing-text-secondary)]">Prefix</span>
+                        <span className="text-[10px] text-[var(--landing-text-tertiary)]">Prefix</span>
                         <Input
                           value={form.bulkPrefix}
                           onChange={(e) => setForm({ ...form, bulkPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "") })}
                           placeholder="BETA"
-                          className="font-mono border-[var(--landing-border)]"
+                          className="font-mono"
                         />
                       </div>
                       <div className="space-y-1">
-                        <span className="text-xs text-[var(--landing-text-secondary)]">Count (2-100)</span>
+                        <span className="text-[10px] text-[var(--landing-text-tertiary)]">Count (2-100)</span>
                         <Input
                           type="number"
                           min={2}
                           max={100}
                           value={form.bulkCount}
                           onChange={(e) => setForm({ ...form, bulkCount: e.target.value })}
-                          className="border-[var(--landing-border)]"
                         />
                       </div>
-                      <p className="col-span-2 text-[11px] text-[var(--landing-text-tertiary)]">
-                        Will generate {form.bulkPrefix || "PREFIX"}001 through {form.bulkPrefix || "PREFIX"}{String(parseInt(form.bulkCount) || 10).padStart(3, "0")}
+                      <p className="col-span-2 text-[10px] text-[var(--landing-text-tertiary)]">
+                        Generates {form.bulkPrefix || "PREFIX"}001 through {form.bulkPrefix || "PREFIX"}{String(parseInt(form.bulkCount) || 10).padStart(3, "0")}
                       </p>
                     </div>
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Column 2: Restrictions */}
+            <div className="space-y-3">
+              <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Restrictions</Label>
+
+              <div className="space-y-1.5">
+                <span className="text-xs text-[var(--landing-text-secondary)]">Applicable Plans</span>
+                <div className="flex flex-wrap gap-2">
+                  {PLAN_OPTIONS.map((plan) => (
+                    <label key={plan} className="flex items-center gap-1.5">
+                      <Checkbox
+                        checked={form.applicablePlans.includes(plan)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setForm({ ...form, applicablePlans: [...form.applicablePlans, plan] });
+                          } else {
+                            setForm({ ...form, applicablePlans: form.applicablePlans.filter((p) => p !== plan) });
+                          }
+                        }}
+                      />
+                      <span className="text-xs capitalize text-[var(--landing-text)]">{plan}</span>
+                    </label>
+                  ))}
+                </div>
+                {form.applicablePlans.length === 0 && (
+                  <p className="text-[10px] text-[var(--landing-text-tertiary)]">No selection = all plans</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <span className="text-[10px] text-[var(--landing-text-tertiary)]">Min Tier</span>
+                  <Select value={form.minimumPlanTier} onValueChange={(v) => setForm({ ...form, minimumPlanTier: v === "none" ? "" : v })}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+                      {PLAN_TIER_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value || "none"} value={opt.value || "none"}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-[var(--landing-text-tertiary)]">Max Total</span>
+                  <Input
+                    type="number"
+                    value={form.maxRedemptions}
+                    onChange={(e) => setForm({ ...form, maxRedemptions: e.target.value })}
+                    placeholder="\u221E"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-[var(--landing-text-tertiary)]">Max/Org</span>
+                  <Input
+                    type="number"
+                    value={form.maxRedemptionsPerOrg}
+                    onChange={(e) => setForm({ ...form, maxRedemptionsPerOrg: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[var(--landing-text)]">First subscription only</span>
+                  <Switch
+                    checked={form.firstSubscriptionOnly}
+                    onCheckedChange={(v) => setForm({ ...form, firstSubscriptionOnly: v })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[var(--landing-text)]">No previous promo</span>
+                  <Switch
+                    checked={form.noPreviousPromo}
+                    onCheckedChange={(v) => setForm({ ...form, noPreviousPromo: v })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-xs text-[var(--landing-text-secondary)]">Org Restrictions</span>
+                <Select
+                  value=""
+                  onValueChange={(v) => {
+                    if (v && !form.restrictedToOrgs.includes(v)) {
+                      setForm({ ...form, restrictedToOrgs: [...form.restrictedToOrgs, v] });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Add organization..." />
+                  </SelectTrigger>
+                  <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+                    {orgList
+                      .filter((o) => !form.restrictedToOrgs.includes(o.id))
+                      .map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name} ({org.slug})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {form.restrictedToOrgs.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {form.restrictedToOrgs.map((orgId) => {
+                      const org = orgList.find((o) => o.id === orgId);
+                      return (
+                        <span key={orgId} className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] text-blue-500">
+                          {org?.name ?? orgId}
+                          <button onClick={() => setForm({ ...form, restrictedToOrgs: form.restrictedToOrgs.filter((id) => id !== orgId) })}>
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <Button
                 onClick={handleSubmit}
@@ -1027,86 +1007,81 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
               </Button>
             </div>
 
-            {/* Right: Live Preview */}
-            <div className="space-y-4">
-              <Label className="font-mono text-xs">Live Preview</Label>
-              <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-                {/* Preview badge */}
-                <div className="mb-4">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1.5 font-mono text-sm font-medium text-emerald-500">
-                    <Ticket className="h-4 w-4" />
+            {/* Column 3: Live Preview */}
+            <div className="space-y-2 md:col-span-2 xl:col-span-1">
+              <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Preview</Label>
+              <div className="rounded-lg border p-4">
+                <p className="font-mono text-base font-bold text-[var(--landing-text)]">
+                  {showBulk ? `${form.bulkPrefix || "PREFIX"}001` : form.code || "CODE"}
+                </p>
+
+                <div className="mt-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 font-mono text-xs font-medium text-emerald-500">
+                    <Ticket className="h-3 w-3" />
                     {previewDiscountText()} {previewDurationText()}
                   </span>
                 </div>
 
-                {/* Preview price calculation */}
-                <div className="mb-4 rounded-lg bg-[var(--landing-code-bg)] p-4">
-                  <p className="font-mono text-xs text-[var(--landing-text-secondary)]">
+                <div className="mt-3 rounded-md bg-[var(--landing-surface)] p-2.5">
+                  <p className="font-mono text-[11px] leading-relaxed text-[var(--landing-text-secondary)]">
                     {previewPriceExample()}
                   </p>
                 </div>
 
-                {/* Preview code */}
-                <div className="mb-4">
-                  <p className="font-mono text-lg font-bold text-[var(--landing-text)]">
-                    {showBulk ? `${form.bulkPrefix || "PREFIX"}001` : form.code || "CODE"}
-                  </p>
-                </div>
+                {(form.applicablePlans.length > 0 || form.minimumPlanTier || form.firstSubscriptionOnly || form.noPreviousPromo || form.restrictedToOrgs.length > 0 || form.maxRedemptions || form.expiresAt) && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {form.applicablePlans.length > 0 && (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+                        {form.applicablePlans.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(", ")}
+                      </span>
+                    )}
+                    {form.minimumPlanTier && (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+                        {form.minimumPlanTier.charAt(0).toUpperCase() + form.minimumPlanTier.slice(1)}+
+                      </span>
+                    )}
+                    {form.firstSubscriptionOnly && (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+                        First only
+                      </span>
+                    )}
+                    {form.noPreviousPromo && (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+                        No prev. promos
+                      </span>
+                    )}
+                    {form.restrictedToOrgs.length > 0 && (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+                        {form.restrictedToOrgs.length} org{form.restrictedToOrgs.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {form.maxRedemptions && (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+                        Max {form.maxRedemptions}
+                      </span>
+                    )}
+                    {form.expiresAt && (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+                        Exp {new Date(form.expiresAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                )}
 
-                {/* Restriction pills */}
-                <div className="flex flex-wrap gap-2">
-                  {form.applicablePlans.length > 0 && (
-                    <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-500">
-                      {form.applicablePlans.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(", ")} only
-                    </span>
-                  )}
-                  {form.minimumPlanTier && (
-                    <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-500">
-                      {form.minimumPlanTier.charAt(0).toUpperCase() + form.minimumPlanTier.slice(1)}+ only
-                    </span>
-                  )}
-                  {form.firstSubscriptionOnly && (
-                    <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-500">
-                      First purchase only
-                    </span>
-                  )}
-                  {form.noPreviousPromo && (
-                    <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-500">
-                      No previous promos
-                    </span>
-                  )}
-                  {form.restrictedToOrgs.length > 0 && (
-                    <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-500">
-                      {form.restrictedToOrgs.length} specific org{form.restrictedToOrgs.length !== 1 ? "s" : ""}
-                    </span>
-                  )}
-                  {form.maxRedemptions && (
-                    <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-500">
-                      Max {form.maxRedemptions} uses
-                    </span>
-                  )}
-                  {form.expiresAt && (
-                    <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-500">
-                      Expires {new Date(form.expiresAt).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-
-                {/* Status indicator */}
-                <div className="mt-4 border-t border-[var(--landing-border)] pt-4">
+                <div className="mt-3 border-t border-[var(--landing-border)] pt-3">
                   {form.startsAt && new Date(form.startsAt).getTime() > Date.now() ? (
-                    <span className="flex items-center gap-2 text-xs text-blue-500">
-                      <span className="h-2 w-2 rounded-full bg-blue-500" />
-                      Scheduled: starts {new Date(form.startsAt).toLocaleDateString()}
+                    <span className="flex items-center gap-1.5 text-[10px] text-blue-500">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      Scheduled: {new Date(form.startsAt).toLocaleDateString()}
                     </span>
                   ) : form.expiresAt && new Date(form.expiresAt).getTime() < Date.now() ? (
-                    <span className="flex items-center gap-2 text-xs text-red-500">
-                      <span className="h-2 w-2 rounded-full bg-red-500" />
+                    <span className="flex items-center gap-1.5 text-[10px] text-red-500">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                       Expired
                     </span>
                   ) : (
-                    <span className="flex items-center gap-2 text-xs text-emerald-500">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span className="flex items-center gap-1.5 text-[10px] text-emerald-500">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       Active now
                     </span>
                   )}
@@ -1119,18 +1094,18 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
       {/* Clone Dialog */}
       <Dialog open={cloneDialogOpen} onOpenChange={setCloneDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
           <DialogHeader>
-            <DialogTitle className="font-mono">Clone Promo Code</DialogTitle>
+            <DialogTitle className="font-mono text-[var(--landing-text)]">Clone Promo Code</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="font-mono text-xs">New Code</Label>
+            <div className="space-y-1">
+              <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">New Code</Label>
               <Input
                 value={cloneCode}
                 onChange={(e) => setCloneCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""))}
                 placeholder="NEW-CODE"
-                className="font-mono border-[var(--landing-border)]"
+                className="font-mono"
               />
             </div>
             <Button
@@ -1153,7 +1128,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           {detailCode && (
             <div className="mt-6 space-y-6">
               {/* Preview card */}
-              <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-4">
+              <div className="rounded-xl border p-4">
                 <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1.5 font-mono text-sm font-medium text-emerald-500">
                   <Ticket className="h-4 w-4" />
                   {formatDiscount(detailCode)} {formatDuration(detailCode)}
@@ -1193,7 +1168,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
               {/* Actions */}
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => { setDetailOpen(false); openEdit(detailCode); }} className="border-[var(--landing-border)]">
+                <Button size="sm" variant="outline" onClick={() => { setDetailOpen(false); openEdit(detailCode); }}>
                   <Pencil className="mr-2 h-4 w-4" /> Edit
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => {
@@ -1201,7 +1176,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                   setCloneSourceId(detailCode.id);
                   setCloneCode("");
                   setCloneDialogOpen(true);
-                }} className="border-[var(--landing-border)]">
+                }}>
                   <Copy className="mr-2 h-4 w-4" /> Clone
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => { deleteCode(detailCode); setDetailOpen(false); }} className="border-red-500/20 text-red-500 hover:bg-red-500/10">

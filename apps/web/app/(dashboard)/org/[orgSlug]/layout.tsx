@@ -63,6 +63,13 @@ export default async function DashboardLayout({
     redirect("/");
   }
 
+  if (currentOrg.status === "suspended") {
+    redirect(`/org-suspended?slug=${orgSlug}`);
+  }
+  if (currentOrg.status === "banned") {
+    redirect(`/org-banned?slug=${orgSlug}`);
+  }
+
   // Get current user's org membership for role
   const [currentMember] = await db
     .select()

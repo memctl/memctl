@@ -10,8 +10,15 @@ import {
 import { eq, and, count } from "drizzle-orm";
 import { headers } from "next/headers";
 import type { PlanId } from "@memctl/shared/constants";
+import { LRUCache } from "lru-cache";
 
 const PLAN_TIER_ORDER: PlanId[] = ["free", "lite", "pro", "business", "scale", "enterprise"];
+
+const PROMO_RATE_LIMIT = 10; // max attempts per minute
+const promoRateCache = new LRUCache<string, { count: number; resetAt: number }>({
+  max: 5_000,
+  ttl: 60_000,
+});
 
 export async function POST(
   req: NextRequest,
@@ -20,6 +27,25 @@ export async function POST(
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Rate limit by user ID
+  const rateLimitKey = `promo:${session.user.id}`;
+  const rlNow = Date.now();
+  const rlEntry = promoRateCache.get(rateLimitKey);
+  if (rlEntry && rlNow < rlEntry.resetAt) {
+    rlEntry.count++;
+    if (rlEntry.count > PROMO_RATE_LIMIT) {
+      const retryAfter = Math.ceil((rlEntry.resetAt - rlNow) / 1000);
+      const res = NextResponse.json(
+        { error: "Too many promo code attempts. Try again later." },
+        { status: 429 },
+      );
+      res.headers.set("Retry-After", String(retryAfter));
+      return res;
+    }
+  } else {
+    promoRateCache.set(rateLimitKey, { count: 1, resetAt: rlNow + 60_000 });
   }
 
   const { slug } = await params;

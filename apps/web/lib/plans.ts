@@ -1,4 +1,4 @@
-import { PLANS, type PlanId } from "@memctl/shared/constants";
+import { PLAN_IDS, PLANS, type PlanId } from "@memctl/shared/constants";
 
 /** Sentinel value for "unlimited" in SQLite integer columns (Infinity is not storable). */
 const UNLIMITED_SENTINEL = 999999;
@@ -60,3 +60,19 @@ export const INVITATIONS_PER_DAY = 20;
 
 /** Max pending (non-accepted) invitations per org at any time. */
 export const MAX_PENDING_INVITATIONS = 50;
+
+export function getEffectivePlanId(org: {
+  planId: string;
+  planOverride: string | null;
+}): PlanId {
+  if (
+    org.planOverride &&
+    (PLAN_IDS as readonly string[]).includes(org.planOverride)
+  ) {
+    return org.planOverride as PlanId;
+  }
+  if ((PLAN_IDS as readonly string[]).includes(org.planId)) {
+    return org.planId as PlanId;
+  }
+  return "free";
+}

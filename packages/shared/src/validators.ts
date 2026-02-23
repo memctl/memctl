@@ -96,3 +96,17 @@ export const projectAssignmentSchema = z.object({
 });
 
 export const planIdSchema = z.enum(PLAN_IDS);
+
+export const adminOrgActionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("suspend"), reason: z.string().min(1).max(1024) }),
+  z.object({ action: z.literal("ban"), reason: z.string().min(1).max(1024) }),
+  z.object({ action: z.literal("reactivate"), reason: z.string().max(1024).optional() }),
+  z.object({ action: z.literal("override_plan"), planId: planIdSchema.nullable() }),
+  z.object({
+    action: z.literal("override_limits"),
+    projectLimit: z.number().int().min(1).optional(),
+    memberLimit: z.number().int().min(1).optional(),
+  }),
+  z.object({ action: z.literal("transfer_ownership"), newOwnerId: z.string().min(1) }),
+  z.object({ action: z.literal("update_notes"), notes: z.string().max(4096) }),
+]);

@@ -4,8 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@memctl/db/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { AdminSidebar } from "@/components/admin/admin-sidebar";
-import { AdminHeader } from "@/components/admin/admin-header";
+import { AdminShell } from "@/components/admin/admin-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -45,12 +44,6 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen bg-[var(--landing-bg)]">
-      <AdminSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <AdminHeader user={session.user} />
-        <main className="flex-1 overflow-auto p-8">{children}</main>
-      </div>
-    </div>
+    <AdminShell user={session.user}>{children}</AdminShell>
   );
 }

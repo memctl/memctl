@@ -87,6 +87,9 @@ export const PLANS: Record<
   },
 };
 
+export const ORG_STATUSES = ["active", "suspended", "banned"] as const;
+export type OrgStatus = (typeof ORG_STATUSES)[number];
+
 export const ORG_ROLES = ["owner", "admin", "member"] as const;
 export type OrgRole = (typeof ORG_ROLES)[number];
 

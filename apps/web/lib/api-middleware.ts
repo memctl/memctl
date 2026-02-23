@@ -6,7 +6,7 @@ import { sessions, organizations, organizationMembers, projectMembers, projects 
 import { eq, and, inArray } from "drizzle-orm";
 import { logger, generateRequestId } from "./logger";
 import { rateLimit } from "./rate-limit";
-import type { PlanId } from "@memctl/shared/constants";
+import { getEffectivePlanId } from "./plans";
 
 export interface AuthContext {
   userId: string;
@@ -79,13 +79,20 @@ export async function authenticateRequest(
   }
 
   const [org] = await db
-    .select({ id: organizations.id })
+    .select({ id: organizations.id, status: organizations.status })
     .from(organizations)
     .where(eq(organizations.slug, orgSlug))
     .limit(1);
 
   if (!org) {
     return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+  }
+
+  if (org.status === "suspended") {
+    return jsonError("Organization is suspended", 403);
+  }
+  if (org.status === "banned") {
+    return jsonError("Organization has been banned", 403);
   }
 
   return {
@@ -211,14 +218,14 @@ export async function checkRateLimit(
   authContext: AuthContext,
 ): Promise<NextResponse | null> {
   const [org] = await db
-    .select({ planId: organizations.planId })
+    .select({ planId: organizations.planId, planOverride: organizations.planOverride })
     .from(organizations)
     .where(eq(organizations.id, authContext.orgId))
     .limit(1);
 
   if (!org) return null;
 
-  const result = rateLimit(authContext.userId, org.planId as PlanId);
+  const result = rateLimit(authContext.userId, getEffectivePlanId(org));
 
   if (!result.allowed) {
     const res = NextResponse.json(

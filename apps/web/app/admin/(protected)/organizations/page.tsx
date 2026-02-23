@@ -25,7 +25,6 @@ export default async function AdminOrganizationsPage() {
     .from(organizations)
     .orderBy(desc(organizations.createdAt));
 
-  // Get owner names and counts
   const orgsWithDetails = await Promise.all(
     allOrgs.map(async (org) => {
       const [owner] = await db
@@ -62,83 +61,135 @@ export default async function AdminOrganizationsPage() {
     enterprise: "bg-amber-500/10 text-amber-500",
   };
 
+  const activeCount = orgsWithDetails.filter((o) => o.status === "active").length;
+  const suspendedBanned = orgsWithDetails.filter(
+    (o) => o.status === "suspended" || o.status === "banned",
+  ).length;
+  const proPlus = orgsWithDetails.filter(
+    (o) => o.planId !== "free",
+  ).length;
+
+  const stats = [
+    { label: "Total Orgs", value: allOrgs.length },
+    { label: "Active", value: activeCount },
+    { label: "Suspended/Banned", value: suspendedBanned },
+    { label: "Pro+", value: proPlus },
+  ];
+
+  const statusBadgeStyles: Record<string, string> = {
+    active: "bg-emerald-500/10 text-emerald-500",
+    suspended: "bg-amber-500/10 text-amber-500",
+    banned: "bg-red-500/10 text-red-500",
+  };
+
   return (
     <div>
-      <PageHeader
-        badge="Admin"
-        title="Organizations"
-        description={`${allOrgs.length} total organizations`}
-      />
+      <PageHeader badge="Admin" title="Organizations" />
+
+      <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="dash-card p-3">
+            <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+              {s.label}
+            </span>
+            <span className="block text-lg font-semibold text-[var(--landing-text)]">
+              {s.value}
+            </span>
+          </div>
+        ))}
+      </div>
 
       <div className="dash-card overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Name
-              </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Slug
-              </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Owner
-              </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Plan
-              </TableHead>
-              <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Projects
-              </TableHead>
-              <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Members
-              </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Created
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orgsWithDetails.map((org) => (
-              <TableRow
-                key={org.id}
-                className="border-[var(--landing-border)]"
-              >
-                <TableCell>
-                  <Link
-                    href={`/admin/organizations/${org.slug}`}
-                    className="text-sm font-medium text-[var(--landing-text)] transition-colors hover:text-[#F97316]"
-                  >
-                    {org.name}
-                  </Link>
-                </TableCell>
-                <TableCell className="font-mono text-xs text-[var(--landing-text-tertiary)]">
-                  {org.slug}
-                </TableCell>
-                <TableCell className="text-sm text-[var(--landing-text-secondary)]">
-                  {org.ownerName}
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${
-                      planBadgeStyles[org.planId] ?? planBadgeStyles.free
-                    }`}
-                  >
-                    {org.planId}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right font-mono text-xs text-[var(--landing-text-secondary)]">
-                  {org.projectCount}
-                </TableCell>
-                <TableCell className="text-right font-mono text-xs text-[var(--landing-text-secondary)]">
-                  {org.memberCount}
-                </TableCell>
-                <TableCell className="font-mono text-xs text-[var(--landing-text-tertiary)]">
-                  {org.createdAt.toLocaleDateString()}
-                </TableCell>
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+            All Organizations
+          </span>
+          <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+            {allOrgs.length}
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Name
+                </TableHead>
+                <TableHead className="hidden sm:table-cell font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Slug
+                </TableHead>
+                <TableHead className="hidden md:table-cell font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Owner
+                </TableHead>
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Plan
+                </TableHead>
+                <TableHead className="hidden sm:table-cell font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Status
+                </TableHead>
+                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Projects
+                </TableHead>
+                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Members
+                </TableHead>
+                <TableHead className="hidden lg:table-cell font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  Created
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {orgsWithDetails.map((org) => (
+                <TableRow
+                  key={org.id}
+                  className="border-[var(--landing-border)]"
+                >
+                  <TableCell>
+                    <Link
+                      href={`/admin/organizations/${org.slug}`}
+                      className="text-sm font-medium text-[var(--landing-text)] transition-colors hover:text-[#F97316]"
+                    >
+                      {org.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell font-mono text-xs text-[var(--landing-text-tertiary)]">
+                    {org.slug}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-sm text-[var(--landing-text-secondary)]">
+                    {org.ownerName}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${
+                        planBadgeStyles[org.planId] ?? planBadgeStyles.free
+                      }`}
+                    >
+                      {org.planId}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${
+                        statusBadgeStyles[org.status] ?? statusBadgeStyles.active
+                      }`}
+                    >
+                      {org.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs text-[var(--landing-text-secondary)]">
+                    {org.projectCount}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs text-[var(--landing-text-secondary)]">
+                    {org.memberCount}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell font-mono text-xs text-[var(--landing-text-tertiary)]">
+                    {org.createdAt.toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );

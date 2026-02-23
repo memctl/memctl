@@ -394,7 +394,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ memory: { ...existing, ...updates } });
   }
 
-  const capacity = await getOrgMemoryCapacity(org.id, org.planId, project.id);
+  const capacity = await getOrgMemoryCapacity(org.id, org.planId, project.id, org.planOverride);
 
   // Hard block only on org-wide limit (abuse prevention)
   if (capacity.isFull) {

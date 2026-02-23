@@ -31,6 +31,12 @@ export const organizations = sqliteTable("organizations", {
   companyName: text("company_name"),
   taxId: text("tax_id"),
   billingAddress: text("billing_address"),
+  status: text("status").notNull().default("active"),
+  statusReason: text("status_reason"),
+  statusChangedAt: integer("status_changed_at", { mode: "timestamp" }),
+  statusChangedBy: text("status_changed_by"),
+  adminNotes: text("admin_notes"),
+  planOverride: text("plan_override"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -510,6 +516,25 @@ export const auditLogs = sqliteTable(
     index("audit_org_created").on(table.orgId, table.createdAt),
     index("audit_project_created").on(table.projectId, table.createdAt),
   ],
+);
+
+export const adminActions = sqliteTable(
+  "admin_actions",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    adminId: text("admin_id")
+      .notNull()
+      .references(() => users.id),
+    action: text("action").notNull(),
+    details: text("details"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [index("admin_actions_org_created").on(table.orgId, table.createdAt)],
 );
 
 export const blogPosts = sqliteTable("blog_posts", {

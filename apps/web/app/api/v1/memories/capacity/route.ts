@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
     context.org.id,
     context.org.planId,
     context.project.id,
+    context.org.planOverride,
   );
 
   // Compute relevance distribution for active memories
