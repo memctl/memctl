@@ -108,8 +108,9 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showLabels, setShowLabels] = useState(true);
   const [showOrphans, setShowOrphans] = useState(true);
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
+  // Center the transform so forceCenter(0,0) maps to the middle of the canvas
   const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
-  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
 
   const transformRef = useRef(transform);
   transformRef.current = transform;
@@ -173,7 +174,18 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
   const searchMatchesRef = useRef(searchMatches);
   searchMatchesRef.current = searchMatches;
 
+  // Node lookup map for O(1) edge rendering
+  const nodeMapRef = useRef(new Map<string, GraphNode>());
+  useEffect(() => {
+    const map = new Map<string, GraphNode>();
+    if (graphData) {
+      for (const n of graphData.nodes) map.set(n.id, n);
+    }
+    nodeMapRef.current = map;
+  }, [graphData]);
+
   // Canvas resize observer
+  const initializedRef = useRef(false);
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -182,7 +194,14 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0) {
-          setCanvasSize({ w: Math.floor(width), h: Math.floor(height) });
+          const w = Math.floor(width);
+          const h = Math.floor(height);
+          setCanvasSize({ w, h });
+          // On first real size, center the transform
+          if (!initializedRef.current) {
+            initializedRef.current = true;
+            setTransform({ x: w / 2, y: h / 2, k: 1 });
+          }
         }
       }
     });
@@ -193,7 +212,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
   // Update canvas dimensions
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || canvasSize.w === 0 || canvasSize.h === 0) return;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvasSize.w * dpr;
     canvas.height = canvasSize.h * dpr;
@@ -230,6 +249,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
+    if (w === 0 || h === 0) return;
     const t = transformRef.current;
     const selected = selectedRef.current;
     const hovered = hoveredRef.current;
@@ -275,9 +295,10 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
     const visibleSet = new Set(visibleNodes.map((n) => n.id));
 
     // Edges
+    const nMap = nodeMapRef.current;
     for (const edge of data.edges) {
-      const src = data.nodes.find((n) => n.id === edge.source);
-      const tgt = data.nodes.find((n) => n.id === edge.target);
+      const src = nMap.get(edge.source);
+      const tgt = nMap.get(edge.target);
       if (!src || !tgt) continue;
       if (!visibleSet.has(src.id) || !visibleSet.has(tgt.id)) continue;
       if (src.x == null || src.y == null || tgt.x == null || tgt.y == null)
@@ -456,16 +477,18 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
     });
   }, [graphData, canvasSize]);
 
-  // Auto-fit on initial load
+  // Auto-fit once we have both graph data and a real canvas size
   const didFitRef = useRef(false);
   useEffect(() => {
     if (!graphData || graphData.nodes.length === 0 || didFitRef.current) return;
+    if (canvasSize.w === 0 || canvasSize.h === 0) return;
+    // Wait a few simulation ticks so nodes have spread out from (0,0)
     const timer = setTimeout(() => {
       fitToView();
       didFitRef.current = true;
-    }, 800);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [graphData, fitToView]);
+  }, [graphData, fitToView, canvasSize]);
 
   // Hit test: find node under screen coordinates
   const hitTest = useCallback(
@@ -585,11 +608,14 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
     [hitTest],
   );
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent<HTMLCanvasElement>) => {
+  // Wheel zoom via native listener (passive: false to allow preventDefault)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
       const factor = e.deltaY < 0 ? 1.1 : 0.9;
@@ -603,9 +629,11 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
           y: sy - (sy - prev.y) * ratio,
         };
       });
-    },
-    [],
-  );
+    };
+
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", handleWheel);
+  }, []);
 
   const handleDoubleClick = useCallback(() => {
     fitToView();
@@ -819,7 +847,6 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            onWheel={handleWheel}
             onDoubleClick={handleDoubleClick}
           />
 
