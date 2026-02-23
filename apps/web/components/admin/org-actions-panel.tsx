@@ -464,32 +464,45 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
         </div>
       </div>
 
-      {/* Ownership + Notes */}
+      {/* Ownership */}
       <div className="dash-card overflow-hidden">
-        <SectionHeader>Ownership &amp; Notes</SectionHeader>
-        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[var(--landing-border)]">
-          <div className="p-4">
-            <SectionLabel>Owner</SectionLabel>
-            <p className="mb-3 font-mono text-[11px] text-[var(--landing-text-secondary)]">
-              Current: <span className="text-[var(--landing-text)]">{members.find((m) => m.userId === org.ownerId)?.name ?? "Unknown"}</span>
-            </p>
-            <div className="flex gap-2">
-              <Select value={newOwnerId} onValueChange={setNewOwnerId}>
-                <SelectTrigger className="font-mono flex-1">
-                  <SelectValue placeholder="Select member" />
-                </SelectTrigger>
-                <SelectContent className={selectPopoverCls}>
-                  {members.filter((m) => m.userId !== org.ownerId).map((m) => (
-                    <SelectItem key={m.userId} value={m.userId} className={selectItemCls}>{m.name} ({m.email})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => setShowTransferConfirm(true)} disabled={loading || !newOwnerId}>Transfer</Button>
-            </div>
+        <SectionHeader>Ownership</SectionHeader>
+        <div className="p-4">
+          <SectionLabel>Owner</SectionLabel>
+          <p className="mb-3 font-mono text-[11px] text-[var(--landing-text-secondary)]">
+            Current: <span className="text-[var(--landing-text)]">{members.find((m) => m.userId === org.ownerId)?.name ?? "Unknown"}</span>
+          </p>
+          <div className="flex gap-2">
+            <Select value={newOwnerId} onValueChange={setNewOwnerId}>
+              <SelectTrigger className="font-mono flex-1">
+                <SelectValue placeholder="Select member" />
+              </SelectTrigger>
+              <SelectContent className={selectPopoverCls}>
+                {members.filter((m) => m.userId !== org.ownerId).map((m) => (
+                  <SelectItem key={m.userId} value={m.userId} className={selectItemCls}>{m.name} ({m.email})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => setShowTransferConfirm(true)} disabled={loading || !newOwnerId}>Transfer</Button>
           </div>
-          <div className="p-4">
-            <SectionLabel>Admin Notes</SectionLabel>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={6} className="mb-2 font-mono min-h-[120px]" placeholder="Internal notes (not visible to org members)" />
+        </div>
+      </div>
+
+      {/* Admin Notes - full width */}
+      <div className="dash-card overflow-hidden">
+        <SectionHeader>Admin Notes</SectionHeader>
+        <div className="p-4">
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={8}
+            className="mb-3 font-mono min-h-[180px] text-[11px] leading-relaxed"
+            placeholder="Internal notes, context, decisions, history (not visible to org members)"
+          />
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[9px] text-[var(--landing-text-tertiary)]">
+              {notes.length > 0 ? `${notes.length} chars` : ""}
+            </span>
             <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "update_notes", notes })} disabled={loading}>
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Notes"}
             </Button>
