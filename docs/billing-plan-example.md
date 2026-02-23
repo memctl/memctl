@@ -10,13 +10,18 @@ Use this as a reference model for Stripe billing in memctl.
 
 ## Suggested plan catalog
 
-| Plan | Monthly Price | Buyer Types | Notes |
-|---|---:|---|---|
-| Lite | $5 | Individual, Business | Entry plan |
-| Pro | $20 | Individual, Business | Team starter |
-| Business | $40 | Business (default), Individual (optional) | Adds higher limits + invoices |
-| Scale | $80 | Business | Higher limits, priority support |
-| Enterprise | Custom | Business | Sales-led contract |
+Prices defined in `apps/web/lib/stripe.ts` (`STRIPE_PLANS`) and `packages/shared/src/constants.ts` (`PLANS`, `EXTRA_SEAT_PRICE`).
+
+| Plan | Monthly Price | Included Seats | Extra Seat | Buyer Types | Notes |
+|---|---:|---:|---:|---|---|
+| Free | $0 | 1 | N/A | Individual | Solo tier |
+| Lite | $5 | 3 | +$8/mo | Individual, Business | Entry plan |
+| Pro | $20 | 10 | +$8/mo | Individual, Business | Team starter |
+| Business | $59 | 30 | +$8/mo | Business (default), Individual (optional) | Higher limits + invoices |
+| Scale | $149 | 100 | +$8/mo | Business | Highest self-serve tier |
+| Enterprise | Custom | Unlimited | Included | Business | Sales-led contract |
+
+The extra seat price (`$8/mo`) is defined as `EXTRA_SEAT_PRICE` in `packages/shared/src/constants.ts`.
 
 ## Stripe setup pattern
 
@@ -71,7 +76,21 @@ Practical notes:
 
 ## Plan limits reference
 
-For the actual enforced limits per plan (memory counts, API calls, rate limits), see the [Organization & Teams](./organization-and-teams.md#plan-limits) documentation. The limits are defined in `packages/shared/src/constants.ts`.
+For the actual enforced limits per plan (memory counts, API calls, rate limits), see the [Organization & Teams](./organization-and-teams.md#plan-limits) documentation.
+
+Key source files:
+- `packages/shared/src/constants.ts` -- `PLANS` (limits per plan), `EXTRA_SEAT_PRICE` ($8/mo per extra member)
+- `apps/web/lib/stripe.ts` -- `STRIPE_PLANS` (Stripe price IDs and display prices)
+- `apps/web/lib/plans.ts` -- `getEffectivePlanId()`, `getOrgLimits()`, trial/expiry helpers
+
+## Enterprise billing
+
+Admin-created enterprise subscriptions use custom Stripe prices (no checkout redirect). See `apps/web/lib/stripe.ts`:
+- `createCustomPrice()` -- creates a one-off Stripe price for the enterprise deal
+- `createAdminSubscription()` -- attaches the price to the org's Stripe customer
+- `reportMemoryUsage()` -- reports metered usage for memory overage billing
+
+Plan templates (`packages/db/src/schema.ts` `planTemplates` table) let admins define reusable limit configurations and apply them to orgs.
 
 ## Example env for plan IDs
 
@@ -80,4 +99,6 @@ STRIPE_LITE_PRICE_ID=price_123
 STRIPE_PRO_PRICE_ID=price_456
 STRIPE_BUSINESS_PRICE_ID=price_789
 STRIPE_SCALE_PRICE_ID=price_abc
+STRIPE_METERED_PRICE_ID=price_metered_xyz
+CRON_SECRET=your-cron-secret
 ```

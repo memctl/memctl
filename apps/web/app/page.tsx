@@ -5,7 +5,7 @@ import {
   Users,
   Sparkles,
 } from "lucide-react";
-import { PLANS } from "@memctl/shared/constants";
+import { PLANS, EXTRA_SEAT_PRICE } from "@memctl/shared/constants";
 import { AnnouncementBanner } from "@/components/landing/announcement-banner";
 import { Navbar } from "@/components/landing/navbar";
 import { CodeTabs } from "@/components/landing/code-tabs";
@@ -44,8 +44,6 @@ const STEPS = [
     code: "memctl serve --mcp",
   },
 ];
-
-const EXTRA_SEAT_PRICE = 5;
 
 const LANDING_PLANS = [
   {

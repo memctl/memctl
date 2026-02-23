@@ -100,7 +100,25 @@ export const MAX_PENDING_INVITATIONS = 50;
 export function getEffectivePlanId(org: {
   planId: string;
   planOverride: string | null;
+  trialEndsAt?: Date | null;
+  planExpiresAt?: Date | null;
 }): PlanId {
+  const now = new Date();
+
+  // Expired trial falls back to free (unless Stripe subscription is active via planId)
+  if (org.trialEndsAt && org.trialEndsAt <= now) {
+    // Trial expired, check if there's still a valid Stripe plan
+    if ((PLAN_IDS as readonly string[]).includes(org.planId) && org.planId !== "free") {
+      return org.planId as PlanId;
+    }
+    return "free";
+  }
+
+  // Plan expiry check (lazy evaluation)
+  if (org.planExpiresAt && org.planExpiresAt <= now) {
+    return "free";
+  }
+
   if (
     org.planOverride &&
     (PLAN_IDS as readonly string[]).includes(org.planOverride)
@@ -111,4 +129,29 @@ export function getEffectivePlanId(org: {
     return org.planId as PlanId;
   }
   return "free";
+}
+
+export function isActiveTrial(org: { trialEndsAt: Date | null }): boolean {
+  if (!org.trialEndsAt) return false;
+  return org.trialEndsAt > new Date();
+}
+
+export function daysUntilExpiry(org: {
+  planExpiresAt: Date | null;
+  trialEndsAt: Date | null;
+}): number | null {
+  const target = org.trialEndsAt ?? org.planExpiresAt;
+  if (!target) return null;
+  const diffMs = target.getTime() - Date.now();
+  if (diffMs <= 0) return 0;
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
+export function planExpiresWithinDays(
+  org: { planExpiresAt: Date | null; trialEndsAt: Date | null },
+  days: number,
+): boolean {
+  const remaining = daysUntilExpiry(org);
+  if (remaining === null) return false;
+  return remaining <= days && remaining > 0;
 }

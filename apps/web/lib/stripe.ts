@@ -120,3 +120,67 @@ export async function createCustomerPortalSession(params: {
     return_url: params.returnUrl,
   });
 }
+
+export async function createCustomPrice(params: {
+  unitAmountCents: number;
+  productName: string;
+  interval: "month" | "year";
+}): Promise<{ priceId: string }> {
+  const s = getStripe();
+  const product = await s.products.create({ name: params.productName });
+  const price = await s.prices.create({
+    product: product.id,
+    unit_amount: params.unitAmountCents,
+    currency: "usd",
+    recurring: { interval: params.interval },
+  });
+  return { priceId: price.id };
+}
+
+export async function createAdminSubscription(params: {
+  customerId: string;
+  priceId: string;
+  orgSlug: string;
+  meteredPriceId?: string;
+}): Promise<{ subscriptionId: string; meteredItemId?: string }> {
+  const s = getStripe();
+  const items: { price: string }[] = [{ price: params.priceId }];
+  if (params.meteredPriceId) {
+    items.push({ price: params.meteredPriceId });
+  }
+  const subscription = await s.subscriptions.create({
+    customer: params.customerId,
+    items,
+    metadata: { orgSlug: params.orgSlug, adminCreated: "true" },
+  });
+
+  let meteredItemId: string | undefined;
+  if (params.meteredPriceId) {
+    const meteredItem = subscription.items.data.find(
+      (item) => item.price.id === params.meteredPriceId,
+    );
+    meteredItemId = meteredItem?.id;
+  }
+
+  return { subscriptionId: subscription.id, meteredItemId };
+}
+
+export async function reportMemoryUsage(params: {
+  subscriptionItemId: string;
+  memoryCount: number;
+  timestamp?: number;
+}): Promise<void> {
+  const s = getStripe();
+  await s.subscriptionItems.createUsageRecord(params.subscriptionItemId, {
+    quantity: params.memoryCount,
+    timestamp: params.timestamp ?? Math.floor(Date.now() / 1000),
+    action: "set",
+  });
+}
+
+export async function cancelAdminSubscription(
+  subscriptionId: string,
+): Promise<void> {
+  const s = getStripe();
+  await s.subscriptions.cancel(subscriptionId);
+}

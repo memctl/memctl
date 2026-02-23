@@ -11,6 +11,12 @@ import {
   projects,
 } from "@memctl/db/schema";
 import { eq, and, count } from "drizzle-orm";
+import {
+  isActiveTrial,
+  daysUntilExpiry,
+  planExpiresWithinDays,
+  getEffectivePlanId,
+} from "@/lib/plans";
 
 export async function generateMetadata({
   params,
@@ -148,6 +154,17 @@ export default async function DashboardLayout({
 
   const totalProjectCount = userRole === "member" ? filteredCount : (projectCountResult[0]?.value ?? 0);
 
+  const trialActive = isActiveTrial(currentOrg);
+  const trialDays = trialActive ? daysUntilExpiry(currentOrg) : null;
+  const expiringWithin7 = planExpiresWithinDays(currentOrg, 7);
+  const expiryDays = expiringWithin7 ? daysUntilExpiry(currentOrg) : null;
+  const effectivePlan = getEffectivePlanId(currentOrg);
+  const planExpired =
+    !trialActive &&
+    (currentOrg.planExpiresAt || currentOrg.trialEndsAt) &&
+    effectivePlan === "free" &&
+    (currentOrg.planOverride !== null || currentOrg.trialEndsAt !== null);
+
   return (
     <DashboardShell
       orgSlug={orgSlug}
@@ -166,6 +183,21 @@ export default async function DashboardLayout({
         userRole,
       }}
     >
+      {trialActive && trialDays !== null && (
+        <div className="mb-3 rounded-md border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 font-mono text-[11px] text-amber-500">
+          Trial ends in {trialDays} day{trialDays !== 1 ? "s" : ""}.
+        </div>
+      )}
+      {!trialActive && expiringWithin7 && expiryDays !== null && (
+        <div className="mb-3 rounded-md border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 font-mono text-[11px] text-amber-500">
+          Plan expires in {expiryDays} day{expiryDays !== 1 ? "s" : ""}.
+        </div>
+      )}
+      {planExpired && (
+        <div className="mb-3 rounded-md border border-red-500/20 bg-red-500/10 px-4 py-2.5 font-mono text-[11px] text-red-500">
+          Plan expired, downgraded to Free.
+        </div>
+      )}
       {children}
     </DashboardShell>
   );

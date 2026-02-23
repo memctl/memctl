@@ -6,11 +6,12 @@ import {
   projects,
   memories,
   organizationMembers,
+  planTemplates,
 } from "@memctl/db/schema";
 import { eq, count } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
-import { getEffectivePlanId, getOrgLimits, isUnlimited, formatLimitValue, clampLimit } from "@/lib/plans";
+import { getEffectivePlanId, getOrgLimits, isUnlimited, formatLimitValue, clampLimit, isActiveTrial, daysUntilExpiry } from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import {
   Table,
@@ -91,13 +92,21 @@ export default async function AdminOrgDetailPage({
     totalMemories += result?.value ?? 0;
   }
 
+  const templatesList = await db
+    .select({ id: planTemplates.id, name: planTemplates.name })
+    .from(planTemplates)
+    .where(eq(planTemplates.isArchived, false));
+
   const statusBadgeStyles: Record<string, string> = {
     active: "text-emerald-500",
     suspended: "text-amber-500",
     banned: "text-red-500",
   };
 
-  const stats = [
+  const trialActive = isActiveTrial(org);
+  const remainingDays = daysUntilExpiry(org);
+
+  const stats: { label: string; value: string; className?: string; sub?: string }[] = [
     {
       label: "Status",
       value: org.status,
@@ -123,6 +132,21 @@ export default async function AdminOrgDetailPage({
             : `$${currentPlan.price}/mo`,
     },
   ];
+
+  if (trialActive && remainingDays !== null) {
+    stats.push({
+      label: "Trial",
+      value: `${remainingDays}d left`,
+      className: "text-amber-500",
+    });
+  }
+
+  if (org.contractValue !== null) {
+    stats.push({
+      label: "Contract",
+      value: `$${(org.contractValue / 100).toLocaleString()}/yr`,
+    });
+  }
 
   return (
     <div>
@@ -325,6 +349,16 @@ export default async function AdminOrgDetailPage({
             planDefaultMemoryPerProject: clampLimit(currentPlan.memoryLimitPerProject),
             planDefaultMemoryOrg: clampLimit(currentPlan.memoryLimitOrg),
             planDefaultApiRate: clampLimit(currentPlan.apiRatePerMinute),
+            trialEndsAt: org.trialEndsAt?.toISOString() ?? null,
+            planExpiresAt: org.planExpiresAt?.toISOString() ?? null,
+            stripeSubscriptionId: org.stripeSubscriptionId,
+            stripeCustomerId: org.stripeCustomerId,
+            meteredBilling: org.meteredBilling,
+            contractValue: org.contractValue,
+            contractNotes: org.contractNotes,
+            contractStartDate: org.contractStartDate?.toISOString() ?? null,
+            contractEndDate: org.contractEndDate?.toISOString() ?? null,
+            planTemplateId: org.planTemplateId,
           }}
           members={memberUsers.map((m) => ({
             userId: m.userId,
@@ -332,6 +366,7 @@ export default async function AdminOrgDetailPage({
             email: m.user?.email ?? "",
             role: m.role,
           }))}
+          templates={templatesList}
         />
         <OrgActionHistory orgSlug={org.slug} />
       </div>

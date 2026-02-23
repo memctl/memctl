@@ -41,6 +41,35 @@ export const organizations = sqliteTable("organizations", {
   memoryLimitOrg: integer("memory_limit_org"),
   apiRatePerMinute: integer("api_rate_per_minute"),
   customLimits: integer("custom_limits", { mode: "boolean" }).default(false),
+  planExpiresAt: integer("plan_expires_at", { mode: "timestamp" }),
+  trialEndsAt: integer("trial_ends_at", { mode: "timestamp" }),
+  stripeMeteredItemId: text("stripe_metered_item_id"),
+  meteredBilling: integer("metered_billing", { mode: "boolean" }).default(false),
+  contractValue: integer("contract_value"),
+  contractNotes: text("contract_notes"),
+  contractStartDate: integer("contract_start_date", { mode: "timestamp" }),
+  contractEndDate: integer("contract_end_date", { mode: "timestamp" }),
+  planTemplateId: text("plan_template_id"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const planTemplates = sqliteTable("plan_templates", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  basePlanId: text("base_plan_id").notNull().default("enterprise"),
+  projectLimit: integer("project_limit").notNull(),
+  memberLimit: integer("member_limit").notNull(),
+  memoryLimitPerProject: integer("memory_limit_per_project").notNull(),
+  memoryLimitOrg: integer("memory_limit_org").notNull(),
+  apiRatePerMinute: integer("api_rate_per_minute").notNull(),
+  stripePriceInCents: integer("stripe_price_in_cents"),
+  isArchived: integer("is_archived", { mode: "boolean" }).default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

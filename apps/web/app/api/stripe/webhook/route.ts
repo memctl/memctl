@@ -179,6 +179,33 @@ export async function POST(req: NextRequest) {
       break;
     }
 
+    case "customer.subscription.created": {
+      const subscription = event.data.object;
+      const customerId =
+        typeof subscription.customer === "string"
+          ? subscription.customer
+          : subscription.customer?.id;
+
+      if (customerId) {
+        const [existingOrg] = await db
+          .select({ id: organizations.id, stripeSubscriptionId: organizations.stripeSubscriptionId })
+          .from(organizations)
+          .where(eq(organizations.stripeCustomerId, customerId))
+          .limit(1);
+
+        if (existingOrg && !existingOrg.stripeSubscriptionId) {
+          await db
+            .update(organizations)
+            .set({
+              stripeSubscriptionId: subscription.id,
+              updatedAt: new Date(),
+            })
+            .where(eq(organizations.id, existingOrg.id));
+        }
+      }
+      break;
+    }
+
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
 
@@ -195,6 +222,8 @@ export async function POST(req: NextRequest) {
           .set({
             planId: "free",
             stripeSubscriptionId: null,
+            stripeMeteredItemId: null,
+            meteredBilling: false,
             updatedAt: new Date(),
           })
           .where(eq(organizations.stripeSubscriptionId, subscription.id));
@@ -204,6 +233,8 @@ export async function POST(req: NextRequest) {
           .set({
             planId: "free",
             stripeSubscriptionId: null,
+            stripeMeteredItemId: null,
+            meteredBilling: false,
             projectLimit: freePlan.projectLimit,
             memberLimit: freePlan.memberLimit,
             memoryLimitPerProject: null,

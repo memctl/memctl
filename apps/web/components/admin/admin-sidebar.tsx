@@ -11,6 +11,7 @@ import {
   History,
   Mail,
   Ticket,
+  Layers,
   ChevronsUpDown,
   LogOut,
   Sun,
@@ -66,6 +67,12 @@ const platformItems: {
     icon: Building2,
     href: "/admin/organizations",
     match: (p) => p.startsWith("/admin/organizations"),
+  },
+  {
+    label: "Plan Templates",
+    icon: Layers,
+    href: "/admin/plan-templates",
+    match: (p) => p.startsWith("/admin/plan-templates"),
   },
 ];
 

@@ -87,6 +87,9 @@ export const PLANS: Record<
   },
 };
 
+/** Per-seat monthly price in dollars for extra members beyond plan-included seats. */
+export const EXTRA_SEAT_PRICE = 8;
+
 export const ORG_STATUSES = ["active", "suspended", "banned"] as const;
 export type OrgStatus = (typeof ORG_STATUSES)[number];
 
