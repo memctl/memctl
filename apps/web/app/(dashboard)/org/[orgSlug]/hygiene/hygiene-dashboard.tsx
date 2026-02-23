@@ -14,11 +14,12 @@ interface HygieneDashboardProps {
   growth: Array<{ week: string; count: number }>;
   capacity: { used: number; limit: number | null; usagePercent: number };
   orgSlug: string;
+  projectSlug?: string;
   tableSizes?: { versions: number; activityLogs: number; expiredLocks: number };
 }
 
 export function HygieneDashboard({
-  healthBuckets, staleMemories, expiringMemories, growth, capacity, orgSlug, tableSizes,
+  healthBuckets, staleMemories, expiringMemories, growth, capacity, orgSlug, projectSlug, tableSizes,
 }: HygieneDashboardProps) {
   const [cleaning, setCleaning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function HygieneDashboard({
     try {
       const res = await fetch(`/api/v1/memories/lifecycle`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-Org-Slug": orgSlug, "X-Project-Slug": "_all" },
+        headers: { "Content-Type": "application/json", "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug ?? "_all" },
         body: JSON.stringify({
           policies: ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy", "cleanup_old_versions", "cleanup_activity_logs", "cleanup_expired_locks", "purge_archived"],
           healthThreshold: 15,
