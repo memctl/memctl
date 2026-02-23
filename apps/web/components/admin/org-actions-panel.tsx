@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { PLAN_IDS, type PlanId } from "@memctl/shared/constants";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface OrgActionsPanelProps {
   org: {
@@ -123,18 +124,18 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
   const [subInterval, setSubInterval] = useState<"month" | "year">("month");
   const [subMetering, setSubMetering] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("");
-  const [expiryDate, setExpiryDate] = useState(
-    org.planExpiresAt ? new Date(org.planExpiresAt).toISOString().slice(0, 10) : "",
+  const [expiryDate, setExpiryDate] = useState<Date | undefined>(
+    org.planExpiresAt ? new Date(org.planExpiresAt) : undefined,
   );
   const [contractValueDollars, setContractValueDollars] = useState(
     org.contractValue !== null ? String(org.contractValue / 100) : "",
   );
   const [contractNotes, setContractNotes] = useState(org.contractNotes ?? "");
-  const [contractStart, setContractStart] = useState(
-    org.contractStartDate ? new Date(org.contractStartDate).toISOString().slice(0, 10) : "",
+  const [contractStart, setContractStart] = useState<Date | undefined>(
+    org.contractStartDate ? new Date(org.contractStartDate) : undefined,
   );
-  const [contractEnd, setContractEnd] = useState(
-    org.contractEndDate ? new Date(org.contractEndDate).toISOString().slice(0, 10) : "",
+  const [contractEnd, setContractEnd] = useState<Date | undefined>(
+    org.contractEndDate ? new Date(org.contractEndDate) : undefined,
   );
 
   async function doAction(body: Record<string, unknown>) {
@@ -237,39 +238,69 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
         </SectionHeader>
         <div className="p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
-            <div>
-              <FieldLabel>Project limit</FieldLabel>
-              <Input type="number" min={1} value={projectLimit} onChange={(e) => setProjectLimit(Number(e.target.value))} className="font-mono" />
-            </div>
-            <div>
-              <FieldLabel>Member limit</FieldLabel>
-              <Input type="number" min={1} value={memberLimit} onChange={(e) => setMemberLimit(Number(e.target.value))} className="font-mono" />
-            </div>
-            <div>
-              <FieldLabel>Memory / project</FieldLabel>
-              <Input type="number" min={1} value={memoryLimitPerProject} onChange={(e) => setMemoryLimitPerProject(e.target.value)} placeholder={String(org.planDefaultMemoryPerProject)} className="font-mono" />
-            </div>
-            <div>
-              <FieldLabel>Memory org-wide</FieldLabel>
-              <Input type="number" min={1} value={memoryLimitOrg} onChange={(e) => setMemoryLimitOrg(e.target.value)} placeholder={String(org.planDefaultMemoryOrg)} className="font-mono" />
-            </div>
-            <div>
-              <FieldLabel>API rate / min</FieldLabel>
-              <Input type="number" min={1} value={apiRatePerMinute} onChange={(e) => setApiRatePerMinute(e.target.value)} placeholder={String(org.planDefaultApiRate)} className="font-mono" />
-            </div>
+            <LimitField
+              label="Project limit"
+              value={String(projectLimit)}
+              onChange={(v) => setProjectLimit(Number(v) || org.planDefaultProjectLimit)}
+              planDefault={org.planDefaultProjectLimit}
+              isOverridden={projectLimit !== org.planDefaultProjectLimit}
+              onClear={() => setProjectLimit(org.planDefaultProjectLimit)}
+            />
+            <LimitField
+              label="Member limit"
+              value={String(memberLimit)}
+              onChange={(v) => setMemberLimit(Number(v) || org.planDefaultMemberLimit)}
+              planDefault={org.planDefaultMemberLimit}
+              isOverridden={memberLimit !== org.planDefaultMemberLimit}
+              onClear={() => setMemberLimit(org.planDefaultMemberLimit)}
+            />
+            <LimitField
+              label="Memory / project"
+              value={memoryLimitPerProject}
+              onChange={setMemoryLimitPerProject}
+              planDefault={org.planDefaultMemoryPerProject}
+              isOverridden={memoryLimitPerProject !== ""}
+              onClear={() => setMemoryLimitPerProject("")}
+            />
+            <LimitField
+              label="Memory org-wide"
+              value={memoryLimitOrg}
+              onChange={setMemoryLimitOrg}
+              planDefault={org.planDefaultMemoryOrg}
+              isOverridden={memoryLimitOrg !== ""}
+              onClear={() => setMemoryLimitOrg("")}
+            />
+            <LimitField
+              label="API rate / min"
+              value={apiRatePerMinute}
+              onChange={setApiRatePerMinute}
+              planDefault={org.planDefaultApiRate}
+              isOverridden={apiRatePerMinute !== ""}
+              onClear={() => setApiRatePerMinute("")}
+            />
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => {
               const body: Record<string, unknown> = { action: "override_limits", projectLimit, memberLimit };
               if (memoryLimitPerProject) body.memoryLimitPerProject = Number(memoryLimitPerProject);
+              else body.memoryLimitPerProject = null;
               if (memoryLimitOrg) body.memoryLimitOrg = Number(memoryLimitOrg);
+              else body.memoryLimitOrg = null;
               if (apiRatePerMinute) body.apiRatePerMinute = Number(apiRatePerMinute);
+              else body.apiRatePerMinute = null;
               doAction(body);
             }} disabled={loading}>
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Limits"}
             </Button>
             {org.customLimits && (
-              <Button variant="outline" className="font-mono text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => doAction({ action: "reset_limits" })} disabled={loading}>Reset to Defaults</Button>
+              <Button variant="outline" className="font-mono text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => {
+                setProjectLimit(org.planDefaultProjectLimit);
+                setMemberLimit(org.planDefaultMemberLimit);
+                setMemoryLimitPerProject("");
+                setMemoryLimitOrg("");
+                setApiRatePerMinute("");
+                doAction({ action: "reset_limits" });
+              }} disabled={loading}>Reset All</Button>
             )}
           </div>
         </div>
@@ -386,13 +417,13 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             <div className="flex gap-2 items-end">
               <div className="flex-1">
                 <FieldLabel>Date</FieldLabel>
-                <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="font-mono" />
+                <DatePicker value={expiryDate} onChange={setExpiryDate} placeholder="Select expiry" />
               </div>
-              <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "set_expiry", expiresAt: new Date(expiryDate).getTime() })} disabled={loading || !expiryDate}>
+              <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "set_expiry", expiresAt: expiryDate!.getTime() })} disabled={loading || !expiryDate}>
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Set"}
               </Button>
               {org.planExpiresAt && (
-                <Button variant="outline" className="font-mono text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => doAction({ action: "clear_expiry" })} disabled={loading}>Clear</Button>
+                <Button variant="outline" className="font-mono text-amber-500 border-amber-500/30 hover:bg-amber-500/10" onClick={() => { setExpiryDate(undefined); doAction({ action: "clear_expiry" }); }} disabled={loading}>Clear</Button>
               )}
             </div>
           </div>
@@ -410,11 +441,11 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             </div>
             <div>
               <FieldLabel>Start date</FieldLabel>
-              <Input type="date" value={contractStart} onChange={(e) => setContractStart(e.target.value)} className="font-mono" />
+              <DatePicker value={contractStart} onChange={setContractStart} placeholder="Start" />
             </div>
             <div>
               <FieldLabel>End date</FieldLabel>
-              <Input type="date" value={contractEnd} onChange={(e) => setContractEnd(e.target.value)} className="font-mono" />
+              <DatePicker value={contractEnd} onChange={setContractEnd} placeholder="End" />
             </div>
           </div>
           <div className="mb-3">
@@ -425,8 +456,8 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
             action: "update_contract",
             contractValue: contractValueDollars ? Math.round(Number(contractValueDollars) * 100) : null,
             contractNotes: contractNotes || null,
-            contractStartDate: contractStart ? new Date(contractStart).getTime() : null,
-            contractEndDate: contractEnd ? new Date(contractEnd).getTime() : null,
+            contractStartDate: contractStart ? contractStart.getTime() : null,
+            contractEndDate: contractEnd ? contractEnd.getTime() : null,
           })} disabled={loading}>
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Contract"}
           </Button>
@@ -458,7 +489,7 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
           </div>
           <div className="p-4">
             <SectionLabel>Admin Notes</SectionLabel>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="mb-2 font-mono resize-none" placeholder="Internal notes (not visible to org members)" />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={6} className="mb-2 font-mono min-h-[120px]" placeholder="Internal notes (not visible to org members)" />
             <Button variant="outline" className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10" onClick={() => doAction({ action: "update_notes", notes })} disabled={loading}>
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save Notes"}
             </Button>
@@ -497,6 +528,55 @@ export function OrgActionsPanel({ org, members, templates }: OrgActionsPanelProp
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function LimitField({
+  label,
+  value,
+  onChange,
+  planDefault,
+  isOverridden,
+  onClear,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  planDefault: number;
+  isOverridden: boolean;
+  onClear: () => void;
+}) {
+  const displayDefault = planDefault >= 999999 ? "unlimited" : String(planDefault);
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between">
+        <label className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+          {label}
+        </label>
+        {isOverridden && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="font-mono text-[9px] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors"
+          >
+            clear
+          </button>
+        )}
+      </div>
+      <Input
+        type="number"
+        min={1}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={displayDefault}
+        className={`font-mono ${isOverridden ? "border-[#F97316]/30" : ""}`}
+      />
+      {!isOverridden && (
+        <span className="mt-0.5 block font-mono text-[9px] text-[var(--landing-text-tertiary)]">
+          plan default
+        </span>
+      )}
     </div>
   );
 }
