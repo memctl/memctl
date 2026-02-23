@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, sessionLogs } from "@memctl/db/schema";
+import { memories, sessionLogs, memoryLocks } from "@memctl/db/schema";
 import { eq, and, lt, isNull, isNotNull, sql } from "drizzle-orm";
 import { resolveOrgAndProject } from "../../capacity-utils";
 
@@ -92,6 +92,17 @@ export async function POST(req: NextRequest) {
       ),
     );
   results.auto_demote = { affected: demoted.rowsAffected ?? 0 };
+
+  // 5. Cleanup expired locks
+  const deletedLocks = await db
+    .delete(memoryLocks)
+    .where(
+      and(
+        eq(memoryLocks.projectId, context.project.id),
+        lt(memoryLocks.expiresAt, now),
+      ),
+    );
+  results.cleanup_expired_locks = { affected: deletedLocks.rowsAffected ?? 0 };
 
   return NextResponse.json({
     scheduled: true,

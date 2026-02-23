@@ -12,6 +12,7 @@ import { generateId } from "@/lib/utils";
 import { projectCreateSchema } from "@memctl/shared/validators";
 import { headers } from "next/headers";
 import { isUnlimited } from "@/lib/plans";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   const session = await auth.api.getSession({
@@ -224,6 +225,14 @@ export async function POST(req: NextRequest) {
     .from(projects)
     .where(eq(projects.id, projectId))
     .limit(1);
+
+  await logAudit({
+    orgId: org.id,
+    projectId,
+    actorId: session.user.id,
+    action: "project_created",
+    details: { name: parsed.data.name, slug: parsed.data.slug },
+  });
 
   return NextResponse.json({ project }, { status: 201 });
 }

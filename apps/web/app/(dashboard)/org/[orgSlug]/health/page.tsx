@@ -12,12 +12,10 @@ import {
   projects,
   memories,
   memoryLocks,
-  webhookConfigs,
-  webhookEvents,
   sessionLogs,
   activityLogs,
 } from "@memctl/db/schema";
-import { eq, and, count, desc, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, count, isNotNull } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
@@ -54,8 +52,6 @@ export default async function HealthPage({
   let totalExpiring = 0;
   let totalSessions = 0;
   let totalActivities = 0;
-  let totalWebhooks = 0;
-  let totalPendingWebhookEvents = 0;
   let totalActiveLocks = 0;
 
   const projectStats: Array<{
@@ -96,14 +92,6 @@ export default async function HealthPage({
     const [actCount] = await db.select({ value: count() }).from(activityLogs).where(eq(activityLogs.projectId, project.id));
     const atc = actCount?.value ?? 0;
     totalActivities += atc;
-
-    const hooks = await db.select().from(webhookConfigs).where(eq(webhookConfigs.projectId, project.id));
-    totalWebhooks += hooks.length;
-
-    for (const h of hooks) {
-      const [evtCount] = await db.select({ value: count() }).from(webhookEvents).where(eq(webhookEvents.webhookConfigId, h.id));
-      totalPendingWebhookEvents += evtCount?.value ?? 0;
-    }
 
     const [lockCount] = await db.select({ value: count() }).from(memoryLocks).where(eq(memoryLocks.projectId, project.id));
     totalActiveLocks += lockCount?.value ?? 0;
@@ -153,7 +141,6 @@ export default async function HealthPage({
     { name: "Database", status: "pass" as const, detail: "Connected" },
     { name: "Memory Usage", status: usagePercent >= 95 ? "fail" as const : usagePercent >= 80 ? "warn" as const : "pass" as const, detail: `${usagePercent}% (${totalMemories}/${memoryLimit === Infinity ? "∞" : memoryLimit})` },
     { name: "Active Locks", status: totalActiveLocks > 10 ? "warn" as const : "pass" as const, detail: `${totalActiveLocks} lock(s)` },
-    { name: "Pending Webhook Events", status: totalPendingWebhookEvents > 100 ? "warn" as const : "pass" as const, detail: `${totalPendingWebhookEvents} event(s)` },
     { name: "Projects", status: "pass" as const, detail: `${projectList.length} project(s)` },
     { name: "Plan", status: "pass" as const, detail: currentPlan.name },
   ];
@@ -172,8 +159,6 @@ export default async function HealthPage({
           totalExpiring,
           totalSessions,
           totalActivities,
-          totalWebhooks,
-          totalPendingWebhookEvents,
           totalActiveLocks,
           memoryLimit: memoryLimit === Infinity ? null : memoryLimit,
           usagePercent,

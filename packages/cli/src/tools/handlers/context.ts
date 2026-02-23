@@ -104,10 +104,33 @@ async function handleBootstrap(client: ApiClient, params: Record<string, unknown
   const types = params.types as string[] | undefined;
   const branch = params.branch as string | undefined;
 
+  // Fire-and-forget cleanup with 500ms timeout
+  const cleanupPromise = (async () => {
+    try {
+      // Check if auto-cleanup is disabled via project policy
+      const POLICY_KEY = "agent/config/cleanup_policy";
+      try {
+        const policyMem = await client.getMemory(POLICY_KEY) as { memory?: { content?: string } };
+        if (policyMem?.memory?.content) {
+          const config = JSON.parse(policyMem.memory.content);
+          if (config.autoCleanupOnBootstrap === false) return null;
+        }
+      } catch { /* policy not found, use defaults */ }
+      return await client.runLifecycle(
+        ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy", "cleanup_expired_locks"],
+        { healthThreshold: 15 },
+      );
+    } catch { return null; }
+  })();
+  const cleanupTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 500));
+  const maintenancePromise = Promise.race([cleanupPromise, cleanupTimeout]);
+
   const [allMemories, branchInfo, capacity, allTypeInfo] = await Promise.all([
     listAllMemories(client), getBranchInfo(),
     client.getMemoryCapacity().catch(() => null), getAllContextTypeInfo(client),
   ]);
+
+  const maintenance = await maintenancePromise;
 
   const entries = extractAgentContextEntries(allMemories);
   const allTypeSlugs = Object.keys(allTypeInfo);
@@ -156,14 +179,37 @@ async function handleBootstrap(client: ApiClient, params: Record<string, unknown
     } catch { /* ignore */ }
   }
 
-  return textResponse(JSON.stringify({ functionalityTypes, currentBranch: branchInfo, branchPlan, memoryStatus, availableTypes: allTypeSlugs, orgDefaultsHint }, null, 2));
+  return textResponse(JSON.stringify({ functionalityTypes, currentBranch: branchInfo, branchPlan, memoryStatus, availableTypes: allTypeSlugs, orgDefaultsHint, maintenance: maintenance ?? null }, null, 2));
 }
 
 async function handleBootstrapCompact(client: ApiClient) {
+  // Fire-and-forget cleanup with 500ms timeout
+  const cleanupPromise = (async () => {
+    try {
+      const POLICY_KEY = "agent/config/cleanup_policy";
+      try {
+        const policyMem = await client.getMemory(POLICY_KEY) as { memory?: { content?: string } };
+        if (policyMem?.memory?.content) {
+          const config = JSON.parse(policyMem.memory.content);
+          if (config.autoCleanupOnBootstrap === false) return null;
+        }
+      } catch { /* policy not found, use defaults */ }
+      return await client.runLifecycle(
+        ["cleanup_expired", "cleanup_session_logs", "auto_archive_unhealthy", "cleanup_expired_locks"],
+        { healthThreshold: 15 },
+      );
+    } catch { return null; }
+  })();
+  const cleanupTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 500));
+  const maintenancePromise = Promise.race([cleanupPromise, cleanupTimeout]);
+
   const [allMemories, branchInfo, capacity, allTypeInfo] = await Promise.all([
     listAllMemories(client), getBranchInfo(),
     client.getMemoryCapacity().catch(() => null), getAllContextTypeInfo(client),
   ]);
+
+  const maintenance = await maintenancePromise;
+
   const entries = extractAgentContextEntries(allMemories);
   const types = Object.entries(allTypeInfo).map(([type, info]) => {
     const typeEntries = entries.filter((e) => e.type === type);
@@ -181,7 +227,7 @@ async function handleBootstrapCompact(client: ApiClient) {
   });
   return textResponse(JSON.stringify({
     mode: "compact", hint: "Use context functionality_get to load full content.",
-    types: types.filter((t) => t.count > 0), currentBranch: branchInfo, memoryStatus: capacity, totalEntries: entries.length,
+    types: types.filter((t) => t.count > 0), currentBranch: branchInfo, memoryStatus: capacity, totalEntries: entries.length, maintenance: maintenance ?? null,
   }, null, 2));
 }
 

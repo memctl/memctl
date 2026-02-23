@@ -247,41 +247,6 @@ export const projectTemplates = sqliteTable("project_templates", {
     .$defaultFn(() => new Date()),
 });
 
-export const webhookConfigs = sqliteTable("webhook_configs", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id),
-  url: text("url").notNull(),
-  events: text("events"), // JSON array: ["memory_created","memory_updated","memory_deleted","snapshot_created"]
-  digestIntervalMinutes: integer("digest_interval_minutes").notNull().default(60),
-  lastSentAt: integer("last_sent_at", { mode: "timestamp" }),
-  isActive: integer("is_active", { mode: "boolean" }).default(true),
-  secret: text("secret"), // HMAC signing secret
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-
-export const webhookEvents = sqliteTable(
-  "webhook_events",
-  {
-    id: text("id").primaryKey(),
-    webhookConfigId: text("webhook_config_id")
-      .notNull()
-      .references(() => webhookConfigs.id, { onDelete: "cascade" }),
-    eventType: text("event_type").notNull(),
-    payload: text("payload").notNull(), // JSON
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .$defaultFn(() => new Date()),
-    dispatchedAt: integer("dispatched_at", { mode: "timestamp" }),
-  },
-  (table) => [
-    index("webhook_events_undispatched").on(table.webhookConfigId, table.dispatchedAt),
-  ],
-);
-
 export const apiTokens = sqliteTable("api_tokens", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -520,6 +485,30 @@ export const promoRedemptions = sqliteTable(
     index("promo_redemptions_promo_code_id").on(table.promoCodeId),
     index("promo_redemptions_org_id").on(table.orgId),
     index("promo_redemptions_promo_org").on(table.promoCodeId, table.orgId),
+  ],
+);
+
+export const auditLogs = sqliteTable(
+  "audit_logs",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    projectId: text("project_id").references(() => projects.id),
+    actorId: text("actor_id")
+      .notNull()
+      .references(() => users.id),
+    action: text("action").notNull(), // "role_changed" | "member_removed" | "member_assigned" | "member_unassigned" | "project_created" | "project_updated" | "project_deleted"
+    targetUserId: text("target_user_id").references(() => users.id),
+    details: text("details"), // JSON object with extra context
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("audit_org_created").on(table.orgId, table.createdAt),
+    index("audit_project_created").on(table.projectId, table.createdAt),
   ],
 );
 

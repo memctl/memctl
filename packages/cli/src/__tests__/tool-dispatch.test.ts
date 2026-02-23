@@ -111,6 +111,7 @@ function createMockRateLimitState() {
     writeCallCount: 0,
     checkRateLimit: vi.fn().mockReturnValue({ allowed: true }),
     incrementWriteCount: vi.fn(),
+    getSessionWriteWarning: vi.fn().mockReturnValue(null),
   };
 }
 

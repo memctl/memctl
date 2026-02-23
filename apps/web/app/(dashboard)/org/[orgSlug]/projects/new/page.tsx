@@ -19,6 +19,7 @@ import {
   Copy,
   Sparkles,
   Check,
+  Loader2,
 } from "lucide-react";
 
 export default function NewProjectPage() {
@@ -47,7 +48,6 @@ export default function NewProjectPage() {
           command: "npx",
           args: ["memctl"],
           env: {
-            MEMCTL_TOKEN: "<your-token>",
             MEMCTL_ORG: orgSlug,
             MEMCTL_PROJECT: displaySlug,
           },
@@ -93,6 +93,7 @@ export default function NewProjectPage() {
       }
 
       router.push(`/org/${orgSlug}/projects/${slug}`);
+      router.refresh();
     } catch {
       setError("Something went wrong");
       setSaving(false);
@@ -258,7 +259,14 @@ export default function NewProjectPage() {
                 disabled={saving || !name || !slug}
                 className="w-full bg-[#F97316] text-white hover:bg-[#EA580C]"
               >
-                {saving ? "Creating..." : "Create project"}
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Creating…
+                  </>
+                ) : (
+                  "Create project"
+                )}
               </Button>
             </div>
           </div>
@@ -285,6 +293,14 @@ export default function NewProjectPage() {
                 <span className="inline-block size-1.5 animate-pulse rounded-full bg-[#F97316]" />
                 Updates as you type
               </span>
+            </div>
+
+            {/* Auth callout */}
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-[#F97316]/20 bg-[#F97316]/5 px-3 py-2">
+              <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F97316]" />
+              <p className="font-mono text-[10px] leading-relaxed text-[var(--landing-text-secondary)]">
+                Run <code className="rounded bg-[var(--landing-surface-2)] px-1 py-0.5 text-[#F97316]">npx memctl auth</code> to authenticate.
+              </p>
             </div>
 
             {/* MCP config preview */}

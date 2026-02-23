@@ -17,17 +17,18 @@ const execFileAsync = promisify(execFile);
 export function registerMemoryAdvancedTool(server: McpServer, client: ApiClient, rl: RateLimitState) {
   server.tool(
     "memory_advanced",
-    "Advanced memory operations. Actions: batch_mutate, snapshot_create, snapshot_list, diff, history, restore, link, traverse, graph, contradictions, quality, freshness, size_audit, sunset, undo, compile, change_digest, impact, watch, check_duplicates, auto_tag, validate_schema, branch_filter, branch_merge, batch_ops",
+    "Advanced memory operations. Actions: batch_mutate, snapshot_create, snapshot_list, diff, history, restore, link, traverse, graph, contradictions, quality, freshness, size_audit, sunset, undo, compile, change_digest, impact, watch, check_duplicates, auto_tag, validate_schema, branch_filter, branch_merge, batch_ops, consolidate",
     {
       action: z.enum([
         "batch_mutate", "snapshot_create", "snapshot_list", "diff", "history",
         "restore", "link", "traverse", "graph", "contradictions", "quality",
         "freshness", "size_audit", "sunset", "undo", "compile", "change_digest",
         "impact", "watch", "check_duplicates", "auto_tag", "validate_schema",
-        "branch_filter", "branch_merge", "batch_ops",
+        "branch_filter", "branch_merge", "batch_ops", "consolidate",
       ]).describe("Which operation to perform"),
       key: z.string().optional().describe("[diff,history,restore,traverse,impact,undo,auto_tag] Memory key"),
-      keys: z.array(z.string()).optional().describe("[batch_mutate,watch] Memory keys"),
+      keys: z.array(z.string()).optional().describe("[batch_mutate,watch,consolidate] Memory keys"),
+      newKey: z.string().optional().describe("[consolidate] Key for the consolidated memory"),
       mutateAction: z.enum(["archive","unarchive","delete","pin","unpin","set_priority","add_tags","set_scope"]).optional().describe("[batch_mutate] Action"),
       value: z.unknown().optional().describe("[batch_mutate] Value for the action"),
       name: z.string().optional().describe("[snapshot_create] Snapshot name"),
@@ -184,6 +185,42 @@ export function registerMemoryAdvancedTool(server: McpServer, client: ApiClient,
             if (params.operations.length > 20) return errorResponse("Too many operations", "Max 20 per batch");
             const result = await client.batch(params.operations);
             return textResponse(JSON.stringify(result, null, 2));
+          }
+          case "consolidate": {
+            if (!params.keys?.length || params.keys.length < 2) return errorResponse("Missing param", "keys required (at least 2)");
+            if (!params.newKey) return errorResponse("Missing param", "newKey required");
+            const rateCheck = rl.checkRateLimit();
+            if (!rateCheck.allowed) return errorResponse("Rate limit exceeded", rateCheck.warning!);
+            rl.incrementWriteCount();
+
+            const bulk = await client.bulkGetMemories(params.keys);
+            const mems = Object.entries(bulk.memories as Record<string, Record<string, unknown>>);
+            if (mems.length === 0) return errorResponse("Error", "No memories found for the given keys");
+
+            const sections: string[] = [];
+            const allTags = new Set<string>();
+            let maxPriority = 0;
+            for (const [memKey, mem] of mems) {
+              const content = typeof mem.content === "string" ? mem.content : "";
+              const title = memKey.split("/").pop() ?? memKey;
+              sections.push(`## ${title}\n\n${content}`);
+              if (mem.tags) {
+                try {
+                  const tags = JSON.parse(mem.tags as string) as string[];
+                  for (const t of tags) allTags.add(t);
+                } catch { /* ignore */ }
+              }
+              const p = typeof mem.priority === "number" ? mem.priority : 0;
+              if (p > maxPriority) maxPriority = p;
+            }
+            allTags.add("consolidated");
+
+            const mergedContent = sections.join("\n\n");
+            await client.storeMemory(params.newKey, mergedContent, { consolidatedFrom: params.keys }, { priority: maxPriority, tags: [...allTags] });
+            await client.batchMutate(params.keys, "archive");
+
+            const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
+            return textResponse(`Consolidated ${mems.length} memories into "${params.newKey}". Originals archived.${rateWarn}`);
           }
           default:
             return errorResponse("Unknown action", params.action);

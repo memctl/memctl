@@ -11,6 +11,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import { projectAssignmentSchema } from "@memctl/shared/validators";
 import { generateId } from "@/lib/utils";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(
   req: NextRequest,
@@ -166,6 +167,24 @@ export async function PUT(
 
   const orgProjectIds = allOrgProjects.map((p) => p.id);
 
+  // Get previous assignments for audit diff
+  const previousAssignments = orgProjectIds.length > 0
+    ? (await db
+        .select({ projectId: projectMembers.projectId })
+        .from(projectMembers)
+        .where(
+          and(
+            eq(projectMembers.userId, targetMember.userId),
+            inArray(projectMembers.projectId, orgProjectIds),
+          ),
+        )).map((a) => a.projectId)
+    : [];
+
+  const previousSet = new Set(previousAssignments);
+  const newSet = new Set(parsed.data.projectIds);
+  const added = parsed.data.projectIds.filter((id) => !previousSet.has(id));
+  const removed = previousAssignments.filter((id) => !newSet.has(id));
+
   // Remove existing assignments for this org's projects
   if (orgProjectIds.length > 0) {
     await db
@@ -188,6 +207,26 @@ export async function PUT(
         createdAt: new Date(),
       })),
     );
+  }
+
+  // Log audit events for each added/removed project
+  for (const projectId of added) {
+    await logAudit({
+      orgId: org.id,
+      projectId,
+      actorId: session.user.id,
+      action: "member_assigned",
+      targetUserId: targetMember.userId,
+    });
+  }
+  for (const projectId of removed) {
+    await logAudit({
+      orgId: org.id,
+      projectId,
+      actorId: session.user.id,
+      action: "member_unassigned",
+      targetUserId: targetMember.userId,
+    });
   }
 
   return NextResponse.json({ projectIds: parsed.data.projectIds });

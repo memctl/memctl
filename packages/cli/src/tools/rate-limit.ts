@@ -3,6 +3,7 @@ export interface RateLimitState {
   writeCallCount: number;
   checkRateLimit(): { allowed: boolean; warning?: string };
   incrementWriteCount(): void;
+  getSessionWriteWarning(): string | null;
 }
 
 export function createRateLimitState(): RateLimitState {
@@ -37,6 +38,12 @@ export function createRateLimitState(): RateLimitState {
     },
     incrementWriteCount() {
       writeCallCount++;
+    },
+    getSessionWriteWarning(): string | null {
+      if (writeCallCount >= 15) {
+        return ` Note: ${writeCallCount} writes this session. Consider consolidating related memories or using batch operations to reduce write volume.`;
+      }
+      return null;
     },
   };
 }

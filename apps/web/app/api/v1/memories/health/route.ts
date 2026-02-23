@@ -98,6 +98,7 @@ export async function GET(req: NextRequest) {
       priority: m.priority,
       accessCount,
       lastAccessedAt: m.lastAccessedAt,
+      isPinned: Boolean(m.pinnedAt),
     };
   });
 

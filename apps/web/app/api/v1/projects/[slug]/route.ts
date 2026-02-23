@@ -7,10 +7,15 @@ import {
   organizationMembers,
   projectMembers,
   memories,
+  sessionLogs,
+  activityLogs,
+  memorySnapshots,
+  memoryLocks,
 } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { projectUpdateSchema } from "@memctl/shared/validators";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(
   req: NextRequest,
@@ -155,6 +160,17 @@ export async function PATCH(
     .where(eq(projects.id, project.id))
     .limit(1);
 
+  await logAudit({
+    orgId: org.id,
+    projectId: project.id,
+    actorId: session.user.id,
+    action: "project_updated",
+    details: {
+      ...(parsed.data.name ? { name: parsed.data.name } : {}),
+      ...(parsed.data.description !== undefined ? { description: parsed.data.description } : {}),
+    },
+  });
+
   return NextResponse.json({ project: updated });
 }
 
@@ -210,11 +226,23 @@ export async function DELETE(
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  // Delete project assignments (also handled by CASCADE)
+  // Log audit before deleting (projectId is nullable in audit_logs, so it survives deletion)
+  await logAudit({
+    orgId: org.id,
+    actorId: session.user.id,
+    action: "project_deleted",
+    details: { name: project.name, slug: project.slug },
+  });
+
+  // 1. Delete child records by projectId
+  await db.delete(memoryLocks).where(eq(memoryLocks.projectId, project.id));
+  await db.delete(memorySnapshots).where(eq(memorySnapshots.projectId, project.id));
+  await db.delete(activityLogs).where(eq(activityLogs.projectId, project.id));
+  await db.delete(sessionLogs).where(eq(sessionLogs.projectId, project.id));
+
+  // 2. Delete project members, memories (versions cascade), then project
   await db.delete(projectMembers).where(eq(projectMembers.projectId, project.id));
-  // Delete all memories
   await db.delete(memories).where(eq(memories.projectId, project.id));
-  // Then the project
   await db.delete(projects).where(eq(projects.id, project.id));
 
   return NextResponse.json({ deleted: true });

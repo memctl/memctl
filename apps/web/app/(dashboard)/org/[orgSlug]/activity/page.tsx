@@ -10,12 +10,13 @@ import {
   organizations,
   organizationMembers,
   projects,
+  projectMembers,
   activityLogs,
   sessionLogs,
-  memories,
+  auditLogs,
+  users,
 } from "@memctl/db/schema";
-import { eq, and, desc, count } from "drizzle-orm";
-import { PageHeader } from "@/components/dashboard/shared/page-header";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { ActivityFeed } from "./activity-feed";
 
 export default async function ActivityPage({
@@ -38,103 +39,147 @@ export default async function ActivityPage({
     .limit(1);
   if (!member) redirect("/");
 
-  // Get all org projects
+  // Get accessible project IDs (members only see assigned projects)
   const projectList = await db.select().from(projects).where(eq(projects.orgId, org.id));
+  let accessibleProjectIds: string[];
 
-  // Fetch activity and session logs across all projects
-  const allActivities: Array<{
-    id: string;
-    action: string;
-    toolName: string | null;
-    memoryKey: string | null;
-    details: string | null;
-    sessionId: string | null;
-    projectName: string;
-    createdAt: string;
-  }> = [];
-
-  const allSessions: Array<{
-    id: string;
-    sessionId: string;
-    branch: string | null;
-    summary: string | null;
-    keysRead: string | null;
-    keysWritten: string | null;
-    toolsUsed: string | null;
-    startedAt: string;
-    endedAt: string | null;
-    projectName: string;
-  }> = [];
-
-  for (const project of projectList) {
-    const activities = await db
-      .select()
-      .from(activityLogs)
-      .where(eq(activityLogs.projectId, project.id))
-      .orderBy(desc(activityLogs.createdAt))
-      .limit(100);
-
-    for (const a of activities) {
-      allActivities.push({
-        id: a.id,
-        action: a.action,
-        toolName: a.toolName,
-        memoryKey: a.memoryKey,
-        details: a.details,
-        sessionId: a.sessionId,
-        projectName: project.name,
-        createdAt: a.createdAt?.toISOString() ?? "",
-      });
-    }
-
-    const sessions = await db
-      .select()
-      .from(sessionLogs)
-      .where(eq(sessionLogs.projectId, project.id))
-      .orderBy(desc(sessionLogs.startedAt))
-      .limit(50);
-
-    for (const s of sessions) {
-      allSessions.push({
-        id: s.id,
-        sessionId: s.sessionId,
-        branch: s.branch,
-        summary: s.summary,
-        keysRead: s.keysRead,
-        keysWritten: s.keysWritten,
-        toolsUsed: s.toolsUsed,
-        startedAt: s.startedAt?.toISOString() ?? "",
-        endedAt: s.endedAt?.toISOString() ?? null,
-        projectName: project.name,
-      });
-    }
+  if (member.role === "member") {
+    const assignments = await db
+      .select({ projectId: projectMembers.projectId })
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.userId, session.user.id),
+          inArray(projectMembers.projectId, projectList.map((p) => p.id)),
+        ),
+      );
+    accessibleProjectIds = assignments.map((a) => a.projectId);
+  } else {
+    accessibleProjectIds = projectList.map((p) => p.id);
   }
 
-  // Sort activities by time descending
-  allActivities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  allActivities.splice(200);
+  // Build project name map
+  const projectNameMap: Record<string, string> = {};
+  for (const p of projectList) projectNameMap[p.id] = p.name;
 
-  // Sort sessions by start time descending
-  allSessions.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
-  allSessions.splice(50);
+  // Batch queries instead of per-project loop
+  const [activityList, sessionList, auditList] = await Promise.all([
+    accessibleProjectIds.length > 0
+      ? db
+          .select()
+          .from(activityLogs)
+          .where(inArray(activityLogs.projectId, accessibleProjectIds))
+          .orderBy(desc(activityLogs.createdAt))
+          .limit(50)
+      : Promise.resolve([]),
+    accessibleProjectIds.length > 0
+      ? db
+          .select()
+          .from(sessionLogs)
+          .where(inArray(sessionLogs.projectId, accessibleProjectIds))
+          .orderBy(desc(sessionLogs.startedAt))
+          .limit(20)
+      : Promise.resolve([]),
+    db
+      .select({
+        id: auditLogs.id,
+        action: auditLogs.action,
+        actorId: auditLogs.actorId,
+        targetUserId: auditLogs.targetUserId,
+        details: auditLogs.details,
+        createdAt: auditLogs.createdAt,
+        actorName: users.name,
+      })
+      .from(auditLogs)
+      .leftJoin(users, eq(auditLogs.actorId, users.id))
+      .where(eq(auditLogs.orgId, org.id))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(50),
+  ]);
+
+  const serializedActivities = activityList.map((a) => ({
+    id: a.id,
+    action: a.action,
+    toolName: a.toolName,
+    memoryKey: a.memoryKey,
+    details: a.details,
+    sessionId: a.sessionId,
+    projectName: projectNameMap[a.projectId] ?? "Unknown",
+    createdAt: a.createdAt?.toISOString() ?? "",
+  }));
+
+  const serializedSessions = sessionList.map((s) => ({
+    id: s.id,
+    sessionId: s.sessionId,
+    branch: s.branch,
+    summary: s.summary,
+    keysRead: s.keysRead,
+    keysWritten: s.keysWritten,
+    toolsUsed: s.toolsUsed,
+    startedAt: s.startedAt?.toISOString() ?? "",
+    endedAt: s.endedAt?.toISOString() ?? null,
+    projectName: projectNameMap[s.projectId] ?? "Unknown",
+  }));
+
+  // Resolve target user names for audit logs
+  const targetUserIds = [...new Set(auditList.map((a) => a.targetUserId).filter(Boolean))] as string[];
+  const targetUserMap: Record<string, string> = {};
+  if (targetUserIds.length > 0) {
+    const targetUsers = await db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(inArray(users.id, targetUserIds));
+    for (const u of targetUsers) targetUserMap[u.id] = u.name;
+  }
+
+  const serializedAuditLogs = auditList.map((a) => ({
+    id: a.id,
+    action: a.action,
+    actorName: a.actorName ?? "Unknown",
+    targetUserName: a.targetUserId ? (targetUserMap[a.targetUserId] ?? "Unknown") : null,
+    details: a.details,
+    createdAt: a.createdAt?.toISOString() ?? "",
+  }));
 
   // Compute stats
-  const totalActions = allActivities.length;
   const actionBreakdown: Record<string, number> = {};
-  for (const a of allActivities) {
+  for (const a of serializedActivities) {
     actionBreakdown[a.action] = (actionBreakdown[a.action] ?? 0) + 1;
   }
+  const activeSessions = serializedSessions.filter((s) => !s.endedAt).length;
 
-  const activeSessions = allSessions.filter((s) => !s.endedAt).length;
+  // Compute cursors
+  const allActivityDates = [
+    ...serializedActivities.map((a) => a.createdAt),
+    ...serializedAuditLogs.map((a) => a.createdAt),
+  ].filter(Boolean).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+  const initialActivityCursor = allActivityDates.length > 0
+    ? allActivityDates[allActivityDates.length - 1]
+    : null;
+
+  const initialSessionsCursor = serializedSessions.length > 0
+    ? serializedSessions[serializedSessions.length - 1].startedAt
+    : null;
 
   return (
     <div>
-      <PageHeader title="Activity & Sessions" description="Real-time feed of agent actions and session history" />
+      <h1 className="mb-4 text-xl font-semibold text-[var(--landing-text)]">Activity & Sessions</h1>
 
       <ActivityFeed
-        activities={allActivities}
-        sessions={allSessions}
-        stats={{ totalActions, actionBreakdown, activeSessions, totalSessions: allSessions.length }}
+        activities={serializedActivities}
+        auditLogs={serializedAuditLogs}
+        sessions={serializedSessions}
+        stats={{
+          totalActions: serializedActivities.length,
+          actionBreakdown,
+          activeSessions,
+          totalSessions: serializedSessions.length,
+        }}
+        apiPath={`/api/v1/orgs/${orgSlug}/activity`}
+        sessionsApiPath={`/api/v1/orgs/${orgSlug}/activity/sessions`}
+        initialCursor={initialActivityCursor}
+        initialSessionsCursor={initialSessionsCursor}
       />
     </div>
   );

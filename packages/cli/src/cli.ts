@@ -47,6 +47,7 @@ Usage:
   memctl capacity           Show memory capacity usage
   memctl cleanup            Suggest stale/expired memories for cleanup
   memctl lifecycle <...>    Run lifecycle policies
+  memctl gc                 Run full garbage collection (all lifecycle policies)
 
 Options:
   --limit <n>               Limit results (default: 50)
@@ -328,11 +329,71 @@ export async function runCli(args: string[]): Promise<void> {
       const policies = positional;
       if (policies.length === 0) {
         console.error("Usage: memctl lifecycle <policy1> [policy2] ...");
-        console.error("Policies: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote");
+        console.error("Policies: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy, cleanup_old_versions, cleanup_activity_logs, cleanup_expired_locks, purge_archived");
         process.exit(1);
       }
-      const result = await client.runLifecycle(policies);
+      const result = await client.runLifecycle(policies, {
+        healthThreshold: flags["health-threshold"] ? Number(flags["health-threshold"]) : undefined,
+        sessionLogMaxAgeDays: flags["session-log-days"] ? Number(flags["session-log-days"]) : undefined,
+      });
       out(result, true);
+      break;
+    }
+
+    case "gc": {
+      const healthThreshold = flags["health-threshold"] ? Number(flags["health-threshold"]) : 15;
+      const sessionLogDays = flags["session-log-days"] ? Number(flags["session-log-days"]) : 30;
+
+      if (!json) console.log("Running garbage collection...\n");
+
+      // Step 1: cleanup expired
+      try {
+        const cleaned = await client.cleanupExpired();
+        if (!json) console.log(`  cleanup_expired: ${cleaned.cleaned} removed`);
+      } catch (err) {
+        if (!json) console.log(`  cleanup_expired: error - ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      // Step 2: run all lifecycle policies
+      const allPolicies = [
+        "cleanup_expired",
+        "cleanup_session_logs",
+        "archive_merged_branches",
+        "auto_demote",
+        "auto_prune",
+        "auto_archive_unhealthy",
+        "cleanup_old_versions",
+        "cleanup_activity_logs",
+        "cleanup_expired_locks",
+        "purge_archived",
+      ];
+      try {
+        const result = await client.runLifecycle(allPolicies, {
+          healthThreshold,
+          sessionLogMaxAgeDays: sessionLogDays,
+        });
+        if (json) {
+          out(result, true);
+        } else {
+          for (const [policy, info] of Object.entries(result.results)) {
+            const details = (info as { affected: number; details?: string }).details ? ` (${(info as { affected: number; details?: string }).details})` : "";
+            console.log(`  ${policy}: ${(info as { affected: number }).affected} affected${details}`);
+          }
+        }
+      } catch (err) {
+        if (!json) console.log(`  lifecycle: error - ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      // Step 3: show final capacity
+      if (!json) {
+        try {
+          const cap = await client.getMemoryCapacity();
+          console.log(`\nCapacity: ${cap.used}/${cap.limit} memories (${cap.usageRatio != null ? (cap.usageRatio * 100).toFixed(1) : "?"}%)`);
+          if (cap.isFull) console.log("Status: FULL");
+          else if (cap.isApproaching) console.log("Status: Approaching limit");
+          else console.log("Status: OK");
+        } catch { /* ignore */ }
+      }
       break;
     }
 
