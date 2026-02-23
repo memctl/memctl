@@ -119,13 +119,13 @@ export default async function ProjectDetailPage({
       .from(activityLogs)
       .where(eq(activityLogs.projectId, project.id))
       .orderBy(desc(activityLogs.createdAt))
-      .limit(200),
+      .limit(50),
     db
       .select()
       .from(sessionLogs)
       .where(eq(sessionLogs.projectId, project.id))
       .orderBy(desc(sessionLogs.startedAt))
-      .limit(50),
+      .limit(20),
     db
       .select({
         id: auditLogs.id,
@@ -145,7 +145,7 @@ export default async function ProjectDetailPage({
         ),
       )
       .orderBy(desc(auditLogs.createdAt))
-      .limit(100),
+      .limit(50),
   ]);
 
   const activeCount = memoryList.filter((m) => !m.archivedAt).length;
@@ -235,6 +235,23 @@ export default async function ProjectDetailPage({
     actionBreakdown[a.action] = (actionBreakdown[a.action] ?? 0) + 1;
   }
   const activeSessions = serializedSessions.filter((s) => !s.endedAt).length;
+
+  // Compute cursors for pagination
+  const allActivityDates = [
+    ...serializedActivities.map((a) => a.createdAt),
+    ...serializedAuditLogs.map((a) => a.createdAt),
+  ].filter(Boolean).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+  const initialActivityCursor = allActivityDates.length > 0
+    ? allActivityDates[allActivityDates.length - 1]
+    : null;
+
+  const initialSessionsCursor = serializedSessions.length > 0
+    ? serializedSessions[serializedSessions.length - 1].startedAt
+    : null;
+
+  const activityApiPath = `/api/v1/orgs/${orgSlug}/projects/${projectSlug}/activity`;
+  const sessionsApiPath = `/api/v1/orgs/${orgSlug}/projects/${projectSlug}/activity/sessions`;
 
   // Hygiene data for this project
   const now = new Date();
@@ -413,6 +430,10 @@ export default async function ProjectDetailPage({
           activeSessions,
           totalSessions: serializedSessions.length,
         }}
+        activityApiPath={activityApiPath}
+        sessionsApiPath={sessionsApiPath}
+        initialActivityCursor={initialActivityCursor}
+        initialSessionsCursor={initialSessionsCursor}
         hygieneData={{
           healthBuckets,
           staleMemories,

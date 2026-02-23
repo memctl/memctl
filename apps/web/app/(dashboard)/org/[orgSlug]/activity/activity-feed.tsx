@@ -1,45 +1,25 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { ActivitySkeleton } from "@/components/activity/activity-skeleton";
+import { useActivityFeed, useSessionFeed } from "@/hooks/use-activity-feed";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import type {
+  ActivityItem,
+  AuditLogItem,
+  SessionItem,
+  ActivityFilters,
+} from "@/lib/activity-types";
+import type { DateRange } from "react-day-picker";
 import {
   Search, Zap, GitBranch, ChevronDown, ChevronRight,
-  Shield, UserPlus, UserMinus, FolderPlus, FolderEdit, FolderX,
+  Shield, UserPlus, UserMinus, FolderPlus, FolderEdit, FolderX, X,
 } from "lucide-react";
 
-interface ActivityItem {
-  id: string;
-  action: string;
-  toolName: string | null;
-  memoryKey: string | null;
-  details: string | null;
-  sessionId: string | null;
-  projectName: string;
-  createdAt: string;
-}
-
-interface AuditLogItem {
-  id: string;
-  action: string;
-  actorName: string;
-  targetUserName: string | null;
-  details: string | null;
-  createdAt: string;
-}
-
-interface SessionItem {
-  id: string;
-  sessionId: string;
-  branch: string | null;
-  summary: string | null;
-  keysRead: string | null;
-  keysWritten: string | null;
-  toolsUsed: string | null;
-  startedAt: string;
-  endedAt: string | null;
-  projectName: string;
-}
+export type { ActivityItem, AuditLogItem, SessionItem };
 
 interface ActivityFeedProps {
   activities: ActivityItem[];
@@ -51,6 +31,11 @@ interface ActivityFeedProps {
     activeSessions: number;
     totalSessions: number;
   };
+  // Smart mode props (when set, enables cursor-based pagination)
+  apiPath?: string;
+  sessionsApiPath?: string;
+  initialCursor?: string | null;
+  initialSessionsCursor?: string | null;
 }
 
 function relativeTime(d: string | null): string {
@@ -93,7 +78,6 @@ const ACTION_LABELS: Record<string, string> = {
   tool_call: "tool",
 };
 
-// Audit log styling
 const AUDIT_COLORS: Record<string, string> = {
   role_changed: "text-violet-400",
   member_removed: "text-red-400",
@@ -168,7 +152,6 @@ function safeParseArray(s: string | null): string[] {
   catch { return []; }
 }
 
-// Unified timeline item
 interface TimelineItem {
   id: string;
   type: "activity" | "audit";
@@ -176,13 +159,124 @@ interface TimelineItem {
   data: ActivityItem | AuditLogItem;
 }
 
-export function ActivityFeed({ activities, auditLogs, sessions, stats }: ActivityFeedProps) {
+function PulsingDots() {
+  return (
+    <div className="flex items-center justify-center gap-1 py-3">
+      <span className="h-1.5 w-1.5 rounded-full bg-[#F97316] animate-pulse" />
+      <span className="h-1.5 w-1.5 rounded-full bg-[#F97316] animate-pulse [animation-delay:150ms]" />
+      <span className="h-1.5 w-1.5 rounded-full bg-[#F97316] animate-pulse [animation-delay:300ms]" />
+    </div>
+  );
+}
+
+export function ActivityFeed({
+  activities: initialActivities,
+  auditLogs: initialAuditLogs,
+  sessions: initialSessions,
+  stats,
+  apiPath,
+  sessionsApiPath,
+  initialCursor,
+  initialSessionsCursor,
+}: ActivityFeedProps) {
+  const isSmartMode = !!apiPath;
+
+  // Always call hooks (rules of hooks), but pass safe defaults when not in smart mode
+  const activityFeed = useActivityFeed({
+    apiPath: apiPath ?? "",
+    initialActivities,
+    initialAuditLogs: initialAuditLogs ?? [],
+    initialCursor: initialCursor ?? null,
+  });
+
+  const sessionFeed = useSessionFeed({
+    apiPath: sessionsApiPath ?? "",
+    initialSessions,
+    initialCursor: initialSessionsCursor ?? null,
+  });
+
+  // Determine active data source
+  const activities = isSmartMode ? activityFeed.activities : initialActivities;
+  const auditLogs = isSmartMode ? activityFeed.auditLogs : (initialAuditLogs ?? []);
+  const sessions = isSmartMode && sessionsApiPath ? sessionFeed.sessions : initialSessions;
+
+  // Local state for filtering (legacy mode uses client-side, smart mode uses server-side)
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  const hasAuditLogs = (auditLogs?.length ?? 0) > 0;
+  // Debounced search for smart mode
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const currentFiltersRef = useRef<ActivityFilters>({});
+
+  const applySmartFilters = useCallback(
+    (overrides: Partial<ActivityFilters>) => {
+      if (!isSmartMode) return;
+      const newFilters = { ...currentFiltersRef.current, ...overrides };
+      currentFiltersRef.current = newFilters;
+      activityFeed.applyFilters(newFilters);
+    },
+    [isSmartMode, activityFeed],
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    if (isSmartMode) {
+      clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = setTimeout(() => {
+        applySmartFilters({ search: value || undefined });
+      }, 300);
+    }
+  };
+
+  const handleActionFilterChange = (action: string | null) => {
+    setActionFilter(action);
+    if (isSmartMode) {
+      applySmartFilters({ action: action ?? undefined });
+    }
+  };
+
+  const handleSourceFilterChange = (source: SourceFilter) => {
+    setSourceFilter(source);
+    setActionFilter(null);
+    if (isSmartMode) {
+      applySmartFilters({ source, action: undefined });
+    }
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (isSmartMode) {
+      applySmartFilters({
+        from: range?.from?.toISOString() ?? undefined,
+        to: range?.to?.toISOString() ?? undefined,
+      });
+    }
+  };
+
+  const hasFiltersActive = !!search || !!actionFilter || sourceFilter !== "all" || !!dateRange;
+
+  const clearAllFilters = () => {
+    setSearch("");
+    setActionFilter(null);
+    setSourceFilter("all");
+    setDateRange(undefined);
+    if (isSmartMode) {
+      currentFiltersRef.current = {};
+      activityFeed.applyFilters({});
+    }
+  };
+
+  // Infinite scroll for activity panel (smart mode only)
+  const { sentinelRef } = useInfiniteScroll({
+    hasMore: isSmartMode ? activityFeed.hasMore : false,
+    isLoading: activityFeed.isLoading,
+    onLoadMore: activityFeed.loadMore,
+  });
+
+  const hasAuditLogs = auditLogs.length > 0;
 
   // Build unified timeline
   const timeline = useMemo(() => {
@@ -204,7 +298,9 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
     return items;
   }, [activities, auditLogs, sourceFilter]);
 
+  // Client-side filtering (legacy mode only; smart mode filters server-side)
   const filteredTimeline = useMemo(() => {
+    if (isSmartMode) return timeline;
     let result = timeline;
 
     if (actionFilter) {
@@ -240,8 +336,18 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
       });
     }
 
+    // Client-side date filtering for legacy mode
+    if (dateRange?.from) {
+      const fromMs = dateRange.from.getTime();
+      const toMs = dateRange.to ? dateRange.to.getTime() + 86400000 : Infinity;
+      result = result.filter((item) => {
+        const ts = new Date(item.createdAt).getTime();
+        return ts >= fromMs && ts < toMs;
+      });
+    }
+
     return result;
-  }, [timeline, search, actionFilter]);
+  }, [timeline, search, actionFilter, isSmartMode, dateRange]);
 
   const filteredSessions = useMemo(() => {
     if (!search) return sessions;
@@ -256,7 +362,7 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
   }, [sessions, search]);
 
   const actionTypes = Object.keys(stats.actionBreakdown);
-  const hasData = activities.length > 0 || sessions.length > 0 || hasAuditLogs;
+  const hasData = initialActivities.length > 0 || initialSessions.length > 0 || (initialAuditLogs?.length ?? 0) > 0;
 
   if (!hasData) {
     return (
@@ -292,9 +398,15 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
           <>
             <span className="text-[var(--landing-text-tertiary)]">·</span>
             <span className="font-mono text-xs text-violet-400">
-              <span className="font-bold">{auditLogs!.length}</span>
+              <span className="font-bold">{auditLogs.length}</span>
               <span className="text-[var(--landing-text-tertiary)]"> events</span>
             </span>
+          </>
+        )}
+        {hasFiltersActive && (
+          <>
+            <span className="text-[var(--landing-text-tertiary)]">·</span>
+            <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">(filtered)</span>
           </>
         )}
         <div className="ml-auto flex items-center gap-1.5">
@@ -317,21 +429,18 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
           <Input
             placeholder="Search actions, sessions, keys…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="h-8 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-xs"
           />
         </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {/* Source filter (only if audit logs exist) */}
           {hasAuditLogs && (
             <>
               {(["all", "usage", "dashboard"] as const).map((source) => (
                 <button
                   key={source}
-                  onClick={() => {
-                    setSourceFilter(source);
-                    setActionFilter(null);
-                  }}
+                  onClick={() => handleSourceFilterChange(source)}
                   className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
                     sourceFilter === source
                       ? source === "dashboard"
@@ -351,7 +460,7 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
           {/* Action type filters */}
           {!hasAuditLogs && (
             <button
-              onClick={() => setActionFilter(null)}
+              onClick={() => handleActionFilterChange(null)}
               className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
                 actionFilter === null
                   ? "bg-[#F97316]/15 text-[#F97316]"
@@ -364,7 +473,7 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
           {sourceFilter !== "dashboard" && actionTypes.map((action) => (
             <button
               key={action}
-              onClick={() => setActionFilter(actionFilter === action ? null : action)}
+              onClick={() => handleActionFilterChange(actionFilter === action ? null : action)}
               className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
                 actionFilter === action
                   ? ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text)]"
@@ -374,6 +483,10 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
               {ACTION_LABELS[action] ?? action}
             </button>
           ))}
+
+          {/* Date range picker */}
+          <span className="mx-1 self-center text-[var(--landing-border)]">|</span>
+          <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
         </div>
       </div>
 
@@ -388,9 +501,24 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
               </span>
               <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredTimeline.length}</span>
             </div>
-            {filteredTimeline.length === 0 ? (
+            {isSmartMode && activityFeed.isFiltering ? (
+              <ActivitySkeleton />
+            ) : filteredTimeline.length === 0 ? (
               <div className="px-4 py-6 text-center">
-                <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No matching activity</p>
+                {hasFiltersActive ? (
+                  <>
+                    <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No activity matching your filters</p>
+                    <button
+                      onClick={clearAllFilters}
+                      className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--landing-surface-2)] px-2.5 py-0.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                      Clear filters
+                    </button>
+                  </>
+                ) : (
+                  <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No matching activity</p>
+                )}
               </div>
             ) : (
               <div className="max-h-[32rem] overflow-y-auto divide-y divide-[var(--landing-border)]">
@@ -415,7 +543,6 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
                     );
                   }
 
-                  // Audit log item
                   const a = item.data as AuditLogItem;
                   const AuditIcon = AUDIT_ICONS[a.action] ?? Shield;
                   const detail = formatAuditDetails(a.action, a.details, a.targetUserName);
@@ -439,6 +566,14 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
                     </div>
                   );
                 })}
+
+                {/* Infinite scroll sentinel + loading indicator */}
+                {isSmartMode && (
+                  <>
+                    {activityFeed.isLoading && <PulsingDots />}
+                    <div ref={sentinelRef} className="h-1" />
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -535,6 +670,19 @@ export function ActivityFeed({ activities, auditLogs, sessions, stats }: Activit
                     </div>
                   );
                 })}
+
+                {/* Sessions load more button */}
+                {isSmartMode && sessionsApiPath && sessionFeed.hasMore && (
+                  <div className="px-3 py-2">
+                    <button
+                      onClick={sessionFeed.loadMore}
+                      disabled={sessionFeed.isLoading}
+                      className="w-full rounded-md bg-[var(--landing-surface-2)] py-1.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors disabled:opacity-50"
+                    >
+                      {sessionFeed.isLoading ? "Loading…" : "Load more sessions"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

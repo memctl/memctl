@@ -95,6 +95,10 @@ export interface ProjectTabsProps {
   hygieneData: HygieneData;
   settingsData: ProjectSettingsProps["project"];
   membersData: ProjectMembersProps["members"];
+  activityApiPath?: string;
+  sessionsApiPath?: string;
+  initialActivityCursor?: string | null;
+  initialSessionsCursor?: string | null;
 }
 
 const TAB_DEFS: Array<{
@@ -125,6 +129,10 @@ function ProjectTabsInner({
   hygieneData,
   settingsData,
   membersData,
+  activityApiPath,
+  sessionsApiPath,
+  initialActivityCursor,
+  initialSessionsCursor,
 }: ProjectTabsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -276,6 +284,10 @@ function ProjectTabsInner({
               auditLogs={auditLogs}
               sessions={sessions}
               stats={activityStats}
+              apiPath={activityApiPath}
+              sessionsApiPath={sessionsApiPath}
+              initialCursor={initialActivityCursor}
+              initialSessionsCursor={initialSessionsCursor}
             />
           )}
 

@@ -73,6 +73,7 @@ export async function GET(
     id: string; action: string; toolName: string | null; memoryKey: string | null;
     details: string | null; sessionId: string | null; projectName: string; createdAt: string;
   }> = [];
+  let activityHasMore = false;
 
   if (type !== "audit" && projectIds.length > 0) {
     const conditions = [inArray(activityLogs.projectId, projectIds)];
@@ -104,7 +105,7 @@ export async function GET(
       createdAt: a.createdAt?.toISOString() ?? "",
     }));
 
-    var activityHasMore = rows.length > limit;
+    activityHasMore = rows.length > limit;
   }
 
   // Fetch audit logs
@@ -168,7 +169,7 @@ export async function GET(
     ...serializedAuditLogs.map((a) => a.createdAt),
   ].filter(Boolean).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
-  const hasMore = (type !== "audit" && (activityHasMore ?? false)) || (type !== "activity" && (serializedAuditLogs.length >= limit));
+  const hasMore = (type !== "audit" && activityHasMore) || (type !== "activity" && serializedAuditLogs.length >= limit);
   const nextCursor = hasMore && allDates.length > 0 ? allDates[allDates.length - 1] : null;
 
   return NextResponse.json({
