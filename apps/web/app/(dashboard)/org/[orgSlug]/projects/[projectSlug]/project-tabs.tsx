@@ -3,7 +3,7 @@
 import { Suspense, useRef, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Brain, Zap, Trash2, Settings, Users } from "lucide-react";
+import { Brain, Zap, Trash2, Settings, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { MemoryBrowser } from "@/components/dashboard/memories/memory-browser";
 import { ActivityFeed } from "../../activity/activity-feed";
 import { HygieneDashboard } from "../../hygiene/hygiene-dashboard";
@@ -220,10 +220,20 @@ function ProjectTabsInner({
       {/* Tab bar */}
       <div ref={navRef} className="relative mb-6 border-b border-[var(--landing-border)]">
         {canScrollLeft && (
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-6 bg-gradient-to-r from-[var(--landing-bg)] to-transparent" />
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ left: -120, behavior: "smooth" })}
+            className="absolute left-0 top-0 bottom-0 z-10 flex w-8 items-center justify-start bg-gradient-to-r from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pl-1"
+          >
+            <ChevronLeft className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
+          </button>
         )}
         {canScrollRight && (
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-6 bg-gradient-to-r from-transparent to-[var(--landing-bg)]" />
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ left: 120, behavior: "smooth" })}
+            className="absolute right-0 top-0 bottom-0 z-10 flex w-8 items-center justify-end bg-gradient-to-l from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pr-1"
+          >
+            <ChevronRight className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
+          </button>
         )}
         <div
           ref={scrollRef}
