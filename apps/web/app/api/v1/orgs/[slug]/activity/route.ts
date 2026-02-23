@@ -43,7 +43,7 @@ export async function GET(
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Determine accessible project IDs for members
-  let projectIds: string[] | null = null;
+  let projectIds: string[];
   if (member.role === "member") {
     const orgProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.orgId, org.id));
     if (orgProjects.length === 0) {
