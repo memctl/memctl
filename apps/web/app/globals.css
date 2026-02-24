@@ -125,15 +125,15 @@
   --color-accent-foreground: #f5f5f5;
   --color-popover: #111111;
   --color-popover-foreground: #f5f5f5;
-  --landing-bg: #0a0a0a;
-  --landing-surface: #111111;
-  --landing-surface-2: #1a1a1a;
-  --landing-text: #f5f5f5;
-  --landing-text-secondary: #a1a1a1;
-  --landing-text-tertiary: #666666;
-  --landing-border: #1e1e1e;
-  --landing-border-hover: #2a2a2a;
-  --landing-code-bg: #0d0d0d;
+  --landing-bg: #111111;
+  --landing-surface: #191919;
+  --landing-surface-2: #212121;
+  --landing-text: #ededed;
+  --landing-text-secondary: #a0a0a0;
+  --landing-text-tertiary: #6e6e6e;
+  --landing-border: #2a2a2a;
+  --landing-border-hover: #363636;
+  --landing-code-bg: #0f0f0f;
   --landing-glow: rgba(249, 115, 22, 0.15);
 }
 
