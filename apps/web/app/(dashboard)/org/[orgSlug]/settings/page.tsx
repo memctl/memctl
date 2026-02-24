@@ -90,19 +90,17 @@ export default async function OrgSettingsPage({
       <PageHeader title="Settings" description="Manage your organization." />
 
       <div className="grid gap-8 lg:grid-cols-5">
-        {/* Settings form — 3 cols */}
+        {/* Settings form - 3 cols */}
         <div className="lg:col-span-3">
           <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
             <OrgSettingsForm
               orgSlug={orgSlug}
               initialName={org.name}
-              initialCompanyName={org.companyName ?? ""}
-              initialTaxId={org.taxId ?? ""}
             />
           </div>
         </div>
 
-        {/* Plan & Usage — 2 cols */}
+        {/* Plan & Usage - 2 cols */}
         <div className="lg:col-span-2">
           <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
             <div className="flex items-baseline justify-between">
@@ -176,6 +174,24 @@ export default async function OrgSettingsPage({
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+            <h2 className="text-sm font-medium text-[var(--landing-text)]">
+              Billing & Support
+            </h2>
+            <p className="mt-2 text-xs text-[var(--landing-text-secondary)]">
+              Stripe handles billing details, invoices, and tax information.
+            </p>
+            <p className="mt-3 text-xs text-[var(--landing-text-secondary)]">
+              Questions or account help:
+            </p>
+            <a
+              href="mailto:team@memctl.com"
+              className="mt-1 inline-block text-xs text-[#F97316] hover:underline"
+            >
+              team@memctl.com
+            </a>
           </div>
         </div>
       </div>

@@ -100,17 +100,6 @@ export async function PATCH(
   if (body.name && typeof body.name === "string") {
     updates.name = body.name;
   }
-  if (body.companyName !== undefined) {
-    updates.companyName = body.companyName || null;
-  }
-  if (body.taxId !== undefined) {
-    updates.taxId = body.taxId || null;
-  }
-  if (body.billingAddress !== undefined) {
-    updates.billingAddress = body.billingAddress
-      ? JSON.stringify(body.billingAddress)
-      : null;
-  }
 
   await db
     .update(organizations)
