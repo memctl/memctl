@@ -25,13 +25,18 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const statusFilter = searchParams.get("status");
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "10", 10)));
+  const limit = Math.min(
+    50,
+    Math.max(1, parseInt(searchParams.get("limit") ?? "10", 10)),
+  );
   const offset = (page - 1) * limit;
 
   const { isAdmin } = await getOptionalAdmin();
   const showAll = isAdmin && statusFilter === "all";
 
-  const conditions = showAll ? undefined : eq(changelogEntries.status, "published");
+  const conditions = showAll
+    ? undefined
+    : eq(changelogEntries.status, "published");
 
   const entries = await db
     .select({
@@ -55,7 +60,13 @@ export async function GET(req: NextRequest) {
 
   // Fetch items for all entries
   const entryIds = entries.map((e) => e.id);
-  let items: { id: string; entryId: string; category: string; description: string; sortOrder: number }[] = [];
+  let items: {
+    id: string;
+    entryId: string;
+    category: string;
+    description: string;
+    sortOrder: number;
+  }[] = [];
   if (entryIds.length > 0) {
     items = await db.select().from(changelogItems);
     items = items.filter((item) => entryIds.includes(item.entryId));
@@ -103,7 +114,10 @@ export async function POST(req: NextRequest) {
     .limit(1);
 
   if (existing) {
-    return NextResponse.json({ error: "Version already exists" }, { status: 409 });
+    return NextResponse.json(
+      { error: "Version already exists" },
+      { status: 409 },
+    );
   }
 
   const now = new Date();
@@ -145,5 +159,8 @@ export async function POST(req: NextRequest) {
     .from(changelogItems)
     .where(eq(changelogItems.entryId, entryId));
 
-  return NextResponse.json({ entry: { ...entry, items: entryItems } }, { status: 201 });
+  return NextResponse.json(
+    { entry: { ...entry, items: entryItems } },
+    { status: 201 },
+  );
 }

@@ -10,10 +10,12 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Changelog | memctl",
-  description: "See what's new in memctl. Version history, new features, improvements, and bug fixes.",
+  description:
+    "See what's new in memctl. Version history, new features, improvements, and bug fixes.",
   openGraph: {
     title: "Changelog | memctl",
-    description: "See what's new in memctl. Version history, new features, improvements, and bug fixes.",
+    description:
+      "See what's new in memctl. Version history, new features, improvements, and bug fixes.",
     url: "/changelog",
   },
 };
@@ -52,7 +54,10 @@ export default async function ChangelogPage() {
   let allItems: { entryId: string; category: string }[] = [];
   if (entryIds.length > 0) {
     const items = await db
-      .select({ entryId: changelogItems.entryId, category: changelogItems.category })
+      .select({
+        entryId: changelogItems.entryId,
+        category: changelogItems.category,
+      })
       .from(changelogItems);
     allItems = items.filter((item) => entryIds.includes(item.entryId));
   }
@@ -72,10 +77,10 @@ export default async function ChangelogPage() {
         {/* Header */}
         <ScrollReveal>
           <div className="mb-16">
-            <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
+            <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
               Changelog
             </span>
-            <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.1]">
+            <h1 className="text-[clamp(2rem,5vw,3.5rem)] leading-[1.1] font-bold">
               What&apos;s New
             </h1>
             <p className="mt-4 max-w-xl text-[var(--landing-text-secondary)]">
@@ -99,7 +104,7 @@ export default async function ChangelogPage() {
         ) : (
           <div className="relative">
             {/* Vertical line */}
-            <div className="absolute left-[7.5rem] top-0 hidden h-full w-px bg-[var(--landing-border)] md:block" />
+            <div className="absolute top-0 left-[7.5rem] hidden h-full w-px bg-[var(--landing-border)] md:block" />
 
             <div className="space-y-8">
               {entriesWithCounts.map((entry, i) => (
@@ -123,14 +128,14 @@ export default async function ChangelogPage() {
                     </div>
 
                     {/* Timeline dot */}
-                    <div className="absolute left-[7.25rem] top-1.5 hidden h-2.5 w-2.5 rounded-full border-2 border-[#F97316] bg-[var(--landing-bg)] md:block" />
+                    <div className="absolute top-1.5 left-[7.25rem] hidden h-2.5 w-2.5 rounded-full border-2 border-[#F97316] bg-[var(--landing-bg)] md:block" />
 
                     {/* Right: card */}
                     <Link
                       href={`/changelog/${entry.version}`}
                       className="group flex-1 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 transition-all hover:border-[var(--landing-border-hover)] hover:shadow-lg md:ml-4"
                     >
-                      <h2 className="mb-2 text-lg font-semibold leading-snug transition-colors group-hover:text-[#F97316]">
+                      <h2 className="mb-2 text-lg leading-snug font-semibold transition-colors group-hover:text-[#F97316]">
                         {entry.title}
                       </h2>
                       {entry.summary && (
@@ -139,14 +144,19 @@ export default async function ChangelogPage() {
                         </p>
                       )}
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(entry.categoryCounts).map(([cat, n]) => (
-                          <span
-                            key={cat}
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${categoryColors[cat] ?? "bg-gray-500/10 text-gray-500"}`}
-                          >
-                            {n} {n === 1 ? categoryLabels[cat]?.replace(/s$/, "") : categoryLabels[cat]}
-                          </span>
-                        ))}
+                        {Object.entries(entry.categoryCounts).map(
+                          ([cat, n]) => (
+                            <span
+                              key={cat}
+                              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${categoryColors[cat] ?? "bg-gray-500/10 text-gray-500"}`}
+                            >
+                              {n}{" "}
+                              {n === 1
+                                ? categoryLabels[cat]?.replace(/s$/, "")
+                                : categoryLabels[cat]}
+                            </span>
+                          ),
+                        )}
                       </div>
                     </Link>
                   </div>

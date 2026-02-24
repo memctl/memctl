@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import {
-  LegalLayout,
-  LegalSection,
-} from "@/components/landing/legal-layout";
+import { LegalLayout, LegalSection } from "@/components/landing/legal-layout";
 
 export const metadata: Metadata = {
   title: "Terms of Service | memctl",
@@ -48,9 +45,10 @@ export default function TermsPage() {
           These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and
           use of the memctl platform, website, APIs, and related services
           (collectively, the &ldquo;Service&rdquo;) provided by Mindroot Ltd, a
-          company registered in England and Wales (Company No. 16543299) with its
-          registered office at 71-75 Shelton Street, London, England, WC2H 9JQ
-          (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;the Company&rdquo;).
+          company registered in England and Wales (Company No. 16543299) with
+          its registered office at 71-75 Shelton Street, London, England, WC2H
+          9JQ (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;the
+          Company&rdquo;).
         </p>
         <p>
           By accessing or using the Service, you agree to be bound by these
@@ -73,8 +71,9 @@ export default function TermsPage() {
             related documentation.
           </li>
           <li>
-            <strong>&ldquo;User&rdquo;</strong> or <strong>&ldquo;you&rdquo;</strong>{" "}
-            means any individual or entity that accesses or uses the Service.
+            <strong>&ldquo;User&rdquo;</strong> or{" "}
+            <strong>&ldquo;you&rdquo;</strong> means any individual or entity
+            that accesses or uses the Service.
           </li>
           <li>
             <strong>&ldquo;Content&rdquo;</strong> means any data, text,
@@ -99,7 +98,8 @@ export default function TermsPage() {
             process.
           </li>
           <li>
-            Maintain the security of your account credentials and GitHub account.
+            Maintain the security of your account credentials and GitHub
+            account.
           </li>
           <li>
             Accept responsibility for all activities that occur under your
@@ -115,17 +115,21 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
-      <LegalSection id="subscriptions" number="04" title="Subscriptions & Billing">
+      <LegalSection
+        id="subscriptions"
+        number="04"
+        title="Subscriptions & Billing"
+      >
         <p>
           The Service offers both free and paid subscription plans. Paid
           subscriptions are billed through Stripe, our third-party payment
           processor.
         </p>
         <p>
-          <strong>Billing.</strong> Subscription fees are charged in advance on a
-          monthly or annual basis, depending on the plan you select. All prices
-          are in US Dollars unless otherwise stated. Prices are exclusive of VAT
-          or other applicable taxes, which will be added where required.
+          <strong>Billing.</strong> Subscription fees are charged in advance on
+          a monthly or annual basis, depending on the plan you select. All
+          prices are in US Dollars unless otherwise stated. Prices are exclusive
+          of VAT or other applicable taxes, which will be added where required.
         </p>
         <p>
           <strong>Cancellation.</strong> You may cancel your subscription at any
@@ -136,7 +140,8 @@ export default function TermsPage() {
         <p>
           <strong>Changes to pricing.</strong> We may change subscription prices
           with at least 30 days&rsquo; prior notice. Continued use of the
-          Service after a price change constitutes acceptance of the new pricing.
+          Service after a price change constitutes acceptance of the new
+          pricing.
         </p>
         <p>
           <strong>Additional seats.</strong> Some plans include a set number of
@@ -155,8 +160,8 @@ export default function TermsPage() {
             Upload or transmit any malicious code, viruses, or harmful content.
           </li>
           <li>
-            Attempt to gain unauthorised access to the Service, other
-            accounts, or related systems.
+            Attempt to gain unauthorised access to the Service, other accounts,
+            or related systems.
           </li>
           <li>
             Interfere with or disrupt the integrity or performance of the
@@ -176,17 +181,22 @@ export default function TermsPage() {
         </ul>
         <p>
           We reserve the right to suspend or terminate your access if we
-          reasonably determine that you have violated this acceptable use policy.
+          reasonably determine that you have violated this acceptable use
+          policy.
         </p>
       </LegalSection>
 
-      <LegalSection id="intellectual-property" number="06" title="Intellectual Property">
+      <LegalSection
+        id="intellectual-property"
+        number="06"
+        title="Intellectual Property"
+      >
         <p>
           <strong>Our IP.</strong> The Service, including its design, code,
           documentation, and branding, is owned by Mindroot Ltd and is protected
           by intellectual property laws. These Terms do not grant you any right,
-          title, or interest in the Service beyond the limited right to use it in
-          accordance with these Terms.
+          title, or interest in the Service beyond the limited right to use it
+          in accordance with these Terms.
         </p>
         <p>
           <strong>Open source.</strong> Certain components of the Service
@@ -215,8 +225,8 @@ export default function TermsPage() {
         </p>
         <p>
           <strong>Deletion.</strong> Upon termination of your account, we will
-          delete your Content within 30 days, except where we are required by law
-          to retain it.
+          delete your Content within 30 days, except where we are required by
+          law to retain it.
         </p>
       </LegalSection>
 
@@ -247,14 +257,12 @@ export default function TermsPage() {
           misrepresentation; or (c) any other liability that cannot be excluded
           or limited under the laws of England and Wales.
         </p>
-        <p>
-          Subject to the above, to the maximum extent permitted by law:
-        </p>
+        <p>Subject to the above, to the maximum extent permitted by law:</p>
         <ul className="list-disc space-y-2 pl-6">
           <li>
             We shall not be liable for any indirect, incidental, special,
-            consequential, or punitive damages, or any loss of profits,
-            revenue, data, or business opportunities.
+            consequential, or punitive damages, or any loss of profits, revenue,
+            data, or business opportunities.
           </li>
           <li>
             Our total aggregate liability arising out of or in connection with
@@ -293,8 +301,8 @@ export default function TermsPage() {
       <LegalSection id="governing-law" number="11" title="Governing Law">
         <p>
           These Terms are governed by and construed in accordance with the laws
-          of England and Wales. Any disputes arising out of or in connection with
-          these Terms shall be subject to the exclusive jurisdiction of the
+          of England and Wales. Any disputes arising out of or in connection
+          with these Terms shall be subject to the exclusive jurisdiction of the
           courts of England and Wales.
         </p>
       </LegalSection>
@@ -310,13 +318,9 @@ export default function TermsPage() {
       </LegalSection>
 
       <LegalSection id="contact" number="13" title="Contact">
-        <p>
-          If you have any questions about these Terms, please contact us:
-        </p>
+        <p>If you have any questions about these Terms, please contact us:</p>
         <div className="rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-          <p className="font-medium text-[var(--landing-text)]">
-            Mindroot Ltd
-          </p>
+          <p className="font-medium text-[var(--landing-text)]">Mindroot Ltd</p>
           <p>71-75 Shelton Street, London, England, WC2H 9JQ</p>
           <p>Company No. 16543299</p>
           <p>

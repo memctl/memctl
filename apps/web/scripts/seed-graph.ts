@@ -34,24 +34,35 @@ const SEED_MEMORIES: SeedMemory[] = [
   // ── Cluster 1: Architecture & project structure (8 nodes) ────────────
   {
     key: "architecture/overview",
-    content: "The system uses a modular monorepo with shared packages for database, types, and CLI tooling. Next.js serves both the dashboard and REST API.",
+    content:
+      "The system uses a modular monorepo with shared packages for database, types, and CLI tooling. Next.js serves both the dashboard and REST API.",
     priority: 90,
     tags: ["architecture", "overview"],
-    relatedKeys: ["architecture/api-layer", "architecture/database", "architecture/auth"],
+    relatedKeys: [
+      "architecture/api-layer",
+      "architecture/database",
+      "architecture/auth",
+    ],
     pinned: true,
     accessCount: 42,
   },
   {
     key: "architecture/api-layer",
-    content: "API routes follow a middleware chain: withApiMiddleware -> authenticateRequest -> requireOrgMembership -> checkProjectAccess -> handler. All responses use { result, error } shape.",
+    content:
+      "API routes follow a middleware chain: withApiMiddleware -> authenticateRequest -> requireOrgMembership -> checkProjectAccess -> handler. All responses use { result, error } shape.",
     priority: 80,
     tags: ["architecture", "api"],
-    relatedKeys: ["architecture/overview", "architecture/auth", "patterns/error-handling"],
+    relatedKeys: [
+      "architecture/overview",
+      "architecture/auth",
+      "patterns/error-handling",
+    ],
     accessCount: 28,
   },
   {
     key: "architecture/database",
-    content: "Turso (libSQL) with Drizzle ORM. 24 tables. Migrations generated with drizzle-kit. Dev uses local libSQL on port 8080.",
+    content:
+      "Turso (libSQL) with Drizzle ORM. 24 tables. Migrations generated with drizzle-kit. Dev uses local libSQL on port 8080.",
     priority: 85,
     tags: ["architecture", "database"],
     relatedKeys: ["architecture/overview", "conventions/schema-changes"],
@@ -59,7 +70,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "architecture/auth",
-    content: "better-auth with GitHub OAuth, magic link, and dev bypass mode. Cookie-based sessions for dashboard, Bearer tokens for API.",
+    content:
+      "better-auth with GitHub OAuth, magic link, and dev bypass mode. Cookie-based sessions for dashboard, Bearer tokens for API.",
     priority: 75,
     tags: ["architecture", "auth"],
     relatedKeys: ["architecture/overview", "architecture/api-layer"],
@@ -67,7 +79,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "architecture/cli",
-    content: "The memctl npm package runs as an MCP server by default. 11 tools, 7 resources, 3 prompts. Config lives at ~/.memctl/config.json.",
+    content:
+      "The memctl npm package runs as an MCP server by default. 11 tools, 7 resources, 3 prompts. Config lives at ~/.memctl/config.json.",
     priority: 70,
     tags: ["architecture", "cli"],
     relatedKeys: ["architecture/overview"],
@@ -75,7 +88,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "conventions/schema-changes",
-    content: "Always run db:generate after schema changes, then db:migrate. Never manually edit migration files.",
+    content:
+      "Always run db:generate after schema changes, then db:migrate. Never manually edit migration files.",
     priority: 60,
     tags: ["conventions", "database"],
     relatedKeys: ["architecture/database"],
@@ -83,7 +97,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "patterns/error-handling",
-    content: "Use early returns for validation errors. API routes return 4xx with { error: string }. Internal errors log to console and return 500.",
+    content:
+      "Use early returns for validation errors. API routes return 4xx with { error: string }. Internal errors log to console and return 500.",
     priority: 55,
     tags: ["patterns", "api"],
     relatedKeys: ["architecture/api-layer", "patterns/validation"],
@@ -91,7 +106,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "patterns/validation",
-    content: "Zod schemas validate all external input. Shared validators live in @memctl/shared. API routes parse request body with z.object().parse().",
+    content:
+      "Zod schemas validate all external input. Shared validators live in @memctl/shared. API routes parse request body with z.object().parse().",
     priority: 65,
     tags: ["patterns", "validation"],
     relatedKeys: ["patterns/error-handling", "architecture/api-layer"],
@@ -101,16 +117,22 @@ const SEED_MEMORIES: SeedMemory[] = [
   // ── Cluster 2: Frontend & design (7 nodes) ──────────────────────────
   {
     key: "design/theme",
-    content: "Dark theme with CSS custom properties. Accent color #F97316 (orange). Dense, terminal-like aesthetic with mono fonts and tight spacing.",
+    content:
+      "Dark theme with CSS custom properties. Accent color #F97316 (orange). Dense, terminal-like aesthetic with mono fonts and tight spacing.",
     priority: 80,
     tags: ["design", "frontend"],
-    relatedKeys: ["design/components", "design/responsive", "design/empty-states"],
+    relatedKeys: [
+      "design/components",
+      "design/responsive",
+      "design/empty-states",
+    ],
     pinned: true,
     accessCount: 30,
   },
   {
     key: "design/components",
-    content: "UI primitives from shadcn/ui in @/components/ui/. Icons from lucide-react. Animations from motion (framer-motion).",
+    content:
+      "UI primitives from shadcn/ui in @/components/ui/. Icons from lucide-react. Animations from motion (framer-motion).",
     priority: 70,
     tags: ["design", "components"],
     relatedKeys: ["design/theme", "design/tables"],
@@ -118,7 +140,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "design/responsive",
-    content: "All layouts work 320px+. Sidebar hidden on mobile, shown in Sheet drawer. Responsive padding: px-4 py-4 md:px-8 md:py-6.",
+    content:
+      "All layouts work 320px+. Sidebar hidden on mobile, shown in Sheet drawer. Responsive padding: px-4 py-4 md:px-8 md:py-6.",
     priority: 75,
     tags: ["design", "responsive"],
     relatedKeys: ["design/theme", "design/tables"],
@@ -126,7 +149,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "design/tables",
-    content: "Tables with >4 columns wrap in overflow-x-auto. Hide columns progressively: hidden sm:table-cell, hidden md:table-cell.",
+    content:
+      "Tables with >4 columns wrap in overflow-x-auto. Hide columns progressively: hidden sm:table-cell, hidden md:table-cell.",
     priority: 50,
     tags: ["design", "tables"],
     relatedKeys: ["design/responsive", "design/components"],
@@ -134,7 +158,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "design/empty-states",
-    content: "Every empty state needs a lucide icon, short message, and hint text when caused by filters. Use dash-card container.",
+    content:
+      "Every empty state needs a lucide icon, short message, and hint text when caused by filters. Use dash-card container.",
     priority: 45,
     tags: ["design", "ux"],
     relatedKeys: ["design/theme"],
@@ -142,7 +167,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "design/loading",
-    content: "Skeletons during filter changes. Pulsing dots for infinite scroll. No spinners except in button loading states.",
+    content:
+      "Skeletons during filter changes. Pulsing dots for infinite scroll. No spinners except in button loading states.",
     priority: 40,
     tags: ["design", "ux"],
     relatedKeys: ["design/components"],
@@ -150,7 +176,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "design/forms",
-    content: "Forms use controlled inputs. Validation errors shown inline below fields. Submit buttons disable during pending state.",
+    content:
+      "Forms use controlled inputs. Validation errors shown inline below fields. Submit buttons disable during pending state.",
     priority: 50,
     tags: ["design", "forms"],
     relatedKeys: ["design/components", "patterns/validation"],
@@ -160,7 +187,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   // ── Cluster 3: Testing & CI (5 nodes) ───────────────────────────────
   {
     key: "testing/strategy",
-    content: "Unit tests with vitest. No E2E tests yet. Focus on API route handlers and shared utility functions.",
+    content:
+      "Unit tests with vitest. No E2E tests yet. Focus on API route handlers and shared utility functions.",
     priority: 60,
     tags: ["testing"],
     relatedKeys: ["testing/running", "testing/mocks", "ci/pipeline"],
@@ -168,7 +196,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "testing/running",
-    content: "Run tests with: npx vitest run. Watch mode: npx vitest. Filter by file: npx vitest run api-client.",
+    content:
+      "Run tests with: npx vitest run. Watch mode: npx vitest. Filter by file: npx vitest run api-client.",
     priority: 55,
     tags: ["testing", "commands"],
     relatedKeys: ["testing/strategy"],
@@ -176,7 +205,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "testing/mocks",
-    content: "Mock database calls with vi.mock. Use factory functions for test data. Never hit real APIs in tests.",
+    content:
+      "Mock database calls with vi.mock. Use factory functions for test data. Never hit real APIs in tests.",
     priority: 50,
     tags: ["testing", "mocks"],
     relatedKeys: ["testing/strategy"],
@@ -184,7 +214,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "ci/pipeline",
-    content: "GitHub Actions: lint -> typecheck -> test -> build. Runs on push to main and PRs. CLI auto-publishes on version bump.",
+    content:
+      "GitHub Actions: lint -> typecheck -> test -> build. Runs on push to main and PRs. CLI auto-publishes on version bump.",
     priority: 65,
     tags: ["ci", "pipeline"],
     relatedKeys: ["testing/strategy", "ci/checks"],
@@ -192,7 +223,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "ci/checks",
-    content: "Pre-merge checks: ESLint must pass, tsc --noEmit clean, all vitest tests green. Build step verifies Docker image.",
+    content:
+      "Pre-merge checks: ESLint must pass, tsc --noEmit clean, all vitest tests green. Build step verifies Docker image.",
     priority: 55,
     tags: ["ci"],
     relatedKeys: ["ci/pipeline"],
@@ -202,7 +234,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   // ── Cross-cluster bridge ────────────────────────────────────────────
   {
     key: "workflow/dev-setup",
-    content: "Clone repo, pnpm install, cp .env.example .env, docker compose up, docker compose exec web pnpm db:push. Dashboard at localhost:3000.",
+    content:
+      "Clone repo, pnpm install, cp .env.example .env, docker compose up, docker compose exec web pnpm db:push. Dashboard at localhost:3000.",
     priority: 70,
     tags: ["workflow", "setup"],
     relatedKeys: ["architecture/database", "design/theme", "testing/running"],
@@ -212,7 +245,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   // ── Orphan nodes (no relationships) ─────────────────────────────────
   {
     key: "notes/performance-ideas",
-    content: "Consider adding Redis caching for hot memory lookups. Benchmark before and after. Low priority until scale issues appear.",
+    content:
+      "Consider adding Redis caching for hot memory lookups. Benchmark before and after. Low priority until scale issues appear.",
     priority: 20,
     tags: ["notes", "performance"],
     relatedKeys: [],
@@ -220,7 +254,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "notes/migration-plan",
-    content: "Potential migration from libSQL to PostgreSQL for production. Need to evaluate Drizzle PG adapter compatibility.",
+    content:
+      "Potential migration from libSQL to PostgreSQL for production. Need to evaluate Drizzle PG adapter compatibility.",
     priority: 15,
     tags: ["notes", "database"],
     relatedKeys: [],
@@ -228,7 +263,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "scratch/meeting-notes-feb",
-    content: "Discussed roadmap priorities. Graph visualization, memory versioning UI, and team activity dashboard are top 3.",
+    content:
+      "Discussed roadmap priorities. Graph visualization, memory versioning UI, and team activity dashboard are top 3.",
     priority: 10,
     tags: ["scratch"],
     relatedKeys: [],
@@ -236,7 +272,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "notes/docker-tips",
-    content: "Use docker compose exec web sh to get a shell. Logs: docker compose logs -f web. Rebuild after dependency changes: docker compose build.",
+    content:
+      "Use docker compose exec web sh to get a shell. Logs: docker compose logs -f web. Rebuild after dependency changes: docker compose build.",
     priority: 30,
     tags: ["notes", "docker"],
     relatedKeys: [],
@@ -244,7 +281,8 @@ const SEED_MEMORIES: SeedMemory[] = [
   },
   {
     key: "conventions/naming",
-    content: "Kebab-case filenames, camelCase exports. Named exports only, no default exports. Prefix unused vars with underscore.",
+    content:
+      "Kebab-case filenames, camelCase exports. Named exports only, no default exports. Prefix unused vars with underscore.",
     priority: 50,
     tags: ["conventions"],
     relatedKeys: [],
@@ -307,7 +345,9 @@ async function seed() {
     process.exit(1);
   }
 
-  console.log(`Seeding graph data into project "${project.slug}" (${project.id})`);
+  console.log(
+    `Seeding graph data into project "${project.slug}" (${project.id})`,
+  );
 
   // Check for existing seed data to avoid duplicates
   const existing = await db
@@ -322,14 +362,14 @@ async function seed() {
     .limit(1);
 
   if (existing.length > 0) {
-    console.log("Seed data already exists. Deleting old seed memories first...");
+    console.log(
+      "Seed data already exists. Deleting old seed memories first...",
+    );
     const seedKeys = SEED_MEMORIES.map((m) => m.key);
     for (const key of seedKeys) {
       await db
         .delete(memories)
-        .where(
-          and(eq(memories.projectId, project.id), eq(memories.key, key)),
-        );
+        .where(and(eq(memories.projectId, project.id), eq(memories.key, key)));
     }
     console.log(`Deleted ${seedKeys.length} old seed memories.`);
   }
@@ -339,7 +379,9 @@ async function seed() {
 
   for (const mem of SEED_MEMORIES) {
     // Stagger creation times so they look realistic
-    const createdAt = new Date(now.getTime() - (SEED_MEMORIES.length - inserted) * 3_600_000);
+    const createdAt = new Date(
+      now.getTime() - (SEED_MEMORIES.length - inserted) * 3_600_000,
+    );
     const lastAccessed = mem.accessCount
       ? new Date(now.getTime() - Math.random() * 7 * 86_400_000)
       : null;
@@ -367,8 +409,12 @@ async function seed() {
   console.log(`  - 3 clusters (architecture, design, testing/CI)`);
   console.log(`  - 1 bridge node connecting clusters`);
   console.log(`  - 5 orphan nodes (no relationships)`);
-  console.log(`  - ${SEED_MEMORIES.reduce((n, m) => n + m.relatedKeys.length, 0)} total relationship links`);
-  console.log(`\nOpen the project and click the Graph tab to see the visualization.`);
+  console.log(
+    `  - ${SEED_MEMORIES.reduce((n, m) => n + m.relatedKeys.length, 0)} total relationship links`,
+  );
+  console.log(
+    `\nOpen the project and click the Graph tab to see the visualization.`,
+  );
 }
 
 seed().catch((err) => {

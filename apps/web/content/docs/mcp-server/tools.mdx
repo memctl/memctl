@@ -5,42 +5,42 @@ description: Complete reference for all 11 mem/ctl MCP tools and their actions
 
 # MCP Tools
 
-mem/ctl exposes 11 tools with 90+ actions via the Model Context Protocol. Your agent calls these automatically  - this reference is for understanding what's available.
+mem/ctl exposes 11 tools with 90+ actions via the Model Context Protocol. Your agent calls these automatically - this reference is for understanding what's available.
 
 ## memory
 
 Core memory CRUD operations.
 
-| Action | Description |
-|---|---|
-| `store` | Store a key-value memory (upsert by key) |
-| `get` | Retrieve a memory by key |
-| `search` | Search memories by key/content |
-| `list` | List memories with pagination and sorting |
-| `delete` | Delete a memory by key |
-| `update` | Update content and/or metadata |
-| `pin` | Pin a memory (prevents cleanup) |
-| `archive` | Archive a memory |
-| `bulk_get` | Retrieve multiple memories at once |
-| `store_safe` | Store only if key doesn't exist |
-| `capacity` | Return memory usage, plan limit, and status |
+| Action       | Description                                 |
+| ------------ | ------------------------------------------- |
+| `store`      | Store a key-value memory (upsert by key)    |
+| `get`        | Retrieve a memory by key                    |
+| `search`     | Search memories by key/content              |
+| `list`       | List memories with pagination and sorting   |
+| `delete`     | Delete a memory by key                      |
+| `update`     | Update content and/or metadata              |
+| `pin`        | Pin a memory (prevents cleanup)             |
+| `archive`    | Archive a memory                            |
+| `bulk_get`   | Retrieve multiple memories at once          |
+| `store_safe` | Store only if key doesn't exist             |
+| `capacity`   | Return memory usage, plan limit, and status |
 
 ### Parameters
 
-| Parameter | Used by | Description |
-|---|---|---|
-| `key` | store, get, delete, update, pin, archive | Unique memory identifier |
-| `content` | store, update | Text content of the memory |
-| `scope` | store | `project` (default) or `shared` (org-wide) |
-| `priority` | store, update | 0-100, higher surfaces first in searches and bootstraps |
-| `tags` | store, update | Array of string labels for filtering |
-| `ttl` | store | Expiry: `session`, `pr`, `sprint`, or `permanent` |
-| `query` | search | Search string matched against key and content |
-| `limit` | search, list | Max results (default 50) |
-| `sort` | list | Sort by `updated`, `priority`, or `created` |
-| `keys` | bulk_get | Array of keys to retrieve |
-| `includeArchived` | list, search | Include archived memories (default false) |
-| `onDuplicate` | store | Behavior on existing key: `warn`, `skip`, or `merge` |
+| Parameter         | Used by                                  | Description                                             |
+| ----------------- | ---------------------------------------- | ------------------------------------------------------- |
+| `key`             | store, get, delete, update, pin, archive | Unique memory identifier                                |
+| `content`         | store, update                            | Text content of the memory                              |
+| `scope`           | store                                    | `project` (default) or `shared` (org-wide)              |
+| `priority`        | store, update                            | 0-100, higher surfaces first in searches and bootstraps |
+| `tags`            | store, update                            | Array of string labels for filtering                    |
+| `ttl`             | store                                    | Expiry: `session`, `pr`, `sprint`, or `permanent`       |
+| `query`           | search                                   | Search string matched against key and content           |
+| `limit`           | search, list                             | Max results (default 50)                                |
+| `sort`            | list                                     | Sort by `updated`, `priority`, or `created`             |
+| `keys`            | bulk_get                                 | Array of keys to retrieve                               |
+| `includeArchived` | list, search                             | Include archived memories (default false)               |
+| `onDuplicate`     | store                                    | Behavior on existing key: `warn`, `skip`, or `merge`    |
 
 Write operations (`store`, `delete`, `update`) are [rate-limited](/docs/concepts#rate-limiting).
 
@@ -48,100 +48,100 @@ Write operations (`store`, `delete`, `update`) are [rate-limited](/docs/concepts
 
 Advanced operations for power users and automation.
 
-| Action | Description |
-|---|---|
-| `batch_mutate` | Bulk archive, delete, pin, tag, or set priority |
-| `snapshot_create` | Create a point-in-time snapshot |
-| `snapshot_list` | List snapshots |
-| `diff` | Compare memory versions |
-| `history` | View change history for a key |
-| `restore` | Restore a previous version |
-| `link` | Create a relationship between memories |
-| `traverse` | Walk memory relationships |
-| `graph` | Visualize memory relationships |
-| `contradictions` | Detect conflicting memories |
-| `quality` | Score memory quality |
-| `freshness` | Check memory staleness |
-| `size_audit` | Audit memory sizes |
-| `sunset` | Mark memories for gradual removal |
-| `undo` | Undo the last mutation |
-| `compile` | Compile related memories into a summary |
-| `change_digest` | Generate a digest of recent changes |
-| `impact` | Analyze memory access patterns |
-| `watch` | Watch a key for changes |
-| `check_duplicates` | Find duplicate/similar memories |
-| `auto_tag` | Auto-generate tags for a memory |
-| `validate_schema` | Validate memory content against schema |
-| `branch_filter` | Filter memories by branch |
-| `branch_merge` | Merge branch-specific memories |
-| `batch_ops` | Run multiple operations in sequence |
+| Action             | Description                                     |
+| ------------------ | ----------------------------------------------- |
+| `batch_mutate`     | Bulk archive, delete, pin, tag, or set priority |
+| `snapshot_create`  | Create a point-in-time snapshot                 |
+| `snapshot_list`    | List snapshots                                  |
+| `diff`             | Compare memory versions                         |
+| `history`          | View change history for a key                   |
+| `restore`          | Restore a previous version                      |
+| `link`             | Create a relationship between memories          |
+| `traverse`         | Walk memory relationships                       |
+| `graph`            | Visualize memory relationships                  |
+| `contradictions`   | Detect conflicting memories                     |
+| `quality`          | Score memory quality                            |
+| `freshness`        | Check memory staleness                          |
+| `size_audit`       | Audit memory sizes                              |
+| `sunset`           | Mark memories for gradual removal               |
+| `undo`             | Undo the last mutation                          |
+| `compile`          | Compile related memories into a summary         |
+| `change_digest`    | Generate a digest of recent changes             |
+| `impact`           | Analyze memory access patterns                  |
+| `watch`            | Watch a key for changes                         |
+| `check_duplicates` | Find duplicate/similar memories                 |
+| `auto_tag`         | Auto-generate tags for a memory                 |
+| `validate_schema`  | Validate memory content against schema          |
+| `branch_filter`    | Filter memories by branch                       |
+| `branch_merge`     | Merge branch-specific memories                  |
+| `batch_ops`        | Run multiple operations in sequence             |
 
 ## memory_lifecycle
 
 Lifecycle management, health checks, and feedback.
 
-| Action | Description |
-|---|---|
-| `cleanup` | Delete expired/stale memories |
-| `suggest_cleanup` | Suggest candidates for cleanup |
-| `lifecycle_run` | Run lifecycle policies |
-| `lifecycle_schedule` | Schedule recurring lifecycle runs |
-| `validate_references` | Check for broken memory links |
-| `prune_stale` | Remove memories not accessed in N days |
-| `feedback` | Record whether a memory was helpful |
-| `analytics` | Memory usage analytics |
-| `lock` | Lock a memory to prevent edits |
-| `unlock` | Unlock a memory |
-| `health` | Overall memory health check |
+| Action                | Description                            |
+| --------------------- | -------------------------------------- |
+| `cleanup`             | Delete expired/stale memories          |
+| `suggest_cleanup`     | Suggest candidates for cleanup         |
+| `lifecycle_run`       | Run lifecycle policies                 |
+| `lifecycle_schedule`  | Schedule recurring lifecycle runs      |
+| `validate_references` | Check for broken memory links          |
+| `prune_stale`         | Remove memories not accessed in N days |
+| `feedback`            | Record whether a memory was helpful    |
+| `analytics`           | Memory usage analytics                 |
+| `lock`                | Lock a memory to prevent edits         |
+| `unlock`              | Unlock a memory                        |
+| `health`              | Overall memory health check            |
 
 ## context
 
 Agent context assembly - the structured replacement for `AGENTS.md`.
 
-| Action | Description |
-|---|---|
-| `bootstrap` | Load all context for the current session |
-| `bootstrap_compact` | Compact version (keys + summaries only) |
-| `bootstrap_delta` | Only changes since a timestamp |
-| `functionality_get` | Get items for a context type |
-| `functionality_set` | Create/update a context item |
-| `functionality_delete` | Delete a context item |
-| `functionality_list` | List all context types and items |
-| `context_for` | Get context relevant to specific files |
-| `budget` | Token-aware context budgeting |
-| `compose` | Compose context from multiple types |
-| `smart_retrieve` | AI-powered context retrieval by intent |
-| `search_org` | Search across organization projects |
-| `rules_evaluate` | Evaluate rules against current context |
-| `thread` | Threaded context for multi-turn conversations |
+| Action                 | Description                                   |
+| ---------------------- | --------------------------------------------- |
+| `bootstrap`            | Load all context for the current session      |
+| `bootstrap_compact`    | Compact version (keys + summaries only)       |
+| `bootstrap_delta`      | Only changes since a timestamp                |
+| `functionality_get`    | Get items for a context type                  |
+| `functionality_set`    | Create/update a context item                  |
+| `functionality_delete` | Delete a context item                         |
+| `functionality_list`   | List all context types and items              |
+| `context_for`          | Get context relevant to specific files        |
+| `budget`               | Token-aware context budgeting                 |
+| `compose`              | Compose context from multiple types           |
+| `smart_retrieve`       | AI-powered context retrieval by intent        |
+| `search_org`           | Search across organization projects           |
+| `rules_evaluate`       | Evaluate rules against current context        |
+| `thread`               | Threaded context for multi-turn conversations |
 
 ### Key parameters
 
-| Parameter | Used by | Description |
-|---|---|---|
-| `type` | functionality_get, functionality_set, functionality_delete | Context type slug (e.g. `coding_style`) |
-| `id` | functionality_set, functionality_delete | Entry identifier within the type |
-| `title` | functionality_set | Human-readable title for the entry |
-| `content` | functionality_set | Text content of the context entry |
-| `filePaths` | context_for | Array of file paths to find relevant context for |
-| `since` | bootstrap_delta | ISO timestamp to get only changes after |
-| `maxTokens` | budget | Maximum token budget for context assembly |
-| `types` | compose | Array of context types to include |
-| `query` | smart_retrieve, search_org | Natural language intent or search query |
+| Parameter   | Used by                                                    | Description                                      |
+| ----------- | ---------------------------------------------------------- | ------------------------------------------------ |
+| `type`      | functionality_get, functionality_set, functionality_delete | Context type slug (e.g. `coding_style`)          |
+| `id`        | functionality_set, functionality_delete                    | Entry identifier within the type                 |
+| `title`     | functionality_set                                          | Human-readable title for the entry               |
+| `content`   | functionality_set                                          | Text content of the context entry                |
+| `filePaths` | context_for                                                | Array of file paths to find relevant context for |
+| `since`     | bootstrap_delta                                            | ISO timestamp to get only changes after          |
+| `maxTokens` | budget                                                     | Maximum token budget for context assembly        |
+| `types`     | compose                                                    | Array of context types to include                |
+| `query`     | smart_retrieve, search_org                                 | Natural language intent or search query          |
 
 ### Built-in context types
 
-| Type | Purpose |
-|---|---|
-| `coding_style` | Naming, formatting, review rules |
-| `architecture` | System design and module responsibilities |
-| `testing` | Test expectations and locations |
-| `constraints` | Hard limits and non-goals |
-| `lessons_learned` | Past mistakes and insights |
-| `workflow` | Branch/PR/deploy process |
-| `folder_structure` | Repository layout |
-| `file_map` | Where to find key files |
-| `branch_plan` | What to implement on a branch |
+| Type               | Purpose                                   |
+| ------------------ | ----------------------------------------- |
+| `coding_style`     | Naming, formatting, review rules          |
+| `architecture`     | System design and module responsibilities |
+| `testing`          | Test expectations and locations           |
+| `constraints`      | Hard limits and non-goals                 |
+| `lessons_learned`  | Past mistakes and insights                |
+| `workflow`         | Branch/PR/deploy process                  |
+| `folder_structure` | Repository layout                         |
+| `file_map`         | Where to find key files                   |
+| `branch_plan`      | What to implement on a branch             |
 
 Context entries are stored as memories with keys following the pattern `agent/context/{type}/{id}`. See [Concepts](/docs/concepts#context-entries) for details.
 
@@ -149,22 +149,22 @@ Context entries are stored as memories with keys following the pattern `agent/co
 
 Manage custom context types.
 
-| Action | Description |
-|---|---|
-| `type_create` | Create a custom context type |
-| `type_list` | List all context types (built-in + custom) |
-| `type_delete` | Delete a custom context type |
-| `template_get` | Get a template for a context type |
+| Action         | Description                                |
+| -------------- | ------------------------------------------ |
+| `type_create`  | Create a custom context type               |
+| `type_list`    | List all context types (built-in + custom) |
+| `type_delete`  | Delete a custom context type               |
+| `template_get` | Get a template for a context type          |
 
 ## branch
 
 Branch context and planning.
 
-| Action | Description |
-|---|---|
-| `get` | Get branch plan and metadata |
-| `set` | Save a branch plan with checklist |
-| `delete` | Delete a branch plan |
+| Action   | Description                       |
+| -------- | --------------------------------- |
+| `get`    | Get branch plan and metadata      |
+| `set`    | Save a branch plan with checklist |
+| `delete` | Delete a branch plan              |
 
 Parameters: `branch` (defaults to current git branch), `content`, `status` (planning/in_progress/review/merged), `checklist` (array of items with `label`, `done`, `notes`)
 
@@ -172,34 +172,34 @@ Parameters: `branch` (defaults to current git branch), `content`, `status` (plan
 
 Session tracking and agent coordination. See [Concepts](/docs/concepts#sessions) for how sessions enable handoff between conversations.
 
-| Action | Description |
-|---|---|
-| `start` | Start a session (auto-extracts git context) |
-| `end` | End a session with summary |
-| `history` | View session history |
+| Action         | Description                                        |
+| -------------- | -------------------------------------------------- |
+| `start`        | Start a session (auto-extracts git context)        |
+| `end`          | End a session with summary                         |
+| `history`      | View session history                               |
 | `claims_check` | Check if files/keys are claimed by another session |
-| `claim` | Claim a resource for the current session |
-| `rate_status` | Rate the current session status |
+| `claim`        | Claim a resource for the current session           |
+| `rate_status`  | Rate the current session status                    |
 
 ### Key parameters
 
-| Parameter | Used by | Description |
-|---|---|---|
-| `autoExtractGit` | start | Extract branch, commits, and diffs since last session |
-| `summary` | end | What was accomplished in this session |
-| `keysWritten` | end | Array of memory keys modified during the session |
-| `key` | claim, claims_check | Resource identifier to claim or check |
+| Parameter        | Used by             | Description                                           |
+| ---------------- | ------------------- | ----------------------------------------------------- |
+| `autoExtractGit` | start               | Extract branch, commits, and diffs since last session |
+| `summary`        | end                 | What was accomplished in this session                 |
+| `keysWritten`    | end                 | Array of memory keys modified during the session      |
+| `key`            | claim, claims_check | Resource identifier to claim or check                 |
 
 ## import_export
 
 Import and export memories in various formats.
 
-| Action | Description |
-|---|---|
-| `agents_md_import` | Import from AGENTS.md content |
+| Action               | Description                      |
+| -------------------- | -------------------------------- |
+| `agents_md_import`   | Import from AGENTS.md content    |
 | `cursorrules_import` | Import from .cursorrules content |
-| `export_agents_md` | Export as AGENTS.md |
-| `export_memories` | Export in JSON or other formats |
+| `export_agents_md`   | Export as AGENTS.md              |
+| `export_memories`    | Export in JSON or other formats  |
 
 Parameters: `content`, `dryRun` (preview only), `overwrite`, `format` (agents_md/cursorrules/json)
 
@@ -207,11 +207,11 @@ Parameters: `content`, `dryRun` (preview only), `overwrite`, `format` (agents_md
 
 Repository scanning and onboarding.
 
-| Action | Description |
-|---|---|
-| `scan` | Scan repo structure and generate file map |
-| `scan_check` | Check if a scan is needed |
-| `onboard` | Generate onboarding context from repo |
+| Action       | Description                               |
+| ------------ | ----------------------------------------- |
+| `scan`       | Scan repo structure and generate file map |
+| `scan_check` | Check if a scan is needed                 |
+| `onboard`    | Generate onboarding context from repo     |
 
 Parameters: `maxFiles` (10-5000), `includePatterns`, `excludePatterns` (glob arrays), `saveAsContext`
 
@@ -219,26 +219,26 @@ Parameters: `maxFiles` (10-5000), `includePatterns`, `excludePatterns` (glob arr
 
 Organization defaults and templates.
 
-| Action | Description |
-|---|---|
-| `defaults_list` | List org-wide defaults |
-| `defaults_set` | Set an org-wide default |
-| `defaults_apply` | Apply defaults to current project |
-| `context_diff` | Diff context between two projects |
-| `template_list` | List org templates |
-| `template_apply` | Apply a template to current project |
+| Action            | Description                            |
+| ----------------- | -------------------------------------- |
+| `defaults_list`   | List org-wide defaults                 |
+| `defaults_set`    | Set an org-wide default                |
+| `defaults_apply`  | Apply defaults to current project      |
+| `context_diff`    | Diff context between two projects      |
+| `template_list`   | List org templates                     |
+| `template_apply`  | Apply a template to current project    |
 | `template_create` | Create a template from current context |
 
 ## activity
 
 Activity logging and inter-agent memos.
 
-| Action | Description |
-|---|---|
-| `log` | View activity log |
-| `generate_git_hooks` | Generate git hooks for auto-logging |
-| `memo_leave` | Leave a memo for the next agent session |
-| `memo_read` | Read memos from previous sessions |
+| Action               | Description                             |
+| -------------------- | --------------------------------------- |
+| `log`                | View activity log                       |
+| `generate_git_hooks` | Generate git hooks for auto-logging     |
+| `memo_leave`         | Leave a memo for the next agent session |
+| `memo_read`          | Read memos from previous sessions       |
 
 Parameters: `message`, `urgency`, `relatedKeys` (memory keys related to the memo)
 

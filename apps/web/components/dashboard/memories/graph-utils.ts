@@ -45,7 +45,8 @@ function parseJsonArray(raw: string | null | undefined): string[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.filter((v) => typeof v === "string");
+    if (Array.isArray(parsed))
+      return parsed.filter((v) => typeof v === "string");
   } catch {
     // ignore
   }
@@ -104,7 +105,9 @@ export function buildGraphData(memories: SerializedMemory[]): GraphData {
   const nodes = Array.from(nodeMap.values());
   const clusters = detectClusters(nodes, edges);
   const connectedKeys = new Set(edges.flatMap((e) => [e.source, e.target]));
-  const orphans = nodes.filter((n) => !connectedKeys.has(n.id)).map((n) => n.id);
+  const orphans = nodes
+    .filter((n) => !connectedKeys.has(n.id))
+    .map((n) => n.id);
 
   return { nodes, edges, clusters, orphans };
 }

@@ -4,8 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@memctl/db/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { AdminSidebar } from "@/components/admin/admin-sidebar";
-import { AdminHeader } from "@/components/admin/admin-header";
+import { AdminShell } from "@/components/admin/admin-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +31,7 @@ export default async function AdminLayout({
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--landing-bg)] text-[var(--landing-text)]">
         <div className="text-center">
-          <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
+          <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
             403
           </span>
           <h1 className="mb-2 text-2xl font-bold">Access Denied</h1>
@@ -44,13 +43,5 @@ export default async function AdminLayout({
     );
   }
 
-  return (
-    <div className="flex h-screen bg-[var(--landing-bg)]">
-      <AdminSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <AdminHeader user={session.user} />
-        <main className="flex-1 overflow-auto p-8">{children}</main>
-      </div>
-    </div>
-  );
+  return <AdminShell user={session.user}>{children}</AdminShell>;
 }

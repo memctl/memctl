@@ -89,10 +89,7 @@ export async function POST(req: NextRequest) {
     .select()
     .from(orgMemoryDefaults)
     .where(
-      and(
-        eq(orgMemoryDefaults.orgId, org.id),
-        eq(orgMemoryDefaults.key, key),
-      ),
+      and(eq(orgMemoryDefaults.orgId, org.id), eq(orgMemoryDefaults.key, key)),
     )
     .limit(1);
 
@@ -108,7 +105,9 @@ export async function POST(req: NextRequest) {
       })
       .where(eq(orgMemoryDefaults.id, existing.id));
 
-    return NextResponse.json({ default: { ...existing, content, updated: true } });
+    return NextResponse.json({
+      default: { ...existing, content, updated: true },
+    });
   }
 
   const id = generateId();
@@ -178,10 +177,7 @@ export async function DELETE(req: NextRequest) {
     .select()
     .from(orgMemoryDefaults)
     .where(
-      and(
-        eq(orgMemoryDefaults.orgId, org.id),
-        eq(orgMemoryDefaults.key, key),
-      ),
+      and(eq(orgMemoryDefaults.orgId, org.id), eq(orgMemoryDefaults.key, key)),
     )
     .limit(1);
 

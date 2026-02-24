@@ -5,11 +5,7 @@ interface PageHeaderProps {
   children?: React.ReactNode;
 }
 
-export function PageHeader({
-  title,
-  description,
-  children,
-}: PageHeaderProps) {
+export function PageHeader({ title, description, children }: PageHeaderProps) {
   return (
     <div className="mb-8 flex items-start justify-between">
       <div>

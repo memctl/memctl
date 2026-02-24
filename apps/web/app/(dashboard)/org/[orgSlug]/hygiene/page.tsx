@@ -12,9 +12,8 @@ import {
   activityLogs,
   memoryLocks,
 } from "@memctl/db/schema";
-import { eq, and, isNull, isNotNull, lt, sql } from "drizzle-orm";
-import { PLANS } from "@memctl/shared/constants";
-import type { PlanId } from "@memctl/shared/constants";
+import { eq, and, isNull, lt, sql } from "drizzle-orm";
+import { getOrgLimits, isUnlimited } from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { HygieneDashboard } from "./hygiene-dashboard";
 
@@ -30,18 +29,30 @@ export default async function HygienePage({
 
   const { orgSlug } = await params;
 
-  const [org] = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
   if (!org) redirect("/");
 
   const [member] = await db
     .select()
     .from(organizationMembers)
-    .where(and(eq(organizationMembers.orgId, org.id), eq(organizationMembers.userId, session.user.id)))
+    .where(
+      and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, session.user.id),
+      ),
+    )
     .limit(1);
   if (!member) redirect("/");
 
-  const currentPlan = PLANS[org.planId as PlanId] ?? PLANS.free;
-  const projectList = await db.select().from(projects).where(eq(projects.orgId, org.id));
+  const limits = getOrgLimits(org);
+  const projectList = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.orgId, org.id));
 
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -50,8 +61,17 @@ export default async function HygienePage({
 
   // Aggregate across all projects
   let totalMemories = 0;
-  const staleMemories: Array<{ key: string; project: string; lastAccessedAt: string | null; priority: number }> = [];
-  const expiringMemories: Array<{ key: string; project: string; expiresAt: string }> = [];
+  const staleMemories: Array<{
+    key: string;
+    project: string;
+    lastAccessedAt: string | null;
+    priority: number;
+  }> = [];
+  const expiringMemories: Array<{
+    key: string;
+    project: string;
+    expiresAt: string;
+  }> = [];
   const healthBuckets = { critical: 0, low: 0, medium: 0, healthy: 0 }; // 0-25, 25-50, 50-75, 75-100
   const weeklyGrowth: Record<string, number> = {};
 
@@ -61,10 +81,7 @@ export default async function HygienePage({
       .select()
       .from(memories)
       .where(
-        and(
-          eq(memories.projectId, project.id),
-          isNull(memories.archivedAt),
-        ),
+        and(eq(memories.projectId, project.id), isNull(memories.archivedAt)),
       );
 
     totalMemories += allMems.length;
@@ -79,20 +96,31 @@ export default async function HygienePage({
       }
 
       // Stale: not accessed in 30+ days, not pinned
-      const lastAccess = m.lastAccessedAt ? new Date(m.lastAccessedAt).getTime() : 0;
-      if (!m.pinnedAt && (!lastAccess || lastAccess < thirtyDaysAgo.getTime())) {
+      const lastAccess = m.lastAccessedAt
+        ? new Date(m.lastAccessedAt).getTime()
+        : 0;
+      if (
+        !m.pinnedAt &&
+        (!lastAccess || lastAccess < thirtyDaysAgo.getTime())
+      ) {
         if (staleMemories.length < 50) {
           staleMemories.push({
             key: m.key,
             project: project.slug,
-            lastAccessedAt: m.lastAccessedAt ? new Date(m.lastAccessedAt).toISOString() : null,
+            lastAccessedAt: m.lastAccessedAt
+              ? new Date(m.lastAccessedAt).toISOString()
+              : null,
             priority: m.priority ?? 0,
           });
         }
       }
 
       // Expiring soon: within 7 days
-      if (m.expiresAt && new Date(m.expiresAt).getTime() <= sevenDaysFromNow.getTime() && new Date(m.expiresAt).getTime() > nowMs) {
+      if (
+        m.expiresAt &&
+        new Date(m.expiresAt).getTime() <= sevenDaysFromNow.getTime() &&
+        new Date(m.expiresAt).getTime() > nowMs
+      ) {
         if (expiringMemories.length < 50) {
           expiringMemories.push({
             key: m.key,
@@ -103,7 +131,9 @@ export default async function HygienePage({
       }
 
       // Health score distribution
-      const ageDays = m.createdAt ? (nowMs - m.createdAt.getTime()) / (1000 * 60 * 60 * 24) : 0;
+      const ageDays = m.createdAt
+        ? (nowMs - m.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+        : 0;
       const daysSinceAccess = m.lastAccessedAt
         ? (nowMs - new Date(m.lastAccessedAt).getTime()) / (1000 * 60 * 60 * 24)
         : Infinity;
@@ -113,9 +143,15 @@ export default async function HygienePage({
 
       const ageFactor = Math.max(0, 25 - ageDays / 14);
       const accessFactor = Math.min(25, accessCount * 2.5);
-      const feedbackFactor = 12.5 + Math.min(12.5, Math.max(-12.5, (helpfulCount - unhelpfulCount) * 2.5));
-      const freshnessFactor = daysSinceAccess === Infinity ? 0 : Math.max(0, 25 - daysSinceAccess / 7);
-      const healthScore = ageFactor + accessFactor + feedbackFactor + freshnessFactor;
+      const feedbackFactor =
+        12.5 +
+        Math.min(12.5, Math.max(-12.5, (helpfulCount - unhelpfulCount) * 2.5));
+      const freshnessFactor =
+        daysSinceAccess === Infinity
+          ? 0
+          : Math.max(0, 25 - daysSinceAccess / 7);
+      const healthScore =
+        ageFactor + accessFactor + feedbackFactor + freshnessFactor;
 
       if (healthScore < 25) healthBuckets.critical++;
       else if (healthScore < 50) healthBuckets.low++;
@@ -137,19 +173,32 @@ export default async function HygienePage({
     const [versionCount] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(memoryVersions)
-      .where(sql`${memoryVersions.memoryId} IN (SELECT id FROM memories WHERE project_id IN (${sql.join(projectIds.map((id) => sql`${id}`), sql`, `)}))`);
+      .where(
+        sql`${memoryVersions.memoryId} IN (SELECT id FROM memories WHERE project_id IN (${sql.join(
+          projectIds.map((id) => sql`${id}`),
+          sql`, `,
+        )}))`,
+      );
 
     const [activityCount] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(activityLogs)
-      .where(sql`${activityLogs.projectId} IN (${sql.join(projectIds.map((id) => sql`${id}`), sql`, `)})`);
+      .where(
+        sql`${activityLogs.projectId} IN (${sql.join(
+          projectIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+      );
 
     const [lockCount] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(memoryLocks)
       .where(
         and(
-          sql`${memoryLocks.projectId} IN (${sql.join(projectIds.map((id) => sql`${id}`), sql`, `)})`,
+          sql`${memoryLocks.projectId} IN (${sql.join(
+            projectIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
           lt(memoryLocks.expiresAt, new Date()),
         ),
       );
@@ -161,12 +210,17 @@ export default async function HygienePage({
     };
   }
 
-  const memoryLimit = currentPlan.memoryLimitOrg;
-  const usagePercent = memoryLimit === Infinity ? 0 : Math.round((totalMemories / memoryLimit) * 100);
+  const memoryLimit = limits.memoryLimitOrg;
+  const usagePercent = isUnlimited(memoryLimit)
+    ? 0
+    : Math.round((totalMemories / memoryLimit) * 100);
 
   return (
     <div>
-      <PageHeader title="Memory Hygiene" description="Memory health analysis and cleanup tools" />
+      <PageHeader
+        title="Memory Hygiene"
+        description="Memory health analysis and cleanup tools"
+      />
 
       <HygieneDashboard
         healthBuckets={healthBuckets}
@@ -175,7 +229,7 @@ export default async function HygienePage({
         growth={growth}
         capacity={{
           used: totalMemories,
-          limit: memoryLimit === Infinity ? null : memoryLimit,
+          limit: isUnlimited(memoryLimit) ? null : memoryLimit,
           usagePercent,
         }}
         orgSlug={orgSlug}

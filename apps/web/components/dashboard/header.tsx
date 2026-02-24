@@ -66,16 +66,21 @@ export function Header({ orgSlug, orgName }: HeaderProps) {
           mem<span className="text-[#F97316]">/</span>ctl
         </span>
       </Link>
-      <Separator orientation="vertical" className="mx-3 data-[orientation=vertical]:h-4 bg-[var(--landing-border)]" />
+      <Separator
+        orientation="vertical"
+        className="mx-3 bg-[var(--landing-border)] data-[orientation=vertical]:h-4"
+      />
       <div className="min-w-0">
         <Breadcrumb>
-          <BreadcrumbList className="text-sm flex-nowrap">
+          <BreadcrumbList className="flex-nowrap text-sm">
             {crumbs.map((crumb, i) => {
               const isLast = i === crumbs.length - 1;
               return (
                 <span
                   key={`${crumb.href ?? crumb.label}-${i}`}
-                  className={isLast ? "contents" : "hidden contents sm:!contents"}
+                  className={
+                    isLast ? "contents" : "contents hidden sm:!contents"
+                  }
                 >
                   {i > 0 && (
                     <BreadcrumbSeparator className="text-[var(--landing-text-tertiary)]">

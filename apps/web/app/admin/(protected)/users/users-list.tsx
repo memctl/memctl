@@ -1,0 +1,266 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AdminPagination } from "@/components/admin/admin-pagination";
+import { AdminTableLoader } from "@/components/admin/admin-table-loader";
+import { SortableHeader } from "@/components/admin/sortable-header";
+import { Search } from "lucide-react";
+import { UserAdminToggle } from "./user-admin-toggle";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  githubId: string | null;
+  isAdmin: boolean | null;
+  createdAt: string;
+  orgCount: number;
+}
+
+const PAGE_SIZE = 25;
+
+export function UsersList() {
+  const [userList, setUserList] = useState<User[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterAdmin, setFilterAdmin] = useState("all");
+  const [filterHasOrgs, setFilterHasOrgs] = useState("all");
+  const [sort, setSort] = useState("createdAt");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (searchQuery) params.set("search", searchQuery);
+    if (filterAdmin !== "all") params.set("admin", filterAdmin);
+    if (filterHasOrgs !== "all") params.set("hasOrgs", filterHasOrgs);
+    params.set("sort", sort);
+    params.set("order", order);
+    params.set("limit", String(PAGE_SIZE));
+    params.set("offset", String((page - 1) * PAGE_SIZE));
+
+    const res = await fetch(`/api/v1/admin/users?${params}`);
+    const data = await res.json();
+    setUserList(data.users ?? []);
+    setTotal(data.total ?? 0);
+    setLoading(false);
+  }, [searchQuery, filterAdmin, filterHasOrgs, sort, order, page]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, filterAdmin, filterHasOrgs, sort, order]);
+
+  function handleSort(field: string) {
+    if (sort === field) {
+      setOrder(order === "asc" ? "desc" : "asc");
+    } else {
+      setSort(field);
+      setOrder("asc");
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+          <Input
+            placeholder="Search name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={filterAdmin} onValueChange={setFilterAdmin}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Admin" />
+          </SelectTrigger>
+          <SelectContent
+            position="popper"
+            align="start"
+            sideOffset={4}
+            style={{
+              backgroundColor: "var(--landing-surface)",
+              borderColor: "var(--landing-border)",
+            }}
+          >
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="yes">Admins</SelectItem>
+            <SelectItem value="no">Non-Admins</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterHasOrgs} onValueChange={setFilterHasOrgs}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Has Orgs" />
+          </SelectTrigger>
+          <SelectContent
+            position="popper"
+            align="start"
+            sideOffset={4}
+            style={{
+              backgroundColor: "var(--landing-surface)",
+              borderColor: "var(--landing-border)",
+            }}
+          >
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="yes">Has Orgs</SelectItem>
+            <SelectItem value="no">No Orgs</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="dash-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
+                <SortableHeader
+                  label="User"
+                  field="name"
+                  currentSort={sort}
+                  currentOrder={order}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  label="Email"
+                  field="email"
+                  currentSort={sort}
+                  currentOrder={order}
+                  onSort={handleSort}
+                />
+                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  Admin
+                </TableHead>
+                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase md:table-cell">
+                  GitHub ID
+                </TableHead>
+                <SortableHeader
+                  label="Orgs"
+                  field="orgs"
+                  currentSort={sort}
+                  currentOrder={order}
+                  onSort={handleSort}
+                  className="hidden text-right sm:table-cell"
+                />
+                <SortableHeader
+                  label="Created"
+                  field="createdAt"
+                  currentSort={sort}
+                  currentOrder={order}
+                  onSort={handleSort}
+                  className="hidden lg:table-cell"
+                />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <AdminTableLoader colSpan={6} />
+              ) : userList.length === 0 ? (
+                <TableRow className="border-[var(--landing-border)]">
+                  <TableCell
+                    colSpan={6}
+                    className="py-8 text-center font-mono text-sm text-[var(--landing-text-tertiary)]"
+                  >
+                    {searchQuery ||
+                    filterAdmin !== "all" ||
+                    filterHasOrgs !== "all"
+                      ? "No users found"
+                      : "No users yet"}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                userList.map((user) => {
+                  const initials = user.name
+                    ? user.name
+                        .split(" ")
+                        .map((w) => w[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)
+                    : "?";
+                  return (
+                    <TableRow
+                      key={user.id}
+                      className="border-[var(--landing-border)]"
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8 border border-[var(--landing-border)]">
+                            {user.avatarUrl && (
+                              <AvatarImage
+                                src={user.avatarUrl}
+                                alt={user.name}
+                              />
+                            )}
+                            <AvatarFallback className="bg-[var(--landing-surface-2)] font-mono text-xs text-[var(--landing-text-secondary)]">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium text-[var(--landing-text)]">
+                            {user.name}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-[var(--landing-text-secondary)]">
+                        {user.email}
+                      </TableCell>
+                      <TableCell>
+                        <UserAdminToggle
+                          userId={user.id}
+                          initialIsAdmin={!!user.isAdmin}
+                        />
+                      </TableCell>
+                      <TableCell className="hidden font-mono text-xs text-[var(--landing-text-tertiary)] md:table-cell">
+                        {user.githubId ?? "\u2014"}
+                      </TableCell>
+                      <TableCell className="hidden text-right font-mono text-xs text-[var(--landing-text-secondary)] sm:table-cell">
+                        {user.orgCount}
+                      </TableCell>
+                      <TableCell className="hidden font-mono text-xs text-[var(--landing-text-tertiary)] lg:table-cell">
+                        {new Date(user.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <AdminPagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPageChange={setPage}
+        />
+      </div>
+    </div>
+  );
+}

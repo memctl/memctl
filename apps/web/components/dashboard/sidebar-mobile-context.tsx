@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface MobileSidebarContextValue {
   open: boolean;
@@ -28,7 +23,9 @@ export function MobileSidebarProvider({ children }: { children: ReactNode }) {
 export function useMobileSidebar() {
   const ctx = useContext(MobileSidebarContext);
   if (!ctx) {
-    throw new Error("useMobileSidebar must be used within MobileSidebarProvider");
+    throw new Error(
+      "useMobileSidebar must be used within MobileSidebarProvider",
+    );
   }
   return ctx;
 }

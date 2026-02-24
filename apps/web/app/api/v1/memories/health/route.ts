@@ -31,7 +31,11 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const url = new URL(req.url);
@@ -74,17 +78,17 @@ export async function GET(req: NextRequest) {
     // Feedback factor (0-25): positive feedback = higher
     // Baseline of 12.5 so memories with no feedback get a neutral score
     const feedbackFactor =
-      12.5 + Math.min(12.5, Math.max(-12.5, (helpfulCount - unhelpfulCount) * 2.5));
+      12.5 +
+      Math.min(12.5, Math.max(-12.5, (helpfulCount - unhelpfulCount) * 2.5));
 
     // Freshness factor (0-25): recently accessed = higher
     const freshnessFactor =
-      daysSinceAccess === Infinity
-        ? 0
-        : Math.max(0, 25 - daysSinceAccess / 7);
+      daysSinceAccess === Infinity ? 0 : Math.max(0, 25 - daysSinceAccess / 7);
 
-    const healthScore = Math.round(
-      (ageFactor + accessFactor + feedbackFactor + freshnessFactor) * 100,
-    ) / 100;
+    const healthScore =
+      Math.round(
+        (ageFactor + accessFactor + feedbackFactor + freshnessFactor) * 100,
+      ) / 100;
 
     return {
       key: m.key,

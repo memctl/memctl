@@ -23,7 +23,10 @@ describe("checkConditional", () => {
       headers: {},
     });
     expect(
-      checkConditional(req as unknown as import("next/server").NextRequest, '"abc"'),
+      checkConditional(
+        req as unknown as import("next/server").NextRequest,
+        '"abc"',
+      ),
     ).toBe(false);
   });
 
@@ -32,7 +35,10 @@ describe("checkConditional", () => {
       headers: { "if-none-match": '"abc"' },
     });
     expect(
-      checkConditional(req as unknown as import("next/server").NextRequest, '"abc"'),
+      checkConditional(
+        req as unknown as import("next/server").NextRequest,
+        '"abc"',
+      ),
     ).toBe(true);
   });
 
@@ -41,7 +47,10 @@ describe("checkConditional", () => {
       headers: { "if-none-match": 'W/"abc"' },
     });
     expect(
-      checkConditional(req as unknown as import("next/server").NextRequest, '"abc"'),
+      checkConditional(
+        req as unknown as import("next/server").NextRequest,
+        '"abc"',
+      ),
     ).toBe(true);
   });
 
@@ -50,7 +59,10 @@ describe("checkConditional", () => {
       headers: { "if-none-match": '"xyz"' },
     });
     expect(
-      checkConditional(req as unknown as import("next/server").NextRequest, '"abc"'),
+      checkConditional(
+        req as unknown as import("next/server").NextRequest,
+        '"abc"',
+      ),
     ).toBe(false);
   });
 });

@@ -10,7 +10,10 @@ import { generateId } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   if (!isBillingEnabled()) {
-    return NextResponse.json({ error: "Billing is not enabled" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Billing is not enabled" },
+      { status: 400 },
+    );
   }
 
   const body = await req.text();
@@ -46,22 +49,44 @@ export async function POST(req: NextRequest) {
 
       if (orgSlug && subscriptionId) {
         // Fetch subscription to get the plan
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const subscription =
+          await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0]?.price.id;
         const planId = getPlanFromPriceId(priceId);
 
         if (planId) {
+          const [existingOrg] = await db
+            .select({ customLimits: organizations.customLimits })
+            .from(organizations)
+            .where(eq(organizations.slug, orgSlug))
+            .limit(1);
+
           const plan = PLANS[planId];
-          await db
-            .update(organizations)
-            .set({
-              stripeSubscriptionId: subscriptionId,
-              planId,
-              projectLimit: plan.projectLimit,
-              memberLimit: plan.memberLimit,
-              updatedAt: new Date(),
-            })
-            .where(eq(organizations.slug, orgSlug));
+          if (existingOrg?.customLimits) {
+            // Only update planId, preserve admin-set limits
+            await db
+              .update(organizations)
+              .set({
+                stripeSubscriptionId: subscriptionId,
+                planId,
+                updatedAt: new Date(),
+              })
+              .where(eq(organizations.slug, orgSlug));
+          } else {
+            await db
+              .update(organizations)
+              .set({
+                stripeSubscriptionId: subscriptionId,
+                planId,
+                projectLimit: plan.projectLimit,
+                memberLimit: plan.memberLimit,
+                memoryLimitPerProject: null,
+                memoryLimitOrg: null,
+                apiRatePerMinute: null,
+                updatedAt: new Date(),
+              })
+              .where(eq(organizations.slug, orgSlug));
+          }
         }
 
         // Track promo code redemption
@@ -69,11 +94,15 @@ export async function POST(req: NextRequest) {
           const totalDiscount = session.total_details?.amount_discount ?? 0;
           // Check if a promotion code was applied via discounts
           const sessionAny = session as unknown as Record<string, unknown>;
-          const discountObjs = sessionAny.discounts as Array<{ promotion_code?: string }> | undefined;
+          const discountObjs = sessionAny.discounts as
+            | Array<{ promotion_code?: string }>
+            | undefined;
           const appliedPromoCodeId =
             discountObjs?.[0]?.promotion_code ??
-            (typeof sessionAny.discount === "object" && sessionAny.discount !== null
-              ? (sessionAny.discount as { promotion_code?: string }).promotion_code
+            (typeof sessionAny.discount === "object" &&
+            sessionAny.discount !== null
+              ? (sessionAny.discount as { promotion_code?: string })
+                  .promotion_code
               : undefined);
 
           if (appliedPromoCodeId && typeof appliedPromoCodeId === "string") {
@@ -125,33 +154,103 @@ export async function POST(req: NextRequest) {
       const planId = getPlanFromPriceId(priceId);
 
       if (planId) {
+        const [existingOrg] = await db
+          .select({ customLimits: organizations.customLimits })
+          .from(organizations)
+          .where(eq(organizations.stripeSubscriptionId, subscription.id))
+          .limit(1);
+
         const plan = PLANS[planId];
-        await db
-          .update(organizations)
-          .set({
-            planId,
-            projectLimit: plan.projectLimit,
-            memberLimit: plan.memberLimit,
-            updatedAt: new Date(),
+        if (existingOrg?.customLimits) {
+          await db
+            .update(organizations)
+            .set({
+              planId,
+              updatedAt: new Date(),
+            })
+            .where(eq(organizations.stripeSubscriptionId, subscription.id));
+        } else {
+          await db
+            .update(organizations)
+            .set({
+              planId,
+              projectLimit: plan.projectLimit,
+              memberLimit: plan.memberLimit,
+              memoryLimitPerProject: null,
+              memoryLimitOrg: null,
+              apiRatePerMinute: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(organizations.stripeSubscriptionId, subscription.id));
+        }
+      }
+      break;
+    }
+
+    case "customer.subscription.created": {
+      const subscription = event.data.object;
+      const customerId =
+        typeof subscription.customer === "string"
+          ? subscription.customer
+          : subscription.customer?.id;
+
+      if (customerId) {
+        const [existingOrg] = await db
+          .select({
+            id: organizations.id,
+            stripeSubscriptionId: organizations.stripeSubscriptionId,
           })
-          .where(eq(organizations.stripeSubscriptionId, subscription.id));
+          .from(organizations)
+          .where(eq(organizations.stripeCustomerId, customerId))
+          .limit(1);
+
+        if (existingOrg && !existingOrg.stripeSubscriptionId) {
+          await db
+            .update(organizations)
+            .set({
+              stripeSubscriptionId: subscription.id,
+              updatedAt: new Date(),
+            })
+            .where(eq(organizations.id, existingOrg.id));
+        }
       }
       break;
     }
 
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
+
+      const [existingOrg] = await db
+        .select({ customLimits: organizations.customLimits })
+        .from(organizations)
+        .where(eq(organizations.stripeSubscriptionId, subscription.id))
+        .limit(1);
+
       const freePlan = PLANS.free;
-      await db
-        .update(organizations)
-        .set({
-          planId: "free",
-          stripeSubscriptionId: null,
-          projectLimit: freePlan.projectLimit,
-          memberLimit: freePlan.memberLimit,
-          updatedAt: new Date(),
-        })
-        .where(eq(organizations.stripeSubscriptionId, subscription.id));
+      if (existingOrg?.customLimits) {
+        await db
+          .update(organizations)
+          .set({
+            planId: "free",
+            stripeSubscriptionId: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizations.stripeSubscriptionId, subscription.id));
+      } else {
+        await db
+          .update(organizations)
+          .set({
+            planId: "free",
+            stripeSubscriptionId: null,
+            projectLimit: freePlan.projectLimit,
+            memberLimit: freePlan.memberLimit,
+            memoryLimitPerProject: null,
+            memoryLimitOrg: null,
+            apiRatePerMinute: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizations.stripeSubscriptionId, subscription.id));
+      }
       break;
     }
 

@@ -38,7 +38,9 @@ async function getPost(slug: string) {
   return post;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPost(slug);
 
@@ -55,7 +57,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `/blog/${post.slug}`,
       type: "article",
       ...(post.coverImageUrl ? { images: [post.coverImageUrl] } : {}),
-      ...(post.publishedAt ? { publishedTime: post.publishedAt.toISOString() } : {}),
+      ...(post.publishedAt
+        ? { publishedTime: post.publishedAt.toISOString() }
+        : {}),
     },
   };
 }
@@ -85,10 +89,10 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* Article header */}
         <ScrollReveal>
           <header className="mx-auto mb-12 max-w-3xl">
-            <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
+            <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
               Blog
             </span>
-            <h1 className="mb-6 text-[clamp(1.75rem,4vw,3rem)] font-bold leading-[1.15]">
+            <h1 className="mb-6 text-[clamp(1.75rem,4vw,3rem)] leading-[1.15] font-bold">
               {post.title}
             </h1>
             <div className="flex items-center gap-3">

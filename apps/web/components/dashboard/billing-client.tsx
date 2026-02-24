@@ -5,7 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, CreditCard, FileText, Ticket, X, ChevronDown } from "lucide-react";
+import {
+  Check,
+  CreditCard,
+  FileText,
+  Ticket,
+  X,
+  ChevronDown,
+} from "lucide-react";
 import type { PlanId } from "@memctl/shared/constants";
 
 interface PlanInfo {
@@ -33,8 +40,7 @@ interface PromoDiscount {
   durationInMonths: number | null;
 }
 
-const isSelfHostedClient =
-  process.env.NEXT_PUBLIC_SELF_HOSTED === "true";
+const isSelfHostedClient = process.env.NEXT_PUBLIC_SELF_HOSTED === "true";
 
 const PLAN_ORDER: PlanId[] = [
   "free",
@@ -77,30 +83,36 @@ export function BillingClient({
   const [promoError, setPromoError] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
-  const validatePromo = useCallback(async (code: string, planId?: string) => {
-    if (!code) return;
-    setPromoValidating(true);
-    setPromoError(null);
-    try {
-      const res = await fetch(`/api/v1/orgs/${orgSlug}/validate-promo`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.toUpperCase(), planId }),
-      });
-      const data = await res.json();
-      if (data.valid) {
-        setAppliedPromo({ code: code.toUpperCase(), discount: data.discount });
-        setPromoError(null);
-      } else {
-        setAppliedPromo(null);
-        setPromoError(data.reason ?? "Invalid promo code");
+  const validatePromo = useCallback(
+    async (code: string, planId?: string) => {
+      if (!code) return;
+      setPromoValidating(true);
+      setPromoError(null);
+      try {
+        const res = await fetch(`/api/v1/orgs/${orgSlug}/validate-promo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: code.toUpperCase(), planId }),
+        });
+        const data = await res.json();
+        if (data.valid) {
+          setAppliedPromo({
+            code: code.toUpperCase(),
+            discount: data.discount,
+          });
+          setPromoError(null);
+        } else {
+          setAppliedPromo(null);
+          setPromoError(data.reason ?? "Invalid promo code");
+        }
+      } catch {
+        setPromoError("Failed to validate code");
+      } finally {
+        setPromoValidating(false);
       }
-    } catch {
-      setPromoError("Failed to validate code");
-    } finally {
-      setPromoValidating(false);
-    }
-  }, [orgSlug]);
+    },
+    [orgSlug],
+  );
 
   // Auto-apply promo from URL param
   useEffect(() => {
@@ -260,7 +272,9 @@ export function BillingClient({
           >
             <Ticket className="h-4 w-4" />
             Have a promo code?
-            <ChevronDown className={`h-4 w-4 transition-transform ${promoExpanded ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${promoExpanded ? "rotate-180" : ""}`}
+            />
           </button>
 
           {promoExpanded && (
@@ -291,9 +305,11 @@ export function BillingClient({
                 <div className="flex gap-2">
                   <Input
                     value={promoInput}
-                    onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      setPromoInput(e.target.value.toUpperCase())
+                    }
                     placeholder="Enter code"
-                    className="max-w-[240px] font-mono border-[var(--landing-border)] bg-[var(--landing-surface)]"
+                    className="max-w-[240px] border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono"
                     onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
                   />
                   <Button
@@ -325,7 +341,8 @@ export function BillingClient({
             const plan = plans[id];
             if (!plan) return null;
             const isCurrent = id === currentPlan;
-            const showDiscount = appliedPromo && PAID_PLANS.includes(id) && plan.price > 0;
+            const showDiscount =
+              appliedPromo && PAID_PLANS.includes(id) && plan.price > 0;
             const discountedPrice = showDiscount
               ? getDiscountedPrice(plan.price, appliedPromo.discount)
               : null;
@@ -382,56 +399,58 @@ export function BillingClient({
       </div>
 
       {/* Billing Management */}
-      {!isSelfHostedClient && <div className="mt-10">
-        <h2 className="text-sm font-medium text-[var(--landing-text)]">
-          Billing management
-        </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-            <div className="flex items-center gap-3">
-              <CreditCard className="size-5 text-[var(--landing-text-tertiary)]" />
-              <div>
-                <p className="text-sm font-medium text-[var(--landing-text)]">
-                  Payment Method
-                </p>
-                <p className="text-xs text-[var(--landing-text-tertiary)]">
-                  Update your card or billing details
-                </p>
+      {!isSelfHostedClient && (
+        <div className="mt-10">
+          <h2 className="text-sm font-medium text-[var(--landing-text)]">
+            Billing management
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+              <div className="flex items-center gap-3">
+                <CreditCard className="size-5 text-[var(--landing-text-tertiary)]" />
+                <div>
+                  <p className="text-sm font-medium text-[var(--landing-text)]">
+                    Payment Method
+                  </p>
+                  <p className="text-xs text-[var(--landing-text-tertiary)]">
+                    Update your card or billing details
+                  </p>
+                </div>
               </div>
+              <Button
+                variant="outline"
+                onClick={handlePortal}
+                disabled={loading !== null || !hasSubscription}
+                className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
+              >
+                {loading === "portal" ? "..." : "Manage payment"}
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              onClick={handlePortal}
-              disabled={loading !== null || !hasSubscription}
-              className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
-            >
-              {loading === "portal" ? "..." : "Manage payment"}
-            </Button>
-          </div>
 
-          <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-            <div className="flex items-center gap-3">
-              <FileText className="size-5 text-[var(--landing-text-tertiary)]" />
-              <div>
-                <p className="text-sm font-medium text-[var(--landing-text)]">
-                  Invoices
-                </p>
-                <p className="text-xs text-[var(--landing-text-tertiary)]">
-                  View and download past invoices
-                </p>
+            <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
+              <div className="flex items-center gap-3">
+                <FileText className="size-5 text-[var(--landing-text-tertiary)]" />
+                <div>
+                  <p className="text-sm font-medium text-[var(--landing-text)]">
+                    Invoices
+                  </p>
+                  <p className="text-xs text-[var(--landing-text-tertiary)]">
+                    View and download past invoices
+                  </p>
+                </div>
               </div>
+              <Button
+                variant="outline"
+                onClick={handlePortal}
+                disabled={loading !== null || !hasSubscription}
+                className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
+              >
+                {loading === "portal" ? "..." : "View invoices"}
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              onClick={handlePortal}
-              disabled={loading !== null || !hasSubscription}
-              className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
-            >
-              {loading === "portal" ? "..." : "View invoices"}
-            </Button>
           </div>
         </div>
-      </div>}
+      )}
     </>
   );
 }

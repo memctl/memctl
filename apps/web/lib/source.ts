@@ -10,6 +10,7 @@ const normalizedSource = {
     typeof docsSource.files === "function"
       ? docsSource.files()
       : docsSource.files,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any;
 
 export const source = loader({

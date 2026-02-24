@@ -23,12 +23,19 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const url = new URL(req.url);
   const key = url.searchParams.get("key");
-  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "5", 10), 20);
+  const limit = Math.min(
+    parseInt(url.searchParams.get("limit") ?? "5", 10),
+    20,
+  );
 
   if (!key) {
     return jsonError("key query param is required", 400);
@@ -46,11 +53,13 @@ export async function GET(req: NextRequest) {
       ),
     );
 
-  const sessionIds = [...new Set(
-    sessionsWithKey
-      .map((s) => s.sessionId)
-      .filter((id): id is string => id !== null),
-  )];
+  const sessionIds = [
+    ...new Set(
+      sessionsWithKey
+        .map((s) => s.sessionId)
+        .filter((id): id is string => id !== null),
+    ),
+  ];
 
   if (sessionIds.length === 0) {
     return NextResponse.json({ key, coAccessed: [] });
@@ -67,7 +76,10 @@ export async function GET(req: NextRequest) {
       and(
         eq(activityLogs.projectId, context.project.id),
         eq(activityLogs.action, "memory_read"),
-        sql`${activityLogs.sessionId} IN (${sql.join(sessionIds.map((id) => sql`${id}`), sql`, `)})`,
+        sql`${activityLogs.sessionId} IN (${sql.join(
+          sessionIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
         sql`${activityLogs.memoryKey} != ${key}`,
         sql`${activityLogs.memoryKey} IS NOT NULL`,
       ),

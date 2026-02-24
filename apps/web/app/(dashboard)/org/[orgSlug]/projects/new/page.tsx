@@ -299,7 +299,11 @@ export default function NewProjectPage() {
             <div className="mb-3 flex items-start gap-2 rounded-lg border border-[#F97316]/20 bg-[#F97316]/5 px-3 py-2">
               <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F97316]" />
               <p className="font-mono text-[10px] leading-relaxed text-[var(--landing-text-secondary)]">
-                Run <code className="rounded bg-[var(--landing-surface-2)] px-1 py-0.5 text-[#F97316]">npx memctl auth</code> to authenticate.
+                Run{" "}
+                <code className="rounded bg-[var(--landing-surface-2)] px-1 py-0.5 text-[#F97316]">
+                  npx memctl auth
+                </code>{" "}
+                to authenticate.
               </p>
             </div>
 
@@ -312,7 +316,7 @@ export default function NewProjectPage() {
               </div>
               <button
                 onClick={handleCopyConfig}
-                className="absolute right-2 top-2 rounded-md border border-[var(--landing-border)] bg-[var(--landing-surface)] p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text)]"
+                className="absolute top-2 right-2 rounded-md border border-[var(--landing-border)] bg-[var(--landing-surface)] p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text)]"
               >
                 {copied ? (
                   <Check className="size-3.5 text-green-500" />

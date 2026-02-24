@@ -12,13 +12,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface DeletePostButtonProps {
   slug: string;
   title: string;
+  onDeleted?: () => void;
 }
 
-export function DeletePostButton({ slug, title }: DeletePostButtonProps) {
+export function DeletePostButton({
+  slug,
+  title,
+  onDeleted,
+}: DeletePostButtonProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -29,10 +35,14 @@ export function DeletePostButton({ slug, title }: DeletePostButtonProps) {
       const res = await fetch(`/api/v1/blog/${slug}`, { method: "DELETE" });
       if (res.ok) {
         setOpen(false);
-        router.refresh();
+        if (onDeleted) {
+          onDeleted();
+        } else {
+          router.refresh();
+        }
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "Failed to delete post");
+        toast.error(data.error || "Failed to delete post");
       }
     } finally {
       setDeleting(false);
@@ -42,9 +52,13 @@ export function DeletePostButton({ slug, title }: DeletePostButtonProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="text-xs font-medium text-red-500 transition-colors hover:text-red-400">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto p-0 text-xs font-medium text-red-500 hover:bg-transparent hover:text-red-400"
+        >
           Delete
-        </button>
+        </Button>
       </DialogTrigger>
       <DialogContent className="border-[var(--landing-border)] bg-[var(--landing-surface)]">
         <DialogHeader>

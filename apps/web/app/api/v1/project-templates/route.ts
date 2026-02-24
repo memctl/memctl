@@ -145,7 +145,8 @@ export async function POST(req: NextRequest) {
           content: entry.content,
           updatedAt: new Date(),
         };
-        if (entry.metadata !== undefined) updates.metadata = JSON.stringify(entry.metadata);
+        if (entry.metadata !== undefined)
+          updates.metadata = JSON.stringify(entry.metadata);
         if (entry.priority !== undefined) updates.priority = entry.priority;
         if (entry.tags !== undefined) updates.tags = JSON.stringify(entry.tags);
 
@@ -303,9 +304,7 @@ export async function DELETE(req: NextRequest) {
     return jsonError("Template not found", 404);
   }
 
-  await db
-    .delete(projectTemplates)
-    .where(eq(projectTemplates.id, templateId));
+  await db.delete(projectTemplates).where(eq(projectTemplates.id, templateId));
 
   return NextResponse.json({ deleted: true, templateId });
 }

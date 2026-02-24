@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, memoryVersions } from "@memctl/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { resolveOrgAndProject } from "../capacity-utils";
 
 /**
@@ -22,7 +22,11 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const url = new URL(req.url);

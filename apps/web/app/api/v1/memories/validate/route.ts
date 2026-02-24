@@ -25,7 +25,11 @@ export async function POST(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const body = await req.json().catch(() => null);
@@ -48,7 +52,8 @@ export async function POST(req: NextRequest) {
     );
 
   // Common file path patterns to look for in content
-  const filePathRegex = /(?:^|\s|["'`(])([a-zA-Z0-9_.-]+(?:\/[a-zA-Z0-9_.-]+)+\.[a-zA-Z0-9]+)/gm;
+  const filePathRegex =
+    /(?:^|\s|["'`(])([a-zA-Z0-9_.-]+(?:\/[a-zA-Z0-9_.-]+)+\.[a-zA-Z0-9]+)/gm;
 
   const issues: Array<{
     key: string;

@@ -52,7 +52,9 @@ async function getEntry(version: string) {
   return entry;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { version } = await params;
   const entry = await getEntry(version);
 
@@ -95,7 +97,8 @@ export default async function ChangelogVersionPage({ params }: PageProps) {
 
   // Sort categories by defined order
   const sortedCategories = Object.keys(grouped).sort(
-    (a, b) => (categoryOrder.indexOf(a) ?? 99) - (categoryOrder.indexOf(b) ?? 99),
+    (a, b) =>
+      (categoryOrder.indexOf(a) ?? 99) - (categoryOrder.indexOf(b) ?? 99),
   );
 
   return (
@@ -118,7 +121,7 @@ export default async function ChangelogVersionPage({ params }: PageProps) {
             <span className="mb-4 inline-block rounded-full bg-orange-500/10 px-3 py-1 font-mono text-sm font-semibold text-[#F97316]">
               v{entry.version}
             </span>
-            <h1 className="mb-4 text-[clamp(1.75rem,4vw,3rem)] font-bold leading-[1.15]">
+            <h1 className="mb-4 text-[clamp(1.75rem,4vw,3rem)] leading-[1.15] font-bold">
               {entry.title}
             </h1>
             {entry.summary && (

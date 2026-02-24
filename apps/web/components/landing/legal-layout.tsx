@@ -70,10 +70,10 @@ export function LegalLayout({
           {/* Header */}
           <ScrollReveal>
             <div className="mb-16">
-              <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
+              <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
                 Legal
               </span>
-              <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.1]">
+              <h1 className="text-[clamp(2rem,5vw,3.5rem)] leading-[1.1] font-bold">
                 {title}
               </h1>
               <p className="mt-4 text-sm text-[var(--landing-text-tertiary)]">
@@ -185,15 +185,20 @@ interface LegalSectionProps {
   children: React.ReactNode;
 }
 
-export function LegalSection({ id, number, title, children }: LegalSectionProps) {
+export function LegalSection({
+  id,
+  number,
+  title,
+  children,
+}: LegalSectionProps) {
   return (
     <ScrollReveal>
       <section id={id} className="mb-16 scroll-mt-24">
         <div className="mb-6">
-          <span className="mb-2 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
+          <span className="mb-2 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
             {number}
           </span>
-          <h2 className="text-2xl font-bold leading-tight">{title}</h2>
+          <h2 className="text-2xl leading-tight font-bold">{title}</h2>
         </div>
         <div className="space-y-4 text-[15px] leading-relaxed text-[var(--landing-text-secondary)]">
           {children}

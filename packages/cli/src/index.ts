@@ -6,8 +6,32 @@ const command = args[0];
 
 // If a CLI command is given (and it's not "serve"), run the CLI
 const cliCommands = [
-  "list", "get", "search", "export", "import", "snapshot", "snapshots",
-  "capacity", "cleanup", "lifecycle", "gc", "init", "auth", "doctor", "help", "--help", "-h",
+  "list",
+  "get",
+  "search",
+  "export",
+  "import",
+  "snapshot",
+  "snapshots",
+  "capacity",
+  "cleanup",
+  "lifecycle",
+  "gc",
+  "init",
+  "auth",
+  "doctor",
+  "whoami",
+  "status",
+  "delete",
+  "pin",
+  "unpin",
+  "archive",
+  "unarchive",
+  "version",
+  "--version",
+  "help",
+  "--help",
+  "-h",
 ];
 
 if (command && cliCommands.includes(command)) {
@@ -15,7 +39,8 @@ if (command && cliCommands.includes(command)) {
   await runCli(args);
 } else {
   // Default: start MCP server (also handles explicit "serve" command)
-  const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+  const { StdioServerTransport } =
+    await import("@modelcontextprotocol/sdk/server/stdio.js");
   const { createServer } = await import("./server.js");
   const { loadConfigForCwd } = await import("./config.js");
 
@@ -27,17 +52,23 @@ if (command && cliCommands.includes(command)) {
   const project = resolved?.project;
 
   if (!token) {
-    console.error("Authentication required. Run `memctl auth` to store your API token, or set MEMCTL_TOKEN.");
+    console.error(
+      "Authentication required. Run `memctl auth` to store your API token, or set MEMCTL_TOKEN.",
+    );
     process.exit(1);
   }
 
   if (!org) {
-    console.error("MEMCTL_ORG is required. Set it in your MCP config env or run `memctl init`.");
+    console.error(
+      "MEMCTL_ORG is required. Set it in your MCP config env or run `memctl init`.",
+    );
     process.exit(1);
   }
 
   if (!project) {
-    console.error("MEMCTL_PROJECT is required. Set it in your MCP config env or run `memctl init`.");
+    console.error(
+      "MEMCTL_PROJECT is required. Set it in your MCP config env or run `memctl init`.",
+    );
     process.exit(1);
   }
 

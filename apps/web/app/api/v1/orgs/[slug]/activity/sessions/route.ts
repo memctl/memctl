@@ -25,42 +25,81 @@ export async function GET(
   const cursor = url.searchParams.get("cursor");
   const limit = Math.min(Number(url.searchParams.get("limit") ?? "20"), 200);
 
-  const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, slug))
+    .limit(1);
   if (!org) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const [member] = await db
     .select()
     .from(organizationMembers)
-    .where(and(eq(organizationMembers.orgId, org.id), eq(organizationMembers.userId, session.user.id)))
+    .where(
+      and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, session.user.id),
+      ),
+    )
     .limit(1);
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Determine accessible project IDs
   let projectIds: string[];
   if (member.role === "member") {
-    const orgProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.orgId, org.id));
+    const orgProjects = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.orgId, org.id));
     if (orgProjects.length === 0) {
-      return NextResponse.json({ sessions: [], nextCursor: null, hasMore: false });
+      return NextResponse.json({
+        sessions: [],
+        nextCursor: null,
+        hasMore: false,
+      });
     }
     const assignments = await db
       .select({ projectId: projectMembers.projectId })
       .from(projectMembers)
-      .where(and(eq(projectMembers.userId, session.user.id), inArray(projectMembers.projectId, orgProjects.map((p) => p.id))));
+      .where(
+        and(
+          eq(projectMembers.userId, session.user.id),
+          inArray(
+            projectMembers.projectId,
+            orgProjects.map((p) => p.id),
+          ),
+        ),
+      );
     projectIds = assignments.map((a) => a.projectId);
     if (projectIds.length === 0) {
-      return NextResponse.json({ sessions: [], nextCursor: null, hasMore: false });
+      return NextResponse.json({
+        sessions: [],
+        nextCursor: null,
+        hasMore: false,
+      });
     }
   } else {
-    const orgProjects = await db.select({ id: projects.id }).from(projects).where(eq(projects.orgId, org.id));
+    const orgProjects = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.orgId, org.id));
     projectIds = orgProjects.map((p) => p.id);
   }
 
   if (projectIds.length === 0) {
-    return NextResponse.json({ sessions: [], nextCursor: null, hasMore: false });
+    return NextResponse.json({
+      sessions: [],
+      nextCursor: null,
+      hasMore: false,
+    });
   }
 
   // Build project name map
-  const projectList = await db.select({ id: projects.id, name: projects.name }).from(projects).where(eq(projects.orgId, org.id));
+  const projectList = await db
+    .select({ id: projects.id, name: projects.name })
+    .from(projects)
+    .where(eq(projects.orgId, org.id));
   const projectNameMap: Record<string, string> = {};
   for (const p of projectList) projectNameMap[p.id] = p.name;
 
@@ -76,9 +115,10 @@ export async function GET(
 
   const hasMore = rows.length > limit;
   const trimmed = rows.slice(0, limit);
-  const nextCursor = hasMore && trimmed.length > 0
-    ? trimmed[trimmed.length - 1].startedAt?.toISOString() ?? null
-    : null;
+  const nextCursor =
+    hasMore && trimmed.length > 0
+      ? (trimmed[trimmed.length - 1].startedAt?.toISOString() ?? null)
+      : null;
 
   return NextResponse.json({
     sessions: trimmed.map((s) => ({

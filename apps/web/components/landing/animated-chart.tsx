@@ -70,7 +70,13 @@ function buildSmoothPath(pts: { x: number; y: number }[]) {
 
 /* ---- Animated Counter ---- */
 
-function AnimCounter({ target, suffix = "" }: { target: number; suffix: string }) {
+function AnimCounter({
+  target,
+  suffix = "",
+}: {
+  target: number;
+  suffix: string;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-5%" });
   const [count, setCount] = useState(0);
@@ -98,7 +104,9 @@ function AnimCounter({ target, suffix = "" }: { target: number; suffix: string }
       timeoutId = setTimeout(() => {
         intervalId = setInterval(() => {
           const fluctuation = 1 + (Math.random() * 0.04 - 0.02);
-          setCount(Number((target * fluctuation).toFixed(target % 1 !== 0 ? 1 : 0)));
+          setCount(
+            Number((target * fluctuation).toFixed(target % 1 !== 0 ? 1 : 0)),
+          );
         }, 3000);
       }, 1400);
     }
@@ -112,7 +120,8 @@ function AnimCounter({ target, suffix = "" }: { target: number; suffix: string }
 
   return (
     <span ref={ref} className="tabular-nums">
-      {count.toLocaleString()}{suffix}
+      {count.toLocaleString()}
+      {suffix}
     </span>
   );
 }
@@ -150,11 +159,17 @@ function AnimatedLineChart() {
             />
             <span className="font-mono text-[10px] text-emerald-500">Live</span>
           </motion.div>
-          <span className="font-mono text-xs text-[var(--landing-text-tertiary)]">Last 7 days</span>
+          <span className="font-mono text-xs text-[var(--landing-text-tertiary)]">
+            Last 7 days
+          </span>
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ overflow: "visible" }}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        style={{ overflow: "visible" }}
+      >
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#F97316" stopOpacity="0.25" />
@@ -216,17 +231,30 @@ function AnimatedLineChart() {
           filter="url(#glow)"
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: [0, 0.3, 0] } : {}}
-          transition={{ duration: 2, repeat: Infinity, delay: 1.8, ease: "easeInOut" }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            delay: 1.8,
+            ease: "easeInOut",
+          }}
         />
 
         {/* Traveling dot along the curve */}
         {isInView && (
           <g>
             <circle r="10" fill="#F97316" opacity="0.12">
-              <animateMotion dur="4s" repeatCount="indefinite" path={linePath} />
+              <animateMotion
+                dur="4s"
+                repeatCount="indefinite"
+                path={linePath}
+              />
             </circle>
             <circle r="4" fill="#F97316" opacity="0.9">
-              <animateMotion dur="4s" repeatCount="indefinite" path={linePath} />
+              <animateMotion
+                dur="4s"
+                repeatCount="indefinite"
+                path={linePath}
+              />
             </circle>
           </g>
         )}
@@ -368,9 +396,11 @@ function AnimatedBarChart() {
         {liveData.map((bar, i) => (
           <div key={bar.label}>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-xs text-[var(--landing-text-secondary)]">{bar.label}</span>
+              <span className="text-xs text-[var(--landing-text-secondary)]">
+                {bar.label}
+              </span>
               <motion.span
-                className="font-mono text-xs tabular-nums text-[var(--landing-text-tertiary)]"
+                className="font-mono text-xs text-[var(--landing-text-tertiary)] tabular-nums"
                 initial={{ opacity: 0 }}
                 animate={isInView ? { opacity: 1 } : {}}
                 transition={{ delay: settled ? 0 : 0.6 + i * 0.15 }}
@@ -383,7 +413,9 @@ function AnimatedBarChart() {
                 className="h-full rounded-full"
                 style={{ backgroundColor: bar.color }}
                 initial={{ width: "0%" }}
-                animate={isInView ? { width: `${(bar.pct / maxPct) * 100}%` } : {}}
+                animate={
+                  isInView ? { width: `${(bar.pct / maxPct) * 100}%` } : {}
+                }
                 transition={
                   settled
                     ? { duration: 0.8, ease: "easeInOut" }
@@ -427,14 +459,17 @@ function ActivityFeed() {
     if (!isInView) return;
     let intervalId: ReturnType<typeof setInterval>;
 
-    const delay = setTimeout(() => {
-      let idx = 0;
-      setActiveIdx(0);
-      intervalId = setInterval(() => {
-        idx = (idx + 1) % ACTIVITIES.length;
-        setActiveIdx(idx);
-      }, 2000);
-    }, ACTIVITIES.length * 150 + 500);
+    const delay = setTimeout(
+      () => {
+        let idx = 0;
+        setActiveIdx(0);
+        intervalId = setInterval(() => {
+          idx = (idx + 1) % ACTIVITIES.length;
+          setActiveIdx(idx);
+        }, 2000);
+      },
+      ACTIVITIES.length * 150 + 500,
+    );
 
     return () => {
       clearTimeout(delay);
@@ -453,7 +488,12 @@ function ActivityFeed() {
             key={item.file}
             initial={{ opacity: 0, x: -12 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: i * 0.15, type: "spring", stiffness: 300, damping: 30 }}
+            transition={{
+              delay: i * 0.15,
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            }}
             className={`flex items-center justify-between rounded-lg border px-3 py-2 transition-all duration-500 ${
               activeIdx === i
                 ? "border-[#F97316]/30 bg-[#F97316]/[0.04]"
@@ -474,10 +514,16 @@ function ActivityFeed() {
                   ease: "easeInOut",
                 }}
               />
-              <span className="font-mono text-[11px] text-[var(--landing-text)]">{item.file}</span>
-              <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">{item.action}</span>
+              <span className="font-mono text-[11px] text-[var(--landing-text)]">
+                {item.file}
+              </span>
+              <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+                {item.action}
+              </span>
             </div>
-            <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{item.time}</span>
+            <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              {item.time}
+            </span>
           </motion.div>
         ))}
       </div>
@@ -507,7 +553,11 @@ export function AnimatedChart() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-8%" }}
-          transition={{ duration: 0.7, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{
+            duration: 0.7,
+            delay: 0.1,
+            ease: [0.25, 0.46, 0.45, 0.94],
+          }}
         >
           <div className="h-full rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
             <AnimatedBarChart />

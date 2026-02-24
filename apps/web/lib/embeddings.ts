@@ -9,9 +9,8 @@ async function getEmbedder(): Promise<unknown> {
   if (!pipelineLoading) {
     pipelineLoading = (async () => {
       try {
-        const { pipeline: createPipeline } = await import(
-          "@xenova/transformers"
-        );
+        const { pipeline: createPipeline } =
+          await import("@xenova/transformers");
         pipeline = await createPipeline(
           "feature-extraction",
           "Xenova/all-MiniLM-L6-v2",
@@ -87,7 +86,10 @@ export async function generateEmbeddings(
     }
     return embeddings;
   } catch (err) {
-    logger.warn({ error: String(err) }, "Batch embedding failed, falling back to sequential");
+    logger.warn(
+      { error: String(err) },
+      "Batch embedding failed, falling back to sequential",
+    );
     // Fallback to sequential calls
     const results: (Float32Array | null)[] = [];
     for (const text of texts) {
@@ -118,9 +120,11 @@ export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
  * Stores min/max alongside the int8 values for dequantization.
  * Reduces ~3-4KB JSON to ~500 bytes.
  */
-export function quantizeEmbedding(
-  emb: Float32Array,
-): { values: number[]; min: number; max: number } {
+export function quantizeEmbedding(emb: Float32Array): {
+  values: number[];
+  min: number;
+  max: number;
+} {
   let min = Infinity;
   let max = -Infinity;
   for (let i = 0; i < emb.length; i++) {
@@ -140,9 +144,11 @@ export function quantizeEmbedding(
 /**
  * Dequantize an Int8 embedding back to Float32 for similarity computation.
  */
-export function dequantizeEmbedding(
-  q: { values: number[]; min: number; max: number },
-): Float32Array {
+export function dequantizeEmbedding(q: {
+  values: number[];
+  min: number;
+  max: number;
+}): Float32Array {
   const range = q.max - q.min || 1;
   const result = new Float32Array(q.values.length);
   for (let i = 0; i < q.values.length; i++) {

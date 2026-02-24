@@ -55,14 +55,8 @@ describe("computeRelevanceScore", () => {
     });
 
     it("priority of 0 uses minimum floor of 1", () => {
-      const scoreZero = computeRelevanceScore(
-        makeInput({ priority: 0 }),
-        NOW,
-      );
-      const scoreOne = computeRelevanceScore(
-        makeInput({ priority: 1 }),
-        NOW,
-      );
+      const scoreZero = computeRelevanceScore(makeInput({ priority: 0 }), NOW);
+      const scoreOne = computeRelevanceScore(makeInput({ priority: 1 }), NOW);
 
       // priority 0 is clamped to 1, so both should produce the same score
       expect(scoreZero).toBe(scoreOne);
@@ -123,10 +117,7 @@ describe("computeRelevanceScore", () => {
     });
 
     it("zero accessCount still produces a positive score", () => {
-      const score = computeRelevanceScore(
-        makeInput({ accessCount: 0 }),
-        NOW,
-      );
+      const score = computeRelevanceScore(makeInput({ accessCount: 0 }), NOW);
       expect(score).toBeGreaterThan(0);
     });
   });
@@ -317,7 +308,13 @@ describe("computeRelevanceScore", () => {
   describe("pin boost", () => {
     it("pinned memories get 1.5x boost", () => {
       // Use low values to avoid hitting the 100 cap
-      const lowInput = { priority: 5, accessCount: 0, lastAccessedAt: NOW - ONE_DAY_MS, helpfulCount: 0, unhelpfulCount: 0 };
+      const lowInput = {
+        priority: 5,
+        accessCount: 0,
+        lastAccessedAt: NOW - ONE_DAY_MS,
+        helpfulCount: 0,
+        unhelpfulCount: 0,
+      };
       const unpinned = computeRelevanceScore(
         { ...lowInput, pinnedAt: null },
         NOW,
@@ -332,7 +329,12 @@ describe("computeRelevanceScore", () => {
 
     it("pin boost stacks with other factors", () => {
       // Use low values so scores don't cap at 100
-      const lowInput = { priority: 5, accessCount: 0, lastAccessedAt: NOW - ONE_DAY_MS, unhelpfulCount: 0 };
+      const lowInput = {
+        priority: 5,
+        accessCount: 0,
+        lastAccessedAt: NOW - ONE_DAY_MS,
+        unhelpfulCount: 0,
+      };
       const base = computeRelevanceScore(
         { ...lowInput, helpfulCount: 3, pinnedAt: null },
         NOW,

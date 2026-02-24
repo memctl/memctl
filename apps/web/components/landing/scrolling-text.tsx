@@ -27,10 +27,10 @@ export function ScrollingText() {
             end: "bottom top",
             scrub: true,
           },
-        }
+        },
       );
     },
-    { scope: ref }
+    { scope: ref },
   );
 
   return (
@@ -40,7 +40,7 @@ export function ScrollingText() {
     >
       <div
         ref={textRef}
-        className="whitespace-nowrap font-mono text-[clamp(3rem,8vw,7rem)] font-bold uppercase leading-none text-[var(--landing-border)] select-none"
+        className="font-mono text-[clamp(3rem,8vw,7rem)] leading-none font-bold whitespace-nowrap text-[var(--landing-border)] uppercase select-none"
         aria-hidden="true"
       >
         persistent context &middot; branch-aware &middot; github-synced &middot;

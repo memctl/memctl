@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import {
-  LegalLayout,
-  LegalSection,
-} from "@/components/landing/legal-layout";
+import { LegalLayout, LegalSection } from "@/components/landing/legal-layout";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | memctl",
@@ -49,9 +46,7 @@ export default function PrivacyPage() {
           platform is:
         </p>
         <div className="rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-          <p className="font-medium text-[var(--landing-text)]">
-            Mindroot Ltd
-          </p>
+          <p className="font-medium text-[var(--landing-text)]">Mindroot Ltd</p>
           <p>71-75 Shelton Street, London, England, WC2H 9JQ</p>
           <p>Company No. 16543299 (England and Wales)</p>
           <p>ICO Registration: ZB958997</p>
@@ -91,12 +86,16 @@ export default function PrivacyPage() {
           metrics, error reports, and IP addresses.
         </p>
         <p>
-          <strong>Communications.</strong> If you contact us via email, we retain
-          the content of those communications.
+          <strong>Communications.</strong> If you contact us via email, we
+          retain the content of those communications.
         </p>
       </LegalSection>
 
-      <LegalSection id="lawful-basis" number="03" title="Lawful Basis for Processing">
+      <LegalSection
+        id="lawful-basis"
+        number="03"
+        title="Lawful Basis for Processing"
+      >
         <p>
           We process your personal data under the following lawful bases as
           defined by the UK General Data Protection Regulation (UK GDPR):
@@ -136,9 +135,7 @@ export default function PrivacyPage() {
             Monitor and improve the performance, security, and reliability of
             the Service.
           </li>
-          <li>
-            Investigate and prevent fraudulent or unauthorised activity.
-          </li>
+          <li>Investigate and prevent fraudulent or unauthorised activity.</li>
           <li>Comply with applicable legal obligations.</li>
         </ul>
         <p>
@@ -147,7 +144,11 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection id="third-parties" number="05" title="Third-Party Processors">
+      <LegalSection
+        id="third-parties"
+        number="05"
+        title="Third-Party Processors"
+      >
         <p>
           We share personal data with the following categories of third-party
           processors, each of which processes data on our behalf under
@@ -155,9 +156,7 @@ export default function PrivacyPage() {
         </p>
         <div className="space-y-4">
           <div className="rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] p-4">
-            <p className="font-medium text-[var(--landing-text)]">
-              Stripe
-            </p>
+            <p className="font-medium text-[var(--landing-text)]">Stripe</p>
             <p>
               Payment processing. Stripe handles all payment card data and
               billing transactions. See{" "}
@@ -173,9 +172,7 @@ export default function PrivacyPage() {
             </p>
           </div>
           <div className="rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] p-4">
-            <p className="font-medium text-[var(--landing-text)]">
-              GitHub
-            </p>
+            <p className="font-medium text-[var(--landing-text)]">GitHub</p>
             <p>
               Authentication via OAuth. GitHub provides your profile information
               during sign-in. See{" "}
@@ -195,9 +192,9 @@ export default function PrivacyPage() {
               Infrastructure providers
             </p>
             <p>
-              Cloud hosting and database services used to store and process data.
-              All infrastructure providers are selected for their strong security
-              practices and compliance posture.
+              Cloud hosting and database services used to store and process
+              data. All infrastructure providers are selected for their strong
+              security practices and compliance posture.
             </p>
           </div>
         </div>
@@ -212,13 +209,13 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>User-generated content.</strong> Retained for the duration
-            of your account. Deleted within 30 days of account closure or
-            upon your request.
+            of your account. Deleted within 30 days of account closure or upon
+            your request.
           </li>
           <li>
-            <strong>Billing records.</strong> Retained for 7 years after the
-            end of the financial year in which the transaction occurred, as
-            required by UK tax legislation.
+            <strong>Billing records.</strong> Retained for 7 years after the end
+            of the financial year in which the transaction occurred, as required
+            by UK tax legislation.
           </li>
           <li>
             <strong>Usage logs.</strong> Retained for up to 90 days for
@@ -231,10 +228,14 @@ export default function PrivacyPage() {
         </ul>
       </LegalSection>
 
-      <LegalSection id="international" number="07" title="International Data Transfers">
+      <LegalSection
+        id="international"
+        number="07"
+        title="International Data Transfers"
+      >
         <p>
-          Your data may be processed in countries outside the United Kingdom. Where
-          we transfer personal data internationally, we ensure appropriate
+          Your data may be processed in countries outside the United Kingdom.
+          Where we transfer personal data internationally, we ensure appropriate
           safeguards are in place, including:
         </p>
         <ul className="list-disc space-y-2 pl-6">
@@ -246,16 +247,14 @@ export default function PrivacyPage() {
             Standard contractual clauses approved by the UK Information
             Commissioner&rsquo;s Office (ICO).
           </li>
-          <li>
-            Other lawful transfer mechanisms as permitted under UK GDPR.
-          </li>
+          <li>Other lawful transfer mechanisms as permitted under UK GDPR.</li>
         </ul>
       </LegalSection>
 
       <LegalSection id="your-rights" number="08" title="Your Rights">
         <p>
-          Under UK GDPR and the Data Protection Act 2018, you have the
-          following rights regarding your personal data:
+          Under UK GDPR and the Data Protection Act 2018, you have the following
+          rights regarding your personal data:
         </p>
         <ul className="list-disc space-y-2 pl-6">
           <li>
@@ -267,8 +266,8 @@ export default function PrivacyPage() {
             inaccurate or incomplete personal data.
           </li>
           <li>
-            <strong>Right to erasure.</strong> Request deletion of your
-            personal data, subject to legal retention requirements.
+            <strong>Right to erasure.</strong> Request deletion of your personal
+            data, subject to legal retention requirements.
           </li>
           <li>
             <strong>Right to restriction.</strong> Request that we restrict
@@ -316,10 +315,10 @@ export default function PrivacyPage() {
 
       <LegalSection id="children" number="10" title="Children&rsquo;s Data">
         <p>
-          The Service is not intended for use by individuals under the age of 16.
-          We do not knowingly collect personal data from children under 16. If we
-          become aware that we have collected personal data from a child under
-          16, we will take steps to delete that data promptly.
+          The Service is not intended for use by individuals under the age of
+          16. We do not knowingly collect personal data from children under 16.
+          If we become aware that we have collected personal data from a child
+          under 16, we will take steps to delete that data promptly.
         </p>
         <p>
           If you believe we have inadvertently collected data from a child under
@@ -361,15 +360,13 @@ export default function PrivacyPage() {
 
       <LegalSection id="changes" number="12" title="Changes to This Policy">
         <p>
-          We may update this Privacy Policy from time to time. We will notify you
-          of material changes by posting the updated policy on the Service and
-          updating the &ldquo;Last updated&rdquo; date. For significant changes
-          that affect how we process your personal data, we will provide
+          We may update this Privacy Policy from time to time. We will notify
+          you of material changes by posting the updated policy on the Service
+          and updating the &ldquo;Last updated&rdquo; date. For significant
+          changes that affect how we process your personal data, we will provide
           additional notice (such as an email notification).
         </p>
-        <p>
-          We encourage you to review this Privacy Policy periodically.
-        </p>
+        <p>We encourage you to review this Privacy Policy periodically.</p>
       </LegalSection>
 
       <LegalSection id="contact" number="13" title="Contact & Complaints">
@@ -378,9 +375,7 @@ export default function PrivacyPage() {
           your data protection rights, please contact us:
         </p>
         <div className="rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-          <p className="font-medium text-[var(--landing-text)]">
-            Mindroot Ltd
-          </p>
+          <p className="font-medium text-[var(--landing-text)]">Mindroot Ltd</p>
           <p>71-75 Shelton Street, London, England, WC2H 9JQ</p>
           <p>Company No. 16543299 (England and Wales)</p>
           <p>ICO Registration: ZB958997</p>

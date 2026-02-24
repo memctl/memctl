@@ -25,31 +25,31 @@ Organization
 
 The core unit. Each memory has:
 
-| Field | Description |
-|---|---|
-| `key` | Unique identifier (e.g. `agent/context/architecture/auth`) |
-| `content` | Free-form text content |
-| `priority` | 0-100, higher surfaces first in bootstraps and searches |
-| `tags` | Array of labels for filtering |
-| `scope` | `project` (default) or `shared` (org-wide) |
-| `ttl` | Expiry policy: `session`, `pr`, `sprint`, or `permanent` |
-| `metadata` | Arbitrary JSON for tool-specific data |
+| Field      | Description                                                |
+| ---------- | ---------------------------------------------------------- |
+| `key`      | Unique identifier (e.g. `agent/context/architecture/auth`) |
+| `content`  | Free-form text content                                     |
+| `priority` | 0-100, higher surfaces first in bootstraps and searches    |
+| `tags`     | Array of labels for filtering                              |
+| `scope`    | `project` (default) or `shared` (org-wide)                 |
+| `ttl`      | Expiry policy: `session`, `pr`, `sprint`, or `permanent`   |
+| `metadata` | Arbitrary JSON for tool-specific data                      |
 
 ### Context entries
 
 Context entries are memories with structured types. They use the key pattern `agent/context/{type}/{id}` and have 9 built-in types:
 
-| Type | What to store |
-|---|---|
-| `coding_style` | Naming, formatting, linting, review standards |
-| `architecture` | System design, modules, data flow, tech stack |
-| `testing` | Framework, naming, locations, coverage rules |
-| `constraints` | Hard limits, non-goals, security, performance budgets |
-| `lessons_learned` | Past mistakes, gotchas, workarounds |
-| `workflow` | Branch strategy, PR process, CI/CD, deploy pipeline |
-| `folder_structure` | Repository layout and domain boundaries |
-| `file_map` | Key files per feature area |
-| `branch_plan` | Implementation plan for the current branch |
+| Type               | What to store                                         |
+| ------------------ | ----------------------------------------------------- |
+| `coding_style`     | Naming, formatting, linting, review standards         |
+| `architecture`     | System design, modules, data flow, tech stack         |
+| `testing`          | Framework, naming, locations, coverage rules          |
+| `constraints`      | Hard limits, non-goals, security, performance budgets |
+| `lessons_learned`  | Past mistakes, gotchas, workarounds                   |
+| `workflow`         | Branch strategy, PR process, CI/CD, deploy pipeline   |
+| `folder_structure` | Repository layout and domain boundaries               |
+| `file_map`         | Key files per feature area                            |
+| `branch_plan`      | Implementation plan for the current branch            |
 
 You can also create custom context types per organization using the `context_config` tool.
 
@@ -114,6 +114,7 @@ This means within a single agent session, repeated reads of the same memory hit 
 - **Fallback**: If SQLite is unavailable, falls back to an in-memory Map
 
 On MCP server startup, the CLI:
+
 1. Pings the API to check connectivity
 2. If online and first run: fetches up to 100 memories to populate the cache
 3. If online and not first run: runs an incremental delta sync (only changes since last sync timestamp)
@@ -129,12 +130,12 @@ On MCP server startup, the CLI:
 
 Every API response includes a freshness indicator:
 
-| State | Meaning |
-|---|---|
-| `fresh` | Directly from the API |
-| `cached` | From in-memory cache, within TTL |
-| `stale` | From in-memory cache, past TTL but revalidating |
-| `offline` | From local SQLite cache, API unreachable |
+| State     | Meaning                                         |
+| --------- | ----------------------------------------------- |
+| `fresh`   | Directly from the API                           |
+| `cached`  | From in-memory cache, within TTL                |
+| `stale`   | From in-memory cache, past TTL but revalidating |
+| `offline` | From local SQLite cache, API unreachable        |
 
 ## Team collaboration
 
@@ -152,12 +153,12 @@ Typical team workflow:
 
 ### Organization features
 
-| Feature | Description |
-|---|---|
-| **Org defaults** | Centrally managed memory entries applied to all projects |
-| **Templates** | Reusable memory bundles for new project setup |
-| **Context diff** | Compare context between two projects in the same org |
-| **Cross-project search** | Search memories across all projects in the org |
+| Feature                  | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| **Org defaults**         | Centrally managed memory entries applied to all projects |
+| **Templates**            | Reusable memory bundles for new project setup            |
+| **Context diff**         | Compare context between two projects in the same org     |
+| **Cross-project search** | Search memories across all projects in the org           |
 
 ### Concurrent access
 

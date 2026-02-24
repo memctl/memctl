@@ -13,10 +13,10 @@ Suggest stale or expired memories for review.
 npx memctl cleanup [--stale-days <n>] [--limit <n>] [--json]
 ```
 
-| Flag | Description | Default |
-|---|---|---|
-| `--stale-days <n>` | Days since last update to consider stale | 30 |
-| `--limit <n>` | Max suggestions | 50 |
+| Flag               | Description                              | Default |
+| ------------------ | ---------------------------------------- | ------- |
+| `--stale-days <n>` | Days since last update to consider stale | 30      |
+| `--limit <n>`      | Max suggestions                          | 50      |
 
 ### Example
 
@@ -43,13 +43,13 @@ npx memctl lifecycle <policy1> [policy2] ...
 
 ### Available policies
 
-| Policy | Description |
-|---|---|
+| Policy                    | Description                              |
+| ------------------------- | ---------------------------------------- |
 | `archive_merged_branches` | Archive branch plans for merged branches |
-| `cleanup_expired` | Delete memories past their TTL |
-| `cleanup_session_logs` | Remove old session logs |
-| `auto_promote` | Promote frequently accessed memories |
-| `auto_demote` | Demote rarely accessed memories |
+| `cleanup_expired`         | Delete memories past their TTL           |
+| `cleanup_session_logs`    | Remove old session logs                  |
+| `auto_promote`            | Promote frequently accessed memories     |
+| `auto_demote`             | Demote rarely accessed memories          |
 
 ### Example
 

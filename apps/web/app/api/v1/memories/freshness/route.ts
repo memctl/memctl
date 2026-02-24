@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories } from "@memctl/db/schema";
-import { eq, isNull, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { resolveOrgAndProject } from "../capacity-utils";
 
 /**
@@ -23,7 +23,11 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const [result] = await db
@@ -34,9 +38,7 @@ export async function GET(req: NextRequest) {
       checksum: sql<string>`group_concat(${memories.key} || ':' || ${memories.updatedAt}, ',')`,
     })
     .from(memories)
-    .where(
-      eq(memories.projectId, context.project.id),
-    );
+    .where(eq(memories.projectId, context.project.id));
 
   // Simple hash from the checksum string
   const checksumStr = result?.checksum ?? "";

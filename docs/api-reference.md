@@ -16,25 +16,25 @@ Tokens are created in the dashboard under Settings > API Tokens, or via `POST /a
 
 Every authenticated request must include:
 
-| Header | Description |
-|--------|-------------|
-| `Authorization` | `Bearer <token>` |
-| `Content-Type` | `application/json` (for POST/PATCH/DELETE with body) |
-| `X-Org-Slug` | Organization slug |
-| `X-Project-Slug` | Project slug |
+| Header           | Description                                          |
+| ---------------- | ---------------------------------------------------- |
+| `Authorization`  | `Bearer <token>`                                     |
+| `Content-Type`   | `application/json` (for POST/PATCH/DELETE with body) |
+| `X-Org-Slug`     | Organization slug                                    |
+| `X-Project-Slug` | Project slug                                         |
 
 ## Rate limiting
 
 Rate limits are per-user, based on the organization's plan:
 
-| Plan | Requests/min |
-|------|-------------|
-| Free | 60 |
-| Lite | 300 |
-| Pro | 1,000 |
-| Business | 3,000 |
-| Scale | 10,000 |
-| Enterprise | Unlimited |
+| Plan       | Requests/min |
+| ---------- | ------------ |
+| Free       | 60           |
+| Lite       | 300          |
+| Pro        | 1,000        |
+| Business   | 3,000        |
+| Scale      | 10,000       |
+| Enterprise | Unlimited    |
 
 When exceeded, the API returns `429 Too Many Requests` with headers:
 
@@ -112,15 +112,15 @@ curl https://memctl.com/api/v1/health
 
 List or search memories.
 
-| Query param | Type | Default | Description |
-|-------------|------|---------|-------------|
-| `q` | string | — | Search query (enables hybrid search) |
-| `limit` | number | 20 | Max results (1-100) |
-| `offset` | number | 0 | Pagination offset |
-| `after` | string | — | Cursor-based pagination |
-| `sort` | string | — | `updated`, `priority`, `created` |
-| `tags` | string | — | Comma-separated tag filter |
-| `include_archived` | boolean | false | Include archived |
+| Query param        | Type    | Default | Description                          |
+| ------------------ | ------- | ------- | ------------------------------------ |
+| `q`                | string  | —       | Search query (enables hybrid search) |
+| `limit`            | number  | 20      | Max results (1-100)                  |
+| `offset`           | number  | 0       | Pagination offset                    |
+| `after`            | string  | —       | Cursor-based pagination              |
+| `sort`             | string  | —       | `updated`, `priority`, `created`     |
+| `tags`             | string  | —       | Comma-separated tag filter           |
+| `include_archived` | boolean | false   | Include archived                     |
 
 ```bash
 # List
@@ -152,15 +152,15 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 
 Body fields:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `key` | string | Yes | Unique key (1-256 chars) |
-| `content` | string | Yes | Content (1-65536 chars) |
-| `metadata` | object | No | Arbitrary metadata |
-| `scope` | string | No | `"project"` or `"shared"` |
-| `priority` | number | No | 0-100 |
-| `tags` | array | No | String tags (max 20) |
-| `expiresAt` | number | No | Unix timestamp |
+| Field       | Type   | Required | Description               |
+| ----------- | ------ | -------- | ------------------------- |
+| `key`       | string | Yes      | Unique key (1-256 chars)  |
+| `content`   | string | Yes      | Content (1-65536 chars)   |
+| `metadata`  | object | No       | Arbitrary metadata        |
+| `scope`     | string | No       | `"project"` or `"shared"` |
+| `priority`  | number | No       | 0-100                     |
+| `tags`      | array  | No       | String tags (max 20)      |
+| `expiresAt` | number | No       | Unix timestamp            |
 
 #### GET /memories/{key}
 
@@ -510,7 +510,11 @@ List all context types (built-in + custom).
 Create a custom context type.
 
 ```json
-{ "slug": "api_conventions", "label": "API Conventions", "description": "REST patterns" }
+{
+  "slug": "api_conventions",
+  "label": "API Conventions",
+  "description": "REST patterns"
+}
 ```
 
 #### DELETE /context-types/{slug}
@@ -560,7 +564,11 @@ Create a template or apply one.
 Create:
 
 ```json
-{ "name": "React Starter", "description": "...", "data": [{ "key": "...", "content": "..." }] }
+{
+  "name": "React Starter",
+  "description": "...",
+  "data": [{ "key": "...", "content": "..." }]
+}
 ```
 
 Apply:
@@ -669,7 +677,11 @@ Execute multiple API operations in a single request.
 {
   "operations": [
     { "method": "GET", "path": "/memories/key1" },
-    { "method": "POST", "path": "/memories", "body": { "key": "key2", "content": "..." } }
+    {
+      "method": "POST",
+      "path": "/memories",
+      "body": { "key": "key2", "content": "..." }
+    }
   ]
 }
 ```

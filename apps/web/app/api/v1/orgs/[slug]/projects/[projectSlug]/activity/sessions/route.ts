@@ -25,30 +25,47 @@ export async function GET(
   const cursor = url.searchParams.get("cursor");
   const limit = Math.min(Number(url.searchParams.get("limit") ?? "20"), 200);
 
-  const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, slug))
+    .limit(1);
   if (!org) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const [member] = await db
     .select()
     .from(organizationMembers)
-    .where(and(eq(organizationMembers.orgId, org.id), eq(organizationMembers.userId, session.user.id)))
+    .where(
+      and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, session.user.id),
+      ),
+    )
     .limit(1);
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const [project] = await db
     .select()
     .from(projects)
     .where(and(eq(projects.orgId, org.id), eq(projects.slug, projectSlug)))
     .limit(1);
-  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  if (!project)
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   if (member.role === "member") {
     const [assignment] = await db
       .select()
       .from(projectMembers)
-      .where(and(eq(projectMembers.projectId, project.id), eq(projectMembers.userId, session.user.id)))
+      .where(
+        and(
+          eq(projectMembers.projectId, project.id),
+          eq(projectMembers.userId, session.user.id),
+        ),
+      )
       .limit(1);
-    if (!assignment) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!assignment)
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const conditions = [eq(sessionLogs.projectId, project.id)];
@@ -63,9 +80,10 @@ export async function GET(
 
   const hasMore = rows.length > limit;
   const trimmed = rows.slice(0, limit);
-  const nextCursor = hasMore && trimmed.length > 0
-    ? trimmed[trimmed.length - 1].startedAt?.toISOString() ?? null
-    : null;
+  const nextCursor =
+    hasMore && trimmed.length > 0
+      ? (trimmed[trimmed.length - 1].startedAt?.toISOString() ?? null)
+      : null;
 
   return NextResponse.json({
     sessions: trimmed.map((s) => ({

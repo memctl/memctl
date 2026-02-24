@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { organizations, organizationMembers, promoCodes } from "@memctl/db/schema";
+import {
+  organizations,
+  organizationMembers,
+  promoCodes,
+} from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { createCheckoutSession, STRIPE_PLANS } from "@/lib/stripe";
@@ -12,7 +16,10 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   if (!isBillingEnabled()) {
-    return NextResponse.json({ error: "Billing is not enabled" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Billing is not enabled" },
+      { status: 400 },
+    );
   }
 
   const session = await auth.api.getSession({
@@ -31,7 +38,10 @@ export async function POST(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   // Verify owner or admin
@@ -47,7 +57,10 @@ export async function POST(
     .limit(1);
 
   if (!member || member.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const body = await req.json().catch(() => null);
@@ -68,7 +81,12 @@ export async function POST(
     const [promo] = await db
       .select()
       .from(promoCodes)
-      .where(and(eq(promoCodes.code, promoCode.toUpperCase()), eq(promoCodes.active, true)))
+      .where(
+        and(
+          eq(promoCodes.code, promoCode.toUpperCase()),
+          eq(promoCodes.active, true),
+        ),
+      )
       .limit(1);
     if (promo) {
       stripePromoCodeId = promo.stripePromoCodeId;

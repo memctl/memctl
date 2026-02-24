@@ -6,6 +6,18 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import { Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 
 type Category = "feature" | "fix" | "improvement" | "breaking";
 
@@ -33,10 +45,14 @@ const categoryOptions: { value: Category; label: string; color: string }[] = [
   { value: "breaking", label: "Breaking", color: "text-red-500" },
 ];
 
+const selectPopoverCls =
+  "bg-[var(--landing-surface)] border-[var(--landing-border)] text-[var(--landing-text)] shadow-xl";
+const selectItemCls =
+  "font-mono text-[var(--landing-text-secondary)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]";
+
 export function EntryEditor({ mode, initialData }: EntryEditorProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   const [version, setVersion] = useState(initialData?.version ?? "");
   const [title, setTitle] = useState(initialData?.title ?? "");
@@ -73,7 +89,6 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
   }
 
   async function handleSave() {
-    setError("");
     setSaving(true);
 
     try {
@@ -104,7 +119,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setError(data.error || "Failed to save entry");
+        toast.error(data.error || "Failed to save entry");
         return;
       }
 
@@ -119,36 +134,29 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
 
   return (
     <div className="space-y-8">
-      {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-500">
-          {error}
-        </div>
-      )}
-
       {/* Version + Title */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Version
           </label>
-          <input
+          <Input
             type="text"
             value={version}
             onChange={(e) => setVersion(e.target.value)}
             placeholder="1.2.0"
-            className="w-full rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] px-4 py-2.5 font-mono text-sm text-[var(--landing-text)] placeholder:text-[var(--landing-text-tertiary)] focus:border-[#F97316] focus:outline-none focus:ring-1 focus:ring-[#F97316]"
+            className="font-mono"
           />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Title
           </label>
-          <input
+          <Input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Dashboard Redesign"
-            className="w-full rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] px-4 py-2.5 text-sm text-[var(--landing-text)] placeholder:text-[var(--landing-text-tertiary)] focus:border-[#F97316] focus:outline-none focus:ring-1 focus:ring-[#F97316]"
           />
         </div>
       </div>
@@ -156,26 +164,24 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Summary + Release Date */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Summary
           </label>
-          <textarea
+          <Textarea
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             rows={3}
             placeholder="Short description for listing cards"
-            className="w-full rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] px-4 py-2.5 text-sm text-[var(--landing-text)] placeholder:text-[var(--landing-text-tertiary)] focus:border-[#F97316] focus:outline-none focus:ring-1 focus:ring-[#F97316]"
           />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Release Date
           </label>
-          <input
+          <Input
             type="date"
             value={releaseDate}
             onChange={(e) => setReleaseDate(e.target.value)}
-            className="w-full rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] px-4 py-2.5 text-sm text-[var(--landing-text)] focus:border-[#F97316] focus:outline-none focus:ring-1 focus:ring-[#F97316]"
           />
         </div>
       </div>
@@ -183,52 +189,46 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Status + Save */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Status
           </label>
-          <button
-            type="button"
-            onClick={() => setStatus(status === "draft" ? "published" : "draft")}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              status === "published" ? "bg-[#F97316]" : "bg-[var(--landing-border)]"
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                status === "published" ? "translate-x-6" : "translate-x-1"
-              }`}
-            />
-          </button>
+          <Switch
+            checked={status === "published"}
+            onCheckedChange={(checked) =>
+              setStatus(checked ? "published" : "draft")
+            }
+            className="data-[state=checked]:bg-[#F97316]"
+          />
           <span className="text-xs text-[var(--landing-text-secondary)]">
             {status === "published" ? "Published" : "Draft"}
           </span>
         </div>
 
         <div className="ml-auto">
-          <button
+          <Button
             onClick={handleSave}
             disabled={saving || !version || !title || !hasValidItems}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-[#FB923C] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:opacity-50"
+            className="bg-[#F97316] text-white hover:bg-[#FB923C] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
           >
-            {saving ? "Saving…" : mode === "create" ? "Create Entry" : "Save Changes"}
-          </button>
+            {saving
+              ? "Saving..."
+              : mode === "create"
+                ? "Create Entry"
+                : "Save Changes"}
+          </Button>
         </div>
       </div>
 
       {/* Changes section */}
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <label className="text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Changes
           </label>
-          <button
-            type="button"
-            onClick={addItem}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--landing-border)] px-3 py-1.5 text-xs font-medium text-[var(--landing-text-secondary)] transition-colors hover:border-[#F97316] hover:text-[#F97316]"
-          >
-            <Plus className="h-3.5 w-3.5" />
+          <Button type="button" variant="outline" size="sm" onClick={addItem}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
             Add Change
-          </button>
+          </Button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -244,45 +244,61 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
                 }`}
               >
                 <div className="mb-3 flex items-center gap-3">
-                  <select
+                  <Select
                     value={item.category}
-                    onChange={(e) => updateItem(index, "category", e.target.value)}
-                    className="rounded-md border border-[var(--landing-border)] bg-[var(--landing-surface)] px-3 py-1.5 text-xs font-medium text-[var(--landing-text)] focus:border-[#F97316] focus:outline-none focus:ring-1 focus:ring-[#F97316]"
+                    onValueChange={(val) => updateItem(index, "category", val)}
                   >
-                    {categoryOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-[130px] font-mono">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={selectPopoverCls}>
+                      {categoryOptions.map((opt) => (
+                        <SelectItem
+                          key={opt.value}
+                          value={opt.value}
+                          className={selectItemCls}
+                        >
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <span className="text-xs text-[var(--landing-text-tertiary)]">
                     #{index + 1}
                   </span>
                   <div className="ml-auto flex items-center gap-2">
-                    <button
+                    <Button
                       type="button"
-                      onClick={() => setPreviewIndex(previewIndex === index ? null : index)}
-                      className="text-xs font-medium text-[var(--landing-text-secondary)] transition-colors hover:text-[#F97316]"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() =>
+                        setPreviewIndex(previewIndex === index ? null : index)
+                      }
                     >
                       {previewIndex === index ? "Hide Preview" : "Preview"}
-                    </button>
+                    </Button>
                     {items.length > 1 && (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-[var(--landing-text-tertiary)] hover:text-red-500"
                         onClick={() => removeItem(index)}
-                        className="text-[var(--landing-text-tertiary)] transition-colors hover:text-red-500"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
-                <textarea
+                <Textarea
                   value={item.description}
-                  onChange={(e) => updateItem(index, "description", e.target.value)}
+                  onChange={(e) =>
+                    updateItem(index, "description", e.target.value)
+                  }
                   rows={3}
-                  placeholder="Describe this change in markdown…"
-                  className="w-full resize-none rounded-md border border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2 font-mono text-sm leading-relaxed text-[var(--landing-text)] placeholder:text-[var(--landing-text-tertiary)] focus:border-[#F97316] focus:outline-none focus:ring-1 focus:ring-[#F97316]"
+                  placeholder="Describe this change in markdown..."
+                  className="resize-none font-mono text-sm leading-relaxed"
                 />
               </div>
             ))}
@@ -290,21 +306,24 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
 
           {/* Preview panel */}
           <div className="flex flex-col">
-            <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+            <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
               Preview
             </label>
             <div className="flex-1 overflow-auto rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] px-6 py-4">
               {previewIndex !== null && items[previewIndex]?.description ? (
                 <div className="blog-prose">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeSlug]}
+                  >
                     {items[previewIndex].description}
                   </ReactMarkdown>
                 </div>
               ) : (
-                <p className="text-sm italic text-[var(--landing-text-tertiary)]">
+                <p className="text-sm text-[var(--landing-text-tertiary)] italic">
                   {previewIndex !== null
-                    ? "Start typing to see preview…"
-                    : "Click \"Preview\" on a change to preview it here."}
+                    ? "Start typing to see preview..."
+                    : 'Click "Preview" on a change to preview it here.'}
                 </p>
               )}
             </div>

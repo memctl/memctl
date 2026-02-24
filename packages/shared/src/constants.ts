@@ -87,6 +87,12 @@ export const PLANS: Record<
   },
 };
 
+/** Per-seat monthly price in dollars for extra members beyond plan-included seats. */
+export const EXTRA_SEAT_PRICE = 8;
+
+export const ORG_STATUSES = ["active", "suspended", "banned"] as const;
+export type OrgStatus = (typeof ORG_STATUSES)[number];
+
 export const ORG_ROLES = ["owner", "admin", "member"] as const;
 export type OrgRole = (typeof ORG_ROLES)[number];
 
@@ -106,12 +112,7 @@ export const ONBOARDING_ROLES = [
   "other",
 ] as const;
 
-export const ONBOARDING_TEAM_SIZES = [
-  "solo",
-  "2-5",
-  "6-20",
-  "20+",
-] as const;
+export const ONBOARDING_TEAM_SIZES = ["solo", "2-5", "6-20", "20+"] as const;
 
 export const ONBOARDING_USE_CASES = [
   "personal",

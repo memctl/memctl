@@ -1,6 +1,5 @@
 import { LRUCache } from "lru-cache";
-import type { PlanId } from "@memctl/shared/constants";
-import { PLANS } from "@memctl/shared/constants";
+import { UNLIMITED_SENTINEL } from "./plans";
 
 interface RateLimitEntry {
   count: number;
@@ -21,12 +20,12 @@ export interface RateLimitResult {
 
 export function rateLimit(
   identifier: string,
-  planId: PlanId,
+  apiRatePerMinute: number,
 ): RateLimitResult {
-  const limit = PLANS[planId].apiRatePerMinute;
+  const limit = apiRatePerMinute;
 
-  // Enterprise has Infinity — always allow
-  if (!Number.isFinite(limit)) {
+  // Unlimited — always allow
+  if (limit >= UNLIMITED_SENTINEL) {
     return { allowed: true, limit, remaining: limit, retryAfterSeconds: 0 };
   }
 

@@ -6,17 +6,17 @@ memctl organizes agent knowledge into typed context entries. Each entry has a ty
 
 There are 9 built-in types that cover common agent knowledge:
 
-| Type | Description |
-|------|-------------|
-| `coding_style` | Language conventions, naming, formatting, anti-patterns |
-| `folder_structure` | Repository organization and directory layout |
-| `file_map` | Index of key files, entry points, config files |
-| `architecture` | System design, module boundaries, data flow, decisions |
-| `workflow` | Branching strategy, PR process, deployment, code review |
-| `testing` | Test framework, coverage requirements, conventions |
-| `branch_plan` | Implementation plan for the current feature branch |
-| `constraints` | Hard requirements, security rules, performance limits |
-| `lessons_learned` | Pitfalls, gotchas, things that failed, negative knowledge |
+| Type               | Description                                               |
+| ------------------ | --------------------------------------------------------- |
+| `coding_style`     | Language conventions, naming, formatting, anti-patterns   |
+| `folder_structure` | Repository organization and directory layout              |
+| `file_map`         | Index of key files, entry points, config files            |
+| `architecture`     | System design, module boundaries, data flow, decisions    |
+| `workflow`         | Branching strategy, PR process, deployment, code review   |
+| `testing`          | Test framework, coverage requirements, conventions        |
+| `branch_plan`      | Implementation plan for the current feature branch        |
+| `constraints`      | Hard requirements, security rules, performance limits     |
+| `lessons_learned`  | Pitfalls, gotchas, things that failed, negative knowledge |
 
 You can also create custom types with the `context_config` tool's `type_create` action.
 
@@ -73,20 +73,24 @@ Returns a template like:
 
 ```markdown
 ## Language & Conventions
+
 - Primary language:
 - Style guide:
 
 ## Naming
+
 - Variables:
 - Functions:
 - Files:
 
 ## Formatting
+
 - Indentation:
 - Line length:
 - Import ordering:
 
 ## Patterns
+
 - Preferred patterns:
 - Anti-patterns to avoid:
 ```

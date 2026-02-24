@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   forceSimulation,
   forceLink,
@@ -99,7 +93,10 @@ function nodeColor(node: GraphNode): string {
 export function MemoryGraph({ memories }: MemoryGraphProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const simRef = useRef<Simulation<GraphNode, SimulationLinkDatum<GraphNode>> | null>(null);
+  const simRef = useRef<Simulation<
+    GraphNode,
+    SimulationLinkDatum<GraphNode>
+  > | null>(null);
   const animFrameRef = useRef<number>(0);
 
   const [graphData, setGraphData] = useState<GraphData | null>(null);
@@ -280,17 +277,14 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
     }
 
     const highlightNeighbors =
-      (selected ?? hovered)
-        ? neighbors.get((selected ?? hovered)!.id)
-        : null;
+      (selected ?? hovered) ? neighbors.get((selected ?? hovered)!.id) : null;
     const highlightId = (selected ?? hovered)?.id ?? null;
 
     // Filter visible nodes
     const visibleNodes = orphans
       ? data.nodes
       : data.nodes.filter((n) => {
-          const deg =
-            (neighbors.get(n.id)?.size ?? 0) > 0;
+          const deg = (neighbors.get(n.id)?.size ?? 0) > 0;
           return deg;
         });
     const visibleSet = new Set(visibleNodes.map((n) => n.id));
@@ -598,9 +592,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
           const sy = e.clientY - rect.top;
           const hit = hitTest(sx, sy);
           if (hit && hit.id === node.id) {
-            setSelectedNode((prev) =>
-              prev?.id === node.id ? null : node,
-            );
+            setSelectedNode((prev) => (prev?.id === node.id ? null : node));
           }
         }
       }
@@ -759,7 +751,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
         <div className="h-3 w-px bg-[var(--landing-border)]" />
 
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+          <Search className="absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
           <Input
             placeholder="Search nodes..."
             value={searchQuery}
@@ -769,7 +761,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2"
+              className="absolute top-1/2 right-2 -translate-y-1/2"
             >
               <X className="h-3 w-3 text-[var(--landing-text-tertiary)]" />
             </button>
@@ -890,7 +882,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
               className="dash-card w-full shrink-0 space-y-3 overflow-y-auto p-4 md:max-h-[500px] md:w-72"
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="break-all font-mono text-xs font-medium text-[#F97316]">
+                <p className="font-mono text-xs font-medium break-all text-[#F97316]">
                   {selectedNode.id}
                 </p>
                 <button
@@ -902,7 +894,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
               </div>
 
               <div>
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <p className="mb-1 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                   Content
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--landing-text-secondary)]">
@@ -913,7 +905,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <p className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Priority
                   </p>
                   <div className="mt-1 flex items-center gap-2">
@@ -924,7 +916,11 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
                         animate={{
                           width: `${Math.min(selectedNode.priority, 100)}%`,
                         }}
-                        transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+                        transition={{
+                          duration: 0.4,
+                          ease: "easeOut",
+                          delay: 0.1,
+                        }}
                       />
                     </div>
                     <span className="font-mono text-[10px] text-[var(--landing-text-secondary)]">
@@ -933,7 +929,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
                   </div>
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <p className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Relevance
                   </p>
                   <div className="mt-1 flex items-center gap-2">
@@ -944,7 +940,11 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
                         animate={{
                           width: `${Math.min(selectedNode.relevance, 100)}%`,
                         }}
-                        transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
+                        transition={{
+                          duration: 0.4,
+                          ease: "easeOut",
+                          delay: 0.15,
+                        }}
                       />
                     </div>
                     <span className="font-mono text-[10px] text-[var(--landing-text-secondary)]">
@@ -971,7 +971,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
 
               {selectedNode.tags.length > 0 && (
                 <div>
-                  <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <p className="mb-1 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Tags
                   </p>
                   <div className="flex flex-wrap gap-1">
@@ -990,7 +990,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
 
               {selectedRelated.length > 0 && (
                 <div>
-                  <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <p className="mb-1 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Connected ({selectedRelated.length})
                   </p>
                   <div className="space-y-1">

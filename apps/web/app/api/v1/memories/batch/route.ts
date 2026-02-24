@@ -24,7 +24,11 @@ export async function POST(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const body = await req.json().catch(() => null);
@@ -79,9 +83,7 @@ export async function POST(req: NextRequest) {
       break;
 
     case "delete":
-      await db
-        .delete(memories)
-        .where(inArray(memories.id, matchingIds));
+      await db.delete(memories).where(inArray(memories.id, matchingIds));
       affected = matchingIds.length;
       break;
 
@@ -126,7 +128,11 @@ export async function POST(req: NextRequest) {
 
         let existing: string[] = [];
         if (full?.tags) {
-          try { existing = JSON.parse(full.tags); } catch { /* ignore */ }
+          try {
+            existing = JSON.parse(full.tags);
+          } catch {
+            /* ignore */
+          }
         }
         const merged = [...new Set([...existing, ...(value as string[])])];
         await db
@@ -140,7 +146,10 @@ export async function POST(req: NextRequest) {
 
     case "set_scope":
       if (value !== "project" && value !== "shared") {
-        return jsonError("value must be 'project' or 'shared' for set_scope", 400);
+        return jsonError(
+          "value must be 'project' or 'shared' for set_scope",
+          400,
+        );
       }
       await db
         .update(memories)

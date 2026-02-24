@@ -22,7 +22,9 @@ export function validateContent(
     } catch {
       return {
         valid: false,
-        errors: ["Content is not valid JSON but schema validation requires JSON content"],
+        errors: [
+          "Content is not valid JSON but schema validation requires JSON content",
+        ],
       };
     }
 
@@ -36,7 +38,9 @@ export function validateContent(
   } catch (err) {
     return {
       valid: false,
-      errors: [`Schema parsing failed: ${err instanceof Error ? err.message : String(err)}`],
+      errors: [
+        `Schema parsing failed: ${err instanceof Error ? err.message : String(err)}`,
+      ],
     };
   }
 }

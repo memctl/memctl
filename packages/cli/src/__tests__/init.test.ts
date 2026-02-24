@@ -21,8 +21,7 @@ vi.mock("node:child_process", () => ({
 }));
 
 vi.mock("node:util", () => ({
-  promisify: () =>
-    vi.fn().mockRejectedValue(new Error("no git remote")),
+  promisify: () => vi.fn().mockRejectedValue(new Error("no git remote")),
 }));
 
 const mockLoadConfig = vi.fn();
@@ -68,7 +67,11 @@ describe("init – writeIdeConfigs", () => {
           },
         },
         projects: {
-          [process.cwd()]: { org: "myorg", project: "myproj", profile: "default" },
+          [process.cwd()]: {
+            org: "myorg",
+            project: "myproj",
+            profile: "default",
+          },
         },
       });
 
@@ -277,10 +280,14 @@ describe("init – writeIdeConfigs", () => {
       // Should write three config files
       expect(mockWriteFile).toHaveBeenCalledTimes(3);
 
-      const paths = mockWriteFile.mock.calls.map((c: unknown[]) => c[0] as string);
+      const paths = mockWriteFile.mock.calls.map(
+        (c: unknown[]) => c[0] as string,
+      );
       expect(paths.some((p: string) => p.includes(".claude"))).toBe(true);
       expect(paths.some((p: string) => p.includes(".cursor"))).toBe(true);
-      expect(paths.some((p: string) => p.includes("mcp_config.json"))).toBe(true);
+      expect(paths.some((p: string) => p.includes("mcp_config.json"))).toBe(
+        true,
+      );
     });
 
     it("--cursor writes only .cursor config", async () => {
@@ -317,7 +324,9 @@ describe("init – writeIdeConfigs", () => {
       }) as never);
 
       const runInit = await importRunInit();
-      await expect(runInit({ claude: true })).rejects.toThrow("process.exit called");
+      await expect(runInit({ claude: true })).rejects.toThrow(
+        "process.exit called",
+      );
 
       expect(mockExit).toHaveBeenCalledWith(1);
       mockExit.mockRestore();
@@ -336,7 +345,9 @@ describe("init – writeIdeConfigs", () => {
       }) as never);
 
       const runInit = await importRunInit();
-      await expect(runInit({ claude: true })).rejects.toThrow("process.exit called");
+      await expect(runInit({ claude: true })).rejects.toThrow(
+        "process.exit called",
+      );
 
       expect(mockExit).toHaveBeenCalledWith(1);
       mockExit.mockRestore();
@@ -353,10 +364,9 @@ describe("init – writeIdeConfigs", () => {
       const runInit = await importRunInit();
       await runInit({ claude: true });
 
-      expect(mockMkdir).toHaveBeenCalledWith(
-        expect.any(String),
-        { recursive: true },
-      );
+      expect(mockMkdir).toHaveBeenCalledWith(expect.any(String), {
+        recursive: true,
+      });
     });
   });
 });

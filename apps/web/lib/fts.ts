@@ -1,7 +1,11 @@
 import { db } from "./db";
 import { sql, eq, and, isNull, isNotNull } from "drizzle-orm";
 import { memories } from "@memctl/db/schema";
-import { generateEmbedding, cosineSimilarity, deserializeEmbedding } from "./embeddings";
+import {
+  generateEmbedding,
+  cosineSimilarity,
+  deserializeEmbedding,
+} from "./embeddings";
 
 let ftsInitialized = false;
 
@@ -69,7 +73,10 @@ export async function ftsSearch(
     const safeQuery = query.replace(/['"*(){}[\]^~\\:]/g, " ").trim();
     if (!safeQuery) return null;
 
-    const ftsQuery = safeQuery.split(/\s+/).map((w: string) => `"${w}"`).join(" OR ");
+    const ftsQuery = safeQuery
+      .split(/\s+/)
+      .map((w: string) => `"${w}"`)
+      .join(" OR ");
 
     const results = await db.all(sql`
       SELECT m.id, rank

@@ -80,12 +80,17 @@ export async function createStripeCouponAndPromoCode(params: {
   const coupon = await s.coupons.create({
     ...(params.discountType === "percent"
       ? { percent_off: params.discountAmount }
-      : { amount_off: params.discountAmount, currency: params.currency ?? "usd" }),
+      : {
+          amount_off: params.discountAmount,
+          currency: params.currency ?? "usd",
+        }),
     duration: params.duration,
     ...(params.duration === "repeating" && params.durationInMonths
       ? { duration_in_months: params.durationInMonths }
       : {}),
-    ...(params.maxRedemptions ? { max_redemptions: params.maxRedemptions } : {}),
+    ...(params.maxRedemptions
+      ? { max_redemptions: params.maxRedemptions }
+      : {}),
     ...(params.expiresAt
       ? { redeem_by: Math.floor(params.expiresAt.getTime() / 1000) }
       : {}),
@@ -119,4 +124,42 @@ export async function createCustomerPortalSession(params: {
     customer: params.customerId,
     return_url: params.returnUrl,
   });
+}
+
+export async function createCustomPrice(params: {
+  unitAmountCents: number;
+  productName: string;
+  interval: "month" | "year";
+}): Promise<{ priceId: string }> {
+  const s = getStripe();
+  const product = await s.products.create({ name: params.productName });
+  const price = await s.prices.create({
+    product: product.id,
+    unit_amount: params.unitAmountCents,
+    currency: "usd",
+    recurring: { interval: params.interval },
+  });
+  return { priceId: price.id };
+}
+
+export async function createAdminSubscription(params: {
+  customerId: string;
+  priceId: string;
+  orgSlug: string;
+}): Promise<{ subscriptionId: string }> {
+  const s = getStripe();
+  const subscription = await s.subscriptions.create({
+    customer: params.customerId,
+    items: [{ price: params.priceId }],
+    metadata: { orgSlug: params.orgSlug, adminCreated: "true" },
+  });
+
+  return { subscriptionId: subscription.id };
+}
+
+export async function cancelAdminSubscription(
+  subscriptionId: string,
+): Promise<void> {
+  const s = getStripe();
+  await s.subscriptions.cancel(subscriptionId);
 }

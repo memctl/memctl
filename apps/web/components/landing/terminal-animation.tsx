@@ -64,7 +64,12 @@ export function TerminalAnimation() {
     const el = containerRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.disconnect(); } },
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
       { threshold: 0.3 },
     );
     observer.observe(el);
@@ -98,7 +103,9 @@ export function TerminalAnimation() {
       }, 400);
     }
 
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [isVisible, phase, typedChars, visibleLines, seq]);
 
   const fadingOut = phase === "clearing";
@@ -127,13 +134,11 @@ export function TerminalAnimation() {
       >
         {/* Command line */}
         <div className="flex">
-          <span className="mr-2 select-none text-[#F97316]">$</span>
+          <span className="mr-2 text-[#F97316] select-none">$</span>
           <span className="text-[var(--landing-text)]">
             {seq.command.slice(0, typedChars)}
           </span>
-          {phase === "typing" && (
-            <span className="terminal-cursor" />
-          )}
+          {phase === "typing" && <span className="terminal-cursor" />}
         </div>
 
         {/* Output lines */}
@@ -145,7 +150,7 @@ export function TerminalAnimation() {
                 className={
                   line.startsWith("\u2713")
                     ? "text-[#4ADE80]"
-                    : line.startsWith("  \u2190")
+                    : line.startsWith("←")
                       ? "text-[#60A5FA]"
                       : "text-[var(--landing-text-secondary)]"
                 }
@@ -159,13 +164,13 @@ export function TerminalAnimation() {
         {/* Blinking cursor after output */}
         {phase === "output" && visibleLines >= seq.output.length && (
           <div className="mt-2 flex">
-            <span className="mr-2 select-none text-[#F97316]">$</span>
+            <span className="mr-2 text-[#F97316] select-none">$</span>
             <span className="terminal-cursor" />
           </div>
         )}
         {phase === "pause" && (
           <div className="mt-2 flex">
-            <span className="mr-2 select-none text-[#F97316]">$</span>
+            <span className="mr-2 text-[#F97316] select-none">$</span>
             <span className="terminal-cursor" />
           </div>
         )}

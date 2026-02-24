@@ -5,7 +5,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../agent-context", () => ({
   getBranchInfo: vi.fn().mockResolvedValue({ branch: "main" }),
   buildBranchPlanKey: vi.fn((b: string) => `agent/context/branch_plan/${b}`),
-  buildAgentContextKey: vi.fn((t: string, id: string) => `agent/context/${t}/${id}`),
+  buildAgentContextKey: vi.fn(
+    (t: string, id: string) => `agent/context/${t}/${id}`,
+  ),
   extractAgentContextEntries: vi.fn(() => []),
   getAllContextTypeInfo: vi.fn().mockResolvedValue({}),
   getAllContextTypeSlugs: vi.fn().mockResolvedValue([]),
@@ -20,18 +22,28 @@ vi.mock("../agent-context", () => ({
 
 // ── Mock child_process (used by session handler for git extraction) ────
 vi.mock("node:child_process", () => ({
-  execFile: vi.fn((_cmd: string, _args: string[], _opts: unknown, cb?: Function) => {
-    if (cb) cb(null, { stdout: "", stderr: "" });
-  }),
+  execFile: vi.fn(
+    (_cmd: string, _args: string[], _opts: unknown, cb?: Function) => {
+      if (cb) cb(null, { stdout: "", stderr: "" });
+    },
+  ),
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
 /** Creates a mock McpServer that captures tool registrations. */
 function createMockServer() {
-  const tools: Record<string, { description: string; schema: unknown; handler: Function }> = {};
+  const tools: Record<
+    string,
+    { description: string; schema: unknown; handler: Function }
+  > = {};
   return {
-    tool: (name: string, description: string, schema: unknown, handler: Function) => {
+    tool: (
+      name: string,
+      description: string,
+      schema: unknown,
+      handler: Function,
+    ) => {
       tools[name] = { description, schema, handler };
     },
     tools,
@@ -42,17 +54,28 @@ function createMockServer() {
 function createMockClient() {
   return {
     storeMemory: vi.fn().mockResolvedValue({ memory: { key: "test" } }),
-    getMemory: vi.fn().mockResolvedValue({ memory: { key: "test", content: "data" } }),
+    getMemory: vi
+      .fn()
+      .mockResolvedValue({ memory: { key: "test", content: "data" } }),
     searchMemories: vi.fn().mockResolvedValue({ memories: [] }),
     listMemories: vi.fn().mockResolvedValue({ memories: [] }),
     deleteMemory: vi.fn().mockResolvedValue({ deleted: true }),
     updateMemory: vi.fn().mockResolvedValue({ memory: { key: "test" } }),
-    pinMemory: vi.fn().mockResolvedValue({ key: "test", pinned: true, message: "Pinned" }),
+    pinMemory: vi
+      .fn()
+      .mockResolvedValue({ key: "test", pinned: true, message: "Pinned" }),
     archiveMemory: vi.fn().mockResolvedValue({ archived: true }),
-    bulkGetMemories: vi.fn().mockResolvedValue({ memories: {}, found: 0, requested: 0 }),
+    bulkGetMemories: vi
+      .fn()
+      .mockResolvedValue({ memories: {}, found: 0, requested: 0 }),
     getMemoryCapacity: vi.fn().mockResolvedValue({
-      used: 10, limit: 100, orgUsed: 20, orgLimit: 1000,
-      isFull: false, isSoftFull: false, isApproaching: false,
+      used: 10,
+      limit: 100,
+      orgUsed: 20,
+      orgLimit: 1000,
+      isFull: false,
+      isSoftFull: false,
+      isApproaching: false,
     }),
     findSimilar: vi.fn().mockResolvedValue({ similar: [] }),
     prefetchCoAccessed: vi.fn(),
@@ -61,42 +84,106 @@ function createMockClient() {
     createContextType: vi.fn().mockResolvedValue({}),
     deleteContextType: vi.fn().mockResolvedValue({}),
     listContextTypes: vi.fn().mockResolvedValue({ contextTypes: [] }),
-    feedbackMemory: vi.fn().mockResolvedValue({ key: "k", feedback: "helpful", helpfulCount: 1, unhelpfulCount: 0 }),
-    linkMemories: vi.fn().mockResolvedValue({ key: "a", relatedKey: "b", action: "linked", keyRelatedKeys: ["b"], relatedKeyRelatedKeys: ["a"] }),
-    diffMemory: vi.fn().mockResolvedValue({ key: "k", from: "1", to: "2", diff: [], summary: { added: 0, removed: 0, unchanged: 0 } }),
-    getMemoryVersions: vi.fn().mockResolvedValue({ key: "k", currentVersion: 1, versions: [] }),
+    feedbackMemory: vi.fn().mockResolvedValue({
+      key: "k",
+      feedback: "helpful",
+      helpfulCount: 1,
+      unhelpfulCount: 0,
+    }),
+    linkMemories: vi.fn().mockResolvedValue({
+      key: "a",
+      relatedKey: "b",
+      action: "linked",
+      keyRelatedKeys: ["b"],
+      relatedKeyRelatedKeys: ["a"],
+    }),
+    diffMemory: vi.fn().mockResolvedValue({
+      key: "k",
+      from: "1",
+      to: "2",
+      diff: [],
+      summary: { added: 0, removed: 0, unchanged: 0 },
+    }),
+    getMemoryVersions: vi
+      .fn()
+      .mockResolvedValue({ key: "k", currentVersion: 1, versions: [] }),
     restoreMemoryVersion: vi.fn().mockResolvedValue({}),
-    traverseMemory: vi.fn().mockResolvedValue({ root: "k", nodes: [], edges: [], maxDepthReached: false }),
+    traverseMemory: vi.fn().mockResolvedValue({
+      root: "k",
+      nodes: [],
+      edges: [],
+      maxDepthReached: false,
+    }),
     getCoAccessed: vi.fn().mockResolvedValue({ key: "k", coAccessed: [] }),
     getHealthScores: vi.fn().mockResolvedValue({ memories: [] }),
     suggestCleanup: vi.fn().mockResolvedValue({ stale: [], expired: [] }),
-    watchMemories: vi.fn().mockResolvedValue({ changed: [], unchanged: [], checkedAt: 0 }),
+    watchMemories: vi
+      .fn()
+      .mockResolvedValue({ changed: [], unchanged: [], checkedAt: 0 }),
     exportMemories: vi.fn().mockResolvedValue("# Exported"),
     logActivity: vi.fn().mockResolvedValue({}),
     getActivityLogs: vi.fn().mockResolvedValue({ activityLogs: [] }),
     runLifecycle: vi.fn().mockResolvedValue({ results: {} }),
-    validateReferences: vi.fn().mockResolvedValue({ totalMemoriesChecked: 0, issuesFound: 0, issues: [], recommendation: "" }),
-    incrementalSync: vi.fn().mockResolvedValue({ created: 0, updated: 0, deleted: 0 }),
+    validateReferences: vi.fn().mockResolvedValue({
+      totalMemoriesChecked: 0,
+      issuesFound: 0,
+      issues: [],
+      recommendation: "",
+    }),
+    incrementalSync: vi
+      .fn()
+      .mockResolvedValue({ created: 0, updated: 0, deleted: 0 }),
     batch: vi.fn().mockResolvedValue({ results: [] }),
-    batchMutate: vi.fn().mockResolvedValue({ action: "archive", requested: 0, matched: 0, affected: 0 }),
+    batchMutate: vi.fn().mockResolvedValue({
+      action: "archive",
+      requested: 0,
+      matched: 0,
+      affected: 0,
+    }),
     lockMemory: vi.fn().mockResolvedValue({ lock: {}, acquired: true }),
     unlockMemory: vi.fn().mockResolvedValue({ key: "k", released: true }),
-    rollbackMemory: vi.fn().mockResolvedValue({ key: "k", rolledBackTo: 1, stepsBack: 1 }),
+    rollbackMemory: vi
+      .fn()
+      .mockResolvedValue({ key: "k", rolledBackTo: 1, stepsBack: 1 }),
     getAnalytics: vi.fn().mockResolvedValue({ totalMemories: 0 }),
-    getChanges: vi.fn().mockResolvedValue({ since: 0, until: 0, summary: {}, changes: [] }),
+    getChanges: vi
+      .fn()
+      .mockResolvedValue({ since: 0, until: 0, summary: {}, changes: [] }),
     listSnapshots: vi.fn().mockResolvedValue({ snapshots: [] }),
-    createSnapshot: vi.fn().mockResolvedValue({ snapshot: { id: "s1", name: "snap", memoryCount: 0 } }),
+    createSnapshot: vi.fn().mockResolvedValue({
+      snapshot: { id: "s1", name: "snap", memoryCount: 0 },
+    }),
     listTemplates: vi.fn().mockResolvedValue({ templates: [] }),
-    createTemplate: vi.fn().mockResolvedValue({ template: { id: "t1", name: "tmpl" } }),
+    createTemplate: vi
+      .fn()
+      .mockResolvedValue({ template: { id: "t1", name: "tmpl" } }),
     applyTemplate: vi.fn().mockResolvedValue({ applied: true }),
     checkFreshness: vi.fn().mockResolvedValue({ memoryCount: 0, hash: "abc" }),
-    getDelta: vi.fn().mockResolvedValue({ created: [], updated: [], deleted: [], since: 0, now: 0 }),
+    getDelta: vi.fn().mockResolvedValue({
+      created: [],
+      updated: [],
+      deleted: [],
+      since: 0,
+      now: 0,
+    }),
     listOrgDefaults: vi.fn().mockResolvedValue({ defaults: [] }),
     setOrgDefault: vi.fn().mockResolvedValue({ default: {} }),
     deleteOrgDefault: vi.fn().mockResolvedValue({ deleted: true }),
     applyOrgDefaults: vi.fn().mockResolvedValue({ applied: true }),
-    searchOrgMemories: vi.fn().mockResolvedValue({ results: [], grouped: {}, projectsSearched: 0, totalMatches: 0 }),
-    orgContextDiff: vi.fn().mockResolvedValue({ projectA: "a", projectB: "b", onlyInA: [], onlyInB: [], common: [], stats: {} }),
+    searchOrgMemories: vi.fn().mockResolvedValue({
+      results: [],
+      grouped: {},
+      projectsSearched: 0,
+      totalMatches: 0,
+    }),
+    orgContextDiff: vi.fn().mockResolvedValue({
+      projectA: "a",
+      projectB: "b",
+      onlyInA: [],
+      onlyInB: [],
+      common: [],
+      stats: {},
+    }),
     runScheduledLifecycle: vi.fn().mockResolvedValue({ scheduled: true }),
     getConnectionStatus: vi.fn().mockReturnValue({ online: true }),
     getLastFreshness: vi.fn().mockReturnValue("fresh"),
@@ -116,7 +203,9 @@ function createMockRateLimitState() {
 }
 
 /** Extracts the text content from a tool response. */
-function getResponseText(response: { content: Array<{ type: string; text: string }> }): string {
+function getResponseText(response: {
+  content: Array<{ type: string; text: string }>;
+}): string {
   return response.content[0]?.text ?? "";
 }
 
@@ -164,9 +253,15 @@ describe("Tool Dispatch: memory", () => {
 
     it("stores memory with valid key and content", async () => {
       const handler = server.tools["memory"]!.handler;
-      const result = await handler({ action: "store", key: "my-key", content: "hello world" });
+      const result = await handler({
+        action: "store",
+        key: "my-key",
+        content: "hello world",
+      });
       expect(isErrorResponse(result)).toBe(false);
-      expect(getResponseText(result)).toContain("Memory stored with key: my-key");
+      expect(getResponseText(result)).toContain(
+        "Memory stored with key: my-key",
+      );
       expect((client as any).storeMemory).toHaveBeenCalled();
     });
 
@@ -178,7 +273,10 @@ describe("Tool Dispatch: memory", () => {
     });
 
     it("returns error when rate limit is exceeded", async () => {
-      rl.checkRateLimit.mockReturnValue({ allowed: false, warning: "Rate limit reached" });
+      rl.checkRateLimit.mockReturnValue({
+        allowed: false,
+        warning: "Rate limit reached",
+      });
       const handler = server.tools["memory"]!.handler;
       const result = await handler({ action: "store", key: "k", content: "c" });
       expect(isErrorResponse(result)).toBe(true);
@@ -220,13 +318,26 @@ describe("Tool Dispatch: memory", () => {
       const handler = server.tools["memory"]!.handler;
       const result = await handler({ action: "search", query: "test query" });
       expect(isErrorResponse(result)).toBe(false);
-      expect((client as any).searchMemories).toHaveBeenCalledWith("test query", 20, expect.any(Object));
+      expect((client as any).searchMemories).toHaveBeenCalledWith(
+        "test query",
+        20,
+        expect.any(Object),
+      );
     });
 
     it("passes limit and sort options", async () => {
       const handler = server.tools["memory"]!.handler;
-      await handler({ action: "search", query: "q", limit: 5, sort: "priority" });
-      expect((client as any).searchMemories).toHaveBeenCalledWith("q", 5, expect.objectContaining({ sort: "priority" }));
+      await handler({
+        action: "search",
+        query: "q",
+        limit: 5,
+        sort: "priority",
+      });
+      expect((client as any).searchMemories).toHaveBeenCalledWith(
+        "q",
+        5,
+        expect.objectContaining({ sort: "priority" }),
+      );
     });
   });
 
@@ -235,13 +346,21 @@ describe("Tool Dispatch: memory", () => {
       const handler = server.tools["memory"]!.handler;
       const result = await handler({ action: "list" });
       expect(isErrorResponse(result)).toBe(false);
-      expect((client as any).listMemories).toHaveBeenCalledWith(100, 0, expect.any(Object));
+      expect((client as any).listMemories).toHaveBeenCalledWith(
+        100,
+        0,
+        expect.any(Object),
+      );
     });
 
     it("passes custom limit and offset", async () => {
       const handler = server.tools["memory"]!.handler;
       await handler({ action: "list", limit: 10, offset: 5 });
-      expect((client as any).listMemories).toHaveBeenCalledWith(10, 5, expect.any(Object));
+      expect((client as any).listMemories).toHaveBeenCalledWith(
+        10,
+        5,
+        expect.any(Object),
+      );
     });
   });
 
@@ -272,7 +391,11 @@ describe("Tool Dispatch: memory", () => {
 
     it("updates memory with valid key", async () => {
       const handler = server.tools["memory"]!.handler;
-      const result = await handler({ action: "update", key: "k", content: "updated" });
+      const result = await handler({
+        action: "update",
+        key: "k",
+        content: "updated",
+      });
       expect(isErrorResponse(result)).toBe(false);
       expect(getResponseText(result)).toContain("Memory updated: k");
       expect((client as any).updateMemory).toHaveBeenCalled();
@@ -305,7 +428,11 @@ describe("Tool Dispatch: memory", () => {
 
     it("archives memory with valid params", async () => {
       const handler = server.tools["memory"]!.handler;
-      const result = await handler({ action: "archive", key: "k", archiveFlag: true });
+      const result = await handler({
+        action: "archive",
+        key: "k",
+        archiveFlag: true,
+      });
       expect(isErrorResponse(result)).toBe(false);
       expect(getResponseText(result)).toContain("archived");
       expect((client as any).archiveMemory).toHaveBeenCalledWith("k", true);
@@ -338,23 +465,39 @@ describe("Tool Dispatch: memory", () => {
   describe("action: store_safe", () => {
     it("returns error when key and content are missing", async () => {
       const handler = server.tools["memory"]!.handler;
-      const result = await handler({ action: "store_safe", ifUnmodifiedSince: 123 });
+      const result = await handler({
+        action: "store_safe",
+        ifUnmodifiedSince: 123,
+      });
       expect(isErrorResponse(result)).toBe(true);
       expect(getResponseText(result)).toContain("key and content are required");
     });
 
     it("returns error when ifUnmodifiedSince is missing", async () => {
       const handler = server.tools["memory"]!.handler;
-      const result = await handler({ action: "store_safe", key: "k", content: "c" });
+      const result = await handler({
+        action: "store_safe",
+        key: "k",
+        content: "c",
+      });
       expect(isErrorResponse(result)).toBe(true);
-      expect(getResponseText(result)).toContain("ifUnmodifiedSince is required");
+      expect(getResponseText(result)).toContain(
+        "ifUnmodifiedSince is required",
+      );
     });
 
     it("stores safely with valid params and no conflict", async () => {
-      (client as any).getMemory.mockResolvedValue({ memory: { content: "old", updatedAt: "2024-01-01T00:00:00Z" } });
+      (client as any).getMemory.mockResolvedValue({
+        memory: { content: "old", updatedAt: "2024-01-01T00:00:00Z" },
+      });
       const handler = server.tools["memory"]!.handler;
       const ifUnmodifiedSince = new Date("2025-01-01").getTime();
-      const result = await handler({ action: "store_safe", key: "k", content: "c", ifUnmodifiedSince });
+      const result = await handler({
+        action: "store_safe",
+        key: "k",
+        content: "c",
+        ifUnmodifiedSince,
+      });
       expect(isErrorResponse(result)).toBe(false);
       expect(getResponseText(result)).toContain("no conflict");
     });
@@ -400,7 +543,9 @@ describe("Tool Dispatch: session", () => {
 
   it("registers the 'session' tool", () => {
     expect(server.tools["session"]).toBeDefined();
-    expect(server.tools["session"]!.description).toContain("Session management");
+    expect(server.tools["session"]!.description).toContain(
+      "Session management",
+    );
   });
 
   describe("action: start", () => {
@@ -413,7 +558,11 @@ describe("Tool Dispatch: session", () => {
 
     it("starts session with valid sessionId", async () => {
       const handler = server.tools["session"]!.handler;
-      const result = await handler({ action: "start", sessionId: "sess-1", autoExtractGit: false });
+      const result = await handler({
+        action: "start",
+        sessionId: "sess-1",
+        autoExtractGit: false,
+      });
       expect(isErrorResponse(result)).toBe(false);
       const parsed = JSON.parse(getResponseText(result));
       expect(parsed.sessionId).toBe("sess-1");
@@ -426,12 +575,18 @@ describe("Tool Dispatch: session", () => {
       const handler = server.tools["session"]!.handler;
       const result = await handler({ action: "end", sessionId: "sess-1" });
       expect(isErrorResponse(result)).toBe(true);
-      expect(getResponseText(result)).toContain("sessionId and summary required");
+      expect(getResponseText(result)).toContain(
+        "sessionId and summary required",
+      );
     });
 
     it("ends session with valid params", async () => {
       const handler = server.tools["session"]!.handler;
-      const result = await handler({ action: "end", sessionId: "sess-1", summary: "Done" });
+      const result = await handler({
+        action: "end",
+        sessionId: "sess-1",
+        summary: "Done",
+      });
       expect(isErrorResponse(result)).toBe(false);
       expect(getResponseText(result)).toContain("Session sess-1 ended");
     });
@@ -471,7 +626,11 @@ describe("Tool Dispatch: session", () => {
 
     it("claims keys with valid params", async () => {
       const handler = server.tools["session"]!.handler;
-      const result = await handler({ action: "claim", sessionId: "s1", keys: ["k1", "k2"] });
+      const result = await handler({
+        action: "claim",
+        sessionId: "s1",
+        keys: ["k1", "k2"],
+      });
       expect(isErrorResponse(result)).toBe(false);
       const parsed = JSON.parse(getResponseText(result));
       expect(parsed.keys).toEqual(["k1", "k2"]);
@@ -537,7 +696,9 @@ describe("Tool Dispatch: branch", () => {
 
   it("registers the 'branch' tool", () => {
     expect(server.tools["branch"]).toBeDefined();
-    expect(server.tools["branch"]!.description).toContain("Branch context management");
+    expect(server.tools["branch"]!.description).toContain(
+      "Branch context management",
+    );
   });
 
   describe("action: get", () => {
@@ -560,7 +721,9 @@ describe("Tool Dispatch: branch", () => {
 
     it("returns error when no branch can be detected", async () => {
       const agentContext = await import("../agent-context");
-      (agentContext.getBranchInfo as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+      (
+        agentContext.getBranchInfo as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(null);
       const handler = server.tools["branch"]!.handler;
       const result = await handler({ action: "get" });
       expect(isErrorResponse(result)).toBe(true);
@@ -578,7 +741,10 @@ describe("Tool Dispatch: branch", () => {
 
     it("sets branch context with valid content", async () => {
       const handler = server.tools["branch"]!.handler;
-      const result = await handler({ action: "set", content: "Plan for feature X" });
+      const result = await handler({
+        action: "set",
+        content: "Plan for feature X",
+      });
       expect(isErrorResponse(result)).toBe(false);
       expect(getResponseText(result)).toContain("Branch context saved");
       expect((client as any).storeMemory).toHaveBeenCalled();
@@ -601,7 +767,11 @@ describe("Tool Dispatch: branch", () => {
 
     it("includes status in response", async () => {
       const handler = server.tools["branch"]!.handler;
-      const result = await handler({ action: "set", content: "Plan", status: "review" });
+      const result = await handler({
+        action: "set",
+        content: "Plan",
+        status: "review",
+      });
       expect(isErrorResponse(result)).toBe(false);
       expect(getResponseText(result)).toContain("[review]");
     });
@@ -638,35 +808,56 @@ describe("Tool Dispatch: context_config", () => {
     client = createMockClient();
     rl = createMockRateLimitState();
 
-    const { registerContextConfigTool } = await import("../tools/handlers/context-config");
+    const { registerContextConfigTool } =
+      await import("../tools/handlers/context-config");
     registerContextConfigTool(server as any, client as any, rl);
   });
 
   it("registers the 'context_config' tool", () => {
     expect(server.tools["context_config"]).toBeDefined();
-    expect(server.tools["context_config"]!.description).toContain("Context type configuration");
+    expect(server.tools["context_config"]!.description).toContain(
+      "Context type configuration",
+    );
   });
 
   describe("action: type_create", () => {
     it("returns error when slug is missing", async () => {
       const handler = server.tools["context_config"]!.handler;
-      const result = await handler({ action: "type_create", label: "My Type", description: "desc" });
+      const result = await handler({
+        action: "type_create",
+        label: "My Type",
+        description: "desc",
+      });
       expect(isErrorResponse(result)).toBe(true);
-      expect(getResponseText(result)).toContain("slug, label, and description required");
+      expect(getResponseText(result)).toContain(
+        "slug, label, and description required",
+      );
     });
 
     it("returns error when label is missing", async () => {
       const handler = server.tools["context_config"]!.handler;
-      const result = await handler({ action: "type_create", slug: "my-type", description: "desc" });
+      const result = await handler({
+        action: "type_create",
+        slug: "my-type",
+        description: "desc",
+      });
       expect(isErrorResponse(result)).toBe(true);
-      expect(getResponseText(result)).toContain("slug, label, and description required");
+      expect(getResponseText(result)).toContain(
+        "slug, label, and description required",
+      );
     });
 
     it("returns error when description is missing", async () => {
       const handler = server.tools["context_config"]!.handler;
-      const result = await handler({ action: "type_create", slug: "my-type", label: "My Type" });
+      const result = await handler({
+        action: "type_create",
+        slug: "my-type",
+        label: "My Type",
+      });
       expect(isErrorResponse(result)).toBe(true);
-      expect(getResponseText(result)).toContain("slug, label, and description required");
+      expect(getResponseText(result)).toContain(
+        "slug, label, and description required",
+      );
     });
 
     it("creates custom context type with valid params", async () => {
@@ -678,7 +869,9 @@ describe("Tool Dispatch: context_config", () => {
         description: "A custom type",
       });
       expect(isErrorResponse(result)).toBe(false);
-      expect(getResponseText(result)).toContain('Custom context type created: my-type');
+      expect(getResponseText(result)).toContain(
+        "Custom context type created: my-type",
+      );
       expect(getResponseText(result)).toContain('"My Type"');
       expect((client as any).createContextType).toHaveBeenCalledWith({
         slug: "my-type",
@@ -723,7 +916,9 @@ describe("Tool Dispatch: context_config", () => {
       const handler = server.tools["context_config"]!.handler;
       const result = await handler({ action: "type_delete", slug: "my-type" });
       expect(isErrorResponse(result)).toBe(false);
-      expect(getResponseText(result)).toContain("Custom context type deleted: my-type");
+      expect(getResponseText(result)).toContain(
+        "Custom context type deleted: my-type",
+      );
       expect((client as any).deleteContextType).toHaveBeenCalledWith("my-type");
     });
   });
@@ -738,7 +933,10 @@ describe("Tool Dispatch: context_config", () => {
 
     it("returns template for known built-in type", async () => {
       const handler = server.tools["context_config"]!.handler;
-      const result = await handler({ action: "template_get", type: "coding_style" });
+      const result = await handler({
+        action: "template_get",
+        type: "coding_style",
+      });
       expect(isErrorResponse(result)).toBe(false);
       const parsed = JSON.parse(getResponseText(result));
       expect(parsed.type).toBe("coding_style");
@@ -748,7 +946,10 @@ describe("Tool Dispatch: context_config", () => {
 
     it("returns template for architecture type", async () => {
       const handler = server.tools["context_config"]!.handler;
-      const result = await handler({ action: "template_get", type: "architecture" });
+      const result = await handler({
+        action: "template_get",
+        type: "architecture",
+      });
       expect(isErrorResponse(result)).toBe(false);
       const parsed = JSON.parse(getResponseText(result));
       expect(parsed.type).toBe("architecture");
@@ -757,18 +958,28 @@ describe("Tool Dispatch: context_config", () => {
 
     it("returns error for unknown type with no custom match", async () => {
       const handler = server.tools["context_config"]!.handler;
-      const result = await handler({ action: "template_get", type: "nonexistent_xyz" });
+      const result = await handler({
+        action: "template_get",
+        type: "nonexistent_xyz",
+      });
       expect(isErrorResponse(result)).toBe(true);
-      expect(getResponseText(result)).toContain('Unknown type "nonexistent_xyz"');
+      expect(getResponseText(result)).toContain(
+        'Unknown type "nonexistent_xyz"',
+      );
     });
 
     it("returns generic template for known custom type", async () => {
       const agentContext = await import("../agent-context");
-      (agentContext.getAllContextTypeInfo as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      (
+        agentContext.getAllContextTypeInfo as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce({
         my_custom: { label: "My Custom", description: "Custom desc" },
       });
       const handler = server.tools["context_config"]!.handler;
-      const result = await handler({ action: "template_get", type: "my_custom" });
+      const result = await handler({
+        action: "template_get",
+        type: "my_custom",
+      });
       expect(isErrorResponse(result)).toBe(false);
       const parsed = JSON.parse(getResponseText(result));
       expect(parsed.type).toBe("my_custom");

@@ -32,7 +32,10 @@ export async function GET(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [currentMember] = await db
@@ -107,7 +110,10 @@ export async function PATCH(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [currentMember] = await db
@@ -122,12 +128,18 @@ export async function PATCH(
     .limit(1);
 
   if (!currentMember || currentMember.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const body = await req.json().catch(() => null);
   if (!body?.memberId) {
-    return NextResponse.json({ error: "memberId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "memberId is required" },
+      { status: 400 },
+    );
   }
 
   const parsed = memberRoleUpdateSchema.safeParse(body);
@@ -151,7 +163,10 @@ export async function PATCH(
   }
 
   if (targetMember.role === "owner") {
-    return NextResponse.json({ error: "Cannot change owner role" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Cannot change owner role" },
+      { status: 400 },
+    );
   }
 
   const oldRole = targetMember.role;
@@ -192,7 +207,10 @@ export async function DELETE(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [currentMember] = await db
@@ -207,12 +225,18 @@ export async function DELETE(
     .limit(1);
 
   if (!currentMember || currentMember.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const body = await req.json().catch(() => null);
   if (!body?.memberId) {
-    return NextResponse.json({ error: "memberId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "memberId is required" },
+      { status: 400 },
+    );
   }
 
   const [targetMember] = await db

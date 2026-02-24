@@ -57,13 +57,6 @@ export async function POST(req: NextRequest) {
   const { slug, label, description, schema, icon } = parsed.data;
 
   // Check for duplicate slug
-  const [existing] = await db
-    .select()
-    .from(contextTypes)
-    .where(
-      eq(contextTypes.orgId, org.id),
-    );
-
   const duplicates = await db
     .select()
     .from(contextTypes)

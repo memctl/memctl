@@ -18,7 +18,8 @@ export const BUILTIN_AGENT_CONTEXT_TYPES = [
   "lessons_learned",
 ] as const;
 
-export type BuiltinAgentContextType = (typeof BUILTIN_AGENT_CONTEXT_TYPES)[number];
+export type BuiltinAgentContextType =
+  (typeof BUILTIN_AGENT_CONTEXT_TYPES)[number];
 
 // For backward compatibility
 export const AGENT_CONTEXT_TYPES = BUILTIN_AGENT_CONTEXT_TYPES;
@@ -30,7 +31,8 @@ export const AGENT_CONTEXT_TYPE_INFO: Record<
 > = {
   coding_style: {
     label: "Coding Style",
-    description: "Conventions, naming rules, formatting, and review expectations.",
+    description:
+      "Conventions, naming rules, formatting, and review expectations.",
   },
   folder_structure: {
     label: "Folder Structure",
@@ -38,15 +40,18 @@ export const AGENT_CONTEXT_TYPE_INFO: Record<
   },
   file_map: {
     label: "File Map",
-    description: "Quick index of where to find key features, APIs, and configs.",
+    description:
+      "Quick index of where to find key features, APIs, and configs.",
   },
   architecture: {
     label: "Architecture",
-    description: "Core system design, module boundaries, and data flow decisions.",
+    description:
+      "Core system design, module boundaries, and data flow decisions.",
   },
   workflow: {
     label: "Workflow",
-    description: "Branching, PR flow, deployment process, and team working norms.",
+    description:
+      "Branching, PR flow, deployment process, and team working norms.",
   },
   testing: {
     label: "Testing",
@@ -58,11 +63,13 @@ export const AGENT_CONTEXT_TYPE_INFO: Record<
   },
   constraints: {
     label: "Constraints",
-    description: "Hard requirements, non-goals, and safety limits for agent changes.",
+    description:
+      "Hard requirements, non-goals, and safety limits for agent changes.",
   },
   lessons_learned: {
     label: "Lessons Learned",
-    description: "Pitfalls, gotchas, and negative knowledge — things that failed or should be avoided.",
+    description:
+      "Pitfalls, gotchas, and negative knowledge — things that failed or should be avoided.",
   },
 };
 
@@ -80,9 +87,14 @@ let cachedCustomTypes: CustomContextType[] | null = null;
 let customTypesCacheTime = 0;
 const CUSTOM_TYPES_CACHE_TTL = 60_000; // 1 minute
 
-export async function getCustomContextTypes(client: ApiClient): Promise<CustomContextType[]> {
+export async function getCustomContextTypes(
+  client: ApiClient,
+): Promise<CustomContextType[]> {
   const now = Date.now();
-  if (cachedCustomTypes && now - customTypesCacheTime < CUSTOM_TYPES_CACHE_TTL) {
+  if (
+    cachedCustomTypes &&
+    now - customTypesCacheTime < CUSTOM_TYPES_CACHE_TTL
+  ) {
     return cachedCustomTypes;
   }
 
@@ -119,12 +131,11 @@ export async function getAllContextTypeInfo(
   return all;
 }
 
-export async function getAllContextTypeSlugs(client: ApiClient): Promise<string[]> {
+export async function getAllContextTypeSlugs(
+  client: ApiClient,
+): Promise<string[]> {
   const customTypes = await getCustomContextTypes(client);
-  return [
-    ...BUILTIN_AGENT_CONTEXT_TYPES,
-    ...customTypes.map((t) => t.slug),
-  ];
+  return [...BUILTIN_AGENT_CONTEXT_TYPES, ...customTypes.map((t) => t.slug)];
 }
 
 export function isBuiltinType(type: string): type is BuiltinAgentContextType {
@@ -238,7 +249,7 @@ export async function listAllMemories(client: ApiClient, maxMemories = 2_000) {
   const all: MemoryRecord[] = [];
 
   while (all.length < maxMemories) {
-    const response = await client.listMemories(pageSize, offset) as {
+    const response = (await client.listMemories(pageSize, offset)) as {
       memories?: MemoryRecord[];
     };
     const batch = response.memories ?? [];
@@ -354,9 +365,9 @@ export function parseAgentsMd(content: string): ParsedAgentsMdSection[] {
     "coding style": "coding_style",
     "code style": "coding_style",
     "style guide": "coding_style",
-    "conventions": "coding_style",
-    "naming": "coding_style",
-    "formatting": "coding_style",
+    conventions: "coding_style",
+    naming: "coding_style",
+    formatting: "coding_style",
     "folder structure": "folder_structure",
     "project structure": "folder_structure",
     "directory structure": "folder_structure",
@@ -365,35 +376,35 @@ export function parseAgentsMd(content: string): ParsedAgentsMdSection[] {
     "file map": "file_map",
     "key files": "file_map",
     "important files": "file_map",
-    "architecture": "architecture",
+    architecture: "architecture",
     "system design": "architecture",
-    "design": "architecture",
-    "overview": "architecture",
-    "workflow": "workflow",
+    design: "architecture",
+    overview: "architecture",
+    workflow: "workflow",
     "development workflow": "workflow",
-    "branching": "workflow",
+    branching: "workflow",
     "pr flow": "workflow",
-    "deployment": "workflow",
+    deployment: "workflow",
     "ci/cd": "workflow",
-    "testing": "testing",
-    "tests": "testing",
+    testing: "testing",
+    tests: "testing",
     "test strategy": "testing",
     "test setup": "testing",
-    "constraints": "constraints",
-    "rules": "constraints",
-    "requirements": "constraints",
+    constraints: "constraints",
+    rules: "constraints",
+    requirements: "constraints",
     "non-goals": "constraints",
-    "limitations": "constraints",
-    "safety": "constraints",
+    limitations: "constraints",
+    safety: "constraints",
     "do not": "constraints",
     "don't": "constraints",
     "lessons learned": "lessons_learned",
-    "pitfalls": "lessons_learned",
-    "gotchas": "lessons_learned",
-    "mistakes": "lessons_learned",
+    pitfalls: "lessons_learned",
+    gotchas: "lessons_learned",
+    mistakes: "lessons_learned",
     "what not to do": "lessons_learned",
-    "failed": "lessons_learned",
-    "avoid": "lessons_learned",
+    failed: "lessons_learned",
+    avoid: "lessons_learned",
   };
 
   let currentSection: ParsedAgentsMdSection | null = null;

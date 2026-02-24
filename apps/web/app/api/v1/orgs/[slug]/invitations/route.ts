@@ -37,7 +37,10 @@ export async function GET(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [member] = await db
@@ -52,7 +55,10 @@ export async function GET(
     .limit(1);
 
   if (!member || member.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const now = new Date();
@@ -109,7 +115,10 @@ export async function POST(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [member] = await db
@@ -124,7 +133,10 @@ export async function POST(
     .limit(1);
 
   if (!member || member.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const body = await req.json().catch(() => null);
@@ -133,15 +145,28 @@ export async function POST(
   const expiresInDays = body?.expiresInDays ?? 7;
 
   if (!email || typeof email !== "string" || !email.includes("@")) {
-    return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Valid email is required" },
+      { status: 400 },
+    );
   }
 
   if (!["member", "admin"].includes(role)) {
-    return NextResponse.json({ error: "Role must be 'member' or 'admin'" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Role must be 'member' or 'admin'" },
+      { status: 400 },
+    );
   }
 
-  if (typeof expiresInDays !== "number" || expiresInDays < 1 || expiresInDays > 7) {
-    return NextResponse.json({ error: "expiresInDays must be between 1 and 7" }, { status: 400 });
+  if (
+    typeof expiresInDays !== "number" ||
+    expiresInDays < 1 ||
+    expiresInDays > 7
+  ) {
+    return NextResponse.json(
+      { error: "expiresInDays must be between 1 and 7" },
+      { status: 400 },
+    );
   }
 
   const selfHosted = isSelfHosted();
@@ -161,7 +186,9 @@ export async function POST(
 
     if ((dailyCount?.value ?? 0) >= INVITATIONS_PER_DAY) {
       return NextResponse.json(
-        { error: `Daily invitation limit reached (${INVITATIONS_PER_DAY}/day). Try again tomorrow.` },
+        {
+          error: `Daily invitation limit reached (${INVITATIONS_PER_DAY}/day). Try again tomorrow.`,
+        },
         { status: 429 },
       );
     }
@@ -233,7 +260,9 @@ export async function POST(
 
     if ((pendingCount?.value ?? 0) >= MAX_PENDING_INVITATIONS) {
       return NextResponse.json(
-        { error: `Maximum of ${MAX_PENDING_INVITATIONS} pending invitations reached` },
+        {
+          error: `Maximum of ${MAX_PENDING_INVITATIONS} pending invitations reached`,
+        },
         { status: 400 },
       );
     }
@@ -257,7 +286,9 @@ export async function POST(
     }
 
     // Create a pre-accepted invitation record for audit trail
-    const expiresAt = new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      now.getTime() + expiresInDays * 24 * 60 * 60 * 1000,
+    );
     const invitation = {
       id: generateId(),
       orgId: org.id,
@@ -274,7 +305,9 @@ export async function POST(
   }
 
   // User doesn't exist yet — create pending invitation, no email sent
-  const expiresAt = new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(
+    now.getTime() + expiresInDays * 24 * 60 * 60 * 1000,
+  );
   const invitation = {
     id: generateId(),
     orgId: org.id,
@@ -311,7 +344,10 @@ export async function DELETE(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [member] = await db
@@ -326,12 +362,18 @@ export async function DELETE(
     .limit(1);
 
   if (!member || member.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const body = await req.json().catch(() => null);
   if (!body?.invitationId) {
-    return NextResponse.json({ error: "invitationId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "invitationId is required" },
+      { status: 400 },
+    );
   }
 
   const [invitation] = await db
@@ -348,7 +390,10 @@ export async function DELETE(
     .limit(1);
 
   if (!invitation) {
-    return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Invitation not found" },
+      { status: 404 },
+    );
   }
 
   await db

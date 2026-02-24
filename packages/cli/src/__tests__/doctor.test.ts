@@ -4,7 +4,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockLoadConfig = vi.fn();
 const mockLoadConfigForCwd = vi.fn();
-const mockGetConfigPath = vi.fn().mockReturnValue("/tmp/test-home/.memctl/config.json");
+const mockGetConfigPath = vi
+  .fn()
+  .mockReturnValue("/tmp/test-home/.memctl/config.json");
 const mockGetConfigDir = vi.fn().mockReturnValue("/tmp/test-home/.memctl");
 
 vi.mock("../config", () => ({
@@ -38,9 +40,11 @@ vi.mock("better-sqlite3", () => ({ default: null }));
 
 // Capture console.log output
 let logOutput: string[];
-const consoleSpy = vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
-  logOutput.push(args.map(String).join(" "));
-});
+const consoleSpy = vi
+  .spyOn(console, "log")
+  .mockImplementation((...args: unknown[]) => {
+    logOutput.push(args.map(String).join(" "));
+  });
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -128,7 +132,10 @@ describe("doctor", () => {
       mockLoadConfig.mockResolvedValue({ profiles: {}, projects: {} });
       mockLoadConfigForCwd.mockResolvedValue(resolvedConfig);
       // fetch throws to simulate a network error
-      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockRejectedValue(new Error("ECONNREFUSED")),
+      );
       // Local cache and pending writes: no file
       mockAccess.mockRejectedValue(new Error("ENOENT"));
       mockReadFile.mockRejectedValue(new Error("ENOENT"));
@@ -145,7 +152,10 @@ describe("doctor", () => {
     it("shows failure when the health endpoint returns non-ok status", async () => {
       mockLoadConfig.mockResolvedValue({ profiles: {}, projects: {} });
       mockLoadConfigForCwd.mockResolvedValue(resolvedConfig);
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: false, status: 503 }),
+      );
       mockAccess.mockRejectedValue(new Error("ENOENT"));
       mockReadFile.mockRejectedValue(new Error("ENOENT"));
 
@@ -291,11 +301,9 @@ describe("doctor", () => {
       });
       mockAccess.mockResolvedValue(undefined);
       // pending-writes.json has 3 items
-      mockReadFile.mockResolvedValue(JSON.stringify([
-        { key: "a" },
-        { key: "b" },
-        { key: "c" },
-      ]));
+      mockReadFile.mockResolvedValue(
+        JSON.stringify([{ key: "a" }, { key: "b" }, { key: "c" }]),
+      );
 
       const runDoctor = await importRunDoctor();
       await runDoctor();

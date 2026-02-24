@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, jsonError, checkRateLimit } from "@/lib/api-middleware";
+import {
+  authenticateRequest,
+  jsonError,
+  checkRateLimit,
+} from "@/lib/api-middleware";
 
 interface BatchOperation {
   method: "GET" | "POST" | "PATCH" | "DELETE";
@@ -48,7 +52,10 @@ export async function POST(req: NextRequest) {
       return jsonError(`Operation ${i}: method and path are required`, 400);
     }
     if (!["GET", "POST", "PATCH", "DELETE"].includes(op.method)) {
-      return jsonError(`Operation ${i}: method must be GET, POST, PATCH, or DELETE`, 400);
+      return jsonError(
+        `Operation ${i}: method must be GET, POST, PATCH, or DELETE`,
+        400,
+      );
     }
     if (!op.path.startsWith("/")) {
       return jsonError(`Operation ${i}: path must start with /`, 400);
@@ -76,7 +83,10 @@ export async function POST(req: NextRequest) {
         const res = await fetch(fetchUrl, {
           method: op.method,
           headers: forwardHeaders,
-          body: op.body && op.method !== "GET" ? JSON.stringify(op.body) : undefined,
+          body:
+            op.body && op.method !== "GET"
+              ? JSON.stringify(op.body)
+              : undefined,
         });
 
         const body = await res.json().catch(() => null);
@@ -84,7 +94,9 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         return {
           status: 500,
-          body: { error: err instanceof Error ? err.message : "Internal error" },
+          body: {
+            error: err instanceof Error ? err.message : "Internal error",
+          },
         };
       }
     }),

@@ -96,3 +96,74 @@ export const projectAssignmentSchema = z.object({
 });
 
 export const planIdSchema = z.enum(PLAN_IDS);
+
+export const adminOrgActionSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("suspend"),
+    reason: z.string().min(1).max(1024),
+  }),
+  z.object({ action: z.literal("ban"), reason: z.string().min(1).max(1024) }),
+  z.object({
+    action: z.literal("reactivate"),
+    reason: z.string().max(1024).optional(),
+  }),
+  z.object({
+    action: z.literal("override_plan"),
+    planId: planIdSchema.nullable(),
+  }),
+  z.object({
+    action: z.literal("override_limits"),
+    projectLimit: z.number().int().min(1).optional(),
+    memberLimit: z.number().int().min(1).optional(),
+    memoryLimitPerProject: z.number().int().min(1).optional(),
+    memoryLimitOrg: z.number().int().min(1).optional(),
+    apiRatePerMinute: z.number().int().min(1).optional(),
+  }),
+  z.object({ action: z.literal("reset_limits") }),
+  z.object({
+    action: z.literal("transfer_ownership"),
+    newOwnerId: z.string().min(1),
+  }),
+  z.object({ action: z.literal("update_notes"), notes: z.string().max(4096) }),
+  z.object({
+    action: z.literal("start_trial"),
+    durationDays: z.number().int().min(1).max(365),
+  }),
+  z.object({ action: z.literal("end_trial") }),
+  z.object({
+    action: z.literal("set_expiry"),
+    expiresAt: z.number().int(),
+  }),
+  z.object({ action: z.literal("clear_expiry") }),
+  z.object({
+    action: z.literal("create_subscription"),
+    priceInCents: z.number().int().min(100),
+    interval: z.enum(["month", "year"]).default("month"),
+  }),
+  z.object({ action: z.literal("cancel_subscription") }),
+  z.object({
+    action: z.literal("update_contract"),
+    contractValue: z.number().int().min(0).nullable().optional(),
+    contractNotes: z.string().max(4096).nullable().optional(),
+    contractStartDate: z.number().int().nullable().optional(),
+    contractEndDate: z.number().int().nullable().optional(),
+  }),
+  z.object({
+    action: z.literal("apply_template"),
+    templateId: z.string().min(1),
+  }),
+]);
+
+export const planTemplateCreateSchema = z.object({
+  name: z.string().min(1).max(128),
+  description: z.string().max(512).optional(),
+  basePlanId: planIdSchema.default("enterprise"),
+  projectLimit: z.number().int().min(1),
+  memberLimit: z.number().int().min(1),
+  memoryLimitPerProject: z.number().int().min(1),
+  memoryLimitOrg: z.number().int().min(1),
+  apiRatePerMinute: z.number().int().min(1),
+  stripePriceInCents: z.number().int().min(100).nullable().optional(),
+});
+
+export const planTemplateUpdateSchema = planTemplateCreateSchema.partial();

@@ -1,6 +1,11 @@
 import { readFile, access, constants } from "node:fs/promises";
 import { join } from "node:path";
-import { loadConfig, loadConfigForCwd, getConfigPath, getConfigDir } from "./config.js";
+import {
+  loadConfig,
+  loadConfigForCwd,
+  getConfigPath,
+  getConfigDir,
+} from "./config.js";
 import { ApiClient } from "./api-client.js";
 
 const GREEN = "\x1b[32m";
@@ -42,7 +47,11 @@ export async function runDoctor(): Promise<void> {
     line("pass", "Config file", configPath);
     track("pass");
   } else {
-    line("warn", "Config file", `Not found at ${configPath}. Using env vars only.`);
+    line(
+      "warn",
+      "Config file",
+      `Not found at ${configPath}. Using env vars only.`,
+    );
     track("warn");
   }
 
@@ -52,7 +61,11 @@ export async function runDoctor(): Promise<void> {
     line("pass", "Credentials resolved", resolved.baseUrl);
     track("pass");
   } else {
-    line("fail", "Credentials", "Neither env vars nor config file provide token/org/project");
+    line(
+      "fail",
+      "Credentials",
+      "Neither env vars nor config file provide token/org/project",
+    );
     track("fail");
     // Can't continue without credentials
     printSummary(passed, warned, failed);
@@ -74,7 +87,11 @@ export async function runDoctor(): Promise<void> {
       track("fail");
     }
   } catch (err) {
-    line("fail", "API connectivity", err instanceof Error ? err.message : "unreachable");
+    line(
+      "fail",
+      "API connectivity",
+      err instanceof Error ? err.message : "unreachable",
+    );
     track("fail");
   }
 
@@ -91,14 +108,22 @@ export async function runDoctor(): Promise<void> {
         track("fail");
       }
     } catch (err) {
-      line("fail", "Auth token", err instanceof Error ? err.message : "invalid");
+      line(
+        "fail",
+        "Auth token",
+        err instanceof Error ? err.message : "invalid",
+      );
       track("fail");
     }
 
     // 5. Org/project access - check capacity
     try {
       const capacity = await client.getMemoryCapacity();
-      line("pass", "Org/project access", `${capacity.used}/${capacity.limit} memories used`);
+      line(
+        "pass",
+        "Org/project access",
+        `${capacity.used}/${capacity.limit} memories used`,
+      );
       track("pass");
 
       // 7. Memory capacity warnings
@@ -106,14 +131,26 @@ export async function runDoctor(): Promise<void> {
         line("fail", "Memory capacity", "FULL — delete or archive memories");
         track("fail");
       } else if (capacity.isApproaching) {
-        line("warn", "Memory capacity", `${Math.round((capacity.usageRatio ?? 0) * 100)}% used`);
+        line(
+          "warn",
+          "Memory capacity",
+          `${Math.round((capacity.usageRatio ?? 0) * 100)}% used`,
+        );
         track("warn");
       } else {
-        line("pass", "Memory capacity", `${Math.round((capacity.usageRatio ?? 0) * 100)}% used`);
+        line(
+          "pass",
+          "Memory capacity",
+          `${Math.round((capacity.usageRatio ?? 0) * 100)}% used`,
+        );
         track("pass");
       }
     } catch (err) {
-      line("fail", "Org/project access", err instanceof Error ? err.message : "denied");
+      line(
+        "fail",
+        "Org/project access",
+        err instanceof Error ? err.message : "denied",
+      );
       track("fail");
     }
   }
@@ -126,7 +163,11 @@ export async function runDoctor(): Promise<void> {
     line("pass", "Local cache", cachePath);
     track("pass");
   } catch {
-    line("warn", "Local cache", "No cache.db found (will be created on first use)");
+    line(
+      "warn",
+      "Local cache",
+      "No cache.db found (will be created on first use)",
+    );
     track("warn");
   }
 
@@ -136,7 +177,11 @@ export async function runDoctor(): Promise<void> {
     const raw = await readFile(pendingPath, "utf-8");
     const pending = JSON.parse(raw) as unknown[];
     if (pending.length > 0) {
-      line("warn", "Pending writes", `${pending.length} write(s) queued for sync`);
+      line(
+        "warn",
+        "Pending writes",
+        `${pending.length} write(s) queued for sync`,
+      );
       track("warn");
     } else {
       line("pass", "Pending writes", "Queue empty");

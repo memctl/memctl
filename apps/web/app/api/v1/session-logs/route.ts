@@ -90,11 +90,15 @@ export async function POST(req: NextRequest) {
     const updates: Record<string, unknown> = {};
     if (summary !== undefined) updates.summary = summary;
     if (keysRead !== undefined) updates.keysRead = JSON.stringify(keysRead);
-    if (keysWritten !== undefined) updates.keysWritten = JSON.stringify(keysWritten);
+    if (keysWritten !== undefined)
+      updates.keysWritten = JSON.stringify(keysWritten);
     if (toolsUsed !== undefined) updates.toolsUsed = JSON.stringify(toolsUsed);
     if (endedAt !== undefined) updates.endedAt = new Date(endedAt);
 
-    await db.update(sessionLogs).set(updates).where(eq(sessionLogs.id, existing.id));
+    await db
+      .update(sessionLogs)
+      .set(updates)
+      .where(eq(sessionLogs.id, existing.id));
     return NextResponse.json({ sessionLog: { ...existing, ...updates } });
   }
 
@@ -116,7 +120,14 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(
-    { sessionLog: { id, sessionId, projectId: context.project.id, startedAt: now } },
+    {
+      sessionLog: {
+        id,
+        sessionId,
+        projectId: context.project.id,
+        startedAt: now,
+      },
+    },
     { status: 201 },
   );
 }

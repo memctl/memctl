@@ -121,9 +121,7 @@ export function MemberRowActions({
               <DropdownMenuItem
                 className="gap-2 rounded-lg text-sm text-[var(--landing-text-secondary)] hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
                 onClick={() =>
-                  handleRoleChange(
-                    member.role === "admin" ? "member" : "admin",
-                  )
+                  handleRoleChange(member.role === "admin" ? "member" : "admin")
                 }
               >
                 <Shield className="h-4 w-4" />

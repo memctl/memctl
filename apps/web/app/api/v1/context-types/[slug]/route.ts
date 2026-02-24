@@ -64,7 +64,8 @@ export async function PATCH(
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.label) updates.label = parsed.data.label;
   if (parsed.data.description) updates.description = parsed.data.description;
-  if (parsed.data.schema !== undefined) updates.schema = parsed.data.schema ?? null;
+  if (parsed.data.schema !== undefined)
+    updates.schema = parsed.data.schema ?? null;
   if (parsed.data.icon !== undefined) updates.icon = parsed.data.icon ?? null;
 
   await db
@@ -92,7 +93,9 @@ export async function DELETE(
   const result = await resolveOrgAndType(orgSlug, slug);
   if (!result) return jsonError("Context type not found", 404);
 
-  await db.delete(contextTypes).where(eq(contextTypes.id, result.contextType.id));
+  await db
+    .delete(contextTypes)
+    .where(eq(contextTypes.id, result.contextType.id));
 
   return NextResponse.json({ deleted: true });
 }

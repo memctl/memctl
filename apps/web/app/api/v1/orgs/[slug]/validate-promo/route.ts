@@ -10,8 +10,24 @@ import {
 import { eq, and, count } from "drizzle-orm";
 import { headers } from "next/headers";
 import type { PlanId } from "@memctl/shared/constants";
+import { LRUCache } from "lru-cache";
 
-const PLAN_TIER_ORDER: PlanId[] = ["free", "lite", "pro", "business", "scale", "enterprise"];
+const PLAN_TIER_ORDER: PlanId[] = [
+  "free",
+  "lite",
+  "pro",
+  "business",
+  "scale",
+  "enterprise",
+];
+
+const PROMO_RATE_LIMIT = 10; // max attempts per minute
+const promoRateCache = new LRUCache<string, { count: number; resetAt: number }>(
+  {
+    max: 5_000,
+    ttl: 60_000,
+  },
+);
 
 export async function POST(
   req: NextRequest,
@@ -20,6 +36,25 @@ export async function POST(
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Rate limit by user ID
+  const rateLimitKey = `promo:${session.user.id}`;
+  const rlNow = Date.now();
+  const rlEntry = promoRateCache.get(rateLimitKey);
+  if (rlEntry && rlNow < rlEntry.resetAt) {
+    rlEntry.count++;
+    if (rlEntry.count > PROMO_RATE_LIMIT) {
+      const retryAfter = Math.ceil((rlEntry.resetAt - rlNow) / 1000);
+      const res = NextResponse.json(
+        { error: "Too many promo code attempts. Try again later." },
+        { status: 429 },
+      );
+      res.headers.set("Retry-After", String(retryAfter));
+      return res;
+    }
+  } else {
+    promoRateCache.set(rateLimitKey, { count: 1, resetAt: rlNow + 60_000 });
   }
 
   const { slug } = await params;
@@ -38,7 +73,10 @@ export async function POST(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   // Verify org membership
@@ -90,7 +128,10 @@ export async function POST(
   }
 
   // 4. maxRedemptions check
-  if (promo.maxRedemptions !== null && promo.timesRedeemed >= promo.maxRedemptions) {
+  if (
+    promo.maxRedemptions !== null &&
+    promo.timesRedeemed >= promo.maxRedemptions
+  ) {
     return NextResponse.json({
       valid: false,
       reason: "This code has reached its usage limit",
@@ -140,9 +181,15 @@ export async function POST(
 
   // 8. minimumPlanTier check
   if (planId && promo.minimumPlanTier) {
-    const minTierIndex = PLAN_TIER_ORDER.indexOf(promo.minimumPlanTier as PlanId);
+    const minTierIndex = PLAN_TIER_ORDER.indexOf(
+      promo.minimumPlanTier as PlanId,
+    );
     const selectedTierIndex = PLAN_TIER_ORDER.indexOf(planId as PlanId);
-    if (selectedTierIndex >= 0 && minTierIndex >= 0 && selectedTierIndex < minTierIndex) {
+    if (
+      selectedTierIndex >= 0 &&
+      minTierIndex >= 0 &&
+      selectedTierIndex < minTierIndex
+    ) {
       return NextResponse.json({
         valid: false,
         reason: "Requires a higher plan tier",
@@ -167,7 +214,8 @@ export async function POST(
     if ((prevPromo?.value ?? 0) > 0) {
       return NextResponse.json({
         valid: false,
-        reason: "Only valid for organizations that haven't used a promo code before",
+        reason:
+          "Only valid for organizations that haven't used a promo code before",
       });
     }
   }

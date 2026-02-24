@@ -16,7 +16,7 @@ import {
   auditLogs,
   users,
 } from "@memctl/db/schema";
-import { eq, and, desc, inArray, sql } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { ActivityFeed } from "./activity-feed";
 
 export default async function ActivityPage({
@@ -29,18 +29,30 @@ export default async function ActivityPage({
 
   const { orgSlug } = await params;
 
-  const [org] = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
   if (!org) redirect("/");
 
   const [member] = await db
     .select()
     .from(organizationMembers)
-    .where(and(eq(organizationMembers.orgId, org.id), eq(organizationMembers.userId, session.user.id)))
+    .where(
+      and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, session.user.id),
+      ),
+    )
     .limit(1);
   if (!member) redirect("/");
 
   // Get accessible project IDs (members only see assigned projects)
-  const projectList = await db.select().from(projects).where(eq(projects.orgId, org.id));
+  const projectList = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.orgId, org.id));
   let accessibleProjectIds: string[];
 
   if (member.role === "member") {
@@ -50,7 +62,10 @@ export default async function ActivityPage({
       .where(
         and(
           eq(projectMembers.userId, session.user.id),
-          inArray(projectMembers.projectId, projectList.map((p) => p.id)),
+          inArray(
+            projectMembers.projectId,
+            projectList.map((p) => p.id),
+          ),
         ),
       );
     accessibleProjectIds = assignments.map((a) => a.projectId);
@@ -134,7 +149,9 @@ export default async function ActivityPage({
   }));
 
   // Resolve target user names for audit logs
-  const targetUserIds = [...new Set(auditList.map((a) => a.targetUserId).filter(Boolean))] as string[];
+  const targetUserIds = [
+    ...new Set(auditList.map((a) => a.targetUserId).filter(Boolean)),
+  ] as string[];
   const targetUserMap: Record<string, string> = {};
   if (targetUserIds.length > 0) {
     const targetUsers = await db
@@ -148,7 +165,9 @@ export default async function ActivityPage({
     id: a.id,
     action: a.action,
     actorName: a.actorName ?? "Unknown",
-    targetUserName: a.targetUserId ? (targetUserMap[a.targetUserId] ?? "Unknown") : null,
+    targetUserName: a.targetUserId
+      ? (targetUserMap[a.targetUserId] ?? "Unknown")
+      : null,
     details: a.details,
     createdAt: a.createdAt?.toISOString() ?? "",
   }));
@@ -164,19 +183,25 @@ export default async function ActivityPage({
   const allActivityDates = [
     ...serializedActivities.map((a) => a.createdAt),
     ...serializedAuditLogs.map((a) => a.createdAt),
-  ].filter(Boolean).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  ]
+    .filter(Boolean)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
-  const initialActivityCursor = allActivityDates.length > 0
-    ? allActivityDates[allActivityDates.length - 1]
-    : null;
+  const initialActivityCursor =
+    allActivityDates.length > 0
+      ? allActivityDates[allActivityDates.length - 1]
+      : null;
 
-  const initialSessionsCursor = serializedSessions.length > 0
-    ? serializedSessions[serializedSessions.length - 1].startedAt
-    : null;
+  const initialSessionsCursor =
+    serializedSessions.length > 0
+      ? serializedSessions[serializedSessions.length - 1].startedAt
+      : null;
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold text-[var(--landing-text)]">Activity & Sessions</h1>
+      <h1 className="mb-4 text-xl font-semibold text-[var(--landing-text)]">
+        Activity & Sessions
+      </h1>
 
       <ActivityFeed
         activities={serializedActivities}

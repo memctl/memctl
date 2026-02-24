@@ -14,6 +14,7 @@ Copy this into your repository root as `AGENTS.md`. This works with any MCP-comp
 
 MCP server name is `memctl`.
 Use `memctl` for all project memory:
+
 - memory/history of previous sessions
 - coding style and conventions
 - architecture and technical decisions
@@ -32,11 +33,13 @@ Always store decisions, conventions, and lessons learned in memctl so they persi
 5. `memory.capacity` - if approaching limit, run `memory_lifecycle.suggest_cleanup` and clean up before continuing
 
 If the project has not been scanned yet (or file map is stale), run:
+
 - `repo.scan` with `saveAsContext=true`
 
 ## Before Coding
 
 Read relevant context:
+
 - `context.functionality_get` for: `coding_style`, `architecture`, `testing`, `constraints`, `workflow`
 - `context.context_for` for files you are about to touch
 - `branch.get` for current branch plan and checklist
@@ -44,10 +47,12 @@ Read relevant context:
 ## While Coding
 
 When user gives new conventions or decisions, store immediately:
+
 - `context.functionality_set` for structured project rules (coding style, architecture, testing, etc.)
 - `memory.store` for one-off decisions, references, or notes
 
 Use appropriate TTL when storing:
+
 - Session-specific notes → `ttl: "session"`
 - PR-scoped decisions → `ttl: "pr"`
 - Sprint-level context → `ttl: "sprint"`
@@ -57,10 +62,12 @@ Before storing, always search first (`memory.search`) to avoid duplicates.
 Prefer updating an existing memory over creating a new one.
 
 For memory/history search:
+
 - `memory.search` - search by content
 - `memory.list` - browse by priority or recency
 
 After each meaningful task, save branch progress:
+
 - `branch.set` with updated `status`, checklist items (`done: true/false`), and short notes
 
 ## End Of Session
@@ -72,6 +79,7 @@ After each meaningful task, save branch progress:
 ## Maintenance (every few sessions)
 
 Run these periodically to keep memory clean and useful:
+
 - `memory_lifecycle.suggest_cleanup` - review stale and expired candidates, act on suggestions
 - `memory_lifecycle.lifecycle_run` with policies: `cleanup_expired`, `cleanup_session_logs`, `archive_merged_branches`
 - `memory_advanced.check_duplicates` - find and merge duplicate memories

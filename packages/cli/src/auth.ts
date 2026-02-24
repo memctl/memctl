@@ -1,10 +1,6 @@
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import {
-  loadConfig,
-  saveConfig,
-  type MemctlConfig,
-} from "./config.js";
+import { loadConfig, saveConfig, type MemctlConfig } from "./config.js";
 
 export async function runAuth(): Promise<void> {
   const rl = createInterface({ input: stdin, output: stdout });
@@ -12,7 +8,9 @@ export async function runAuth(): Promise<void> {
   try {
     console.log("\n  memctl auth\n");
     console.log("  Authenticate with memctl to store your API token locally.");
-    console.log("  After this, MCP configs only need org and project — no token.\n");
+    console.log(
+      "  After this, MCP configs only need org and project — no token.\n",
+    );
 
     // 1. API URL
     const defaultUrl = "https://memctl.com/api/v1";
@@ -20,7 +18,9 @@ export async function runAuth(): Promise<void> {
     const apiUrl = apiUrlInput.trim() || defaultUrl;
 
     // 2. API token
-    console.log("\n  Get your API token from: https://memctl.com → Settings → API Tokens\n");
+    console.log(
+      "\n  Get your API token from: https://memctl.com → Settings → API Tokens\n",
+    );
     const token = await rl.question("  API token: ");
     if (!token.trim()) {
       console.error("\n  Token is required. Aborting.\n");
@@ -37,22 +37,29 @@ export async function runAuth(): Promise<void> {
       if (res.ok) {
         console.log("  Token valid.\n");
       } else {
-        console.warn(`  Warning: API returned ${res.status}. Token may be invalid.\n`);
+        console.warn(
+          `  Warning: API returned ${res.status}. Token may be invalid.\n`,
+        );
       }
     } catch {
       console.warn("  Warning: Could not reach API. Saving token anyway.\n");
     }
 
     // 4. Save to config file
-    const config: MemctlConfig = (await loadConfig()) ?? { profiles: {}, projects: {} };
+    const config: MemctlConfig = (await loadConfig()) ?? {
+      profiles: {},
+      projects: {},
+    };
     config.profiles.default = { token: token.trim(), apiUrl };
     await saveConfig(config);
 
     console.log("  Authenticated! Token saved to ~/.memctl/config.json");
     console.log("");
-    console.log("  You can now use simplified MCP configs with just org and project:");
+    console.log(
+      "  You can now use simplified MCP configs with just org and project:",
+    );
     console.log("");
-    console.log('  {');
+    console.log("  {");
     console.log('    "mcpServers": {');
     console.log('      "memctl": {');
     console.log('        "command": "npx",');
@@ -60,10 +67,10 @@ export async function runAuth(): Promise<void> {
     console.log('        "env": {');
     console.log('          "MEMCTL_ORG": "your-org",');
     console.log('          "MEMCTL_PROJECT": "your-project"');
-    console.log('        }');
-    console.log('      }');
-    console.log('    }');
-    console.log('  }');
+    console.log("        }");
+    console.log("      }");
+    console.log("    }");
+    console.log("  }");
     console.log("");
   } finally {
     rl.close();

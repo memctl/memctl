@@ -48,15 +48,15 @@ describe("memoryStoreSchema", () => {
   });
 
   it("rejects empty key", () => {
-    expect(
-      memoryStoreSchema.safeParse({ key: "", content: "c" }).success,
-    ).toBe(false);
+    expect(memoryStoreSchema.safeParse({ key: "", content: "c" }).success).toBe(
+      false,
+    );
   });
 
   it("rejects empty content", () => {
-    expect(
-      memoryStoreSchema.safeParse({ key: "k", content: "" }).success,
-    ).toBe(false);
+    expect(memoryStoreSchema.safeParse({ key: "k", content: "" }).success).toBe(
+      false,
+    );
   });
 
   it("rejects priority out of range", () => {
@@ -101,9 +101,9 @@ describe("memoryUpdateSchema", () => {
   });
 
   it("accepts null expiresAt", () => {
-    expect(
-      memoryUpdateSchema.safeParse({ expiresAt: null }).success,
-    ).toBe(true);
+    expect(memoryUpdateSchema.safeParse({ expiresAt: null }).success).toBe(
+      true,
+    );
   });
 
   it("accepts empty object", () => {
@@ -130,9 +130,9 @@ describe("memorySearchSchema", () => {
 
 describe("memoryBulkGetSchema", () => {
   it("accepts valid key arrays", () => {
-    expect(
-      memoryBulkGetSchema.safeParse({ keys: ["a", "b"] }).success,
-    ).toBe(true);
+    expect(memoryBulkGetSchema.safeParse({ keys: ["a", "b"] }).success).toBe(
+      true,
+    );
   });
 
   it("rejects empty array", () => {

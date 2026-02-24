@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, sessionLogs, memoryVersions, activityLogs, memoryLocks } from "@memctl/db/schema";
+import {
+  memories,
+  sessionLogs,
+  activityLogs,
+  memoryLocks,
+} from "@memctl/db/schema";
 import { eq, and, lt, isNull, isNotNull, like, sql } from "drizzle-orm";
 import { resolveOrgAndProject } from "../capacity-utils";
 import { computeRelevanceScore } from "@memctl/shared/relevance";
@@ -35,7 +40,11 @@ export async function POST(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const body = await req.json().catch(() => null);
@@ -74,7 +83,10 @@ export async function POST(req: NextRequest) {
       case "archive_merged_branches": {
         // Archive branch_plan memories for merged branches
         if (mergedBranches.length === 0) {
-          results[policy] = { affected: 0, details: "No merged branches provided" };
+          results[policy] = {
+            affected: 0,
+            details: "No merged branches provided",
+          };
           break;
         }
         let archived = 0;
@@ -183,19 +195,28 @@ export async function POST(req: NextRequest) {
         const now = Date.now();
         let pruned = 0;
         for (const mem of allMems) {
-          const score = computeRelevanceScore({
-            priority: mem.priority ?? 0,
-            accessCount: mem.accessCount ?? 0,
-            lastAccessedAt: mem.lastAccessedAt ? new Date(mem.lastAccessedAt).getTime() : null,
-            helpfulCount: mem.helpfulCount ?? 0,
-            unhelpfulCount: mem.unhelpfulCount ?? 0,
-            pinnedAt: null,
-          }, now);
+          const score = computeRelevanceScore(
+            {
+              priority: mem.priority ?? 0,
+              accessCount: mem.accessCount ?? 0,
+              lastAccessedAt: mem.lastAccessedAt
+                ? new Date(mem.lastAccessedAt).getTime()
+                : null,
+              helpfulCount: mem.helpfulCount ?? 0,
+              unhelpfulCount: mem.unhelpfulCount ?? 0,
+              pinnedAt: null,
+            },
+            now,
+          );
           if (score < relevanceThreshold) {
             // Parse existing tags
             let existingTags: string[] = [];
             if (mem.tags) {
-              try { existingTags = JSON.parse(mem.tags) as string[]; } catch { /* ignore */ }
+              try {
+                existingTags = JSON.parse(mem.tags) as string[];
+              } catch {
+                /* ignore */
+              }
             }
             const newTags = [...new Set([...existingTags, "auto:pruned"])];
             await db
@@ -205,7 +226,10 @@ export async function POST(req: NextRequest) {
             pruned++;
           }
         }
-        results[policy] = { affected: pruned, details: `Archived memories with relevance < ${relevanceThreshold}` };
+        results[policy] = {
+          affected: pruned,
+          details: `Archived memories with relevance < ${relevanceThreshold}`,
+        };
         break;
       }
 
@@ -236,14 +260,27 @@ export async function POST(req: NextRequest) {
 
           const ageFactor = Math.max(0, 25 - ageDays / 14);
           const accessFactor = Math.min(25, accessCnt * 2.5);
-          const feedbackFactor = 12.5 + Math.min(12.5, Math.max(-12.5, (helpfulCnt - unhelpfulCnt) * 2.5));
-          const freshnessFactor = daysSinceAccess === Infinity ? 0 : Math.max(0, 25 - daysSinceAccess / 7);
-          const healthScore = Math.round((ageFactor + accessFactor + feedbackFactor + freshnessFactor) * 100) / 100;
+          const feedbackFactor =
+            12.5 +
+            Math.min(12.5, Math.max(-12.5, (helpfulCnt - unhelpfulCnt) * 2.5));
+          const freshnessFactor =
+            daysSinceAccess === Infinity
+              ? 0
+              : Math.max(0, 25 - daysSinceAccess / 7);
+          const healthScore =
+            Math.round(
+              (ageFactor + accessFactor + feedbackFactor + freshnessFactor) *
+                100,
+            ) / 100;
 
           if (healthScore < healthThreshold) {
             let existingTags: string[] = [];
             if (mem.tags) {
-              try { existingTags = JSON.parse(mem.tags) as string[]; } catch { /* ignore */ }
+              try {
+                existingTags = JSON.parse(mem.tags) as string[];
+              } catch {
+                /* ignore */
+              }
             }
             const newTags = [...new Set([...existingTags, "auto:decayed"])];
             await db
@@ -253,7 +290,10 @@ export async function POST(req: NextRequest) {
             archived++;
           }
         }
-        results[policy] = { affected: archived, details: `Archived memories with health score < ${healthThreshold}` };
+        results[policy] = {
+          affected: archived,
+          details: `Archived memories with health score < ${healthThreshold}`,
+        };
         break;
       }
 
@@ -274,7 +314,10 @@ export async function POST(req: NextRequest) {
             SELECT id FROM (
               SELECT id, ROW_NUMBER() OVER (PARTITION BY memory_id ORDER BY version DESC) AS rn
               FROM memory_versions
-              WHERE memory_id IN (${sql.join(memIds.map((id) => sql`${id}`), sql`, `)})
+              WHERE memory_id IN (${sql.join(
+                memIds.map((id) => sql`${id}`),
+                sql`, `,
+              )})
             ) WHERE rn > ${maxVersionsPerMemory}
           )
         `);
@@ -284,7 +327,9 @@ export async function POST(req: NextRequest) {
 
       case "cleanup_activity_logs": {
         const activityCutoff = new Date();
-        activityCutoff.setDate(activityCutoff.getDate() - activityLogMaxAgeDays);
+        activityCutoff.setDate(
+          activityCutoff.getDate() - activityLogMaxAgeDays,
+        );
         const deletedActivity = await db
           .delete(activityLogs)
           .where(

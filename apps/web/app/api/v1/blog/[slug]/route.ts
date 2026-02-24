@@ -102,14 +102,14 @@ export async function PUT(
       .limit(1);
 
     if (slugConflict) {
-      return NextResponse.json({ error: "Slug already exists" }, { status: 409 });
+      return NextResponse.json(
+        { error: "Slug already exists" },
+        { status: 409 },
+      );
     }
   }
 
-  await db
-    .update(blogPosts)
-    .set(updates)
-    .where(eq(blogPosts.id, existing.id));
+  await db.update(blogPosts).set(updates).where(eq(blogPosts.id, existing.id));
 
   const [updated] = await db
     .select()

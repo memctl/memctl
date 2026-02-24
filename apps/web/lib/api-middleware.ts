@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyJwt, getCachedSession, setCachedSession } from "./jwt";
 import { auth } from "./auth";
 import { db } from "./db";
-import { sessions, organizations, organizationMembers, projectMembers, projects } from "@memctl/db/schema";
+import {
+  sessions,
+  organizations,
+  organizationMembers,
+  projectMembers,
+  projects,
+} from "@memctl/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { logger, generateRequestId } from "./logger";
 import { rateLimit } from "./rate-limit";
-import type { PlanId } from "@memctl/shared/constants";
+import { getOrgLimits } from "./plans";
 
 export interface AuthContext {
   userId: string;
@@ -70,22 +76,38 @@ export async function authenticateRequest(
   // Cookie-based session auth (dashboard)
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) {
-    return NextResponse.json({ error: "Missing authorization" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Missing authorization" },
+      { status: 401 },
+    );
   }
 
   const orgSlug = req.headers.get("x-org-slug");
   if (!orgSlug) {
-    return NextResponse.json({ error: "Missing X-Org-Slug header" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing X-Org-Slug header" },
+      { status: 400 },
+    );
   }
 
   const [org] = await db
-    .select({ id: organizations.id })
+    .select({ id: organizations.id, status: organizations.status })
     .from(organizations)
     .where(eq(organizations.slug, orgSlug))
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
+  }
+
+  if (org.status === "suspended") {
+    return jsonError("Organization is suspended", 403);
+  }
+  if (org.status === "banned") {
+    return jsonError("Organization has been banned", 403);
   }
 
   return {
@@ -211,14 +233,23 @@ export async function checkRateLimit(
   authContext: AuthContext,
 ): Promise<NextResponse | null> {
   const [org] = await db
-    .select({ planId: organizations.planId })
+    .select({
+      planId: organizations.planId,
+      planOverride: organizations.planOverride,
+      projectLimit: organizations.projectLimit,
+      memberLimit: organizations.memberLimit,
+      memoryLimitPerProject: organizations.memoryLimitPerProject,
+      memoryLimitOrg: organizations.memoryLimitOrg,
+      apiRatePerMinute: organizations.apiRatePerMinute,
+    })
     .from(organizations)
     .where(eq(organizations.id, authContext.orgId))
     .limit(1);
 
   if (!org) return null;
 
-  const result = rateLimit(authContext.userId, org.planId as PlanId);
+  const limits = getOrgLimits(org);
+  const result = rateLimit(authContext.userId, limits.apiRatePerMinute);
 
   if (!result.allowed) {
     const res = NextResponse.json(

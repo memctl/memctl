@@ -12,7 +12,10 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   if (!isBillingEnabled()) {
-    return NextResponse.json({ error: "Billing is not enabled" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Billing is not enabled" },
+      { status: 400 },
+    );
   }
 
   const session = await auth.api.getSession({
@@ -31,7 +34,10 @@ export async function POST(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [member] = await db
@@ -46,7 +52,10 @@ export async function POST(
     .limit(1);
 
   if (!member || member.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   if (!org.stripeCustomerId) {
@@ -57,7 +66,7 @@ export async function POST(
 
   const portalSession = await createCustomerPortalSession({
     customerId: org.stripeCustomerId,
-    returnUrl: `${appUrl}/${slug}/billing`,
+    returnUrl: `${appUrl}/org/${slug}/billing`,
   });
 
   return NextResponse.json({ url: portalSession.url });

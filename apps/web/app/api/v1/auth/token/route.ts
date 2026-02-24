@@ -30,7 +30,10 @@ export async function POST(req: NextRequest) {
     .limit(1);
 
   if (!member || member.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not a member of this org" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Not a member of this org" },
+      { status: 403 },
+    );
   }
 
   const token = await createJwt({

@@ -22,7 +22,11 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const url = new URL(req.url);
@@ -36,9 +40,14 @@ export async function GET(req: NextRequest) {
   const depth = Math.min(Math.max(depthParam, 1), 5);
 
   // BFS traversal
-  const visited = new Map<string, { key: string; content: string; depth: number }>();
+  const visited = new Map<
+    string,
+    { key: string; content: string; depth: number }
+  >();
   const edges: Array<{ from: string; to: string }> = [];
-  let queue: Array<{ key: string; depth: number }> = [{ key: startKey, depth: 0 }];
+  let queue: Array<{ key: string; depth: number }> = [
+    { key: startKey, depth: 0 },
+  ];
   let maxDepthReached = false;
 
   while (queue.length > 0) {
@@ -84,7 +93,9 @@ export async function GET(req: NextRequest) {
       if (row.relatedKeys) {
         try {
           related = JSON.parse(row.relatedKeys) as string[];
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       for (const relKey of related) {

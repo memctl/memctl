@@ -48,19 +48,19 @@ Most contributions add actions to existing tools. Here's the step-by-step:
 
 ### 1. Choose the right handler file
 
-| If the action is about... | File |
-|---------------------------|------|
-| Core memory CRUD | `packages/cli/src/tools/handlers/memory.ts` |
-| Analysis, batch, versioning | `packages/cli/src/tools/handlers/memory-advanced.ts` |
-| Cleanup, health, lifecycle | `packages/cli/src/tools/handlers/memory-lifecycle.ts` |
-| Context assembly, retrieval | `packages/cli/src/tools/handlers/context.ts` |
-| Context type definitions | `packages/cli/src/tools/handlers/context-config.ts` |
-| Branch plans | `packages/cli/src/tools/handlers/branch.ts` |
-| Sessions, handoff | `packages/cli/src/tools/handlers/session.ts` |
-| Import/export | `packages/cli/src/tools/handlers/import-export.ts` |
-| Repo scanning | `packages/cli/src/tools/handlers/repo.ts` |
-| Org defaults, templates | `packages/cli/src/tools/handlers/org.ts` |
-| Activity, memos | `packages/cli/src/tools/handlers/activity.ts` |
+| If the action is about...   | File                                                  |
+| --------------------------- | ----------------------------------------------------- |
+| Core memory CRUD            | `packages/cli/src/tools/handlers/memory.ts`           |
+| Analysis, batch, versioning | `packages/cli/src/tools/handlers/memory-advanced.ts`  |
+| Cleanup, health, lifecycle  | `packages/cli/src/tools/handlers/memory-lifecycle.ts` |
+| Context assembly, retrieval | `packages/cli/src/tools/handlers/context.ts`          |
+| Context type definitions    | `packages/cli/src/tools/handlers/context-config.ts`   |
+| Branch plans                | `packages/cli/src/tools/handlers/branch.ts`           |
+| Sessions, handoff           | `packages/cli/src/tools/handlers/session.ts`          |
+| Import/export               | `packages/cli/src/tools/handlers/import-export.ts`    |
+| Repo scanning               | `packages/cli/src/tools/handlers/repo.ts`             |
+| Org defaults, templates     | `packages/cli/src/tools/handlers/org.ts`              |
+| Activity, memos             | `packages/cli/src/tools/handlers/activity.ts`         |
 
 ### 2. Add the action to the handler
 

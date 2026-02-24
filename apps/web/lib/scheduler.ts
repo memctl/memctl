@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { db } from "./db";
-import { memories, memoryVersions, activityLogs, memoryLocks } from "@memctl/db/schema";
+import { memories, activityLogs, memoryLocks } from "@memctl/db/schema";
 import { lt, isNull, isNotNull, eq, and, sql } from "drizzle-orm";
 import { logger } from "./logger";
 import { generateEmbeddings, serializeEmbedding } from "./embeddings";
@@ -23,9 +23,15 @@ export function initScheduler(): void {
       const result = await db
         .delete(memories)
         .where(lt(memories.expiresAt, now));
-      logger.info({ job: "cleanup-expired", affected: result.rowsAffected }, "Expired memory cleanup complete");
+      logger.info(
+        { job: "cleanup-expired", affected: result.rowsAffected },
+        "Expired memory cleanup complete",
+      );
     } catch (err) {
-      logger.error({ job: "cleanup-expired", error: String(err) }, "Expired memory cleanup failed");
+      logger.error(
+        { job: "cleanup-expired", error: String(err) },
+        "Expired memory cleanup failed",
+      );
     }
   });
 
@@ -73,12 +79,17 @@ export function initScheduler(): void {
         "Embedding backfill complete",
       );
     } catch (err) {
-      logger.error({ job: "embedding-backfill", error: String(err) }, "Embedding backfill failed");
+      logger.error(
+        { job: "embedding-backfill", error: String(err) },
+        "Embedding backfill failed",
+      );
     }
   });
 
   // Auto-prune low-relevance memories — daily at 3 AM
-  const PRUNE_THRESHOLD = parseFloat(process.env.MEMCTL_PRUNE_THRESHOLD ?? "5.0");
+  const PRUNE_THRESHOLD = parseFloat(
+    process.env.MEMCTL_PRUNE_THRESHOLD ?? "5.0",
+  );
   cron.schedule("0 3 * * *", async () => {
     try {
       const unpinned = await db
@@ -90,18 +101,27 @@ export function initScheduler(): void {
       let pruned = 0;
       for (const mem of unpinned) {
         if (mem.pinnedAt) continue; // never prune pinned
-        const score = computeRelevanceScore({
-          priority: mem.priority ?? 0,
-          accessCount: mem.accessCount ?? 0,
-          lastAccessedAt: mem.lastAccessedAt ? new Date(mem.lastAccessedAt).getTime() : null,
-          helpfulCount: mem.helpfulCount ?? 0,
-          unhelpfulCount: mem.unhelpfulCount ?? 0,
-          pinnedAt: null,
-        }, now);
+        const score = computeRelevanceScore(
+          {
+            priority: mem.priority ?? 0,
+            accessCount: mem.accessCount ?? 0,
+            lastAccessedAt: mem.lastAccessedAt
+              ? new Date(mem.lastAccessedAt).getTime()
+              : null,
+            helpfulCount: mem.helpfulCount ?? 0,
+            unhelpfulCount: mem.unhelpfulCount ?? 0,
+            pinnedAt: null,
+          },
+          now,
+        );
         if (score < PRUNE_THRESHOLD) {
           let existingTags: string[] = [];
           if (mem.tags) {
-            try { existingTags = JSON.parse(mem.tags) as string[]; } catch { /* ignore */ }
+            try {
+              existingTags = JSON.parse(mem.tags) as string[];
+            } catch {
+              /* ignore */
+            }
           }
           const newTags = [...new Set([...existingTags, "auto:pruned"])];
           await db
@@ -111,9 +131,15 @@ export function initScheduler(): void {
           pruned++;
         }
       }
-      logger.info({ job: "auto-prune", pruned, threshold: PRUNE_THRESHOLD }, "Auto-prune complete");
+      logger.info(
+        { job: "auto-prune", pruned, threshold: PRUNE_THRESHOLD },
+        "Auto-prune complete",
+      );
     } catch (err) {
-      logger.error({ job: "auto-prune", error: String(err) }, "Auto-prune failed");
+      logger.error(
+        { job: "auto-prune", error: String(err) },
+        "Auto-prune failed",
+      );
     }
   });
 
@@ -124,9 +150,15 @@ export function initScheduler(): void {
       const result = await db
         .delete(memoryLocks)
         .where(lt(memoryLocks.expiresAt, now));
-      logger.info({ job: "cleanup-expired-locks", affected: result.rowsAffected }, "Expired lock cleanup complete");
+      logger.info(
+        { job: "cleanup-expired-locks", affected: result.rowsAffected },
+        "Expired lock cleanup complete",
+      );
     } catch (err) {
-      logger.error({ job: "cleanup-expired-locks", error: String(err) }, "Expired lock cleanup failed");
+      logger.error(
+        { job: "cleanup-expired-locks", error: String(err) },
+        "Expired lock cleanup failed",
+      );
     }
   });
 
@@ -143,14 +175,23 @@ export function initScheduler(): void {
           ) WHERE rn > ${MAX_VERSIONS}
         )
       `);
-      logger.info({ job: "trim-versions", affected: result.rowsAffected }, "Version trimming complete");
+      logger.info(
+        { job: "trim-versions", affected: result.rowsAffected },
+        "Version trimming complete",
+      );
     } catch (err) {
-      logger.error({ job: "trim-versions", error: String(err) }, "Version trimming failed");
+      logger.error(
+        { job: "trim-versions", error: String(err) },
+        "Version trimming failed",
+      );
     }
   });
 
   // Delete old activity logs — daily at 4:15 AM
-  const ACTIVITY_LOG_RETENTION_DAYS = parseInt(process.env.MEMCTL_ACTIVITY_LOG_RETENTION_DAYS ?? "90", 10);
+  const ACTIVITY_LOG_RETENTION_DAYS = parseInt(
+    process.env.MEMCTL_ACTIVITY_LOG_RETENTION_DAYS ?? "90",
+    10,
+  );
   cron.schedule("15 4 * * *", async () => {
     try {
       const cutoff = new Date();
@@ -158,14 +199,23 @@ export function initScheduler(): void {
       const result = await db
         .delete(activityLogs)
         .where(lt(activityLogs.createdAt, cutoff));
-      logger.info({ job: "cleanup-activity-logs", affected: result.rowsAffected }, "Activity log cleanup complete");
+      logger.info(
+        { job: "cleanup-activity-logs", affected: result.rowsAffected },
+        "Activity log cleanup complete",
+      );
     } catch (err) {
-      logger.error({ job: "cleanup-activity-logs", error: String(err) }, "Activity log cleanup failed");
+      logger.error(
+        { job: "cleanup-activity-logs", error: String(err) },
+        "Activity log cleanup failed",
+      );
     }
   });
 
   // Permanently delete old archived memories — weekly Sunday at 5 AM
-  const ARCHIVE_PURGE_DAYS = parseInt(process.env.MEMCTL_ARCHIVE_PURGE_DAYS ?? "90", 10);
+  const ARCHIVE_PURGE_DAYS = parseInt(
+    process.env.MEMCTL_ARCHIVE_PURGE_DAYS ?? "90",
+    10,
+  );
   cron.schedule("0 5 * * 0", async () => {
     try {
       const cutoff = new Date();
@@ -179,9 +229,15 @@ export function initScheduler(): void {
             isNull(memories.pinnedAt),
           ),
         );
-      logger.info({ job: "purge-archived", affected: result.rowsAffected }, "Archive purge complete");
+      logger.info(
+        { job: "purge-archived", affected: result.rowsAffected },
+        "Archive purge complete",
+      );
     } catch (err) {
-      logger.error({ job: "purge-archived", error: String(err) }, "Archive purge failed");
+      logger.error(
+        { job: "purge-archived", error: String(err) },
+        "Archive purge failed",
+      );
     }
   });
 

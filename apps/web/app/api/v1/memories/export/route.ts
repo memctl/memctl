@@ -21,7 +21,11 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const url = new URL(req.url);
@@ -40,7 +44,15 @@ export async function GET(req: NextRequest) {
     );
 
   // Group by type
-  const byType: Record<string, Array<{ key: string; content: string; metadata: Record<string, unknown> | null; priority: number }>> = {};
+  const byType: Record<
+    string,
+    Array<{
+      key: string;
+      content: string;
+      metadata: Record<string, unknown> | null;
+      priority: number;
+    }>
+  > = {};
 
   for (const mem of contextMemories) {
     const parts = mem.key.split("/");
@@ -50,7 +62,11 @@ export async function GET(req: NextRequest) {
 
     let parsed: Record<string, unknown> | null = null;
     if (mem.metadata) {
-      try { parsed = JSON.parse(mem.metadata) as Record<string, unknown>; } catch { /* ignore */ }
+      try {
+        parsed = JSON.parse(mem.metadata) as Record<string, unknown>;
+      } catch {
+        /* ignore */
+      }
     }
 
     byType[type].push({
@@ -95,7 +111,10 @@ export async function GET(req: NextRequest) {
       }
     }
     return new NextResponse(lines.join("\n"), {
-      headers: { "Content-Type": "text/plain", "Content-Disposition": "attachment; filename=.cursorrules" },
+      headers: {
+        "Content-Type": "text/plain",
+        "Content-Disposition": "attachment; filename=.cursorrules",
+      },
     });
   }
 
@@ -112,7 +131,8 @@ export async function GET(req: NextRequest) {
     sections.push(`## ${label}`);
     sections.push("");
     for (const entry of entries) {
-      const title = typeof entry.metadata?.title === "string" ? entry.metadata.title : null;
+      const title =
+        typeof entry.metadata?.title === "string" ? entry.metadata.title : null;
       if (title && entries.length > 1) {
         sections.push(`### ${title}`);
         sections.push("");
@@ -124,6 +144,9 @@ export async function GET(req: NextRequest) {
 
   const markdown = sections.join("\n");
   return new NextResponse(markdown, {
-    headers: { "Content-Type": "text/markdown", "Content-Disposition": "attachment; filename=AGENTS.md" },
+    headers: {
+      "Content-Type": "text/markdown",
+      "Content-Disposition": "attachment; filename=AGENTS.md",
+    },
   });
 }

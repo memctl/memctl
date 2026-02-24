@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, memoryVersions, activityLogs } from "@memctl/db/schema";
-import { eq, and, desc, isNull } from "drizzle-orm";
+import { memories, memoryVersions } from "@memctl/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { resolveOrgAndProject } from "../capacity-utils";
 import { generateId } from "@/lib/utils";
 
@@ -26,7 +26,11 @@ export async function POST(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const body = await req.json().catch(() => null);
@@ -95,8 +99,11 @@ export async function POST(req: NextRequest) {
     key,
     rolledBackTo: targetVersion.version,
     stepsBack: stepsBack,
-    previousContent: memory.content.slice(0, 200) + (memory.content.length > 200 ? "..." : ""),
-    restoredContent: targetVersion.content.slice(0, 200) + (targetVersion.content.length > 200 ? "..." : ""),
+    previousContent:
+      memory.content.slice(0, 200) + (memory.content.length > 200 ? "..." : ""),
+    restoredContent:
+      targetVersion.content.slice(0, 200) +
+      (targetVersion.content.length > 200 ? "..." : ""),
     newVersion: newVersionNum,
   });
 }

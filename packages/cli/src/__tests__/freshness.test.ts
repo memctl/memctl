@@ -9,15 +9,29 @@ vi.mock("../local-cache", () => {
   return {
     LocalCache: class {
       sync() {}
-      get() { return null; }
-      search() { return []; }
-      list() { return []; }
-      getByPath() { return null; }
-      isStale() { return true; }
+      get() {
+        return null;
+      }
+      search() {
+        return [];
+      }
+      list() {
+        return [];
+      }
+      getByPath() {
+        return null;
+      }
+      isStale() {
+        return true;
+      }
       queueWrite() {}
-      getPendingWrites() { return []; }
+      getPendingWrites() {
+        return [];
+      }
       clearPendingWrites() {}
-      getLastSyncAt() { return 0; }
+      getLastSyncAt() {
+        return 0;
+      }
     },
   };
 });
@@ -103,8 +117,11 @@ describe("ApiClient freshness tracking", () => {
     // Replace the in-memory cache with a very short TTL and no stale window
     // so the entry expires quickly and triggers a revalidation fetch
     const cacheModule = await import("../cache");
-    (client as unknown as { cache: InstanceType<typeof cacheModule.MemoryCache> }).cache =
-      new cacheModule.MemoryCache(10, 0); // 10ms TTL, 0ms stale window
+    (
+      client as unknown as {
+        cache: InstanceType<typeof cacheModule.MemoryCache>;
+      }
+    ).cache = new cacheModule.MemoryCache(10, 0); // 10ms TTL, 0ms stale window
 
     const data = { memory: { key: "k", content: "c" } };
 

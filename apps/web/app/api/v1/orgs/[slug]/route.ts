@@ -25,7 +25,10 @@ export async function GET(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [member] = await db
@@ -66,7 +69,10 @@ export async function PATCH(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   // Require owner or admin
@@ -82,7 +88,10 @@ export async function PATCH(
     .limit(1);
 
   if (!member || member.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const body = await req.json().catch(() => ({}));

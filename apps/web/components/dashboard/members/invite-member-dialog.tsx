@@ -52,7 +52,8 @@ export function InviteMemberDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [pendingInvitations, setPendingInvitations] = useState(initialInvitations);
+  const [pendingInvitations, setPendingInvitations] =
+    useState(initialInvitations);
   const [dailyUsed, setDailyUsed] = useState(initialDailyUsed);
 
   const handleInvite = async () => {
@@ -78,7 +79,9 @@ export function InviteMemberDialog({
 
       if (data.added) {
         // User already had an account and was directly added
-        setSuccess(`${data.invitation.email} has been added to the organization.`);
+        setSuccess(
+          `${data.invitation.email} has been added to the organization.`,
+        );
       } else {
         // Pending invitation created
         setPendingInvitations((prev) => [
@@ -109,7 +112,9 @@ export function InviteMemberDialog({
       });
 
       if (res.ok) {
-        setPendingInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+        setPendingInvitations((prev) =>
+          prev.filter((i) => i.id !== invitationId),
+        );
         toast.success("Invitation revoked");
         router.refresh();
       } else {
@@ -176,9 +181,7 @@ export function InviteMemberDialog({
             </select>
           </div>
 
-          {error && (
-            <p className="font-mono text-xs text-red-500">{error}</p>
-          )}
+          {error && <p className="font-mono text-xs text-red-500">{error}</p>}
 
           {success && (
             <p className="font-mono text-xs text-green-500">{success}</p>
@@ -186,7 +189,11 @@ export function InviteMemberDialog({
 
           <Button
             onClick={handleInvite}
-            disabled={loading || !email.trim() || (dailyLimit !== null && dailyUsed >= dailyLimit)}
+            disabled={
+              loading ||
+              !email.trim() ||
+              (dailyLimit !== null && dailyUsed >= dailyLimit)
+            }
             className="w-full bg-[#F97316] text-white hover:bg-[#EA580C]"
           >
             {loading ? "Inviting..." : "Send invitation"}
@@ -200,7 +207,7 @@ export function InviteMemberDialog({
 
           {pendingInvitations.length > 0 && (
             <div>
-              <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+              <p className="mb-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                 Pending invitations
               </p>
               <div className="space-y-1.5">
@@ -213,7 +220,7 @@ export function InviteMemberDialog({
                     <span className="flex-1 truncate font-mono text-xs text-[var(--landing-text-secondary)]">
                       {invite.email}
                     </span>
-                    <span className="shrink-0 rounded bg-[var(--landing-surface-2)] px-1.5 py-0.5 font-mono text-[9px] capitalize text-[var(--landing-text-tertiary)]">
+                    <span className="shrink-0 rounded bg-[var(--landing-surface-2)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--landing-text-tertiary)] capitalize">
                       {invite.role}
                     </span>
                     <span className="shrink-0 font-mono text-[9px] text-[#F97316]">
@@ -233,7 +240,8 @@ export function InviteMemberDialog({
           )}
 
           <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-            Invited users can sign in with GitHub. They&apos;ll be automatically added to this organization.
+            Invited users can sign in with GitHub. They&apos;ll be automatically
+            added to this organization.
           </p>
         </div>
       </DialogContent>

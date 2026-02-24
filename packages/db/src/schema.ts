@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, unique, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  unique,
+  index,
+} from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -6,7 +12,9 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   avatarUrl: text("avatar_url"),
   githubId: text("github_id").unique(),
-  onboardingCompleted: integer("onboarding_completed", { mode: "boolean" }).default(false),
+  onboardingCompleted: integer("onboarding_completed", {
+    mode: "boolean",
+  }).default(false),
   isAdmin: integer("is_admin", { mode: "boolean" }).default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -31,6 +39,47 @@ export const organizations = sqliteTable("organizations", {
   companyName: text("company_name"),
   taxId: text("tax_id"),
   billingAddress: text("billing_address"),
+  status: text("status").notNull().default("active"),
+  statusReason: text("status_reason"),
+  statusChangedAt: integer("status_changed_at", { mode: "timestamp" }),
+  statusChangedBy: text("status_changed_by"),
+  adminNotes: text("admin_notes"),
+  planOverride: text("plan_override"),
+  memoryLimitPerProject: integer("memory_limit_per_project"),
+  memoryLimitOrg: integer("memory_limit_org"),
+  apiRatePerMinute: integer("api_rate_per_minute"),
+  customLimits: integer("custom_limits", { mode: "boolean" }).default(false),
+  planExpiresAt: integer("plan_expires_at", { mode: "timestamp" }),
+  trialEndsAt: integer("trial_ends_at", { mode: "timestamp" }),
+  stripeMeteredItemId: text("stripe_metered_item_id"),
+  meteredBilling: integer("metered_billing", { mode: "boolean" }).default(
+    false,
+  ),
+  contractValue: integer("contract_value"),
+  contractNotes: text("contract_notes"),
+  contractStartDate: integer("contract_start_date", { mode: "timestamp" }),
+  contractEndDate: integer("contract_end_date", { mode: "timestamp" }),
+  planTemplateId: text("plan_template_id"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const planTemplates = sqliteTable("plan_templates", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  basePlanId: text("base_plan_id").notNull().default("enterprise"),
+  projectLimit: integer("project_limit").notNull(),
+  memberLimit: integer("member_limit").notNull(),
+  memoryLimitPerProject: integer("memory_limit_per_project").notNull(),
+  memoryLimitOrg: integer("memory_limit_org").notNull(),
+  apiRatePerMinute: integer("api_rate_per_minute").notNull(),
+  stripePriceInCents: integer("stripe_price_in_cents"),
+  isArchived: integer("is_archived", { mode: "boolean" }).default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -196,7 +245,11 @@ export const activityLogs = sqliteTable(
   },
   (table) => [
     index("activity_session_action").on(table.sessionId, table.action),
-    index("activity_project_action_created").on(table.projectId, table.action, table.createdAt),
+    index("activity_project_action_created").on(
+      table.projectId,
+      table.action,
+      table.createdAt,
+    ),
   ],
 );
 
@@ -438,8 +491,12 @@ export const promoCodes = sqliteTable(
     restrictedToOrgs: text("restricted_to_orgs"), // JSON array of org IDs, null = any org
     maxRedemptions: integer("max_redemptions"), // total cap, null = unlimited
     maxRedemptionsPerOrg: integer("max_redemptions_per_org").default(1),
-    firstSubscriptionOnly: integer("first_subscription_only", { mode: "boolean" }).default(false),
-    noPreviousPromo: integer("no_previous_promo", { mode: "boolean" }).default(false),
+    firstSubscriptionOnly: integer("first_subscription_only", {
+      mode: "boolean",
+    }).default(false),
+    noPreviousPromo: integer("no_previous_promo", { mode: "boolean" }).default(
+      false,
+    ),
     startsAt: integer("starts_at", { mode: "timestamp" }),
     expiresAt: integer("expires_at", { mode: "timestamp" }),
     active: integer("active", { mode: "boolean" }).default(true),
@@ -509,6 +566,27 @@ export const auditLogs = sqliteTable(
   (table) => [
     index("audit_org_created").on(table.orgId, table.createdAt),
     index("audit_project_created").on(table.projectId, table.createdAt),
+  ],
+);
+
+export const adminActions = sqliteTable(
+  "admin_actions",
+  {
+    id: text("id").primaryKey(),
+    orgId: text("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    adminId: text("admin_id")
+      .notNull()
+      .references(() => users.id),
+    action: text("action").notNull(),
+    details: text("details"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("admin_actions_org_created").on(table.orgId, table.createdAt),
   ],
 );
 

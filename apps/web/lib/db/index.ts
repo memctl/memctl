@@ -9,10 +9,7 @@ export function getDb(): Database {
       process.env.DATABASE_URL?.trim() ||
       "http://libsql:8080";
 
-    _db = createDb(
-      dbUrl,
-      process.env.TURSO_AUTH_TOKEN,
-    );
+    _db = createDb(dbUrl, process.env.TURSO_AUTH_TOKEN);
   }
   return _db;
 }

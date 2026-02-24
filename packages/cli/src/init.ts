@@ -5,11 +5,7 @@ import { resolve, join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { homedir } from "node:os";
-import {
-  loadConfig,
-  saveConfig,
-  type MemctlConfig,
-} from "./config.js";
+import { loadConfig, saveConfig, type MemctlConfig } from "./config.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -37,14 +33,20 @@ export async function runInit(flags: InitFlags): Promise<void> {
     let detectedProject = "";
     let detectedOrg = "";
     try {
-      const result = await execFileAsync("git", ["remote", "get-url", "origin"], { cwd: process.cwd() });
+      const result = await execFileAsync(
+        "git",
+        ["remote", "get-url", "origin"],
+        { cwd: process.cwd() },
+      );
       const url = result.stdout.trim();
       const match = url.match(/[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?$/);
       if (match) {
         detectedOrg = match[1]!;
         detectedProject = match[2]!;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // 2. API token
     const token = await rl.question("  API token: ");
@@ -68,14 +70,18 @@ export async function runInit(flags: InitFlags): Promise<void> {
       if (res.ok) {
         console.log("  Connected successfully.\n");
       } else {
-        console.warn(`  Warning: API returned ${res.status}. Continuing anyway.\n`);
+        console.warn(
+          `  Warning: API returned ${res.status}. Continuing anyway.\n`,
+        );
       }
     } catch {
       console.warn("  Warning: Could not reach API. Continuing anyway.\n");
     }
 
     // 5. Org slug
-    const orgPrompt = detectedOrg ? `  Organization slug [${detectedOrg}]: ` : "  Organization slug: ";
+    const orgPrompt = detectedOrg
+      ? `  Organization slug [${detectedOrg}]: `
+      : "  Organization slug: ";
     const orgInput = await rl.question(orgPrompt);
     const org = orgInput.trim() || detectedOrg;
     if (!org) {
@@ -84,7 +90,9 @@ export async function runInit(flags: InitFlags): Promise<void> {
     }
 
     // 6. Project slug
-    const projectPrompt = detectedProject ? `  Project slug [${detectedProject}]: ` : "  Project slug: ";
+    const projectPrompt = detectedProject
+      ? `  Project slug [${detectedProject}]: `
+      : "  Project slug: ";
     const projectInput = await rl.question(projectPrompt);
     const project = projectInput.trim() || detectedProject;
     if (!project) {
@@ -93,14 +101,23 @@ export async function runInit(flags: InitFlags): Promise<void> {
     }
 
     // 7. Save to config file
-    const config: MemctlConfig = (await loadConfig()) ?? { profiles: {}, projects: {} };
+    const config: MemctlConfig = (await loadConfig()) ?? {
+      profiles: {},
+      projects: {},
+    };
     config.profiles.default = { token, apiUrl };
-    config.projects[resolve(process.cwd())] = { org, project, profile: "default" };
+    config.projects[resolve(process.cwd())] = {
+      org,
+      project,
+      profile: "default",
+    };
     await saveConfig(config);
     console.log("  Config saved to ~/.memctl/config.json\n");
 
     // 8. Ask which IDE to configure
-    const ideInput = await rl.question("  Configure IDE? (claude/cursor/windsurf/all/none) [none]: ");
+    const ideInput = await rl.question(
+      "  Configure IDE? (claude/cursor/windsurf/all/none) [none]: ",
+    );
     const ide = ideInput.trim().toLowerCase() || "none";
 
     if (ide !== "none") {
@@ -144,10 +161,15 @@ async function resolveConfig(): Promise<ResolvedConfig | null> {
   };
 }
 
-async function writeIdeConfigs(flags: InitFlags, overrideConfig?: ResolvedConfig): Promise<void> {
+async function writeIdeConfigs(
+  flags: InitFlags,
+  overrideConfig?: ResolvedConfig,
+): Promise<void> {
   const config = overrideConfig ?? (await resolveConfig());
   if (!config) {
-    console.error("  No config found. Run `memctl init` first to set up credentials.");
+    console.error(
+      "  No config found. Run `memctl init` first to set up credentials.",
+    );
     process.exit(1);
   }
 
@@ -187,7 +209,11 @@ async function writeIdeConfigs(flags: InitFlags, overrideConfig?: ResolvedConfig
   }
 }
 
-async function writeJsonConfig(path: string, data: Record<string, unknown>, ideName: string): Promise<void> {
+async function writeJsonConfig(
+  path: string,
+  data: Record<string, unknown>,
+  ideName: string,
+): Promise<void> {
   const dir = join(path, "..");
   await mkdir(dir, { recursive: true });
 
@@ -196,7 +222,9 @@ async function writeJsonConfig(path: string, data: Record<string, unknown>, ideN
   try {
     const raw = await readFile(path, "utf-8");
     existing = JSON.parse(raw) as Record<string, unknown>;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   const merged = {
     ...existing,

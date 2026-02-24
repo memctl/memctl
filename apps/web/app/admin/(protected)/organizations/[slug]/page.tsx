@@ -6,13 +6,19 @@ import {
   projects,
   memories,
   organizationMembers,
+  planTemplates,
 } from "@memctl/db/schema";
 import { eq, count } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
-import type { PlanId } from "@memctl/shared/constants";
+import {
+  getEffectivePlanId,
+  getOrgLimits,
+  formatLimitValue,
+  clampLimit,
+  isActiveTrial,
+  daysUntilExpiry,
+} from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
-import { StatCard } from "@/components/dashboard/shared/stat-card";
-import { SectionLabel } from "@/components/dashboard/shared/section-label";
 import {
   Table,
   TableBody,
@@ -21,19 +27,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import {
-  FolderOpen,
-  Users as UsersIcon,
-  Brain,
-  CreditCard,
-} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { OrgActionsPanel } from "@/components/admin/org-actions-panel";
+import { OrgActionHistory } from "@/components/admin/org-action-history";
 
 export const dynamic = "force-dynamic";
+
+const roleBadgeStyles: Record<string, string> = {
+  owner: "bg-[#F97316]/10 text-[#F97316]",
+  admin: "bg-blue-500/10 text-blue-500",
+  member: "bg-[var(--landing-surface-2)] text-[var(--landing-text-secondary)]",
+};
 
 export default async function AdminOrgDetailPage({
   params,
@@ -50,22 +54,21 @@ export default async function AdminOrgDetailPage({
 
   if (!org) notFound();
 
-  const currentPlan = PLANS[org.planId as PlanId] ?? PLANS.free;
+  const effectivePlanId = getEffectivePlanId(org);
+  const currentPlan = PLANS[effectivePlanId] ?? PLANS.free;
+  const limits = getOrgLimits(org);
 
-  // Get owner
   const [owner] = await db
     .select()
     .from(users)
     .where(eq(users.id, org.ownerId))
     .limit(1);
 
-  // Get projects
   const projectList = await db
     .select()
     .from(projects)
     .where(eq(projects.orgId, org.id));
 
-  // Get members with user data
   const memberList = await db
     .select()
     .from(organizationMembers)
@@ -82,7 +85,6 @@ export default async function AdminOrgDetailPage({
     }),
   );
 
-  // Count memories
   let totalMemories = 0;
   for (const project of projectList) {
     const [result] = await db
@@ -92,51 +94,130 @@ export default async function AdminOrgDetailPage({
     totalMemories += result?.value ?? 0;
   }
 
+  const templatesList = await db
+    .select({ id: planTemplates.id, name: planTemplates.name })
+    .from(planTemplates)
+    .where(eq(planTemplates.isArchived, false));
+
+  const statusBadgeStyles: Record<string, string> = {
+    active: "text-emerald-500",
+    suspended: "text-amber-500",
+    banned: "text-red-500",
+  };
+
+  const trialActive = isActiveTrial(org);
+  const remainingDays = daysUntilExpiry(org);
+
+  const stats: {
+    label: string;
+    value: string;
+    className?: string;
+    sub?: string;
+  }[] = [
+    {
+      label: "Status",
+      value: org.status,
+      className: statusBadgeStyles[org.status] ?? "",
+    },
+    {
+      label: "Projects",
+      value: `${projectList.length} / ${formatLimitValue(limits.projectLimit)}`,
+    },
+    {
+      label: "Members",
+      value: `${memberList.length} / ${formatLimitValue(limits.memberLimit)}`,
+    },
+    { label: "Memories", value: totalMemories.toLocaleString() },
+    {
+      label: "Plan",
+      value: currentPlan.name,
+      sub: org.planOverride
+        ? `Override (Stripe: ${org.planId})`
+        : currentPlan.price === -1
+          ? "Custom"
+          : `$${currentPlan.price}/mo`,
+    },
+  ];
+
+  if (trialActive && remainingDays !== null) {
+    stats.push({
+      label: "Trial",
+      value: `${remainingDays}d left`,
+      className: "text-amber-500",
+    });
+  }
+
+  if (org.contractValue !== null) {
+    stats.push({
+      label: "Contract",
+      value: `$${(org.contractValue / 100).toLocaleString()}/yr`,
+    });
+  }
+
   return (
     <div>
       <PageHeader
         badge="Organization"
         title={org.name}
-        description={`Slug: ${org.slug} · Owner: ${owner?.name ?? "Unknown"}`}
+        description={`Slug: ${org.slug} / Owner: ${owner?.name ?? "Unknown"}`}
       />
 
-      {/* Stat cards */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={FolderOpen}
-          label="Projects"
-          value={`${projectList.length} / ${currentPlan.projectLimit === Infinity ? "∞" : currentPlan.projectLimit}`}
-        />
-        <StatCard
-          icon={UsersIcon}
-          label="Members"
-          value={`${memberList.length} / ${currentPlan.memberLimit === Infinity ? "∞" : currentPlan.memberLimit}`}
-        />
-        <StatCard
-          icon={Brain}
-          label="Total Memories"
-          value={totalMemories.toLocaleString()}
-        />
-        <StatCard
-          icon={CreditCard}
-          label="Plan"
-          value={currentPlan.name}
-          trend={currentPlan.price === -1 ? "Custom" : `$${currentPlan.price}/mo`}
-        />
+      {org.status !== "active" && (
+        <div
+          className={`mb-4 rounded-md px-4 py-3 font-mono text-[11px] ${
+            org.status === "banned"
+              ? "border border-red-500/20 bg-red-500/10 text-red-500"
+              : "border border-amber-500/20 bg-amber-500/10 text-amber-500"
+          }`}
+        >
+          This organization is {org.status}.
+          {org.statusReason && ` Reason: ${org.statusReason}`}
+        </div>
+      )}
+
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {stats.map((s) => (
+          <div key={s.label} className="dash-card p-3">
+            <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+              {s.label}
+            </span>
+            <span
+              className={`block text-lg font-semibold capitalize ${
+                "className" in s && s.className
+                  ? s.className
+                  : "text-[var(--landing-text)]"
+              }`}
+            >
+              {s.value}
+            </span>
+            {"sub" in s && s.sub && (
+              <span className="block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                {s.sub}
+              </span>
+            )}
+          </div>
+        ))}
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* Members */}
-        <div>
-          <SectionLabel>Members</SectionLabel>
-          <div className="dash-card mt-3 overflow-hidden">
+        <div className="dash-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
+            <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+              Members
+            </span>
+            <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              {memberUsers.length}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Member
                   </TableHead>
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Role
                   </TableHead>
                 </TableRow>
@@ -151,6 +232,8 @@ export default async function AdminOrgDetailPage({
                         .toUpperCase()
                         .slice(0, 2)
                     : "?";
+                  const badgeStyle =
+                    roleBadgeStyles[member.role] ?? roleBadgeStyles.member;
                   return (
                     <TableRow
                       key={member.id}
@@ -179,8 +262,12 @@ export default async function AdminOrgDetailPage({
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs capitalize text-[var(--landing-text-secondary)]">
-                        {member.role}
+                      <TableCell>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${badgeStyle}`}
+                        >
+                          {member.role}
+                        </span>
                       </TableCell>
                     </TableRow>
                   );
@@ -191,16 +278,23 @@ export default async function AdminOrgDetailPage({
         </div>
 
         {/* Projects */}
-        <div>
-          <SectionLabel>Projects</SectionLabel>
-          <div className="dash-card mt-3 overflow-hidden">
+        <div className="dash-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
+            <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+              Projects
+            </span>
+            <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              {projectList.length}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Project
                   </TableHead>
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Created
                   </TableHead>
                 </TableRow>
@@ -239,6 +333,57 @@ export default async function AdminOrgDetailPage({
             </Table>
           </div>
         </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <OrgActionsPanel
+          org={{
+            slug: org.slug,
+            status: org.status,
+            statusReason: org.statusReason,
+            statusChangedAt: org.statusChangedAt?.toISOString() ?? null,
+            planId: org.planId,
+            planOverride: org.planOverride,
+            projectLimit: org.projectLimit,
+            memberLimit: org.memberLimit,
+            memoryLimitPerProject: org.memoryLimitPerProject,
+            memoryLimitOrg: org.memoryLimitOrg,
+            apiRatePerMinute: org.apiRatePerMinute,
+            customLimits: org.customLimits,
+            ownerId: org.ownerId,
+            adminNotes: org.adminNotes,
+            planDefaultProjectLimit:
+              currentPlan.projectLimit === Infinity
+                ? 999999
+                : currentPlan.projectLimit,
+            planDefaultMemberLimit:
+              currentPlan.memberLimit === Infinity
+                ? 999999
+                : currentPlan.memberLimit,
+            planDefaultMemoryPerProject: clampLimit(
+              currentPlan.memoryLimitPerProject,
+            ),
+            planDefaultMemoryOrg: clampLimit(currentPlan.memoryLimitOrg),
+            planDefaultApiRate: clampLimit(currentPlan.apiRatePerMinute),
+            trialEndsAt: org.trialEndsAt?.toISOString() ?? null,
+            planExpiresAt: org.planExpiresAt?.toISOString() ?? null,
+            stripeSubscriptionId: org.stripeSubscriptionId,
+            stripeCustomerId: org.stripeCustomerId,
+            contractValue: org.contractValue,
+            contractNotes: org.contractNotes,
+            contractStartDate: org.contractStartDate?.toISOString() ?? null,
+            contractEndDate: org.contractEndDate?.toISOString() ?? null,
+            planTemplateId: org.planTemplateId,
+          }}
+          members={memberUsers.map((m) => ({
+            userId: m.userId,
+            name: m.user?.name ?? "Unknown",
+            email: m.user?.email ?? "",
+            role: m.role,
+          }))}
+          templates={templatesList}
+        />
+        <OrgActionHistory orgSlug={org.slug} />
       </div>
     </div>
   );

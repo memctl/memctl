@@ -70,12 +70,15 @@ function highlightLine(line: string, lang: Lang): ReactNode[] {
   // Handle full-line comments
   if (
     (lang !== "CLI" && remaining.trimStart().startsWith("//")) ||
-    ((lang === "Python" || lang === "CLI") && remaining.trimStart().startsWith("#"))
+    ((lang === "Python" || lang === "CLI") &&
+      remaining.trimStart().startsWith("#"))
   ) {
     const indent = remaining.length - remaining.trimStart().length;
     return [
       <span key={0}>{remaining.slice(0, indent)}</span>,
-      <span key={1} className="text-[var(--landing-text-tertiary)]">{remaining.slice(indent)}</span>,
+      <span key={1} className="text-[var(--landing-text-tertiary)]">
+        {remaining.slice(indent)}
+      </span>,
     ];
   }
 
@@ -84,7 +87,9 @@ function highlightLine(line: string, lang: Lang): ReactNode[] {
     const indent = remaining.length - remaining.trimStart().length;
     return [
       <span key={0}>{remaining.slice(0, indent)}</span>,
-      <span key={1} className="text-[#F97316]">$</span>,
+      <span key={1} className="text-[#F97316]">
+        $
+      </span>,
       <span key={2}>{remaining.slice(indent + 1)}</span>,
     ];
   }
@@ -93,25 +98,50 @@ function highlightLine(line: string, lang: Lang): ReactNode[] {
     // Strings
     const strMatch = remaining.match(/^(["'`])(?:(?!\1|\\).|\\.)*\1/);
     if (strMatch) {
-      parts.push(<span key={key++} className="text-[#4ADE80]">{strMatch[0]}</span>);
+      parts.push(
+        <span key={key++} className="text-[#4ADE80]">
+          {strMatch[0]}
+        </span>,
+      );
       remaining = remaining.slice(strMatch[0].length);
       continue;
     }
 
     // Keywords
     const kwMatch = remaining.match(
-      /^(import|from|export|const|let|var|await|async|new|return|function|def|class|package|func|main|type|if|else|for|range|nil|true|false|null|undefined)\b/
+      /^(import|from|export|const|let|var|await|async|new|return|function|def|class|package|func|main|type|if|else|for|range|nil|true|false|null|undefined)\b/,
     );
     if (kwMatch) {
-      parts.push(<span key={key++} className="text-[#F97316]">{kwMatch[0]}</span>);
+      parts.push(
+        <span key={key++} className="text-[#F97316]">
+          {kwMatch[0]}
+        </span>,
+      );
       remaining = remaining.slice(kwMatch[0].length);
       continue;
     }
 
     // Function-like calls
     const fnMatch = remaining.match(/^([A-Z]\w*|\w+)(?=\s*[({])/);
-    if (fnMatch && !["if", "for", "while", "else", "import", "from", "new", "return", "package"].includes(fnMatch[1])) {
-      parts.push(<span key={key++} className="text-[#60A5FA]">{fnMatch[0]}</span>);
+    if (
+      fnMatch &&
+      ![
+        "if",
+        "for",
+        "while",
+        "else",
+        "import",
+        "from",
+        "new",
+        "return",
+        "package",
+      ].includes(fnMatch[1])
+    ) {
+      parts.push(
+        <span key={key++} className="text-[#60A5FA]">
+          {fnMatch[0]}
+        </span>,
+      );
       remaining = remaining.slice(fnMatch[0].length);
       continue;
     }
@@ -120,7 +150,11 @@ function highlightLine(line: string, lang: Lang): ReactNode[] {
     const methodMatch = remaining.match(/^\.(\w+)(?=\s*\()/);
     if (methodMatch) {
       parts.push(<span key={key++}>.</span>);
-      parts.push(<span key={key++} className="text-[#60A5FA]">{methodMatch[1]}</span>);
+      parts.push(
+        <span key={key++} className="text-[#60A5FA]">
+          {methodMatch[1]}
+        </span>,
+      );
       remaining = remaining.slice(methodMatch[0].length);
       continue;
     }
@@ -154,7 +188,7 @@ export function CodeTabs() {
           >
             {lang}
             {active === lang && (
-              <span className="absolute bottom-0 left-2 right-2 h-px bg-[#F97316]" />
+              <span className="absolute right-2 bottom-0 left-2 h-px bg-[#F97316]" />
             )}
           </button>
         ))}
@@ -166,7 +200,7 @@ export function CodeTabs() {
           <pre className="font-mono text-[13px] leading-relaxed">
             {lines.map((line, i) => (
               <div key={`${active}-${i}`} className="flex">
-                <span className="mr-6 inline-block w-5 shrink-0 select-none text-right tabular-nums text-[var(--landing-text-tertiary)]">
+                <span className="mr-6 inline-block w-5 shrink-0 text-right text-[var(--landing-text-tertiary)] tabular-nums select-none">
                   {i + 1}
                 </span>
                 <span className="text-[var(--landing-text)]">
@@ -177,7 +211,6 @@ export function CodeTabs() {
           </pre>
         </div>
       </div>
-
     </div>
   );
 }

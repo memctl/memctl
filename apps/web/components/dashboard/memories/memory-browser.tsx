@@ -8,24 +8,62 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Popover, PopoverContent, PopoverTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Search, Eye, Pencil, Trash2, Archive, ArchiveRestore, History, Download, Upload,
-  ChevronDown, ChevronUp, Star, Pin, Filter, X, CheckCheck,
-  ArrowUpDown, Keyboard, Loader2, AlertTriangle,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Search,
+  Eye,
+  Pencil,
+  Trash2,
+  Archive,
+  ArchiveRestore,
+  History,
+  Download,
+  Upload,
+  ChevronDown,
+  ChevronUp,
+  Star,
+  Pin,
+  Filter,
+  X,
+  CheckCheck,
+  ArrowUpDown,
+  Keyboard,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -74,7 +112,10 @@ interface ConfirmAction {
 
 const AGENT_CONTEXT_TYPES: Record<string, { label: string; prefix: string }> = {
   coding_style: { label: "Style", prefix: "agent/context/coding_style/" },
-  folder_structure: { label: "Folders", prefix: "agent/context/folder_structure/" },
+  folder_structure: {
+    label: "Folders",
+    prefix: "agent/context/folder_structure/",
+  },
   file_map: { label: "Files", prefix: "agent/context/file_map/" },
   architecture: { label: "Arch", prefix: "agent/context/architecture/" },
   workflow: { label: "Workflow", prefix: "agent/context/workflow/" },
@@ -133,18 +174,31 @@ function computeRelevance(m: MemoryItem): number {
     ? (Date.now() - new Date(m.lastAccessedAt).getTime()) / 86_400_000
     : (Date.now() - new Date(m.updatedAt).getTime()) / 86_400_000;
   const timeFactor = Math.exp(-0.03 * Math.max(daysSinceAccess, 0));
-  const helpful = (m.helpfulCount ?? 0);
-  const unhelpful = (m.unhelpfulCount ?? 0);
-  const feedbackFactor = helpful + unhelpful > 0 ? (1 + helpful) / (1 + helpful + unhelpful) : 1;
+  const helpful = m.helpfulCount ?? 0;
+  const unhelpful = m.unhelpfulCount ?? 0;
+  const feedbackFactor =
+    helpful + unhelpful > 0 ? (1 + helpful) / (1 + helpful + unhelpful) : 1;
   const pinBoost = m.pinnedAt ? 1.5 : 1;
-  const raw = basePriority * usageFactor * timeFactor * feedbackFactor * pinBoost * 100;
+  const raw =
+    basePriority * usageFactor * timeFactor * feedbackFactor * pinBoost * 100;
   return Math.min(100, Math.max(0, Math.round(raw * 100) / 100));
 }
 
-function getRelevanceBucket(score: number): { label: string; color: string; bg: string } {
-  if (score >= 60) return { label: "HIGH", color: "text-emerald-400", bg: "bg-emerald-500/20" };
-  if (score >= 30) return { label: "MED", color: "text-amber-400", bg: "bg-amber-500/20" };
-  if (score >= 10) return { label: "LOW", color: "text-orange-400", bg: "bg-orange-500/20" };
+function getRelevanceBucket(score: number): {
+  label: string;
+  color: string;
+  bg: string;
+} {
+  if (score >= 60)
+    return {
+      label: "HIGH",
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/20",
+    };
+  if (score >= 30)
+    return { label: "MED", color: "text-amber-400", bg: "bg-amber-500/20" };
+  if (score >= 10)
+    return { label: "LOW", color: "text-orange-400", bg: "bg-orange-500/20" };
   return { label: "STALE", color: "text-red-400", bg: "bg-red-500/20" };
 }
 
@@ -166,8 +220,13 @@ function ConfirmDialog({
   };
 
   return (
-    <Dialog open={!!action} onOpenChange={() => { if (!loading) onClose(); }}>
-      <DialogContent className="max-w-sm bg-[var(--landing-surface)] border-[var(--landing-border)]">
+    <Dialog
+      open={!!action}
+      onOpenChange={() => {
+        if (!loading) onClose();
+      }}
+    >
+      <DialogContent className="max-w-sm border-[var(--landing-border)] bg-[var(--landing-surface)]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
             {action.variant === "destructive" && (
@@ -217,11 +276,17 @@ function ConfirmDialog({
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: MemoryBrowserProps) {
+export function MemoryBrowser({
+  memories: memoriesProp,
+  orgSlug,
+  projectSlug,
+}: MemoryBrowserProps) {
   const router = useRouter();
 
   // Optimistic local overrides (cleared when server props arrive)
-  const [localOverrides, setLocalOverrides] = useState<Map<string, Partial<MemoryItem>>>(new Map());
+  const [localOverrides, setLocalOverrides] = useState<
+    Map<string, Partial<MemoryItem>>
+  >(new Map());
   const prevMemoriesRef = useRef(memoriesProp);
   useEffect(() => {
     if (prevMemoriesRef.current !== memoriesProp) {
@@ -243,7 +308,9 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
   const [activeTab, setActiveTab] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
   const [selectedMemory, setSelectedMemory] = useState<MemoryItem | null>(null);
-  const [viewMode, setViewMode] = useState<"view" | "edit" | "history" | null>(null);
+  const [viewMode, setViewMode] = useState<"view" | "edit" | "history" | null>(
+    null,
+  );
   const [editContent, setEditContent] = useState("");
   const [versions, setVersions] = useState<MemoryVersion[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
@@ -258,12 +325,16 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
   // Advanced filters
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterTag, setFilterTag] = useState<string>("");
-  const [filterPriorityRange, setFilterPriorityRange] = useState<[number, number]>([0, 100]);
+  const [filterPriorityRange, setFilterPriorityRange] = useState<
+    [number, number]
+  >([0, 100]);
   const [filterRelevance, setFilterRelevance] = useState<string>("all");
   const [filterPinned, setFilterPinned] = useState<string>("all");
 
   // Confirmation dialog
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(
+    null,
+  );
 
   // Keyboard shortcuts
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -299,8 +370,11 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
       const count = items.filter((m) => showArchived || !m.archivedAt).length;
       if (count > 0) tabs.push({ id: type, label: info.label, count });
     }
-    const otherCount = (grouped["other"] ?? []).filter((m) => showArchived || !m.archivedAt).length;
-    if (otherCount > 0) tabs.push({ id: "other", label: "Custom", count: otherCount });
+    const otherCount = (grouped["other"] ?? []).filter(
+      (m) => showArchived || !m.archivedAt,
+    ).length;
+    if (otherCount > 0)
+      tabs.push({ id: "other", label: "Custom", count: otherCount });
     return tabs;
   }, [grouped, showArchived]);
 
@@ -312,10 +386,11 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
 
     if (search) {
       const q = search.toLowerCase();
-      items = items.filter((m) =>
-        m.key.toLowerCase().includes(q) ||
-        m.content.toLowerCase().includes(q) ||
-        parseTags(m.tags).some((t) => t.toLowerCase().includes(q)),
+      items = items.filter(
+        (m) =>
+          m.key.toLowerCase().includes(q) ||
+          m.content.toLowerCase().includes(q) ||
+          parseTags(m.tags).some((t) => t.toLowerCase().includes(q)),
       );
     }
 
@@ -332,11 +407,16 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
       items = items.filter((m) => {
         const score = computeRelevance(m);
         switch (filterRelevance) {
-          case "high": return score >= 60;
-          case "medium": return score >= 30 && score < 60;
-          case "low": return score >= 10 && score < 30;
-          case "stale": return score < 10;
-          default: return true;
+          case "high":
+            return score >= 60;
+          case "medium":
+            return score >= 30 && score < 60;
+          case "low":
+            return score >= 10 && score < 30;
+          case "stale":
+            return score < 10;
+          default:
+            return true;
         }
       });
     }
@@ -346,35 +426,70 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
     items = [...items].sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
-        case "key": cmp = a.key.localeCompare(b.key); break;
-        case "priority": cmp = (a.priority ?? 0) - (b.priority ?? 0); break;
-        case "updated": cmp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(); break;
-        case "relevance": cmp = computeRelevance(a) - computeRelevance(b); break;
-        case "accessCount": cmp = (a.accessCount ?? 0) - (b.accessCount ?? 0); break;
+        case "key":
+          cmp = a.key.localeCompare(b.key);
+          break;
+        case "priority":
+          cmp = (a.priority ?? 0) - (b.priority ?? 0);
+          break;
+        case "updated":
+          cmp =
+            new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+          break;
+        case "relevance":
+          cmp = computeRelevance(a) - computeRelevance(b);
+          break;
+        case "accessCount":
+          cmp = (a.accessCount ?? 0) - (b.accessCount ?? 0);
+          break;
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
 
     return items;
-  }, [memories, grouped, activeTab, showArchived, search, sortField, sortDir, filterTag, filterPriorityRange, filterRelevance, filterPinned]);
+  }, [
+    memories,
+    grouped,
+    activeTab,
+    showArchived,
+    search,
+    sortField,
+    sortDir,
+    filterTag,
+    filterPriorityRange,
+    filterRelevance,
+    filterPinned,
+  ]);
 
   // Keyboard navigation
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      )
+        return;
       if (confirmAction) return;
 
       switch (e.key) {
-        case "j": e.preventDefault(); setFocusedIndex((i) => Math.min(i + 1, filteredMemories.length - 1)); break;
-        case "k": e.preventDefault(); setFocusedIndex((i) => Math.max(i - 1, 0)); break;
+        case "j":
+          e.preventDefault();
+          setFocusedIndex((i) => Math.min(i + 1, filteredMemories.length - 1));
+          break;
+        case "k":
+          e.preventDefault();
+          setFocusedIndex((i) => Math.max(i - 1, 0));
+          break;
         case " ": {
           e.preventDefault();
           if (focusedIndex >= 0 && focusedIndex < filteredMemories.length) {
             const m = filteredMemories[focusedIndex];
             setSelectedIds((prev) => {
               const next = new Set(prev);
-              if (next.has(m.id)) next.delete(m.id); else next.add(m.id);
+              if (next.has(m.id)) next.delete(m.id);
+              else next.add(m.id);
               return next;
             });
           }
@@ -442,23 +557,35 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
   // Scroll focused row into view
   useEffect(() => {
     if (focusedIndex >= 0) {
-      const row = tableRef.current?.querySelector(`[data-row-index="${focusedIndex}"]`);
+      const row = tableRef.current?.querySelector(
+        `[data-row-index="${focusedIndex}"]`,
+      );
       row?.scrollIntoView({ block: "nearest" });
     }
   }, [focusedIndex]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortField(field); setSortDir("desc"); }
+    else {
+      setSortField(field);
+      setSortDir("desc");
+    }
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="inline h-2.5 w-2.5 opacity-30" />;
-    return sortDir === "desc" ? <ChevronDown className="inline h-3 w-3 text-[#F97316]" /> : <ChevronUp className="inline h-3 w-3 text-[#F97316]" />;
+    if (sortField !== field)
+      return <ArrowUpDown className="inline h-2.5 w-2.5 opacity-30" />;
+    return sortDir === "desc" ? (
+      <ChevronDown className="inline h-3 w-3 text-[#F97316]" />
+    ) : (
+      <ChevronUp className="inline h-3 w-3 text-[#F97316]" />
+    );
   };
 
   // Selection helpers
-  const allSelected = filteredMemories.length > 0 && filteredMemories.every((m) => selectedIds.has(m.id));
+  const allSelected =
+    filteredMemories.length > 0 &&
+    filteredMemories.every((m) => selectedIds.has(m.id));
   const someSelected = selectedIds.size > 0;
 
   const toggleAll = () => {
@@ -469,7 +596,8 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
   const toggleOne = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -483,12 +611,20 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
 
   const refresh = () => router.refresh();
 
-  const openView = (m: MemoryItem) => { setSelectedMemory(m); setViewMode("view"); };
+  const openView = (m: MemoryItem) => {
+    setSelectedMemory(m);
+    setViewMode("view");
+  };
 
   const openHistory = async (m: MemoryItem) => {
-    setSelectedMemory(m); setViewMode("history"); setLoadingVersions(true);
+    setSelectedMemory(m);
+    setViewMode("history");
+    setLoadingVersions(true);
     try {
-      const res = await fetch(`/api/v1/memories/versions?key=${encodeURIComponent(m.key)}`, { headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug } });
+      const res = await fetch(
+        `/api/v1/memories/versions?key=${encodeURIComponent(m.key)}`,
+        { headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug } },
+      );
       if (res.ok) {
         const data = await res.json();
         setVersions(data.versions ?? []);
@@ -507,7 +643,14 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
     if (!selectedMemory) return;
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/v1/memories/${encodeURIComponent(selectedMemory.key)}`, { method: "PATCH", headers: apiHeaders, body: JSON.stringify({ content: editContent }) });
+      const res = await fetch(
+        `/api/v1/memories/${encodeURIComponent(selectedMemory.key)}`,
+        {
+          method: "PATCH",
+          headers: apiHeaders,
+          body: JSON.stringify({ content: editContent }),
+        },
+      );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error ?? `Failed to save (${res.status})`);
@@ -520,7 +663,11 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
         next.set(selectedMemory.id, { content: editContent, updatedAt: now });
         return next;
       });
-      setSelectedMemory({ ...selectedMemory, content: editContent, updatedAt: now });
+      setSelectedMemory({
+        ...selectedMemory,
+        content: editContent,
+        updatedAt: now,
+      });
       setViewMode(null);
       toast.success("Memory saved");
       refresh();
@@ -532,7 +679,6 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
 
   // Confirmed actions
 
-
   const requestArchive = (m: MemoryItem, archive: boolean) => {
     setConfirmAction({
       title: archive ? "Archive memory" : "Restore memory",
@@ -543,10 +689,17 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
       onConfirm: async () => {
         setActionLoading(true);
         try {
-          const res = await fetch("/api/v1/memories/archive", { method: "POST", headers: apiHeaders, body: JSON.stringify({ key: m.key, archive }) });
+          const res = await fetch("/api/v1/memories/archive", {
+            method: "POST",
+            headers: apiHeaders,
+            body: JSON.stringify({ key: m.key, archive }),
+          });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            toast.error(data.error ?? `Failed to ${archive ? "archive" : "restore"} (${res.status})`);
+            toast.error(
+              data.error ??
+                `Failed to ${archive ? "archive" : "restore"} (${res.status})`,
+            );
           } else {
             toast.success(archive ? "Memory archived" : "Memory restored");
           }
@@ -568,7 +721,13 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
       onConfirm: async () => {
         setActionLoading(true);
         try {
-          const res = await fetch(`/api/v1/memories/${encodeURIComponent(m.key)}`, { method: "DELETE", headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug } });
+          const res = await fetch(
+            `/api/v1/memories/${encodeURIComponent(m.key)}`,
+            {
+              method: "DELETE",
+              headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug },
+            },
+          );
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
             toast.error(data.error ?? `Failed to delete (${res.status})`);
@@ -596,10 +755,17 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
       onConfirm: async () => {
         setActionLoading(true);
         try {
-          const res = await fetch("/api/v1/memories/pin", { method: "POST", headers: apiHeaders, body: JSON.stringify({ key: m.key, pin }) });
+          const res = await fetch("/api/v1/memories/pin", {
+            method: "POST",
+            headers: apiHeaders,
+            body: JSON.stringify({ key: m.key, pin }),
+          });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            toast.error(data.error ?? `Failed to ${pin ? "pin" : "unpin"} (${res.status})`);
+            toast.error(
+              data.error ??
+                `Failed to ${pin ? "pin" : "unpin"} (${res.status})`,
+            );
           } else {
             toast.success(pin ? "Memory pinned" : "Memory unpinned");
           }
@@ -632,11 +798,25 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
           const m = memories.find((mem) => mem.id === id);
           if (!m) continue;
           try {
-            const res = await fetch(`/api/v1/memories/${encodeURIComponent(m.key)}`, { method: "DELETE", headers: { "X-Org-Slug": orgSlug, "X-Project-Slug": projectSlug } });
+            const res = await fetch(
+              `/api/v1/memories/${encodeURIComponent(m.key)}`,
+              {
+                method: "DELETE",
+                headers: {
+                  "X-Org-Slug": orgSlug,
+                  "X-Project-Slug": projectSlug,
+                },
+              },
+            );
             if (!res.ok) failed++;
-          } catch { failed++; }
+          } catch {
+            failed++;
+          }
         }
-        if (failed > 0) toast.error(`Failed to delete ${failed} of ${selectedIds.size} memories`);
+        if (failed > 0)
+          toast.error(
+            `Failed to delete ${failed} of ${selectedIds.size} memories`,
+          );
         else toast.success(`Deleted ${selectedIds.size} memories`);
         setConfirmAction(null);
         setSelectedIds(new Set());
@@ -658,11 +838,20 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
           const m = memories.find((mem) => mem.id === id);
           if (!m) continue;
           try {
-            const res = await fetch("/api/v1/memories/archive", { method: "POST", headers: apiHeaders, body: JSON.stringify({ key: m.key, archive: true }) });
+            const res = await fetch("/api/v1/memories/archive", {
+              method: "POST",
+              headers: apiHeaders,
+              body: JSON.stringify({ key: m.key, archive: true }),
+            });
             if (!res.ok) failed++;
-          } catch { failed++; }
+          } catch {
+            failed++;
+          }
         }
-        if (failed > 0) toast.error(`Failed to archive ${failed} of ${selectedIds.size} memories`);
+        if (failed > 0)
+          toast.error(
+            `Failed to archive ${failed} of ${selectedIds.size} memories`,
+          );
         else toast.success(`Archived ${selectedIds.size} memories`);
         setConfirmAction(null);
         setSelectedIds(new Set());
@@ -674,13 +863,20 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
 
   const handleExport = () => {
     const data = filteredMemories.map((m) => ({
-      key: m.key, content: m.content, metadata: m.metadata ? JSON.parse(m.metadata) : null,
-      priority: m.priority, tags: parseTags(m.tags),
+      key: m.key,
+      content: m.content,
+      metadata: m.metadata ? JSON.parse(m.metadata) : null,
+      priority: m.priority,
+      tags: parseTags(m.tags),
     }));
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `memories-${projectSlug}.json`; a.click();
+    a.href = url;
+    a.download = `memories-${projectSlug}.json`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -689,7 +885,13 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
     if (!file) return;
     const text = await file.text();
     try {
-      const data = JSON.parse(text) as Array<{ key: string; content: string; metadata?: Record<string, unknown>; priority?: number; tags?: string[] }>;
+      const data = JSON.parse(text) as Array<{
+        key: string;
+        content: string;
+        metadata?: Record<string, unknown>;
+        priority?: number;
+        tags?: string[];
+      }>;
       setConfirmAction({
         title: `Import ${data.length} memories`,
         description: `Import ${data.length} memories from "${file.name}"? Existing keys will be overwritten.`,
@@ -699,11 +901,20 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
           let failed = 0;
           for (const item of data) {
             try {
-              const res = await fetch("/api/v1/memories", { method: "POST", headers: apiHeaders, body: JSON.stringify(item) });
+              const res = await fetch("/api/v1/memories", {
+                method: "POST",
+                headers: apiHeaders,
+                body: JSON.stringify(item),
+              });
               if (!res.ok) failed++;
-            } catch { failed++; }
+            } catch {
+              failed++;
+            }
           }
-          if (failed > 0) toast.error(`Failed to import ${failed} of ${data.length} memories`);
+          if (failed > 0)
+            toast.error(
+              `Failed to import ${failed} of ${data.length} memories`,
+            );
           else toast.success(`Imported ${data.length} memories`);
           setConfirmAction(null);
           setActionLoading(false);
@@ -725,7 +936,10 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
   ].reduce((a, b) => a + b, 0);
 
   const clearFilters = () => {
-    setFilterTag(""); setFilterPriorityRange([0, 100]); setFilterRelevance("all"); setFilterPinned("all");
+    setFilterTag("");
+    setFilterPriorityRange([0, 100]);
+    setFilterRelevance("all");
+    setFilterPinned("all");
   };
 
   // Stats
@@ -743,7 +957,14 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
 
   const totalActive = memories.filter((m) => !m.archivedAt).length;
   const totalArchived = memories.filter((m) => m.archivedAt).length;
-  const avgPriority = totalActive > 0 ? Math.round(memories.filter((m) => !m.archivedAt).reduce((sum, m) => sum + (m.priority ?? 0), 0) / totalActive) : 0;
+  const avgPriority =
+    totalActive > 0
+      ? Math.round(
+          memories
+            .filter((m) => !m.archivedAt)
+            .reduce((sum, m) => sum + (m.priority ?? 0), 0) / totalActive,
+        )
+      : 0;
   const totalPinned = memories.filter((m) => m.pinnedAt).length;
 
   const sortLabel: Record<SortField, string> = {
@@ -760,48 +981,90 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
         {/* Stats bar */}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5">
-            <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">Active</span>
-            <span className="font-mono text-[11px] font-bold text-[var(--landing-text)]">{totalActive}</span>
+            <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+              Active
+            </span>
+            <span className="font-mono text-[11px] font-bold text-[var(--landing-text)]">
+              {totalActive}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5">
-            <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">Archived</span>
-            <span className="font-mono text-[11px] font-bold text-[var(--landing-text-tertiary)]">{totalArchived}</span>
+            <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+              Archived
+            </span>
+            <span className="font-mono text-[11px] font-bold text-[var(--landing-text-tertiary)]">
+              {totalArchived}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5">
             <Pin className="h-3 w-3 text-[#F97316]" />
-            <span className="font-mono text-[11px] font-bold text-[var(--landing-text)]">{totalPinned}</span>
+            <span className="font-mono text-[11px] font-bold text-[var(--landing-text)]">
+              {totalPinned}
+            </span>
           </div>
           <div className="hidden items-center gap-1.5 rounded-md bg-[var(--landing-surface-2)] px-2.5 py-1.5 sm:flex">
-            <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">Avg Pri</span>
-            <span className="font-mono text-[11px] font-bold text-[#F97316]">{avgPriority}</span>
+            <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+              Avg Pri
+            </span>
+            <span className="font-mono text-[11px] font-bold text-[#F97316]">
+              {avgPriority}
+            </span>
           </div>
           <div className="hidden h-4 w-px bg-[var(--landing-border)] md:block" />
           {/* Relevance distribution */}
           <div className="hidden items-center gap-1 md:flex">
-            <Tooltip><TooltipTrigger asChild>
-              <div className="flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-1">
-                <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="font-mono text-[10px] text-emerald-400">{relevanceDistribution.high}</span>
-              </div>
-            </TooltipTrigger><TooltipContent side="bottom">High relevance (60+)</TooltipContent></Tooltip>
-            <Tooltip><TooltipTrigger asChild>
-              <div className="flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-1">
-                <div className="h-2 w-2 rounded-full bg-amber-500" />
-                <span className="font-mono text-[10px] text-amber-400">{relevanceDistribution.medium}</span>
-              </div>
-            </TooltipTrigger><TooltipContent side="bottom">Medium relevance (30-59)</TooltipContent></Tooltip>
-            <Tooltip><TooltipTrigger asChild>
-              <div className="flex items-center gap-1 rounded bg-orange-500/10 px-1.5 py-1">
-                <div className="h-2 w-2 rounded-full bg-orange-500" />
-                <span className="font-mono text-[10px] text-orange-400">{relevanceDistribution.low}</span>
-              </div>
-            </TooltipTrigger><TooltipContent side="bottom">Low relevance (10-29)</TooltipContent></Tooltip>
-            <Tooltip><TooltipTrigger asChild>
-              <div className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-1">
-                <div className="h-2 w-2 rounded-full bg-red-500" />
-                <span className="font-mono text-[10px] text-red-400">{relevanceDistribution.stale}</span>
-              </div>
-            </TooltipTrigger><TooltipContent side="bottom">Stale relevance (&lt;10)</TooltipContent></Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-1">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="font-mono text-[10px] text-emerald-400">
+                    {relevanceDistribution.high}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                High relevance (60+)
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-1">
+                  <div className="h-2 w-2 rounded-full bg-amber-500" />
+                  <span className="font-mono text-[10px] text-amber-400">
+                    {relevanceDistribution.medium}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Medium relevance (30-59)
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 rounded bg-orange-500/10 px-1.5 py-1">
+                  <div className="h-2 w-2 rounded-full bg-orange-500" />
+                  <span className="font-mono text-[10px] text-orange-400">
+                    {relevanceDistribution.low}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Low relevance (10-29)
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-1">
+                  <div className="h-2 w-2 rounded-full bg-red-500" />
+                  <span className="font-mono text-[10px] text-red-400">
+                    {relevanceDistribution.stale}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Stale relevance (&lt;10)
+              </TooltipContent>
+            </Tooltip>
           </div>
           <div className="flex-1" />
           <Tooltip>
@@ -810,7 +1073,8 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                 onClick={() => setShowShortcuts(true)}
                 className="hidden items-center gap-1 rounded bg-[var(--landing-surface-2)] px-2 py-1 font-mono text-[10px] text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text)] sm:flex"
               >
-                <Keyboard className="h-3 w-3" /> <span className="hidden sm:inline">?</span>
+                <Keyboard className="h-3 w-3" />{" "}
+                <span className="hidden sm:inline">?</span>
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Keyboard shortcuts</TooltipContent>
@@ -819,19 +1083,19 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
 
         {/* Toolbar */}
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+          <div className="relative w-full sm:w-auto sm:max-w-xs sm:flex-1">
+            <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
             <Input
               ref={searchRef}
               placeholder="Search key, content, tag..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-xs md:h-8"
+              className="h-9 border-[var(--landing-border)] bg-[var(--landing-surface)] pl-8 font-mono text-xs md:h-8"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+                className="absolute top-1/2 right-2 -translate-y-1/2 text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -839,14 +1103,22 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
           </div>
 
           {/* Sort dropdown */}
-          <Select value={sortField} onValueChange={(v) => { setSortField(v as SortField); setSortDir("desc"); }}>
+          <Select
+            value={sortField}
+            onValueChange={(v) => {
+              setSortField(v as SortField);
+              setSortDir("desc");
+            }}
+          >
             <SelectTrigger className="h-9 w-auto gap-1 border-[var(--landing-border)] bg-[var(--landing-surface)] font-mono text-xs md:h-8">
               <ArrowUpDown className="h-3 w-3 shrink-0 text-[var(--landing-text-tertiary)]" />
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[var(--landing-surface)] border-[var(--landing-border)]">
+            <SelectContent className="border-[var(--landing-border)] bg-[var(--landing-surface)]">
               {(Object.keys(sortLabel) as SortField[]).map((f) => (
-                <SelectItem key={f} value={f} className="font-mono text-xs">{sortLabel[f]}</SelectItem>
+                <SelectItem key={f} value={f} className="font-mono text-xs">
+                  {sortLabel[f]}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -855,15 +1127,21 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setSortDir((d) => d === "asc" ? "desc" : "asc")}
+                onClick={() =>
+                  setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+                }
                 className="h-9 w-9 border-[var(--landing-border)] md:h-8 md:w-8"
               >
-                {sortDir === "desc"
-                  ? <ChevronDown className="h-3.5 w-3.5 text-[#F97316]" />
-                  : <ChevronUp className="h-3.5 w-3.5 text-[#F97316]" />}
+                {sortDir === "desc" ? (
+                  <ChevronDown className="h-3.5 w-3.5 text-[#F97316]" />
+                ) : (
+                  <ChevronUp className="h-3.5 w-3.5 text-[#F97316]" />
+                )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">{sortDir === "desc" ? "Descending" : "Ascending"}</TooltipContent>
+            <TooltipContent side="bottom">
+              {sortDir === "desc" ? "Descending" : "Ascending"}
+            </TooltipContent>
           </Tooltip>
 
           <div className="h-4 w-px bg-[var(--landing-border)]" />
@@ -871,66 +1149,128 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
           {/* Filter popover */}
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="relative h-9 gap-1 border-[var(--landing-border)] text-xs md:h-8">
+              <Button
+                variant="outline"
+                size="sm"
+                className="relative h-9 gap-1 border-[var(--landing-border)] text-xs md:h-8"
+              >
                 <Filter className="h-3 w-3" />
                 <span className="hidden sm:inline">Filters</span>
                 {activeFilterCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#F97316] text-[9px] font-bold text-white">{activeFilterCount}</span>
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#F97316] text-[9px] font-bold text-white">
+                    {activeFilterCount}
+                  </span>
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 border-[var(--landing-border)] bg-[var(--landing-surface)] p-3 sm:w-72" align="end">
+            <PopoverContent
+              className="w-64 border-[var(--landing-border)] bg-[var(--landing-surface)] p-3 sm:w-72"
+              align="end"
+            >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">Filters</span>
-                  {activeFilterCount > 0 && <button onClick={clearFilters} className="text-[10px] text-[#F97316] hover:underline">Clear all</button>}
+                  <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">
+                    Filters
+                  </span>
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-[10px] text-[#F97316] hover:underline"
+                    >
+                      Clear all
+                    </button>
+                  )}
                 </div>
                 <div>
-                  <label className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">Tag</label>
-                  <Select value={filterTag || "all"} onValueChange={(v) => setFilterTag(v === "all" ? "" : v)}>
+                  <label className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                    Tag
+                  </label>
+                  <Select
+                    value={filterTag || "all"}
+                    onValueChange={(v) => setFilterTag(v === "all" ? "" : v)}
+                  >
                     <SelectTrigger className="mt-0.5 h-7 w-full border-[var(--landing-border)] bg-[var(--landing-surface-2)] text-xs">
                       <SelectValue placeholder="Any tag" />
                     </SelectTrigger>
                     <SelectContent className="border-[var(--landing-border)] bg-[var(--landing-surface)]">
-                      <SelectItem value="all" className="text-xs">Any tag</SelectItem>
-                      {allTags.map((t) => <SelectItem key={t} value={t} className="font-mono text-xs">{t}</SelectItem>)}
+                      <SelectItem value="all" className="text-xs">
+                        Any tag
+                      </SelectItem>
+                      {allTags.map((t) => (
+                        <SelectItem
+                          key={t}
+                          value={t}
+                          className="font-mono text-xs"
+                        >
+                          {t}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">Priority: {filterPriorityRange[0]}-{filterPriorityRange[1]}</label>
+                  <label className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                    Priority: {filterPriorityRange[0]}-{filterPriorityRange[1]}
+                  </label>
                   <Slider
-                    min={0} max={100} step={5}
+                    min={0}
+                    max={100}
+                    step={5}
                     value={filterPriorityRange}
-                    onValueChange={(v) => setFilterPriorityRange(v as [number, number])}
+                    onValueChange={(v) =>
+                      setFilterPriorityRange(v as [number, number])
+                    }
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <label className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">Relevance</label>
-                  <Select value={filterRelevance} onValueChange={setFilterRelevance}>
+                  <label className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                    Relevance
+                  </label>
+                  <Select
+                    value={filterRelevance}
+                    onValueChange={setFilterRelevance}
+                  >
                     <SelectTrigger className="mt-0.5 h-7 w-full border-[var(--landing-border)] bg-[var(--landing-surface-2)] text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="border-[var(--landing-border)] bg-[var(--landing-surface)]">
-                      <SelectItem value="all" className="text-xs">All</SelectItem>
-                      <SelectItem value="high" className="text-xs">High (60+)</SelectItem>
-                      <SelectItem value="medium" className="text-xs">Medium (30-59)</SelectItem>
-                      <SelectItem value="low" className="text-xs">Low (10-29)</SelectItem>
-                      <SelectItem value="stale" className="text-xs">Stale (&lt;10)</SelectItem>
+                      <SelectItem value="all" className="text-xs">
+                        All
+                      </SelectItem>
+                      <SelectItem value="high" className="text-xs">
+                        High (60+)
+                      </SelectItem>
+                      <SelectItem value="medium" className="text-xs">
+                        Medium (30-59)
+                      </SelectItem>
+                      <SelectItem value="low" className="text-xs">
+                        Low (10-29)
+                      </SelectItem>
+                      <SelectItem value="stale" className="text-xs">
+                        Stale (&lt;10)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">Pin Status</label>
+                  <label className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                    Pin Status
+                  </label>
                   <Select value={filterPinned} onValueChange={setFilterPinned}>
                     <SelectTrigger className="mt-0.5 h-7 w-full border-[var(--landing-border)] bg-[var(--landing-surface-2)] text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="border-[var(--landing-border)] bg-[var(--landing-surface)]">
-                      <SelectItem value="all" className="text-xs">All</SelectItem>
-                      <SelectItem value="pinned" className="text-xs">Pinned only</SelectItem>
-                      <SelectItem value="unpinned" className="text-xs">Unpinned only</SelectItem>
+                      <SelectItem value="all" className="text-xs">
+                        All
+                      </SelectItem>
+                      <SelectItem value="pinned" className="text-xs">
+                        Pinned only
+                      </SelectItem>
+                      <SelectItem value="unpinned" className="text-xs">
+                        Unpinned only
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -940,12 +1280,23 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)} className="h-9 gap-1 border-[var(--landing-border)] text-xs md:h-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowArchived(!showArchived)}
+                className="h-9 gap-1 border-[var(--landing-border)] text-xs md:h-8"
+              >
                 <Archive className="h-3 w-3" />
-                <span className="hidden sm:inline">{showArchived ? "Hide" : "Show"} Archived</span>
+                <span className="hidden sm:inline">
+                  {showArchived ? "Hide" : "Show"} Archived
+                </span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">{showArchived ? "Hide archived memories" : "Show archived memories"}</TooltipContent>
+            <TooltipContent side="bottom">
+              {showArchived
+                ? "Hide archived memories"
+                : "Show archived memories"}
+            </TooltipContent>
           </Tooltip>
 
           <div className="flex-1" />
@@ -953,7 +1304,12 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
           <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={handleExport} className="h-9 w-9 border-[var(--landing-border)] md:h-8 md:w-8">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleExport}
+                  className="h-9 w-9 border-[var(--landing-border)] md:h-8 md:w-8"
+                >
                   <Download className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
@@ -962,10 +1318,22 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
             <Tooltip>
               <TooltipTrigger asChild>
                 <label>
-                  <Button variant="outline" size="icon" asChild className="h-9 w-9 cursor-pointer border-[var(--landing-border)] md:h-8 md:w-8">
-                    <span><Upload className="h-3.5 w-3.5" /></span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    asChild
+                    className="h-9 w-9 cursor-pointer border-[var(--landing-border)] md:h-8 md:w-8"
+                  >
+                    <span>
+                      <Upload className="h-3.5 w-3.5" />
+                    </span>
                   </Button>
-                  <input type="file" accept=".json" className="hidden" onChange={handleImport} />
+                  <input
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={handleImport}
+                  />
                 </label>
               </TooltipTrigger>
               <TooltipContent side="bottom">Import from JSON</TooltipContent>
@@ -984,7 +1352,8 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                   : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
               }`}
             >
-              All ({memories.filter((m) => showArchived || !m.archivedAt).length})
+              All (
+              {memories.filter((m) => showArchived || !m.archivedAt).length})
             </button>
             {availableTabs.map((tab) => (
               <button
@@ -1006,16 +1375,33 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
         {someSelected && (
           <div className="mb-2 flex items-center gap-2 rounded-lg border border-[#F97316]/30 bg-[#F97316]/5 px-3 py-1.5">
             <CheckCheck className="h-3.5 w-3.5 text-[#F97316]" />
-            <span className="font-mono text-xs font-medium text-[#F97316]">{selectedIds.size} selected</span>
+            <span className="font-mono text-xs font-medium text-[#F97316]">
+              {selectedIds.size} selected
+            </span>
             <div className="h-3 w-px bg-[#F97316]/20" />
-            <Button variant="ghost" size="sm" onClick={requestBatchArchive} className="h-6 gap-1 text-[11px] text-[var(--landing-text-secondary)] hover:text-[var(--landing-text)]">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={requestBatchArchive}
+              className="h-6 gap-1 text-[11px] text-[var(--landing-text-secondary)] hover:text-[var(--landing-text)]"
+            >
               <Archive className="h-3 w-3" /> Archive
             </Button>
-            <Button variant="ghost" size="sm" onClick={requestBatchDelete} className="h-6 gap-1 text-[11px] text-red-400 hover:text-red-300">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={requestBatchDelete}
+              className="h-6 gap-1 text-[11px] text-red-400 hover:text-red-300"
+            >
               <Trash2 className="h-3 w-3" /> Delete
             </Button>
             <div className="flex-1" />
-            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="h-6 text-[11px] text-[var(--landing-text-tertiary)]">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+              className="h-6 text-[11px] text-[var(--landing-text-tertiary)]"
+            >
               <X className="h-3 w-3" /> Clear
             </Button>
           </div>
@@ -1026,9 +1412,13 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
           {filteredMemories.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Search className="mb-2 h-6 w-6 text-[var(--landing-text-tertiary)]" />
-              <p className="font-mono text-xs font-medium text-[var(--landing-text)]">No memories found</p>
+              <p className="font-mono text-xs font-medium text-[var(--landing-text)]">
+                No memories found
+              </p>
               <p className="text-[10px] text-[var(--landing-text-tertiary)]">
-                {search || activeFilterCount > 0 ? "Try adjusting your search or filters." : "Use the MCP server to store memories."}
+                {search || activeFilterCount > 0
+                  ? "Try adjusting your search or filters."
+                  : "Use the MCP server to store memories."}
               </p>
             </div>
           ) : (
@@ -1042,24 +1432,45 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                       className="border-[var(--landing-border)]"
                     />
                   </TableHead>
-                  <TableHead className="cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]" onClick={() => toggleSort("key")}>
+                  <TableHead
+                    className="cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase"
+                    onClick={() => toggleSort("key")}
+                  >
                     Key <SortIcon field="key" />
                   </TableHead>
-                  <TableHead className="px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Content</TableHead>
-                  <TableHead className="hidden w-14 cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell" onClick={() => toggleSort("relevance")}>
+                  <TableHead className="px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                    Content
+                  </TableHead>
+                  <TableHead
+                    className="hidden w-14 cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell"
+                    onClick={() => toggleSort("relevance")}
+                  >
                     Rel <SortIcon field="relevance" />
                   </TableHead>
-                  <TableHead className="hidden w-12 cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell" onClick={() => toggleSort("priority")}>
+                  <TableHead
+                    className="hidden w-12 cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell"
+                    onClick={() => toggleSort("priority")}
+                  >
                     Pri <SortIcon field="priority" />
                   </TableHead>
-                  <TableHead className="hidden px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] md:table-cell">Tags</TableHead>
-                  <TableHead className="hidden w-14 cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] lg:table-cell" onClick={() => toggleSort("accessCount")}>
+                  <TableHead className="hidden px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase md:table-cell">
+                    Tags
+                  </TableHead>
+                  <TableHead
+                    className="hidden w-14 cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase lg:table-cell"
+                    onClick={() => toggleSort("accessCount")}
+                  >
                     Hits <SortIcon field="accessCount" />
                   </TableHead>
-                  <TableHead className="hidden w-16 cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] lg:table-cell" onClick={() => toggleSort("updated")}>
+                  <TableHead
+                    className="hidden w-16 cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase lg:table-cell"
+                    onClick={() => toggleSort("updated")}
+                  >
                     Age <SortIcon field="updated" />
                   </TableHead>
-                  <TableHead className="w-[100px] px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Acts</TableHead>
+                  <TableHead className="w-[100px] px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                    Acts
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1073,11 +1484,7 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                       key={m.id}
                       data-row-index={idx}
                       onClick={() => setFocusedIndex(idx)}
-                      className={`cursor-pointer border-[var(--landing-border)] transition-colors duration-75
-                        ${m.archivedAt ? "opacity-40" : ""}
-                        ${isFocused ? "bg-[#F97316]/5 ring-1 ring-inset ring-[#F97316]/20" : ""}
-                        ${isSelected ? "bg-[#F97316]/8" : ""}
-                      `}
+                      className={`cursor-pointer border-[var(--landing-border)] transition-colors duration-75 ${m.archivedAt ? "opacity-40" : ""} ${isFocused ? "bg-[#F97316]/5 ring-1 ring-[#F97316]/20 ring-inset" : ""} ${isSelected ? "bg-[#F97316]/8" : ""} `}
                     >
                       <TableCell className="px-2 py-1.5">
                         <Checkbox
@@ -1088,43 +1495,68 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                       </TableCell>
                       <TableCell className="max-w-[180px] truncate px-2 py-1.5 font-mono text-xs font-medium text-[#F97316]">
                         <div className="flex items-center gap-1">
-                          {m.pinnedAt && <Pin className="h-2.5 w-2.5 shrink-0 text-[#F97316]" />}
+                          {m.pinnedAt && (
+                            <Pin className="h-2.5 w-2.5 shrink-0 text-[#F97316]" />
+                          )}
                           <span className="truncate">{m.key}</span>
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[280px] px-2 py-1.5">
                         <span className="line-clamp-2 font-mono text-[11px] text-[var(--landing-text-secondary)]">
-                          {m.content.length > 150 ? m.content.slice(0, 150) + "..." : m.content}
+                          {m.content.length > 150
+                            ? m.content.slice(0, 150) + "..."
+                            : m.content}
                         </span>
                       </TableCell>
                       <TableCell className="hidden px-2 py-1.5 sm:table-cell">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className={`inline-flex items-center rounded px-1 py-0.5 font-mono text-[10px] font-bold ${bucket.bg} ${bucket.color}`}>
+                            <span
+                              className={`inline-flex items-center rounded px-1 py-0.5 font-mono text-[10px] font-bold ${bucket.bg} ${bucket.color}`}
+                            >
                               {Math.round(relevance)}
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent side="top">{bucket.label} relevance ({relevance.toFixed(1)}/100)</TooltipContent>
+                          <TooltipContent side="top">
+                            {bucket.label} relevance ({relevance.toFixed(1)}
+                            /100)
+                          </TooltipContent>
                         </Tooltip>
                       </TableCell>
                       <TableCell className="hidden px-2 py-1.5 font-mono text-[11px] sm:table-cell">
                         {(m.priority ?? 0) > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-[#F97316]">
-                            <Star className="h-2.5 w-2.5" />{m.priority}
+                            <Star className="h-2.5 w-2.5" />
+                            {m.priority}
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="hidden px-2 py-1.5 md:table-cell">
                         <div className="flex flex-wrap gap-0.5">
-                          {parseTags(m.tags).slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="outline" className="h-4 border-[var(--landing-border)] px-1 py-0 text-[9px]">{tag}</Badge>
-                          ))}
+                          {parseTags(m.tags)
+                            .slice(0, 3)
+                            .map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="outline"
+                                className="h-4 border-[var(--landing-border)] px-1 py-0 text-[9px]"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
                           {parseTags(m.tags).length > 3 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Badge variant="outline" className="h-4 border-[var(--landing-border)] px-1 py-0 text-[9px]">+{parseTags(m.tags).length - 3}</Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="h-4 border-[var(--landing-border)] px-1 py-0 text-[9px]"
+                                >
+                                  +{parseTags(m.tags).length - 3}
+                                </Badge>
                               </TooltipTrigger>
-                              <TooltipContent side="top">{parseTags(m.tags).slice(3).join(", ")}</TooltipContent>
+                              <TooltipContent side="top">
+                                {parseTags(m.tags).slice(3).join(", ")}
+                              </TooltipContent>
                             </Tooltip>
                           )}
                         </div>
@@ -1137,31 +1569,121 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                           <TooltipTrigger asChild>
                             <span>{relativeTime(m.updatedAt)}</span>
                           </TooltipTrigger>
-                          <TooltipContent side="top">{new Date(m.updatedAt).toLocaleString()}</TooltipContent>
+                          <TooltipContent side="top">
+                            {new Date(m.updatedAt).toLocaleString()}
+                          </TooltipContent>
                         </Tooltip>
                       </TableCell>
                       <TableCell className="px-2 py-1.5">
                         <div className="flex items-center gap-0.5">
-                          <Tooltip><TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openView(m); }} className="h-6 w-6 p-0"><Eye className="h-3 w-3" /></Button>
-                          </TooltipTrigger><TooltipContent>View details</TooltipContent></Tooltip>
-                          <Tooltip><TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedMemory(m); setEditContent(m.content); setViewMode("edit"); }} className="h-6 w-6 p-0"><Pencil className="h-3 w-3" /></Button>
-                          </TooltipTrigger><TooltipContent>Edit (e)</TooltipContent></Tooltip>
-                          <Tooltip><TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); requestPin(m); }} className={`h-6 w-6 p-0 ${m.pinnedAt ? "text-[#F97316]" : ""}`}><Pin className="h-3 w-3" /></Button>
-                          </TooltipTrigger><TooltipContent>{m.pinnedAt ? "Unpin (p)" : "Pin (p)"}</TooltipContent></Tooltip>
-                          <Tooltip><TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openHistory(m); }} className="h-6 w-6 p-0"><History className="h-3 w-3" /></Button>
-                          </TooltipTrigger><TooltipContent>Version history</TooltipContent></Tooltip>
-                          <Tooltip><TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); requestArchive(m, !m.archivedAt); }} className="h-6 w-6 p-0">
-                              {m.archivedAt ? <ArchiveRestore className="h-3 w-3" /> : <Archive className="h-3 w-3" />}
-                            </Button>
-                          </TooltipTrigger><TooltipContent>{m.archivedAt ? "Restore from archive" : "Archive"}</TooltipContent></Tooltip>
-                          <Tooltip><TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); requestDelete(m); }} className="h-6 w-6 p-0 text-red-500 hover:text-red-400"><Trash2 className="h-3 w-3" /></Button>
-                          </TooltipTrigger><TooltipContent>Delete (d)</TooltipContent></Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openView(m);
+                                }}
+                                className="h-6 w-6 p-0"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>View details</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedMemory(m);
+                                  setEditContent(m.content);
+                                  setViewMode("edit");
+                                }}
+                                className="h-6 w-6 p-0"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit (e)</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  requestPin(m);
+                                }}
+                                className={`h-6 w-6 p-0 ${m.pinnedAt ? "text-[#F97316]" : ""}`}
+                              >
+                                <Pin className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {m.pinnedAt ? "Unpin (p)" : "Pin (p)"}
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openHistory(m);
+                                }}
+                                className="h-6 w-6 p-0"
+                              >
+                                <History className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Version history</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  requestArchive(m, !m.archivedAt);
+                                }}
+                                className="h-6 w-6 p-0"
+                              >
+                                {m.archivedAt ? (
+                                  <ArchiveRestore className="h-3 w-3" />
+                                ) : (
+                                  <Archive className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {m.archivedAt
+                                ? "Restore from archive"
+                                : "Archive"}
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  requestDelete(m);
+                                }}
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-400"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete (d)</TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1176,15 +1698,20 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
         <div className="mt-1.5 flex items-center justify-between px-1">
           <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
             {filteredMemories.length} of {memories.length} memories
-            {activeFilterCount > 0 && ` (${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active)`}
+            {activeFilterCount > 0 &&
+              ` (${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active)`}
           </span>
           <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-            Sort: {sortLabel[sortField]} {sortDir === "desc" ? "\u2193" : "\u2191"}
+            Sort: {sortLabel[sortField]}{" "}
+            {sortDir === "desc" ? "\u2193" : "\u2191"}
           </span>
         </div>
 
         {/* View Dialog */}
-        <Dialog open={viewMode === "view"} onOpenChange={() => setViewMode(null)}>
+        <Dialog
+          open={viewMode === "view"}
+          onOpenChange={() => setViewMode(null)}
+        >
           <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col overflow-hidden bg-[var(--landing-surface)]">
             <DialogHeader className="pb-2">
               <DialogTitle className="flex items-center gap-2 font-mono text-sm text-[#F97316]">
@@ -1192,25 +1719,46 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                 {selectedMemory?.key}
               </DialogTitle>
               <div className="flex flex-wrap items-center gap-3 text-[11px] text-[var(--landing-text-tertiary)]">
-                {selectedMemory?.priority ? <span className="flex items-center gap-1"><Star className="h-3 w-3 text-[#F97316]" /> {selectedMemory.priority}</span> : null}
+                {selectedMemory?.priority ? (
+                  <span className="flex items-center gap-1">
+                    <Star className="h-3 w-3 text-[#F97316]" />{" "}
+                    {selectedMemory.priority}
+                  </span>
+                ) : null}
                 <span>{relativeTime(selectedMemory?.updatedAt ?? "")}</span>
-                {selectedMemory && <span className={getRelevanceBucket(computeRelevance(selectedMemory)).color}>
-                  Relevance: {Math.round(computeRelevance(selectedMemory))}
-                </span>}
+                {selectedMemory && (
+                  <span
+                    className={
+                      getRelevanceBucket(computeRelevance(selectedMemory)).color
+                    }
+                  >
+                    Relevance: {Math.round(computeRelevance(selectedMemory))}
+                  </span>
+                )}
                 <span>Accessed {selectedMemory?.accessCount ?? 0}x</span>
               </div>
             </DialogHeader>
             <div className="flex-1 overflow-auto rounded-md bg-[var(--landing-code-bg)] p-3">
-              <pre className="whitespace-pre-wrap font-mono text-xs text-[var(--landing-text-secondary)]">{selectedMemory?.content}</pre>
+              <pre className="font-mono text-xs whitespace-pre-wrap text-[var(--landing-text-secondary)]">
+                {selectedMemory?.content}
+              </pre>
             </div>
             <div className="flex flex-wrap items-center gap-2 pt-2">
               {parseTags(selectedMemory?.tags ?? null).map((tag) => (
-                <Badge key={tag} variant="outline" className="border-[var(--landing-border)] text-[10px]">{tag}</Badge>
+                <Badge
+                  key={tag}
+                  variant="outline"
+                  className="border-[var(--landing-border)] text-[10px]"
+                >
+                  {tag}
+                </Badge>
               ))}
             </div>
             {selectedMemory?.metadata && (
               <details className="text-xs">
-                <summary className="cursor-pointer font-mono text-[var(--landing-text-tertiary)]">Metadata</summary>
+                <summary className="cursor-pointer font-mono text-[var(--landing-text-tertiary)]">
+                  Metadata
+                </summary>
                 <pre className="mt-1 overflow-auto rounded bg-[var(--landing-code-bg)] p-2 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                   {JSON.stringify(JSON.parse(selectedMemory.metadata), null, 2)}
                 </pre>
@@ -1220,7 +1768,12 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => { if (selectedMemory) { setEditContent(selectedMemory.content); setViewMode("edit"); } }}
+                onClick={() => {
+                  if (selectedMemory) {
+                    setEditContent(selectedMemory.content);
+                    setViewMode("edit");
+                  }
+                }}
                 className="gap-1 border-[var(--landing-border)]"
               >
                 <Pencil className="h-3 w-3" /> Edit
@@ -1230,14 +1783,19 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
         </Dialog>
 
         {/* Edit Dialog */}
-        <Dialog open={viewMode === "edit"} onOpenChange={() => setViewMode(null)}>
+        <Dialog
+          open={viewMode === "edit"}
+          onOpenChange={() => setViewMode(null)}
+        >
           <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col overflow-hidden bg-[var(--landing-surface)]">
             <DialogHeader className="shrink-0 pb-0">
               <DialogTitle className="flex items-center gap-2 font-mono text-sm text-[#F97316]">
                 {selectedMemory?.pinnedAt && <Pin className="h-3.5 w-3.5" />}
                 {selectedMemory?.key}
               </DialogTitle>
-              <DialogDescription className="sr-only">Edit memory content</DialogDescription>
+              <DialogDescription className="sr-only">
+                Edit memory content
+              </DialogDescription>
             </DialogHeader>
 
             {/* Context strip */}
@@ -1249,8 +1807,12 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                     Pri {selectedMemory.priority ?? 0}
                   </span>
                 </div>
-                <div className={`flex items-center gap-1 rounded px-2 py-1 ${getRelevanceBucket(computeRelevance(selectedMemory)).bg}`}>
-                  <span className={`font-mono text-[10px] font-bold ${getRelevanceBucket(computeRelevance(selectedMemory)).color}`}>
+                <div
+                  className={`flex items-center gap-1 rounded px-2 py-1 ${getRelevanceBucket(computeRelevance(selectedMemory)).bg}`}
+                >
+                  <span
+                    className={`font-mono text-[10px] font-bold ${getRelevanceBucket(computeRelevance(selectedMemory)).color}`}
+                  >
                     {getRelevanceBucket(computeRelevance(selectedMemory)).label}
                   </span>
                   <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
@@ -1268,7 +1830,13 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                   </span>
                 </div>
                 {parseTags(selectedMemory.tags).map((tag) => (
-                  <Badge key={tag} variant="outline" className="h-5 border-[var(--landing-border)] px-1.5 text-[10px]">{tag}</Badge>
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="h-5 border-[var(--landing-border)] px-1.5 text-[10px]"
+                  >
+                    {tag}
+                  </Badge>
                 ))}
               </div>
             )}
@@ -1276,7 +1844,9 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
             {/* Editor area */}
             <div className="flex min-h-0 flex-1 flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Content</span>
+                <span className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  Content
+                </span>
                 <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                   {editContent.length} chars
                   {selectedMemory && editContent !== selectedMemory.content && (
@@ -1297,14 +1867,19 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
               />
               <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                 A new version will be created on save.
-                <kbd className="ml-2 rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)] px-1 py-0.5 text-[9px]">Cmd+S</kbd> to save.
+                <kbd className="ml-2 rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)] px-1 py-0.5 text-[9px]">
+                  Cmd+S
+                </kbd>{" "}
+                to save.
               </p>
             </div>
 
             {/* Metadata preview */}
             {selectedMemory?.metadata && (
               <details className="shrink-0 text-xs">
-                <summary className="cursor-pointer font-mono text-[10px] text-[var(--landing-text-tertiary)]">Metadata (read-only)</summary>
+                <summary className="cursor-pointer font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                  Metadata (read-only)
+                </summary>
                 <pre className="mt-1 max-h-24 overflow-auto rounded bg-[var(--landing-code-bg)] p-2 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                   {JSON.stringify(JSON.parse(selectedMemory.metadata), null, 2)}
                 </pre>
@@ -1315,22 +1890,39 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => { if (selectedMemory) { setEditContent(selectedMemory.content); } }}
-                disabled={!selectedMemory || editContent === selectedMemory?.content}
+                onClick={() => {
+                  if (selectedMemory) {
+                    setEditContent(selectedMemory.content);
+                  }
+                }}
+                disabled={
+                  !selectedMemory || editContent === selectedMemory?.content
+                }
                 className="mr-auto border-[var(--landing-border)] text-xs"
               >
                 Reset
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setViewMode(null)} className="border-[var(--landing-border)] text-xs">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode(null)}
+                className="border-[var(--landing-border)] text-xs"
+              >
                 Cancel
               </Button>
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={actionLoading || !selectedMemory || editContent === selectedMemory?.content}
+                disabled={
+                  actionLoading ||
+                  !selectedMemory ||
+                  editContent === selectedMemory?.content
+                }
                 className="bg-[#F97316] text-xs text-white hover:bg-[#EA580C]"
               >
-                {actionLoading && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+                {actionLoading && (
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                )}
                 {actionLoading ? "Saving..." : "Save changes"}
               </Button>
             </DialogFooter>
@@ -1338,35 +1930,58 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
         </Dialog>
 
         {/* History Dialog */}
-        <Dialog open={viewMode === "history"} onOpenChange={() => setViewMode(null)}>
+        <Dialog
+          open={viewMode === "history"}
+          onOpenChange={() => setViewMode(null)}
+        >
           <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col overflow-hidden bg-[var(--landing-surface)]">
             <DialogHeader>
-              <DialogTitle className="font-mono text-sm">History: {selectedMemory?.key}</DialogTitle>
+              <DialogTitle className="font-mono text-sm">
+                History: {selectedMemory?.key}
+              </DialogTitle>
             </DialogHeader>
             <div className="flex-1 overflow-auto">
               {loadingVersions ? (
                 <div className="flex flex-col items-center justify-center py-10">
                   <Loader2 className="h-5 w-5 animate-spin text-[#F97316]" />
-                  <p className="mt-2 text-xs text-[var(--landing-text-tertiary)]">Loading versions...</p>
+                  <p className="mt-2 text-xs text-[var(--landing-text-tertiary)]">
+                    Loading versions...
+                  </p>
                 </div>
               ) : versions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10">
                   <History className="mb-2 h-5 w-5 text-[var(--landing-text-tertiary)]" />
-                  <p className="text-xs text-[var(--landing-text-tertiary)]">No version history.</p>
+                  <p className="text-xs text-[var(--landing-text-tertiary)]">
+                    No version history.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {versions.map((v) => (
-                    <div key={v.id} className="rounded-lg border border-[var(--landing-border)] p-2.5">
+                    <div
+                      key={v.id}
+                      className="rounded-lg border border-[var(--landing-border)] p-2.5"
+                    >
                       <div className="mb-1.5 flex items-center justify-between">
-                        <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">v{v.version}</span>
+                        <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">
+                          v{v.version}
+                        </span>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="border-[var(--landing-border)] text-[9px]">{v.changeType}</Badge>
-                          <span className="font-mono text-[9px] text-[var(--landing-text-tertiary)]">{formatDate(v.createdAt)}</span>
+                          <Badge
+                            variant="outline"
+                            className="border-[var(--landing-border)] text-[9px]"
+                          >
+                            {v.changeType}
+                          </Badge>
+                          <span className="font-mono text-[9px] text-[var(--landing-text-tertiary)]">
+                            {formatDate(v.createdAt)}
+                          </span>
                         </div>
                       </div>
                       <pre className="max-h-24 overflow-auto rounded bg-[var(--landing-code-bg)] p-2 font-mono text-[10px] text-[var(--landing-text-secondary)]">
-                        {v.content.length > 500 ? v.content.slice(0, 500) + "..." : v.content}
+                        {v.content.length > 500
+                          ? v.content.slice(0, 500) + "..."
+                          : v.content}
                       </pre>
                     </div>
                   ))}
@@ -1380,7 +1995,9 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
         <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
           <DialogContent className="max-w-sm bg-[var(--landing-surface)]">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-sm"><Keyboard className="h-4 w-4" /> Keyboard Shortcuts</DialogTitle>
+              <DialogTitle className="flex items-center gap-2 text-sm">
+                <Keyboard className="h-4 w-4" /> Keyboard Shortcuts
+              </DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs">
               {[
@@ -1396,8 +2013,12 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
                 ["?", "Toggle shortcuts"],
               ].map(([key, desc]) => (
                 <div key={key} className="contents">
-                  <kbd className="rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--landing-text)]">{key}</kbd>
-                  <span className="py-0.5 text-[var(--landing-text-secondary)]">{desc}</span>
+                  <kbd className="rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--landing-text)]">
+                    {key}
+                  </kbd>
+                  <span className="py-0.5 text-[var(--landing-text-secondary)]">
+                    {desc}
+                  </span>
                 </div>
               ))}
             </div>
@@ -1408,7 +2029,9 @@ export function MemoryBrowser({ memories: memoriesProp, orgSlug, projectSlug }: 
         <ConfirmDialog
           action={confirmAction}
           loading={actionLoading}
-          onClose={() => { if (!actionLoading) setConfirmAction(null); }}
+          onClose={() => {
+            if (!actionLoading) setConfirmAction(null);
+          }}
         />
       </div>
     </TooltipProvider>

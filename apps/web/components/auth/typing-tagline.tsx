@@ -21,11 +21,8 @@ export function TypingTagline({ text }: { text: string }) {
 
   return (
     <p className="font-mono text-sm text-[var(--landing-text-secondary)]">
-      <span className="text-[#F97316]">$</span>{" "}
-      <span>{displayed}</span>
-      {!done && (
-        <span className="terminal-cursor" />
-      )}
+      <span className="text-[#F97316]">$</span> <span>{displayed}</span>
+      {!done && <span className="terminal-cursor" />}
     </p>
   );
 }

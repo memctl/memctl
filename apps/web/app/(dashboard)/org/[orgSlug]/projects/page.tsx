@@ -40,7 +40,11 @@ export default async function ProjectsPage({
   const page = Math.max(1, parseInt(search.page ?? "1", 10) || 1);
   const perPage = Math.max(
     1,
-    Math.min(MAX_PER_PAGE, parseInt(search.per_page ?? String(DEFAULT_PER_PAGE), 10) || DEFAULT_PER_PAGE),
+    Math.min(
+      MAX_PER_PAGE,
+      parseInt(search.per_page ?? String(DEFAULT_PER_PAGE), 10) ||
+        DEFAULT_PER_PAGE,
+    ),
   );
   const offset = (page - 1) * perPage;
 
@@ -86,11 +90,12 @@ export default async function ProjectsPage({
       .filter((id) => orgIdSet.has(id));
   }
 
-  const projectFilter = accessibleIds !== null
-    ? accessibleIds.length > 0
-      ? and(eq(projects.orgId, org.id), inArray(projects.id, accessibleIds))
-      : undefined
-    : eq(projects.orgId, org.id);
+  const projectFilter =
+    accessibleIds !== null
+      ? accessibleIds.length > 0
+        ? and(eq(projects.orgId, org.id), inArray(projects.id, accessibleIds))
+        : undefined
+      : eq(projects.orgId, org.id);
 
   // If member has no access, short-circuit
   if (accessibleIds !== null && accessibleIds.length === 0) {
@@ -101,7 +106,7 @@ export default async function ProjectsPage({
           title="Projects"
           description="0 projects assigned"
         >
-          <Button disabled className="gap-2 cursor-not-allowed opacity-40">
+          <Button disabled className="cursor-not-allowed gap-2 opacity-40">
             <Plus className="h-4 w-4" />
             New Project
           </Button>
@@ -123,10 +128,7 @@ export default async function ProjectsPage({
       .where(projectFilter)
       .limit(perPage)
       .offset(offset),
-    db
-      .select({ value: count() })
-      .from(projects)
-      .where(projectFilter),
+    db.select({ value: count() }).from(projects).where(projectFilter),
   ]);
 
   const total = totalResult[0]?.value ?? 0;
@@ -152,10 +154,14 @@ export default async function ProjectsPage({
       <PageHeader
         badge="Projects"
         title="Projects"
-        description={isMember ? `${total} projects assigned` : `${total} / ${org.projectLimit} projects`}
+        description={
+          isMember
+            ? `${total} projects assigned`
+            : `${total} / ${org.projectLimit} projects`
+        }
       >
         {isMember ? (
-          <Button disabled className="gap-2 cursor-not-allowed opacity-40">
+          <Button disabled className="cursor-not-allowed gap-2 opacity-40">
             <Plus className="h-4 w-4" />
             New Project
           </Button>
@@ -173,9 +179,10 @@ export default async function ProjectsPage({
         <EmptyState
           icon={FolderOpen}
           title={isMember ? "No projects assigned" : "No projects yet"}
-          description={isMember
-            ? "Contact your organization owner or admin to get access to projects."
-            : "Create your first project to start storing memories for your AI coding agents."
+          description={
+            isMember
+              ? "Contact your organization owner or admin to get access to projects."
+              : "Create your first project to start storing memories for your AI coding agents."
           }
         >
           {!isMember && (
