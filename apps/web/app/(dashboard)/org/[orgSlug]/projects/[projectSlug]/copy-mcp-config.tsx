@@ -19,7 +19,7 @@ export function CopyMcpConfig({ config }: CopyMcpConfigProps) {
   return (
     <button
       onClick={handleCopy}
-      className="absolute top-3 right-3 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] p-2 text-[var(--landing-text-tertiary)] transition-colors hover:text-[#F97316]"
+      className="absolute right-3 top-3 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] p-2 text-[var(--landing-text-tertiary)] transition-colors hover:text-[#F97316]"
     >
       {copied ? (
         <Check className="h-4 w-4 text-[#F97316]" />

@@ -50,6 +50,13 @@ Usage:
   memctl archive <key>      Archive a memory
   memctl unarchive <key>    Unarchive a memory
   memctl export [format]    Export memories (agents_md | cursorrules | json)
+  memctl generate           Write AGENTS.md to current directory
+  memctl generate --claude  Also write CLAUDE.md
+  memctl generate --gemini  Also write GEMINI.md
+  memctl generate --cursor  Also write .cursorrules
+  memctl generate --copilot Also write .github/copilot-instructions.md
+  memctl generate --all     Write all agent config files
+  memctl generate --link    Symlink agent files to AGENTS.md instead of copying
   memctl import <file>      Import from .cursorrules / copilot-instructions
   memctl snapshot <name>    Create a snapshot
   memctl snapshots          List snapshots
@@ -61,6 +68,12 @@ Usage:
 Options:
   --limit <n>               Limit results (default: 50)
   --format <fmt>            Export format: agents_md, cursorrules, json (default: agents_md)
+  --claude                  Include CLAUDE.md
+  --gemini                  Include GEMINI.md
+  --cursor                  Include .cursorrules
+  --copilot                 Include .github/copilot-instructions.md
+  --all                     Include all agent config files
+  --link                    Symlink to AGENTS.md instead of copying
   --json                    Output raw JSON
   --force                   Skip confirmation prompts
   --version                 Show CLI version
@@ -294,6 +307,89 @@ export async function runCli(args: string[]): Promise<void> {
       break;
     }
 
+    case "generate": {
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const all = Boolean(flags.all);
+      const link = Boolean(flags.link);
+
+      const extras: Array<{
+        flag: string;
+        file: string;
+        format: "agents_md" | "cursorrules";
+      }> = [
+        { flag: "claude", file: "CLAUDE.md", format: "agents_md" },
+        { flag: "gemini", file: "GEMINI.md", format: "agents_md" },
+        { flag: "cursor", file: ".cursorrules", format: "cursorrules" },
+        {
+          flag: "copilot",
+          file: ".github/copilot-instructions.md",
+          format: "agents_md",
+        },
+      ];
+
+      const targets: Array<{
+        file: string;
+        format: "agents_md" | "cursorrules";
+      }> = [{ file: "AGENTS.md", format: "agents_md" }];
+
+      for (const extra of extras) {
+        if (all || flags[extra.flag]) {
+          targets.push({ file: extra.file, format: extra.format });
+        }
+      }
+
+      const cache = new Map<string, string>();
+      const wrote: string[] = [];
+      const linked: string[] = [];
+
+      for (const target of targets) {
+        const dir = path.dirname(target.file);
+        if (dir !== ".") {
+          await fs.mkdir(dir, { recursive: true });
+        }
+
+        // Symlink agents_md files to AGENTS.md when --link is used
+        // (skip AGENTS.md itself and .cursorrules which has a different format)
+        if (link && target.file !== "AGENTS.md" && target.format === "agents_md") {
+          const linkTarget = path.relative(dir, "AGENTS.md");
+          // Remove existing file/symlink before creating
+          await fs.rm(target.file, { force: true });
+          await fs.symlink(linkTarget, target.file);
+          linked.push(target.file);
+          continue;
+        }
+
+        let content = cache.get(target.format);
+        if (content == null) {
+          const result = await client.exportMemories(target.format);
+          if (typeof result === "string") {
+            content = result;
+          } else {
+            const data = result as Record<string, unknown>;
+            content =
+              typeof data.content === "string"
+                ? data.content
+                : JSON.stringify(result, null, 2);
+          }
+          cache.set(target.format, content);
+        }
+
+        await fs.writeFile(target.file, content, "utf-8");
+        wrote.push(target.file);
+      }
+
+      const parts: string[] = [];
+      if (wrote.length > 0) {
+        parts.push(`Wrote ${wrote.length} file(s): ${wrote.join(", ")}`);
+      }
+      if (linked.length > 0) {
+        parts.push(`Linked ${linked.length} file(s): ${linked.map((f) => `${f} -> AGENTS.md`).join(", ")}`);
+      }
+      console.log(parts.join("\n"));
+      break;
+    }
+
     case "import": {
       const file = positional[0];
       if (!file) {
@@ -382,7 +478,6 @@ export async function runCli(args: string[]): Promise<void> {
       const result = await client.getMemoryCapacity();
       if (!json) {
         console.log(`Project: ${result.used}/${result.limit} memories`);
-        console.log(`Org:     ${result.orgUsed}/${result.orgLimit} memories`);
         if (result.usageRatio != null) {
           console.log(`Usage:   ${(result.usageRatio * 100).toFixed(1)}%`);
         }

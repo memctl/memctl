@@ -22,10 +22,10 @@ import { NoiseTexture } from "@/components/landing/noise-texture";
 const STEPS = [
   {
     icon: GitBranch,
-    title: "Connect your repo",
+    title: "Set up your project",
     description:
-      "Point memctl at your GitHub repository. It indexes structure, conventions, and architecture automatically.",
-    code: "memctl init --repo github.com/org/project",
+      "Create an org and project, then authenticate. Your agents start building context automatically.",
+    code: "npx memctl auth && npx memctl init",
   },
   {
     icon: Users,
@@ -217,12 +217,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden">
         {/* ── Layer 0a: Diagonal hatching ── */}
         <div
-          className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] [mask-image:radial-gradient(ellipse_60%_55%_at_40%_45%,black_50%,transparent_100%)] opacity-[0.25]"
-          aria-hidden="true"
-        />
-        {/* ── Layer 0b: Large indigo glow orb behind headline ── */}
-        <div
-          className="pointer-events-none absolute top-[10%] -left-[5%] h-[600px] w-[600px] rounded-full bg-indigo-500/[0.01] blur-[120px]"
+          className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.25] [mask-image:radial-gradient(ellipse_60%_55%_at_40%_45%,black_50%,transparent_100%)]"
           aria-hidden="true"
         />
         {/* ── Layer 0c: Thin vertical accent line from hero ── */}
@@ -241,21 +236,38 @@ export default async function HomePage() {
             <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
           </div>
           {/* Horizontal shelf line */}
-          <div className="absolute top-[85%] right-0 left-0">
+          <div className="absolute left-0 right-0 top-[85%]">
             <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
               <div className="h-px bg-gradient-to-r from-[var(--landing-border)] via-transparent to-[var(--landing-border)] opacity-[0.1]" />
             </div>
           </div>
         </div>
 
-        {/* ── Layer 1: Diagonal wash from left ── */}
+        {/* ── Layer 1: Mesh gradient blobs ── */}
         <div
-          className="pointer-events-none absolute top-[15%] -left-[15%] h-[100%] w-[70%]"
+          className="pointer-events-none absolute -left-[10%] top-[5%] h-[500px] w-[500px] rounded-full"
           style={{
             background:
-              "linear-gradient(125deg, rgba(249,115,22,0.2) 0%, rgba(249,115,22,0.15) 40%, transparent 75%)",
+              "radial-gradient(circle, rgba(249,115,22,0.18) 0%, transparent 70%)",
+            filter: "blur(90px)",
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute left-[15%] top-[45%] h-[400px] w-[450px] rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)",
+            filter: "blur(100px)",
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute left-[35%] top-[10%] h-[350px] w-[400px] rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(168,162,158,0.06) 0%, transparent 70%)",
             filter: "blur(80px)",
-            transform: "skewX(-14deg)",
           }}
           aria-hidden="true"
         />
@@ -267,14 +279,16 @@ export default async function HomePage() {
         <div
           className="pointer-events-none absolute inset-0 z-[2]"
           style={{
-            background:
-              "radial-gradient(ellipse 80% 70% at 35% 45%, transparent 40%, var(--landing-bg) 100%)",
+            background: [
+              "linear-gradient(to right, var(--landing-bg) 0%, transparent 15%, transparent 85%, var(--landing-bg) 100%)",
+              "linear-gradient(to bottom, var(--landing-bg) 0%, transparent 12%)",
+            ].join(", "),
           }}
           aria-hidden="true"
         />
 
         {/* ── Layer 4: Content ── */}
-        <div className="relative z-10 mx-auto max-w-[1600px] px-6 pt-24 pb-20 lg:px-8 lg:pt-36 lg:pb-28">
+        <div className="relative z-10 mx-auto max-w-[1600px] px-6 pb-20 pt-24 lg:px-8 lg:pb-28 lg:pt-36">
           <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
             {/* Left - Copy */}
             <div>
@@ -283,7 +297,7 @@ export default async function HomePage() {
                 ai coding agents
               </div>
 
-              <h1 className="animate-fade-in-up text-[clamp(2.75rem,6.5vw,5rem)] leading-[1.05] font-extrabold [animation-delay:100ms]">
+              <h1 className="animate-fade-in-up text-[clamp(2.75rem,6.5vw,5rem)] font-extrabold leading-[1.05] [animation-delay:100ms]">
                 Persistent context
                 <br />
                 <span className="text-[#F97316]">for every agent</span>
@@ -291,8 +305,8 @@ export default async function HomePage() {
 
               <p className="animate-fade-in-up mt-5 max-w-[520px] text-[clamp(1rem,2vw,1.2rem)] leading-[1.65] text-[var(--landing-text-secondary)] [animation-delay:200ms]">
                 Give your AI coding agents shared, branch-aware memory.
-                Connected to your repos, synced across every IDE and tool via
-                MCP. Every session picks up where the last one left off.
+                Synced across every IDE, machine, and tool via MCP. Every
+                session picks up where the last one left off.
               </p>
 
               <div className="animate-fade-in-up mt-7 flex flex-col gap-3.5 [animation-delay:300ms] sm:flex-row">
@@ -368,7 +382,7 @@ export default async function HomePage() {
             <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
           </div>
           {/* Horizontal shelf line below heading */}
-          <div className="absolute top-[25%] right-0 left-0">
+          <div className="absolute left-0 right-0 top-[25%]">
             <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
               <div className="h-px bg-gradient-to-r from-[var(--landing-border)] via-transparent to-[var(--landing-border)] opacity-[0.1]" />
             </div>
@@ -376,22 +390,22 @@ export default async function HomePage() {
         </div>
         {/* Section-level diagonal hatching */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,black_40%,transparent_100%)] opacity-[0.2]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.2] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,black_40%,transparent_100%)]"
           aria-hidden="true"
         />
         {/* Blue glow orb behind cards */}
         <div
-          className="pointer-events-none absolute top-[40%] right-[10%] -z-10 h-[400px] w-[400px] rounded-full bg-blue-500/[0.05] blur-[100px]"
+          className="pointer-events-none absolute right-[10%] top-[40%] -z-10 h-[400px] w-[400px] rounded-full bg-blue-500/[0.05] blur-[100px]"
           aria-hidden="true"
         />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollParallax effect="fade-scale" intensity={0.6}>
             <ScrollReveal>
               <div className="mb-16">
-                <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+                <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
                   FIG 01
                 </span>
-                <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.1] font-bold">
+                <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1]">
                   Three commands to shared context
                 </h2>
                 <p className="mt-4 max-w-lg text-lg text-[var(--landing-text-secondary)]">
@@ -403,7 +417,7 @@ export default async function HomePage() {
 
           <div className="relative grid grid-cols-1 gap-6 md:grid-cols-3">
             {/* Connecting line - desktop only, animated SVG draw */}
-            <div className="pointer-events-none absolute top-1/2 right-0 left-0 hidden -translate-y-1/2 md:block">
+            <div className="pointer-events-none absolute left-0 right-0 top-1/2 hidden -translate-y-1/2 md:block">
               <svg className="h-px w-full" viewBox="0 0 1200 2" fill="none">
                 <line
                   x1="200"
@@ -429,7 +443,7 @@ export default async function HomePage() {
                 <div className="glass-border group relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-8 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_30px_var(--landing-glow)]">
                   {/* Diagonal hatching */}
                   <div
-                    className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] [mask-image:linear-gradient(to_bottom,black_40%,transparent_90%)] opacity-[0.35] transition-opacity duration-300 group-hover:opacity-[0.45]"
+                    className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.35] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom,black_40%,transparent_90%)] group-hover:opacity-[0.45]"
                     aria-hidden="true"
                   />
                   {/* Step number */}
@@ -485,8 +499,8 @@ export default async function HomePage() {
           <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
           {/* Center crosshair */}
           <div className="relative">
-            <div className="absolute -top-3 -left-px h-6 w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent" />
-            <div className="absolute -top-px -left-3 h-px w-6 bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+            <div className="absolute -left-px -top-3 h-6 w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent" />
+            <div className="absolute -left-3 -top-px h-px w-6 bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
             <div className="h-1.5 w-1.5 rounded-full border border-[var(--landing-border)] bg-[var(--landing-bg)]" />
           </div>
           <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
@@ -510,12 +524,12 @@ export default async function HomePage() {
         </div>
         {/* Section-level diagonal hatching */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] [mask-image:linear-gradient(to_right,black_10%,transparent_50%)] opacity-[0.15]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] opacity-[0.15] [mask-image:linear-gradient(to_right,black_10%,transparent_50%)]"
           aria-hidden="true"
         />
         {/* Teal glow orb, right side behind code tabs */}
         <div
-          className="pointer-events-none absolute top-[20%] right-[5%] -z-10 h-[500px] w-[500px] rounded-full bg-cyan-500/[0.04] blur-[120px]"
+          className="pointer-events-none absolute right-[5%] top-[20%] -z-10 h-[500px] w-[500px] rounded-full bg-cyan-500/[0.04] blur-[120px]"
           aria-hidden="true"
         />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
@@ -524,10 +538,10 @@ export default async function HomePage() {
             <ScrollParallax effect="fade-scale" intensity={0.6}>
               <ScrollReveal>
                 <div className="lg:sticky lg:top-28">
-                  <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+                  <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
                     FIG 02
                   </span>
-                  <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.1] font-bold">
+                  <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1]">
                     Integrate in minutes
                   </h2>
                   <p className="mt-4 text-lg leading-relaxed text-[var(--landing-text-secondary)]">
@@ -631,7 +645,7 @@ export default async function HomePage() {
             <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
           </div>
           {/* Horizontal shelf line below heading */}
-          <div className="absolute top-[18%] right-0 left-0">
+          <div className="absolute left-0 right-0 top-[18%]">
             <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
               <div className="h-px bg-gradient-to-r from-[var(--landing-border)] via-transparent to-[var(--landing-border)] opacity-[0.1]" />
             </div>
@@ -639,22 +653,22 @@ export default async function HomePage() {
         </div>
         {/* Section-level diagonal hatching */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] [mask-image:radial-gradient(ellipse_55%_50%_at_40%_40%,black_30%,transparent_100%)] opacity-[0.15]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] opacity-[0.15] [mask-image:radial-gradient(ellipse_55%_50%_at_40%_40%,black_30%,transparent_100%)]"
           aria-hidden="true"
         />
         {/* Purple glow orb */}
         <div
-          className="pointer-events-none absolute top-[20%] left-[15%] -z-10 h-[500px] w-[500px] rounded-full bg-purple-500/[0.05] blur-[120px]"
+          className="pointer-events-none absolute left-[15%] top-[20%] -z-10 h-[500px] w-[500px] rounded-full bg-purple-500/[0.05] blur-[120px]"
           aria-hidden="true"
         />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollParallax effect="fade-scale" intensity={0.6}>
             <ScrollReveal>
               <div className="mb-16">
-                <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+                <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
                   FIG 03
                 </span>
-                <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.1] font-bold">
+                <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1]">
                   Built for how teams ship code with AI
                 </h2>
               </div>
@@ -692,12 +706,12 @@ export default async function HomePage() {
         </div>
         {/* Section-level diagonal hatching */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] [mask-image:radial-gradient(ellipse_60%_60%_at_70%_50%,black,transparent)] opacity-[0.18]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.18] [mask-image:radial-gradient(ellipse_60%_60%_at_70%_50%,black,transparent)]"
           aria-hidden="true"
         />
         {/* Blue glow orb */}
         <div
-          className="pointer-events-none absolute right-[15%] bottom-[10%] -z-10 h-[400px] w-[400px] rounded-full bg-blue-500/[0.05] blur-[100px]"
+          className="pointer-events-none absolute bottom-[10%] right-[15%] -z-10 h-[400px] w-[400px] rounded-full bg-blue-500/[0.05] blur-[100px]"
           aria-hidden="true"
         />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
@@ -706,10 +720,10 @@ export default async function HomePage() {
             <ScrollParallax effect="fade-scale" intensity={0.6}>
               <ScrollReveal>
                 <div className="lg:sticky lg:top-28">
-                  <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+                  <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
                     FIG 04
                   </span>
-                  <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.1] font-bold">
+                  <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1]">
                     Full visibility into your AI&apos;s context
                   </h2>
                   <p className="mt-4 text-lg leading-relaxed text-[var(--landing-text-secondary)]">
@@ -766,7 +780,7 @@ export default async function HomePage() {
       <TrustBar />
 
       {/* ================================================================
-          SECTION 7 - Testimonial
+          SECTION 7 - Product Messaging
           ================================================================ */}
       {/* ── Gradient divider with intersection dots ── */}
       <div className="relative flex items-center" aria-hidden="true">
@@ -778,7 +792,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <section className="relative overflow-hidden bg-[var(--landing-code-bg)] py-24 lg:py-32">
+      <section className="relative overflow-hidden bg-[var(--landing-code-bg)] py-20 lg:py-28">
         {/* ── Structural frame lines ── */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -792,80 +806,441 @@ export default async function HomePage() {
         </div>
         {/* Section-level diagonal hatching */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_40%,black_40%,transparent_100%)] opacity-[0.2]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.2] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_40%,black_40%,transparent_100%)]"
           aria-hidden="true"
         />
         {/* Indigo glow */}
         <div
-          className="pointer-events-none absolute top-[10%] left-[30%] -z-10 h-[350px] w-[350px] rounded-full bg-indigo-500/[0.04] blur-[100px]"
+          className="pointer-events-none absolute left-[30%] top-[10%] -z-10 h-[350px] w-[350px] rounded-full bg-indigo-500/[0.04] blur-[100px]"
           aria-hidden="true"
         />
-        <div className="mx-auto max-w-[1600px] px-6 text-center lg:px-8">
-          <ScrollReveal animation="scale-up">
-            <div className="mx-auto max-w-3xl">
-              {/* Large floating quote mark */}
-              <div className="animate-float mb-8 font-mono text-7xl leading-none text-[#F97316] opacity-20">
-                &ldquo;
-              </div>
-              <blockquote className="text-xl leading-relaxed font-normal text-[var(--landing-text)] italic sm:text-2xl">
-                memctl eliminated the #1 problem with AI coding assistants:
-                every new conversation starts from zero. Now our agents pick up
-                exactly where they left off, across the entire team.
-              </blockquote>
-              <div className="mt-8">
-                <div className="font-semibold text-[var(--landing-text)]">
-                  Sarah Chen
-                </div>
-                <div className="mt-1 text-sm text-[var(--landing-text-tertiary)]">
-                  VP of Engineering, Acme Corp
-                </div>
-              </div>
+
+        <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
+          {/* Section header */}
+          <ScrollReveal animation="fade-up">
+            <div className="mb-10">
+              <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-[#F97316]">
+                How teams use memctl
+              </p>
+              <p className="max-w-2xl text-lg leading-relaxed text-[var(--landing-text-secondary)]">
+                Shared, persistent memory for AI coding agents. Context stays
+                available across sessions, branches, and projects.
+              </p>
             </div>
           </ScrollReveal>
 
-          {/* Smaller testimonial cards */}
-          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-4 text-left sm:grid-cols-3">
-            {[
-              {
-                quote:
-                  "Onboarding new engineers went from days to hours. Their AI agents already know the codebase.",
-                name: "Marcus Johnson",
-                role: "CTO, Buildkit",
-              },
-              {
-                quote:
-                  "We switched from maintaining CLAUDE.md files manually to memctl. It's night and day.",
-                name: "Priya Sharma",
-                role: "Staff Engineer, Nexus",
-              },
-              {
-                quote:
-                  "The MCP integration is seamless. Our whole team was using it within 10 minutes.",
-                name: "Alex Rivera",
-                role: "Lead Developer, Stackflow",
-              },
-            ].map((testimonial, i) => (
-              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
-                <div className="relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-                  {/* Diagonal hatching */}
-                  <div
-                    className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] [mask-image:linear-gradient(to_bottom,black_40%,transparent_90%)] opacity-[0.35]"
-                    aria-hidden="true"
-                  />
-                  <p className="relative text-sm leading-relaxed text-[var(--landing-text-secondary)]">
-                    &ldquo;{testimonial.quote}&rdquo;
-                  </p>
-                  <div className="mt-4">
-                    <div className="text-sm font-medium text-[var(--landing-text)]">
-                      {testimonial.name}
+          {/* Visual cards grid */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            {/* ── Card 1: Persistent Context (wide) ── */}
+            <ScrollReveal animation="fade-up" className="lg:col-span-7">
+              <div className="relative h-full overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)]">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] opacity-[0.25] [mask-image:linear-gradient(to_bottom,black_30%,transparent_80%)]"
+                  aria-hidden="true"
+                />
+                <div className="relative grid grid-cols-1 md:grid-cols-[1fr_1.2fr]">
+                  {/* Text */}
+                  <div className="flex flex-col justify-center p-6 md:p-7">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)]">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                        >
+                          <circle cx="6" cy="3" r="2" fill="#F97316" />
+                          <circle
+                            cx="3"
+                            cy="9"
+                            r="1.5"
+                            fill="#F97316"
+                            opacity="0.6"
+                          />
+                          <circle
+                            cx="9"
+                            cy="9"
+                            r="1.5"
+                            fill="#F97316"
+                            opacity="0.6"
+                          />
+                          <line
+                            x1="6"
+                            y1="5"
+                            x2="3"
+                            y2="7.5"
+                            stroke="#F97316"
+                            strokeWidth="0.8"
+                            opacity="0.4"
+                          />
+                          <line
+                            x1="6"
+                            y1="5"
+                            x2="9"
+                            y2="7.5"
+                            stroke="#F97316"
+                            strokeWidth="0.8"
+                            opacity="0.4"
+                          />
+                        </svg>
+                      </div>
+                      <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                        01
+                      </span>
                     </div>
-                    <div className="text-xs text-[var(--landing-text-tertiary)]">
-                      {testimonial.role}
+                    <h3 className="text-sm font-semibold text-[var(--landing-text)]">
+                      Persistent context
+                    </h3>
+                    <p className="mt-2 text-xs leading-relaxed text-[var(--landing-text-tertiary)]">
+                      Memory is scoped by organization, project, and branch.
+                      Agents resume with exactly the context they need, no
+                      repeated setup.
+                    </p>
+                  </div>
+                  {/* Visual: Scoping tree */}
+                  <div className="border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5 font-mono text-[11px] leading-[1.8] md:border-l md:border-t-0">
+                    <div className="text-[var(--landing-text-tertiary)]">
+                      <span className="text-[#F97316]">org</span>/acme-corp
+                    </div>
+                    <div className="ml-2 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        ├──
+                      </span>{" "}
+                      <span className="text-[#F97316]">project</span>/frontend
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        ├──
+                      </span>{" "}
+                      main
+                      <span className="ml-3 text-[10px] opacity-50">
+                        12 memories
+                      </span>
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        ├──
+                      </span>{" "}
+                      feat/auth
+                      <span className="ml-3 text-[10px] opacity-50">
+                        3 memories
+                      </span>
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        └──
+                      </span>{" "}
+                      fix/nav
+                      <span className="ml-3 text-[10px] opacity-50">
+                        1 memory
+                      </span>
+                    </div>
+                    <div className="ml-2 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        └──
+                      </span>{" "}
+                      <span className="text-[#F97316]">project</span>/backend
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        ├──
+                      </span>{" "}
+                      main
+                      <span className="ml-3 text-[10px] opacity-50">
+                        8 memories
+                      </span>
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        └──
+                      </span>{" "}
+                      feat/api
+                      <span className="ml-3 text-[10px] opacity-50">
+                        5 memories
+                      </span>
                     </div>
                   </div>
                 </div>
-              </ScrollReveal>
-            ))}
+              </div>
+            </ScrollReveal>
+
+            {/* ── Card 2: Shared Across Tools ── */}
+            <ScrollReveal
+              animation="fade-up"
+              delay={100}
+              className="lg:col-span-5"
+            >
+              <div className="relative h-full overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)]">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] opacity-[0.25] [mask-image:linear-gradient(to_bottom,black_30%,transparent_80%)]"
+                  aria-hidden="true"
+                />
+                <div className="relative p-6 md:p-7">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)]">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                      >
+                        <rect
+                          x="1"
+                          y="4"
+                          width="4"
+                          height="4"
+                          rx="0.5"
+                          fill="#F97316"
+                          opacity="0.6"
+                        />
+                        <rect
+                          x="7"
+                          y="4"
+                          width="4"
+                          height="4"
+                          rx="0.5"
+                          fill="#F97316"
+                          opacity="0.6"
+                        />
+                        <rect
+                          x="4"
+                          y="1"
+                          width="4"
+                          height="4"
+                          rx="0.5"
+                          fill="#F97316"
+                        />
+                        <line
+                          x1="6"
+                          y1="5"
+                          x2="3"
+                          y2="4"
+                          stroke="#F97316"
+                          strokeWidth="0.6"
+                          opacity="0.4"
+                        />
+                        <line
+                          x1="6"
+                          y1="5"
+                          x2="9"
+                          y2="4"
+                          stroke="#F97316"
+                          strokeWidth="0.6"
+                          opacity="0.4"
+                        />
+                      </svg>
+                    </div>
+                    <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                      02
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-[var(--landing-text)]">
+                    Shared across tools
+                  </h3>
+                  <p className="mt-2 text-xs leading-relaxed text-[var(--landing-text-tertiary)]">
+                    Access the same context through the dashboard, API, and any
+                    MCP-compatible agent.
+                  </p>
+                </div>
+                {/* Visual: Connection flow */}
+                <div className="relative border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-6 py-5">
+                  <div className="flex items-center justify-between gap-2 font-mono text-[10px] sm:gap-3">
+                    {/* Left: agents */}
+                    <div className="flex shrink-0 flex-col gap-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          Claude Code
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          Cursor
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          Copilot
+                        </span>
+                      </div>
+                    </div>
+                    {/* Left arrows */}
+                    <div className="hidden flex-col gap-2.5 text-[var(--landing-text-tertiary)] opacity-30 sm:flex">
+                      <span>---&gt;</span>
+                      <span>---&gt;</span>
+                      <span>---&gt;</span>
+                    </div>
+                    {/* Center: memctl hub */}
+                    <div className="shrink-0 rounded border border-[#F97316]/30 bg-[#F97316]/[0.08] px-3 py-2.5">
+                      <span className="text-[11px] font-medium text-[#F97316]">
+                        memctl
+                      </span>
+                    </div>
+                    {/* Right arrows */}
+                    <div className="hidden flex-col gap-[14px] text-[var(--landing-text-tertiary)] opacity-30 sm:flex">
+                      <span>&lt;---</span>
+                      <span>&lt;---</span>
+                    </div>
+                    {/* Right: access methods */}
+                    <div className="flex shrink-0 flex-col gap-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          Dashboard
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          REST API
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* ── Card 3: Built for Operations (full width) ── */}
+            <ScrollReveal
+              animation="fade-up"
+              delay={200}
+              className="lg:col-span-12"
+            >
+              <div className="relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)]">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] opacity-[0.25] [mask-image:linear-gradient(to_bottom,black_30%,transparent_80%)]"
+                  aria-hidden="true"
+                />
+                <div className="relative grid grid-cols-1 md:grid-cols-[1fr_1.5fr]">
+                  {/* Text */}
+                  <div className="flex flex-col justify-center p-6 md:p-7">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)]">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                        >
+                          <rect
+                            x="1"
+                            y="1"
+                            width="10"
+                            height="10"
+                            rx="1.5"
+                            stroke="#F97316"
+                            strokeWidth="0.8"
+                          />
+                          <line
+                            x1="1"
+                            y1="4"
+                            x2="11"
+                            y2="4"
+                            stroke="#F97316"
+                            strokeWidth="0.6"
+                            opacity="0.5"
+                          />
+                          <rect
+                            x="2.5"
+                            y="5.5"
+                            width="3"
+                            height="1"
+                            rx="0.3"
+                            fill="#F97316"
+                            opacity="0.6"
+                          />
+                          <rect
+                            x="2.5"
+                            y="7.5"
+                            width="5"
+                            height="1"
+                            rx="0.3"
+                            fill="#F97316"
+                            opacity="0.4"
+                          />
+                          <rect
+                            x="2.5"
+                            y="9.5"
+                            width="2"
+                            height="1"
+                            rx="0.3"
+                            fill="#F97316"
+                            opacity="0.3"
+                          />
+                        </svg>
+                      </div>
+                      <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                        03
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-[var(--landing-text)]">
+                      Built for operations
+                    </h3>
+                    <p className="mt-2 text-xs leading-relaxed text-[var(--landing-text-tertiary)]">
+                      Manage members, usage, billing, and access policies from
+                      one place. Full visibility into your organization.
+                    </p>
+                  </div>
+                  {/* Visual: Mini dashboard */}
+                  <div className="border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5 font-mono text-[10px] md:border-l md:border-t-0">
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-[var(--landing-text)]">
+                        acme-corp
+                      </span>
+                      <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-400">
+                        pro plan
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-[var(--landing-text-tertiary)]">
+                          <span>Members</span>
+                          <span>5 / 10</span>
+                        </div>
+                        <div className="mt-1 h-1 w-full rounded-full bg-[var(--landing-border)]">
+                          <div className="h-1 w-1/2 rounded-full bg-[#F97316]" />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[var(--landing-text-tertiary)]">
+                          <span>Projects</span>
+                          <span>3 / 20</span>
+                        </div>
+                        <div className="mt-1 h-1 w-full rounded-full bg-[var(--landing-border)]">
+                          <div className="h-1 w-[15%] rounded-full bg-[#F97316]" />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[var(--landing-text-tertiary)]">
+                          <span>Memories</span>
+                          <span>847 this month</span>
+                        </div>
+                        <div className="mt-1 h-1 w-full rounded-full bg-[var(--landing-border)]">
+                          <div className="h-1 w-[68%] rounded-full bg-[#F97316]" />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-[var(--landing-text-tertiary)]">
+                        <span className="flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                          2 API keys active
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-blue-400" />
+                          SSO enabled
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-amber-400" />
+                          Audit log on
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -897,7 +1272,7 @@ export default async function HomePage() {
             <div className="w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent opacity-[0.12]" />
           </div>
           {/* Horizontal shelf line below heading */}
-          <div className="absolute top-[22%] right-0 left-0">
+          <div className="absolute left-0 right-0 top-[22%]">
             <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
               <div className="h-px bg-gradient-to-r from-[var(--landing-border)] via-transparent to-[var(--landing-border)] opacity-[0.1]" />
             </div>
@@ -905,22 +1280,22 @@ export default async function HomePage() {
         </div>
         {/* Section-level diagonal hatching */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] [mask-image:linear-gradient(to_bottom,black_20%,transparent_60%)] opacity-[0.2]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.2] [mask-image:linear-gradient(to_bottom,black_20%,transparent_60%)]"
           aria-hidden="true"
         />
         {/* Indigo glow behind pricing */}
         <div
-          className="pointer-events-none absolute top-[30%] left-1/2 -z-10 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-indigo-400/[0.04] blur-[120px]"
+          className="pointer-events-none absolute left-1/2 top-[30%] -z-10 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-indigo-400/[0.04] blur-[120px]"
           aria-hidden="true"
         />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollParallax effect="fade-scale" intensity={0.6}>
             <ScrollReveal>
               <div className="mb-16 text-center">
-                <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+                <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
                   FIG 05
                 </span>
-                <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.1] font-bold">
+                <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1]">
                   Simple, transparent pricing
                 </h2>
                 <p className="mx-auto mt-4 max-w-lg text-lg text-[var(--landing-text-secondary)]">
@@ -956,7 +1331,7 @@ export default async function HomePage() {
                       className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
                       aria-hidden="true"
                     >
-                      <div className="h-full w-full bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] [mask-image:linear-gradient(to_bottom,black_40%,transparent_85%)] opacity-[0.35]" />
+                      <div className="h-full w-full bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.35] [mask-image:linear-gradient(to_bottom,black_40%,transparent_85%)]" />
                     </div>
                     {plan.highlighted && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#F97316] px-4 py-1 font-mono text-[11px] font-medium text-white">
@@ -969,7 +1344,7 @@ export default async function HomePage() {
                     <div className="mb-1 text-sm text-[var(--landing-text-tertiary)]">
                       {plan.description}
                     </div>
-                    <div className="mt-4 mb-6 flex items-baseline gap-1">
+                    <div className="mb-6 mt-4 flex items-baseline gap-1">
                       <span className="font-mono text-5xl font-bold text-[var(--landing-text)]">
                         {price}
                       </span>
@@ -1037,7 +1412,7 @@ export default async function HomePage() {
                       className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
                       aria-hidden="true"
                     >
-                      <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] [mask-image:linear-gradient(to_bottom_right,black_30%,transparent_70%)] opacity-[0.25]" />
+                      <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.25] [mask-image:linear-gradient(to_bottom_right,black_30%,transparent_70%)]" />
                     </div>
                     <div className="flex items-start justify-between">
                       <div>
@@ -1047,7 +1422,7 @@ export default async function HomePage() {
                         <div className="mb-1 text-sm text-[var(--landing-text-tertiary)]">
                           {plan.description}
                         </div>
-                        <div className="mt-4 mb-6 flex items-baseline gap-1">
+                        <div className="mb-6 mt-4 flex items-baseline gap-1">
                           <span className="font-mono text-5xl font-bold text-[var(--landing-text)]">
                             {price}
                           </span>
@@ -1097,7 +1472,7 @@ export default async function HomePage() {
           <ScrollReveal delay={300}>
             <p className="mt-12 text-center text-sm text-[var(--landing-text-tertiary)]">
               All plans include: GitHub integration, MCP protocol support,
-              encrypted at rest, SOC 2 compliant.{" "}
+              encrypted at rest.{" "}
               <Link href="/pricing" className="text-[#F97316] hover:underline">
                 Compare all plans
               </Link>
@@ -1116,8 +1491,8 @@ export default async function HomePage() {
           <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
           {/* Center crosshair */}
           <div className="relative">
-            <div className="absolute -top-3 -left-px h-6 w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent" />
-            <div className="absolute -top-px -left-3 h-px w-6 bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
+            <div className="absolute -left-px -top-3 h-6 w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-transparent" />
+            <div className="absolute -left-3 -top-px h-px w-6 bg-gradient-to-r from-transparent via-[var(--landing-border)] to-transparent" />
             <div className="h-1.5 w-1.5 rounded-full border border-[var(--landing-border)] bg-[var(--landing-bg)]" />
           </div>
           <div className="h-1.5 w-1.5 rounded-full bg-[var(--landing-border)]" />
@@ -1138,22 +1513,22 @@ export default async function HomePage() {
         </div>
         {/* Section-level diagonal hatching */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] [mask-image:linear-gradient(to_left,black_15%,transparent_55%)] opacity-[0.15]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.15] [mask-image:linear-gradient(to_left,black_15%,transparent_55%)]"
           aria-hidden="true"
         />
         {/* Cyan glow orb, left side */}
         <div
-          className="pointer-events-none absolute top-[30%] left-[5%] -z-10 h-[450px] w-[450px] rounded-full bg-cyan-500/[0.04] blur-[120px]"
+          className="pointer-events-none absolute left-[5%] top-[30%] -z-10 h-[450px] w-[450px] rounded-full bg-cyan-500/[0.04] blur-[120px]"
           aria-hidden="true"
         />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollParallax effect="fade-scale" intensity={0.6}>
             <ScrollReveal>
               <div className="mb-16">
-                <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+                <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
                   FIG 06
                 </span>
-                <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.1] font-bold">
+                <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1]">
                   Open protocol. Extensible by design.
                 </h2>
               </div>
@@ -1197,7 +1572,7 @@ export default async function HomePage() {
               <div className="relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
                 {/* Diagonal hatching */}
                 <div
-                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] [mask-image:linear-gradient(to_top_left,black_35%,transparent_80%)] opacity-[0.3]"
+                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] [mask-image:linear-gradient(to_top_left,black_35%,transparent_80%)]"
                   aria-hidden="true"
                 />
                 {/* Repo card */}
@@ -1278,7 +1653,7 @@ export default async function HomePage() {
           {/* Supported tools */}
           <ScrollReveal delay={200}>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-              <span className="mr-2 font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+              <span className="mr-2 font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                 Works with
               </span>
               {[
@@ -1331,28 +1706,27 @@ export default async function HomePage() {
         </div>
         {/* Square grid lines, fading upward */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--landing-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--landing-border)_1px,transparent_1px)] [mask-image:linear-gradient(to_top,black_20%,transparent_80%)] bg-[size:32px_32px] opacity-[0.12]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--landing-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--landing-border)_1px,transparent_1px)] bg-[size:32px_32px] opacity-[0.12] [mask-image:linear-gradient(to_top,black_20%,transparent_80%)]"
           aria-hidden="true"
         />
         {/* ── Diagonal hatching ── */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_9px,var(--landing-border)_9px,var(--landing-border)_10px)] [mask-image:radial-gradient(ellipse_45%_50%_at_50%_60%,black_25%,transparent_70%)] opacity-[0.12]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_9px,var(--landing-border)_9px,var(--landing-border)_10px)] opacity-[0.12] [mask-image:radial-gradient(ellipse_45%_50%_at_50%_60%,black_25%,transparent_70%)]"
           aria-hidden="true"
         />
         {/* Warm orange glow for CTA */}
         <div
-          className="pointer-events-none absolute top-[40%] left-1/2 -z-10 h-[400px] w-[600px] -translate-x-1/2 rounded-full bg-[#F97316]/[0.05] blur-[120px]"
+          className="pointer-events-none absolute left-1/2 top-[40%] -z-10 h-[400px] w-[600px] -translate-x-1/2 rounded-full bg-[#F97316]/[0.05] blur-[120px]"
           aria-hidden="true"
         />
         <div className="relative mx-auto max-w-[1600px] px-6 lg:px-8">
           <ScrollReveal animation="scale-up">
             <div className="text-center">
-              <h2 className="text-[clamp(2rem,5vw,3rem)] leading-[1.1] font-extrabold">
+              <h2 className="text-[clamp(2rem,5vw,3rem)] font-extrabold leading-[1.1]">
                 Stop re-explaining your codebase
               </h2>
               <p className="mx-auto mt-4 max-w-lg text-lg text-[var(--landing-text-secondary)]">
-                Connect your first repo and let your agents remember everything.
-                One command to start.
+                Set up in one command and let your agents remember everything.
               </p>
 
               <div className="mt-8 flex justify-center">
@@ -1381,7 +1755,7 @@ export default async function HomePage() {
 
             {/* Supported tools */}
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-              <span className="mr-2 font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+              <span className="mr-2 font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                 Works with
               </span>
               {[
@@ -1433,12 +1807,12 @@ export default async function HomePage() {
         </div>
         {/* Square grid lines, fading upward */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--landing-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--landing-border)_1px,transparent_1px)] [mask-image:linear-gradient(to_top,black_10%,transparent_60%)] bg-[size:32px_32px] opacity-[0.1]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--landing-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--landing-border)_1px,transparent_1px)] bg-[size:32px_32px] opacity-[0.1] [mask-image:linear-gradient(to_top,black_10%,transparent_60%)]"
           aria-hidden="true"
         />
         {/* ── Diagonal hatching ── */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] [mask-image:linear-gradient(to_top,black_15%,transparent_55%)] opacity-[0.1]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] opacity-[0.1] [mask-image:linear-gradient(to_top,black_15%,transparent_55%)]"
           aria-hidden="true"
         />
         <div className="mx-auto max-w-[1600px] px-6 py-16 lg:px-8 lg:py-20">
@@ -1485,28 +1859,13 @@ export default async function HomePage() {
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                     </svg>
                   </a>
-                  <a
-                    href="https://discord.gg/memctl"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text-secondary)]"
-                    aria-label="Discord"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z" />
-                    </svg>
-                  </a>
                 </div>
               </div>
 
               {/* Link columns */}
               {FOOTER_COLS.map((col) => (
                 <div key={col.title}>
-                  <h4 className="mb-4 text-[12px] font-semibold text-[var(--landing-text-tertiary)] uppercase">
+                  <h4 className="mb-4 text-[12px] font-semibold uppercase text-[var(--landing-text-tertiary)]">
                     {col.title}
                   </h4>
                   <ul className="space-y-3">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -35,7 +36,6 @@ interface OrgActionsPanelProps {
     projectLimit: number;
     memberLimit: number;
     memoryLimitPerProject: number | null;
-    memoryLimitOrg: number | null;
     apiRatePerMinute: number | null;
     customLimits: boolean | null;
     ownerId: string;
@@ -43,7 +43,6 @@ interface OrgActionsPanelProps {
     planDefaultProjectLimit: number;
     planDefaultMemberLimit: number;
     planDefaultMemoryPerProject: number;
-    planDefaultMemoryOrg: number;
     planDefaultApiRate: number;
     trialEndsAt: string | null;
     planExpiresAt: string | null;
@@ -56,7 +55,7 @@ interface OrgActionsPanelProps {
     planTemplateId: string | null;
   };
   members: { userId: string; name: string; email: string; role: string }[];
-  templates: { id: string; name: string }[];
+  templates: { id: string; name: string; stripePriceInCents: number | null }[];
 }
 
 const statusBadgeStyles: Record<string, string> = {
@@ -75,7 +74,7 @@ const dialogCls =
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-4 py-2.5">
-      <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+      <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
         {children}
       </span>
     </div>
@@ -84,7 +83,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-1.5 block font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+    <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
       {children}
     </span>
   );
@@ -118,9 +117,6 @@ export function OrgActionsPanel({
   const [memoryLimitPerProject, setMemoryLimitPerProject] = useState<string>(
     org.memoryLimitPerProject != null ? String(org.memoryLimitPerProject) : "",
   );
-  const [memoryLimitOrg, setMemoryLimitOrg] = useState<string>(
-    org.memoryLimitOrg != null ? String(org.memoryLimitOrg) : "",
-  );
   const [apiRatePerMinute, setApiRatePerMinute] = useState<string>(
     org.apiRatePerMinute != null ? String(org.apiRatePerMinute) : "",
   );
@@ -132,6 +128,10 @@ export function OrgActionsPanel({
   const [subPriceDollars, setSubPriceDollars] = useState("200");
   const [subInterval, setSubInterval] = useState<"month" | "year">("month");
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [applyTemplateSubscription, setApplyTemplateSubscription] =
+    useState(false);
+  const [templateSubscriptionInterval, setTemplateSubscriptionInterval] =
+    useState<"month" | "year">("month");
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(
     org.planExpiresAt ? new Date(org.planExpiresAt) : undefined,
   );
@@ -144,6 +144,9 @@ export function OrgActionsPanel({
   );
   const [contractEnd, setContractEnd] = useState<Date | undefined>(
     org.contractEndDate ? new Date(org.contractEndDate) : undefined,
+  );
+  const selectedTemplateConfig = templates.find(
+    (t) => t.id === selectedTemplate,
   );
 
   async function doAction(body: Record<string, unknown>) {
@@ -287,7 +290,7 @@ export function OrgActionsPanel({
           <div className="flex items-center gap-2">
             Limits
             {org.customLimits && (
-              <span className="rounded-full bg-[#F97316]/10 px-2 py-0.5 font-mono text-[9px] font-medium tracking-normal text-[#F97316] normal-case">
+              <span className="rounded-full bg-[#F97316]/10 px-2 py-0.5 font-mono text-[9px] font-medium normal-case tracking-normal text-[#F97316]">
                 Custom
               </span>
             )}
@@ -324,14 +327,6 @@ export function OrgActionsPanel({
               onClear={() => setMemoryLimitPerProject("")}
             />
             <LimitField
-              label="Memory org-wide"
-              value={memoryLimitOrg}
-              onChange={setMemoryLimitOrg}
-              planDefault={org.planDefaultMemoryOrg}
-              isOverridden={memoryLimitOrg !== ""}
-              onClear={() => setMemoryLimitOrg("")}
-            />
-            <LimitField
               label="API rate / min"
               value={apiRatePerMinute}
               onChange={setApiRatePerMinute}
@@ -353,9 +348,6 @@ export function OrgActionsPanel({
                 if (memoryLimitPerProject)
                   body.memoryLimitPerProject = Number(memoryLimitPerProject);
                 else body.memoryLimitPerProject = null;
-                if (memoryLimitOrg)
-                  body.memoryLimitOrg = Number(memoryLimitOrg);
-                else body.memoryLimitOrg = null;
                 if (apiRatePerMinute)
                   body.apiRatePerMinute = Number(apiRatePerMinute);
                 else body.apiRatePerMinute = null;
@@ -377,7 +369,6 @@ export function OrgActionsPanel({
                   setProjectLimit(org.planDefaultProjectLimit);
                   setMemberLimit(org.planDefaultMemberLimit);
                   setMemoryLimitPerProject("");
-                  setMemoryLimitOrg("");
                   setApiRatePerMinute("");
                   doAction({ action: "reset_limits" });
                 }}
@@ -447,7 +438,7 @@ export function OrgActionsPanel({
             <SectionLabel>Subscription</SectionLabel>
             {org.stripeSubscriptionId ? (
               <div className="mt-2">
-                <div className="mb-2 rounded-md border border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2 font-mono text-[10px] break-all text-[var(--landing-text-secondary)]">
+                <div className="mb-2 break-all rounded-md border border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2 font-mono text-[10px] text-[var(--landing-text-secondary)]">
                   {org.stripeSubscriptionId}
                 </div>
                 <Button
@@ -532,7 +523,10 @@ export function OrgActionsPanel({
             <div className="flex gap-2">
               <Select
                 value={selectedTemplate}
-                onValueChange={setSelectedTemplate}
+                onValueChange={(value) => {
+                  setSelectedTemplate(value);
+                  setApplyTemplateSubscription(false);
+                }}
               >
                 <SelectTrigger className="flex-1 font-mono">
                   <SelectValue placeholder="Select template" />
@@ -556,6 +550,10 @@ export function OrgActionsPanel({
                   doAction({
                     action: "apply_template",
                     templateId: selectedTemplate,
+                    createSubscription:
+                      applyTemplateSubscription &&
+                      !!selectedTemplateConfig?.stripePriceInCents,
+                    subscriptionInterval: templateSubscriptionInterval,
                   })
                 }
                 disabled={loading || !selectedTemplate}
@@ -567,6 +565,48 @@ export function OrgActionsPanel({
                 )}
               </Button>
             </div>
+            {selectedTemplateConfig?.stripePriceInCents ? (
+              <div className="mt-3 rounded-md border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-2.5">
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-mono text-[11px] text-[var(--landing-text-secondary)]">
+                    <Checkbox
+                      checked={applyTemplateSubscription}
+                      onCheckedChange={(checked) =>
+                        setApplyTemplateSubscription(checked === true)
+                      }
+                    />
+                    Create Stripe subscription
+                  </label>
+                  <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                    $
+                    {(
+                      selectedTemplateConfig.stripePriceInCents / 100
+                    ).toLocaleString()}
+                  </span>
+                </div>
+                <div className="w-40">
+                  <FieldLabel>Interval</FieldLabel>
+                  <Select
+                    value={templateSubscriptionInterval}
+                    onValueChange={(v) =>
+                      setTemplateSubscriptionInterval(v as "month" | "year")
+                    }
+                  >
+                    <SelectTrigger className="font-mono">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={selectPopoverCls}>
+                      <SelectItem value="month" className={selectItemCls}>
+                        Monthly
+                      </SelectItem>
+                      <SelectItem value="year" className={selectItemCls}>
+                        Yearly
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* Expiry */}
@@ -779,7 +819,7 @@ export function OrgActionsPanel({
       >
         <DialogContent className={dialogCls}>
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm text-[var(--landing-text)] capitalize">
+            <DialogTitle className="font-mono text-sm capitalize text-[var(--landing-text)]">
               {statusDialog} Organization
             </DialogTitle>
           </DialogHeader>

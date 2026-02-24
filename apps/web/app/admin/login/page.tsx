@@ -288,23 +288,19 @@ export default function AdminLoginPage() {
             </AnimatePresence>
           </div>
 
-          {/* ── Testimonial ── */}
+          {/* ── Admin access ── */}
           <div className="animate-slide-in-right order-5 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 [animation-delay:200ms] md:order-3 lg:order-3 lg:p-7">
-            <span className="animate-float mb-2 block text-3xl leading-none text-[#F97316]/20 [animation-delay:1s]">
-              &ldquo;
-            </span>
-            <p className="mb-4 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
-              We switched from maintaining CLAUDE.md files manually to memctl.
-              It&rsquo;s night and day.
+            <p className="mb-2 font-mono text-[11px] uppercase tracking-widest text-[#F97316]">
+              Admin access
             </p>
-            <div>
-              <p className="text-xs font-medium text-[var(--landing-text)]">
-                Priya Sharma
-              </p>
-              <p className="text-xs text-[var(--landing-text-tertiary)]">
-                Staff Engineer
-              </p>
-            </div>
+            <p className="mb-3 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
+              This portal is for internal memctl operations, billing support,
+              and account management.
+            </p>
+            <p className="text-xs text-[var(--landing-text-tertiary)]">
+              Only @memctl.com addresses can request a magic link, and each link
+              expires in 5 minutes.
+            </p>
           </div>
 
           {/* ── Terminal demo — live typing loop ── */}
@@ -319,7 +315,7 @@ export default function AdminLoginPage() {
 
           {/* ── Integrations + trust ── */}
           <div className="animate-fade-in-up order-4 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-5 [animation-delay:400ms] md:order-5 lg:order-5 lg:col-span-2 lg:p-6">
-            <p className="mb-3 font-mono text-[11px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Works with your tools
             </p>
             <div className="mb-4 flex flex-wrap gap-2">
@@ -349,21 +345,6 @@ export default function AdminLoginPage() {
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
                 Encrypted
-              </span>
-              <span className="flex items-center gap-1.5">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-                SOC 2
               </span>
               <span className="flex items-center gap-1.5">
                 <svg

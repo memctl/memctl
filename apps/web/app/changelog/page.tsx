@@ -77,10 +77,10 @@ export default async function ChangelogPage() {
         {/* Header */}
         <ScrollReveal>
           <div className="mb-16">
-            <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+            <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
               Changelog
             </span>
-            <h1 className="text-[clamp(2rem,5vw,3.5rem)] leading-[1.1] font-bold">
+            <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.1]">
               What&apos;s New
             </h1>
             <p className="mt-4 max-w-xl text-[var(--landing-text-secondary)]">
@@ -104,7 +104,7 @@ export default async function ChangelogPage() {
         ) : (
           <div className="relative">
             {/* Vertical line */}
-            <div className="absolute top-0 left-[7.5rem] hidden h-full w-px bg-[var(--landing-border)] md:block" />
+            <div className="absolute left-[7.5rem] top-0 hidden h-full w-px bg-[var(--landing-border)] md:block" />
 
             <div className="space-y-8">
               {entriesWithCounts.map((entry, i) => (
@@ -128,14 +128,14 @@ export default async function ChangelogPage() {
                     </div>
 
                     {/* Timeline dot */}
-                    <div className="absolute top-1.5 left-[7.25rem] hidden h-2.5 w-2.5 rounded-full border-2 border-[#F97316] bg-[var(--landing-bg)] md:block" />
+                    <div className="absolute left-[7.25rem] top-1.5 hidden h-2.5 w-2.5 rounded-full border-2 border-[#F97316] bg-[var(--landing-bg)] md:block" />
 
                     {/* Right: card */}
                     <Link
                       href={`/changelog/${entry.version}`}
                       className="group flex-1 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 transition-all hover:border-[var(--landing-border-hover)] hover:shadow-lg md:ml-4"
                     >
-                      <h2 className="mb-2 text-lg leading-snug font-semibold transition-colors group-hover:text-[#F97316]">
+                      <h2 className="mb-2 text-lg font-semibold leading-snug transition-colors group-hover:text-[#F97316]">
                         {entry.title}
                       </h2>
                       {entry.summary && (

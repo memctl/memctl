@@ -314,7 +314,7 @@ export function OverviewCharts({
           {/* MRR hero: 2 cols, 2 rows */}
           <div className="dash-card relative col-span-2 row-span-2 overflow-hidden border-l-2 border-l-[#F97316] p-5">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#F97316]/[0.04] to-transparent" />
-            <span className="relative block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="relative block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Monthly Recurring Revenue
             </span>
             <span className="relative mt-2 block text-4xl font-bold tracking-tight text-[var(--landing-text)]">
@@ -322,7 +322,7 @@ export function OverviewCharts({
             </span>
             <div className="relative mt-3 flex items-center gap-4">
               <div>
-                <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   Paid Orgs
                 </span>
                 <span className="block text-sm font-semibold text-[var(--landing-text)]">
@@ -331,7 +331,7 @@ export function OverviewCharts({
               </div>
               <div className="h-6 w-px bg-[var(--landing-border)]" />
               <div>
-                <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   Active Trials
                 </span>
                 <span className="block text-sm font-semibold text-[var(--landing-text)]">
@@ -361,7 +361,7 @@ export function OverviewCharts({
       {/* ── Signups: full width with embedded period selector ── */}
       <div className="dash-card min-w-0 overflow-hidden p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
             Signups
           </span>
           <div className="flex items-center gap-1">
@@ -422,7 +422,7 @@ export function OverviewCharts({
         <div className="grid gap-2 lg:grid-cols-3">
           {/* Revenue: 2 cols */}
           <div className="dash-card min-w-0 overflow-hidden p-4 lg:col-span-2">
-            <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Revenue (MRR)
             </span>
             <ChartContainer
@@ -475,7 +475,7 @@ export function OverviewCharts({
           {/* Plan distribution: 1 col, spans 2 rows */}
           <div className="flex flex-col lg:col-span-1 lg:row-span-2">
             <div className="dash-card flex flex-1 flex-col p-4">
-              <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+              <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                 Plans
               </span>
               {planDistribution.length === 0 ? (
@@ -513,7 +513,7 @@ export function OverviewCharts({
                           className="h-2 w-2 shrink-0 rounded-sm"
                           style={{ backgroundColor: entry.fill }}
                         />
-                        <span className="flex-1 font-mono text-[10px] text-[var(--landing-text-secondary)] capitalize">
+                        <span className="flex-1 font-mono text-[10px] capitalize text-[var(--landing-text-secondary)]">
                           {entry.name}
                         </span>
                         <span className="font-mono text-[10px] font-medium text-[var(--landing-text)]">
@@ -529,7 +529,7 @@ export function OverviewCharts({
 
           {/* Referrer: 2 cols, horizontal layout */}
           <div className="dash-card min-w-0 overflow-hidden p-4 lg:col-span-2">
-            <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Referrers
             </span>
             {referrerEntries.length === 0 ? (
@@ -567,7 +567,7 @@ export function OverviewCharts({
                         className="h-2 w-2 shrink-0 rounded-sm"
                         style={{ backgroundColor: entry.fill }}
                       />
-                      <span className="flex-1 font-mono text-[10px] text-[var(--landing-text-secondary)] capitalize">
+                      <span className="flex-1 font-mono text-[10px] capitalize text-[var(--landing-text-secondary)]">
                         {entry.name}
                       </span>
                       <span className="font-mono text-[10px] font-medium text-[var(--landing-text)]">
@@ -591,7 +591,7 @@ export function OverviewCharts({
             empty="No organizations yet"
           />
           <div className="dash-card min-w-0 overflow-hidden p-4 lg:col-span-2">
-            <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Referrers
             </span>
             {referrerEntries.length === 0 ? (
@@ -629,7 +629,7 @@ export function OverviewCharts({
                         className="h-2 w-2 shrink-0 rounded-sm"
                         style={{ backgroundColor: entry.fill }}
                       />
-                      <span className="flex-1 font-mono text-[10px] text-[var(--landing-text-secondary)] capitalize">
+                      <span className="flex-1 font-mono text-[10px] capitalize text-[var(--landing-text-secondary)]">
                         {entry.name}
                       </span>
                       <span className="font-mono text-[10px] font-medium text-[var(--landing-text)]">
@@ -653,7 +653,7 @@ export function OverviewCharts({
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="dash-card p-3">
-      <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+      <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
         {label}
       </span>
       <span className="block text-lg font-semibold text-[var(--landing-text)]">
@@ -674,7 +674,7 @@ function DonutCard({
 }) {
   return (
     <div className="dash-card p-4">
-      <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+      <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
         {title}
       </span>
       {data.length === 0 ? (
@@ -712,7 +712,7 @@ function DonutCard({
                   className="h-2 w-2 shrink-0 rounded-sm"
                   style={{ backgroundColor: entry.fill }}
                 />
-                <span className="flex-1 font-mono text-[10px] text-[var(--landing-text-secondary)] capitalize">
+                <span className="flex-1 font-mono text-[10px] capitalize text-[var(--landing-text-secondary)]">
                   {entry.name}
                 </span>
                 <span className="font-mono text-[10px] font-medium text-[var(--landing-text)]">

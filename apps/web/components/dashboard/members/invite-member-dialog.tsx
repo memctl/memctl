@@ -207,7 +207,7 @@ export function InviteMemberDialog({
 
           {pendingInvitations.length > 0 && (
             <div>
-              <p className="mb-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Pending invitations
               </p>
               <div className="space-y-1.5">
@@ -220,7 +220,7 @@ export function InviteMemberDialog({
                     <span className="flex-1 truncate font-mono text-xs text-[var(--landing-text-secondary)]">
                       {invite.email}
                     </span>
-                    <span className="shrink-0 rounded bg-[var(--landing-surface-2)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--landing-text-tertiary)] capitalize">
+                    <span className="shrink-0 rounded bg-[var(--landing-surface-2)] px-1.5 py-0.5 font-mono text-[9px] capitalize text-[var(--landing-text-tertiary)]">
                       {invite.role}
                     </span>
                     <span className="shrink-0 font-mono text-[9px] text-[#F97316]">

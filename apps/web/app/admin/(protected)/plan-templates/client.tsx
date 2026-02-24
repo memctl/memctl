@@ -24,7 +24,6 @@ interface Template {
   projectLimit: number;
   memberLimit: number;
   memoryLimitPerProject: number;
-  memoryLimitOrg: number;
   apiRatePerMinute: number;
   stripePriceInCents: number | null;
   isArchived: boolean | null;
@@ -71,7 +70,7 @@ export function PlanTemplatesClient({ templates }: { templates: Template[] }) {
     <>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[200px] flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
           <Input
             placeholder="Search name or description..."
             value={searchQuery}
@@ -95,22 +94,22 @@ export function PlanTemplatesClient({ templates }: { templates: Template[] }) {
           <Table>
             <TableHeader>
               <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Name
                 </TableHead>
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Base Plan
                 </TableHead>
-                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell">
+                <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell">
                   Limits
                 </TableHead>
-                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase md:table-cell">
+                <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] md:table-cell">
                   Price
                 </TableHead>
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Usage
                 </TableHead>
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Actions
                 </TableHead>
               </TableRow>
@@ -144,7 +143,7 @@ export function PlanTemplatesClient({ templates }: { templates: Template[] }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[11px] text-[var(--landing-text-secondary)] capitalize">
+                      <span className="inline-flex rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[11px] capitalize text-[var(--landing-text-secondary)]">
                         {t.basePlanId}
                       </span>
                     </TableCell>

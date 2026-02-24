@@ -21,7 +21,6 @@ import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { formatLimitValue, isUnlimited, getOrgLimits } from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
-import { Progress } from "@/components/ui/progress";
 import {
   FolderOpen,
   Brain,
@@ -206,10 +205,7 @@ export default async function OrgDashboardPage({
   );
   recentSessions.splice(5);
 
-  const memoryLimit = limits.memoryLimitOrg;
-  const usagePercent = isUnlimited(memoryLimit)
-    ? 0
-    : Math.round((totalMemories / memoryLimit) * 100);
+  const memoryLimitPerProject = limits.memoryLimitPerProject;
 
   function relativeTime(d: Date | null): string {
     if (!d) return "";
@@ -265,7 +261,7 @@ export default async function OrgDashboardPage({
             icon: Brain,
             label: "Memories",
             value: totalMemories,
-            sub: `${usagePercent}% used`,
+            sub: `${formatLimitValue(memoryLimitPerProject)}/project`,
             color: "text-[var(--landing-text)]",
           },
           {
@@ -304,7 +300,7 @@ export default async function OrgDashboardPage({
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/20 to-transparent" />
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   {label}
                 </p>
                 <p className={`mt-1 font-mono text-lg font-bold ${color}`}>
@@ -322,21 +318,17 @@ export default async function OrgDashboardPage({
         ))}
       </div>
 
-      {/* Capacity bar */}
-      {!isUnlimited(memoryLimit) && (
+      {/* Per-project limit info */}
+      {!isUnlimited(memoryLimitPerProject) && (
         <div className="dash-card mb-4 p-3">
-          <div className="mb-1.5 flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-              Memory Capacity
+              Per-project limit
             </span>
             <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-              {totalMemories.toLocaleString()} / {memoryLimit.toLocaleString()}
+              {formatLimitValue(memoryLimitPerProject)} memories/project
             </span>
           </div>
-          <Progress
-            value={usagePercent}
-            className={`h-2 bg-[var(--landing-surface-2)] ${usagePercent >= 90 ? "[&>div]:bg-red-500" : usagePercent >= 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-[#F97316]"}`}
-          />
         </div>
       )}
 
@@ -365,7 +357,7 @@ export default async function OrgDashboardPage({
                 {recentMemories.map((m, i) => (
                   <div
                     key={`${m.key}-${i}`}
-                    className="flex items-start gap-3 px-3 py-2 transition-colors hover:bg-[var(--landing-surface-2)]/50"
+                    className="hover:bg-[var(--landing-surface-2)]/50 flex items-start gap-3 px-3 py-2 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -486,7 +478,7 @@ export default async function OrgDashboardPage({
             <div className="divide-y divide-[var(--landing-border)]">
               {quickLinks.map((link) => (
                 <Link key={link.label} href={link.href}>
-                  <div className="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-[var(--landing-surface-2)]/50">
+                  <div className="hover:bg-[var(--landing-surface-2)]/50 flex items-center gap-3 px-3 py-2 transition-colors">
                     <link.icon className="h-3.5 w-3.5 text-[#F97316]" />
                     <span className="flex-1 font-mono text-[11px] text-[var(--landing-text-secondary)]">
                       {link.label}
@@ -514,16 +506,18 @@ export default async function OrgDashboardPage({
             ) : (
               <div className="divide-y divide-[var(--landing-border)]">
                 {memoryByProject.map((p) => {
-                  const share =
-                    totalMemories > 0
-                      ? Math.round((p.count / totalMemories) * 100)
-                      : 0;
+                  const share = !isUnlimited(memoryLimitPerProject)
+                    ? Math.min(
+                        100,
+                        Math.round((p.count / memoryLimitPerProject) * 100),
+                      )
+                    : 0;
                   return (
                     <Link
                       key={p.slug}
                       href={`/org/${orgSlug}/projects/${p.slug}`}
                     >
-                      <div className="flex items-center gap-2 px-3 py-2 transition-colors hover:bg-[var(--landing-surface-2)]/50">
+                      <div className="hover:bg-[var(--landing-surface-2)]/50 flex items-center gap-2 px-3 py-2 transition-colors">
                         <FolderOpen className="h-3 w-3 shrink-0 text-[#F97316]" />
                         <span className="flex-1 truncate font-mono text-[11px] text-[var(--landing-text-secondary)]">
                           {p.name}
@@ -556,7 +550,7 @@ export default async function OrgDashboardPage({
           {/* Plan info */}
           <div className="dash-card p-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Plan
               </span>
               <span className="rounded bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#F97316]">
@@ -581,9 +575,9 @@ export default async function OrgDashboardPage({
                 <span className="text-[var(--landing-text)]">{tokenCount}</span>
               </div>
               <div className="flex justify-between">
-                <span>Memories</span>
+                <span>Memories/project</span>
                 <span className="text-[var(--landing-text)]">
-                  {totalMemories}/{formatLimitValue(memoryLimit)}
+                  {formatLimitValue(memoryLimitPerProject)}
                 </span>
               </div>
             </div>

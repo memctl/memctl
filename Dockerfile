@@ -34,6 +34,7 @@ ENV BETTER_AUTH_URL=http://localhost:3000
 ENV STRIPE_SECRET_KEY=placeholder
 ENV STRIPE_PUBLISHABLE_KEY=placeholder
 ENV STRIPE_WEBHOOK_SECRET=placeholder
+ENV STRIPE_EXTRA_SEAT_PRICE_ID=placeholder
 
 RUN pnpm turbo build --filter=@memctl/web
 

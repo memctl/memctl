@@ -11,12 +11,12 @@ export default function PricingPage() {
     <main className="relative min-h-screen overflow-hidden">
       {/* Diagonal hatching background */}
       <div
-        className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--color-border)_5px,var(--color-border)_6px)] [mask-image:linear-gradient(to_bottom,transparent,black_15%,black_40%,transparent)] opacity-[0.35]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--color-border)_5px,var(--color-border)_6px)] opacity-[0.35] [mask-image:linear-gradient(to_bottom,transparent,black_15%,black_40%,transparent)]"
         aria-hidden="true"
       />
       {/* Indigo glow */}
       <div
-        className="pointer-events-none absolute top-[30%] left-[30%] -z-10 h-[400px] w-[500px] rounded-full bg-indigo-500/[0.04] blur-[120px]"
+        className="pointer-events-none absolute left-[30%] top-[30%] -z-10 h-[400px] w-[500px] rounded-full bg-indigo-500/[0.04] blur-[120px]"
         aria-hidden="true"
       />
       <nav className="border-border flex items-center justify-between border-b px-6 py-4 md:px-12">

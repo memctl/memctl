@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     default: "Shared Memory for AI Coding Agents · memctl",
   },
   description:
-    "Cloud-based context that follows your team across IDEs, machines, and agents. Connect your repo, and every AI tool knows where everything is.",
+    "Cloud-based context that follows your team across IDEs, machines, and agents. Set up once, and every AI tool knows where everything is.",
 };
 
 export default function RootLayout({

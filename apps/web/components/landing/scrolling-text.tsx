@@ -40,7 +40,7 @@ export function ScrollingText() {
     >
       <div
         ref={textRef}
-        className="font-mono text-[clamp(3rem,8vw,7rem)] leading-none font-bold whitespace-nowrap text-[var(--landing-border)] uppercase select-none"
+        className="select-none whitespace-nowrap font-mono text-[clamp(3rem,8vw,7rem)] font-bold uppercase leading-none text-[var(--landing-border)]"
         aria-hidden="true"
       >
         persistent context &middot; branch-aware &middot; github-synced &middot;

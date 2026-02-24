@@ -113,11 +113,11 @@ export function Navbar() {
 
         {/* Panel - slides from right */}
         <div
-          className={`absolute top-0 right-0 bottom-0 flex w-[min(85vw,320px)] flex-col bg-[var(--landing-bg)] shadow-2xl transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
+          className={`absolute bottom-0 right-0 top-0 flex w-[min(85vw,320px)] flex-col bg-[var(--landing-bg)] shadow-2xl transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
         >
           {/* Close + accent line */}
-          <div className="flex items-center justify-between px-5 pt-5 pb-4">
-            <span className="font-mono text-xs tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+          <div className="flex items-center justify-between px-5 pb-4 pt-5">
+            <span className="font-mono text-xs uppercase tracking-wider text-[var(--landing-text-tertiary)]">
               Menu
             </span>
             <button

@@ -130,8 +130,27 @@ docker run -p 3000:3000 \
   -e STRIPE_SECRET_KEY=sk_live_... \
   -e STRIPE_PUBLISHABLE_KEY=pk_live_... \
   -e STRIPE_WEBHOOK_SECRET=whsec_... \
+  -e STRIPE_EXTRA_SEAT_PRICE_ID=price_live_... \
   memctl-web
 ```
+
+### Optional: Private beta page gate
+
+To protect page routes with a password prompt (while leaving API routes available):
+
+```bash
+-e BETA_GATE_ENABLED=true \
+-e BETA_GATE_HOSTS=dev.memctl.com \
+-e BETA_GATE_USERNAME=beta \
+-e BETA_GATE_PASSWORD=your-strong-password \
+```
+
+Notes:
+
+- The gate applies to page routes only.
+- `/api/*` is not beta-password gated.
+- API endpoints still use normal memctl auth.
+- For safe beta testing, use a separate deployment and separate database.
 
 ## Troubleshooting
 

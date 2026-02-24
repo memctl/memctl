@@ -73,6 +73,22 @@ Or add `MEMCTL_API_URL` to your MCP config:
 }
 ```
 
-## Docker (coming soon)
+## Docker
 
-A `docker-compose.yml` for simplified self-hosting is planned.
+### Quick start (development)
+
+```bash
+cp .env.example .env
+docker compose up
+docker compose exec web pnpm db:push
+```
+
+This starts a local libSQL database on port 8080 and the web app on port 3000 with hot reload.
+
+### Production build
+
+```bash
+docker build --build-arg NEXT_PUBLIC_APP_URL=https://your-domain.com -t memctl-web .
+```
+
+The production image runs a standalone Next.js server as a non-root user on port 3000. See [Local Development](/docs/local-development) for the full Docker Compose setup and configuration details.

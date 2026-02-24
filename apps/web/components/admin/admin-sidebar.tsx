@@ -159,7 +159,7 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
   return (
     <nav className="flex h-full w-72 flex-col border-r border-[var(--landing-border)] bg-[var(--landing-surface)]">
       {/* Brand */}
-      <div className="px-3 pt-3 pb-2">
+      <div className="px-3 pb-2 pt-3">
         <Link
           href="/admin"
           onClick={onNavigate}
@@ -168,7 +168,7 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
           <span className="font-mono text-sm font-bold text-[var(--landing-text)]">
             mem<span className="text-[#F97316]">/</span>ctl
           </span>
-          <span className="rounded bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#F97316] uppercase">
+          <span className="rounded bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-[#F97316]">
             Admin
           </span>
         </Link>
@@ -177,9 +177,9 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
       <Separator className="bg-[var(--landing-border)]" />
 
       {/* Navigation */}
-      <div className="flex flex-1 flex-col overflow-y-auto px-3 pt-4 pb-2">
+      <div className="flex flex-1 flex-col overflow-y-auto px-3 pb-2 pt-4">
         {/* Platform section */}
-        <span className="mb-1.5 px-3 text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+        <span className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
           Platform
         </span>
         <div className="flex flex-col gap-0.5">
@@ -194,7 +194,7 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
         </div>
 
         {/* Content section */}
-        <span className="mt-6 mb-1.5 px-3 text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+        <span className="mb-1.5 mt-6 px-3 text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
           Content
         </span>
         <div className="flex flex-col gap-0.5">

@@ -188,7 +188,7 @@ export function CodeTabs() {
           >
             {lang}
             {active === lang && (
-              <span className="absolute right-2 bottom-0 left-2 h-px bg-[#F97316]" />
+              <span className="absolute bottom-0 left-2 right-2 h-px bg-[#F97316]" />
             )}
           </button>
         ))}
@@ -200,7 +200,7 @@ export function CodeTabs() {
           <pre className="font-mono text-[13px] leading-relaxed">
             {lines.map((line, i) => (
               <div key={`${active}-${i}`} className="flex">
-                <span className="mr-6 inline-block w-5 shrink-0 text-right text-[var(--landing-text-tertiary)] tabular-nums select-none">
+                <span className="mr-6 inline-block w-5 shrink-0 select-none text-right tabular-nums text-[var(--landing-text-tertiary)]">
                   {i + 1}
                 </span>
                 <span className="text-[var(--landing-text)]">

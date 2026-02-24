@@ -23,6 +23,7 @@ STRIPE_LITE_PRICE_ID=
 STRIPE_PRO_PRICE_ID=
 STRIPE_BUSINESS_PRICE_ID=
 STRIPE_SCALE_PRICE_ID=
+STRIPE_EXTRA_SEAT_PRICE_ID=
 
 # MCP Server
 MEMCTL_API_URL=http://localhost:3000/api/v1
@@ -44,6 +45,7 @@ STRIPE_LITE_PRICE_ID=price_xxx
 STRIPE_PRO_PRICE_ID=price_xxx
 STRIPE_BUSINESS_PRICE_ID=price_xxx
 STRIPE_SCALE_PRICE_ID=price_xxx
+STRIPE_EXTRA_SEAT_PRICE_ID=price_xxx
 ```
 
 ## Example 3: Local testing without GitHub OAuth
@@ -119,6 +121,7 @@ STRIPE_LITE_PRICE_ID=price_xxx
 STRIPE_PRO_PRICE_ID=price_xxx
 STRIPE_BUSINESS_PRICE_ID=price_xxx
 STRIPE_SCALE_PRICE_ID=price_xxx
+STRIPE_EXTRA_SEAT_PRICE_ID=price_xxx
 
 # Email
 RESEND_API_KEY=re_xxx
@@ -130,6 +133,27 @@ NEXT_PUBLIC_APP_URL=https://your-domain.com
 LOG_LEVEL=info
 GITHUB_TOKEN=ghp_xxx
 ```
+
+## Example 7: Private beta pages (API stays open)
+
+Use this when you want page access protected with a password prompt, while keeping API routes available for CLI and integrations.
+
+```env
+# Keep your normal production/beta settings, then add:
+BETA_GATE_ENABLED=true
+# Empty means all hosts. You can also set "*" for all hosts,
+# or a list like "dev.memctl.com,beta.memctl.com"
+BETA_GATE_HOSTS=
+BETA_GATE_USERNAME=beta
+BETA_GATE_PASSWORD=replace-with-strong-password
+```
+
+Notes:
+
+- The beta gate applies to page routes only.
+- `/api/*` is not beta-password gated.
+- API auth still works normally (Bearer tokens, sessions).
+- For real beta isolation, deploy to a separate environment with a separate database.
 
 ## Copy/paste quick bootstrap
 

@@ -1084,7 +1084,7 @@ export function MemoryBrowser({
         {/* Toolbar */}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="relative w-full sm:w-auto sm:max-w-xs sm:flex-1">
-            <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
             <Input
               ref={searchRef}
               placeholder="Search key, content, tag..."
@@ -1095,7 +1095,7 @@ export function MemoryBrowser({
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute top-1/2 right-2 -translate-y-1/2 text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -1157,7 +1157,7 @@ export function MemoryBrowser({
                 <Filter className="h-3 w-3" />
                 <span className="hidden sm:inline">Filters</span>
                 {activeFilterCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#F97316] text-[9px] font-bold text-white">
+                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#F97316] text-[9px] font-bold text-white">
                     {activeFilterCount}
                   </span>
                 )}
@@ -1433,42 +1433,42 @@ export function MemoryBrowser({
                     />
                   </TableHead>
                   <TableHead
-                    className="cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase"
+                    className="cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]"
                     onClick={() => toggleSort("key")}
                   >
                     Key <SortIcon field="key" />
                   </TableHead>
-                  <TableHead className="px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Content
                   </TableHead>
                   <TableHead
-                    className="hidden w-14 cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell"
+                    className="hidden w-14 cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell"
                     onClick={() => toggleSort("relevance")}
                   >
                     Rel <SortIcon field="relevance" />
                   </TableHead>
                   <TableHead
-                    className="hidden w-12 cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell"
+                    className="hidden w-12 cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell"
                     onClick={() => toggleSort("priority")}
                   >
                     Pri <SortIcon field="priority" />
                   </TableHead>
-                  <TableHead className="hidden px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase md:table-cell">
+                  <TableHead className="hidden px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] md:table-cell">
                     Tags
                   </TableHead>
                   <TableHead
-                    className="hidden w-14 cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase lg:table-cell"
+                    className="hidden w-14 cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] lg:table-cell"
                     onClick={() => toggleSort("accessCount")}
                   >
                     Hits <SortIcon field="accessCount" />
                   </TableHead>
                   <TableHead
-                    className="hidden w-16 cursor-pointer px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase lg:table-cell"
+                    className="hidden w-16 cursor-pointer px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)] lg:table-cell"
                     onClick={() => toggleSort("updated")}
                   >
                     Age <SortIcon field="updated" />
                   </TableHead>
-                  <TableHead className="w-[100px] px-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="w-[100px] px-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Acts
                   </TableHead>
                 </TableRow>
@@ -1484,7 +1484,7 @@ export function MemoryBrowser({
                       key={m.id}
                       data-row-index={idx}
                       onClick={() => setFocusedIndex(idx)}
-                      className={`cursor-pointer border-[var(--landing-border)] transition-colors duration-75 ${m.archivedAt ? "opacity-40" : ""} ${isFocused ? "bg-[#F97316]/5 ring-1 ring-[#F97316]/20 ring-inset" : ""} ${isSelected ? "bg-[#F97316]/8" : ""} `}
+                      className={`cursor-pointer border-[var(--landing-border)] transition-colors duration-75 ${m.archivedAt ? "opacity-40" : ""} ${isFocused ? "bg-[#F97316]/5 ring-1 ring-inset ring-[#F97316]/20" : ""} ${isSelected ? "bg-[#F97316]/8" : ""} `}
                     >
                       <TableCell className="px-2 py-1.5">
                         <Checkbox
@@ -1739,7 +1739,7 @@ export function MemoryBrowser({
               </div>
             </DialogHeader>
             <div className="flex-1 overflow-auto rounded-md bg-[var(--landing-code-bg)] p-3">
-              <pre className="font-mono text-xs whitespace-pre-wrap text-[var(--landing-text-secondary)]">
+              <pre className="whitespace-pre-wrap font-mono text-xs text-[var(--landing-text-secondary)]">
                 {selectedMemory?.content}
               </pre>
             </div>
@@ -1844,7 +1844,7 @@ export function MemoryBrowser({
             {/* Editor area */}
             <div className="flex min-h-0 flex-1 flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Content
                 </span>
                 <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">

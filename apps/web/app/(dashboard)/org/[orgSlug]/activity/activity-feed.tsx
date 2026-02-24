@@ -443,12 +443,12 @@ export function ActivityFeed({
         {/* Search row */}
         <div className="flex items-center gap-2 border-b border-[var(--landing-border)] px-3 py-2">
           <div className="relative flex-1">
-            <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
             <Input
               placeholder="Search actions, sessions, keys…"
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="h-9 border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 pl-8 font-mono text-xs placeholder:text-[var(--landing-text-tertiary)]/60 md:h-7"
+              className="bg-[var(--landing-surface-2)]/50 placeholder:text-[var(--landing-text-tertiary)]/60 h-9 border-[var(--landing-border)] pl-8 font-mono text-xs md:h-7"
             />
           </div>
           <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
@@ -590,7 +590,7 @@ export function ActivityFeed({
         <div className="md:col-span-3">
           <div className="dash-card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-2">
-              <span className="font-mono text-[10px] font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 {sourceFilter === "dashboard"
                   ? "Dashboard events"
                   : sourceFilter === "usage"
@@ -612,14 +612,14 @@ export function ActivityFeed({
               <ActivitySkeleton />
             ) : filteredTimeline.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <Search className="mx-auto mb-2 h-5 w-5 text-[var(--landing-text-tertiary)]/50" />
+                <Search className="text-[var(--landing-text-tertiary)]/50 mx-auto mb-2 h-5 w-5" />
                 <p className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
                   {hasFiltersActive
                     ? "No activity matching your filters"
                     : "No activity recorded"}
                 </p>
                 {hasFiltersActive && (
-                  <p className="mt-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]/60">
+                  <p className="text-[var(--landing-text-tertiary)]/60 mt-1 font-mono text-[10px]">
                     Try adjusting your search or date range
                   </p>
                 )}
@@ -634,7 +634,7 @@ export function ActivityFeed({
                     return (
                       <div
                         key={item.id}
-                        className={`flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors${isLast ? "" : "border-b border-[var(--landing-border)]"}`}
+                        className={`hover:bg-[var(--landing-surface-2)]/50 flex items-center gap-2 px-3 py-1.5 transition-colors${isLast ? "" : "border-b border-[var(--landing-border)]"}`}
                       >
                         <span
                           className={`h-1.5 w-1.5 shrink-0 rounded-full ${ACTION_DOT_BG[a.action] ?? "bg-[var(--landing-text-tertiary)]"}`}
@@ -682,7 +682,7 @@ export function ActivityFeed({
                   return (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors${isLast ? "" : "border-b border-[var(--landing-border)]"}`}
+                      className={`hover:bg-[var(--landing-surface-2)]/50 flex items-center gap-2 px-3 py-1.5 transition-colors${isLast ? "" : "border-b border-[var(--landing-border)]"}`}
                     >
                       <span
                         className={`h-1.5 w-1.5 shrink-0 rounded-full ${AUDIT_DOT_BG[a.action] ?? "bg-violet-400"}`}
@@ -726,7 +726,7 @@ export function ActivityFeed({
         <div className="md:col-span-2">
           <div className="dash-card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-2">
-              <span className="font-mono text-[10px] font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Sessions
               </span>
               <div className="flex items-center gap-2">
@@ -743,7 +743,7 @@ export function ActivityFeed({
             </div>
             {filteredSessions.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <GitBranch className="mx-auto mb-2 h-5 w-5 text-[var(--landing-text-tertiary)]/50" />
+                <GitBranch className="text-[var(--landing-text-tertiary)]/50 mx-auto mb-2 h-5 w-5" />
                 <p className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
                   No sessions found
                 </p>
@@ -770,7 +770,7 @@ export function ActivityFeed({
                         onClick={() =>
                           setExpandedSession(isExpanded ? null : s.id)
                         }
-                        className="flex w-full items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--landing-surface-2)]/50"
+                        className="hover:bg-[var(--landing-surface-2)]/50 flex w-full items-start gap-2 px-3 py-2 text-left transition-colors"
                       >
                         <span className="mt-0.5 shrink-0 text-[var(--landing-text-tertiary)]">
                           {isExpanded ? (
@@ -825,7 +825,7 @@ export function ActivityFeed({
                       </button>
 
                       {isExpanded && (
-                        <div className="space-y-2 border-t border-[var(--landing-border)] bg-[var(--landing-surface-2)]/30 px-4 py-2.5">
+                        <div className="bg-[var(--landing-surface-2)]/30 space-y-2 border-t border-[var(--landing-border)] px-4 py-2.5">
                           {s.summary && (
                             <p className="font-mono text-[10px] text-[var(--landing-text-secondary)]">
                               {s.summary}
@@ -890,7 +890,7 @@ export function ActivityFeed({
                     <button
                       onClick={sessionFeed.loadMore}
                       disabled={sessionFeed.isLoading}
-                      className="w-full rounded-md border border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 py-1.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] transition-all hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)] disabled:opacity-50"
+                      className="bg-[var(--landing-surface-2)]/50 w-full rounded-md border border-[var(--landing-border)] py-1.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] transition-all hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)] disabled:opacity-50"
                     >
                       {sessionFeed.isLoading ? (
                         <span className="inline-flex items-center gap-1.5">

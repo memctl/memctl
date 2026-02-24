@@ -175,7 +175,7 @@ export default function TokensPage() {
             Copy this token now. It won&apos;t be shown again.
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <code className="flex-1 text-xs break-all text-[var(--landing-text)]">
+            <code className="flex-1 break-all text-xs text-[var(--landing-text)]">
               {createdToken}
             </code>
             <button
@@ -270,7 +270,7 @@ export default function TokensPage() {
                   setConfigCopied(true);
                   setTimeout(() => setConfigCopied(false), 2000);
                 }}
-                className="absolute top-2 right-2 rounded-md p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[#F97316]"
+                className="absolute right-2 top-2 rounded-md p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[#F97316]"
               >
                 {configCopied ? (
                   <Check className="size-4 text-[#F97316]" />

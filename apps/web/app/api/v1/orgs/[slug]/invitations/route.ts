@@ -15,6 +15,10 @@ import {
   INVITATIONS_PER_DAY,
   MAX_PENDING_INVITATIONS,
 } from "@/lib/plans";
+import {
+  ensureSeatForAdditionalMember,
+  syncSeatQuantityToMemberCount,
+} from "@/lib/seat-billing";
 
 /** GET — list pending invitations for this org */
 export async function GET(
@@ -236,7 +240,7 @@ export async function POST(
     )
     .limit(1);
 
-  if (existingInvite) {
+  if (existingInvite && !existingUser) {
     return NextResponse.json(
       { error: "Invitation already exists for this email" },
       { status: 409 },
@@ -271,6 +275,18 @@ export async function POST(
   // If user already has an account, add them directly — no email
   if (existingUser) {
     try {
+      const seatResult = await ensureSeatForAdditionalMember(org.id);
+      if (!seatResult.ok) {
+        return NextResponse.json({ error: seatResult.error }, { status: 402 });
+      }
+    } catch {
+      return NextResponse.json(
+        { error: "Failed to update seat billing in Stripe" },
+        { status: 502 },
+      );
+    }
+
+    try {
       await db.insert(organizationMembers).values({
         id: generateId(),
         orgId: org.id,
@@ -279,13 +295,26 @@ export async function POST(
         createdAt: now,
       });
     } catch {
+      try {
+        await syncSeatQuantityToMemberCount(org.id);
+      } catch {
+        // ignore seat sync failure
+      }
       return NextResponse.json(
         { error: "Invitation already exists for this email" },
         { status: 409 },
       );
     }
 
-    // Create a pre-accepted invitation record for audit trail
+    if (existingInvite) {
+      await db
+        .update(orgInvitations)
+        .set({ acceptedAt: now, role })
+        .where(eq(orgInvitations.id, existingInvite.id));
+      const invitation = { ...existingInvite, role, acceptedAt: now };
+      return NextResponse.json({ invitation, added: true }, { status: 201 });
+    }
+
     const expiresAt = new Date(
       now.getTime() + expiresInDays * 24 * 60 * 60 * 1000,
     );

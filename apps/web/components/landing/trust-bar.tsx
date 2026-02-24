@@ -1,7 +1,6 @@
-import { Shield, Lock, Clock, Globe, Code } from "lucide-react";
+import { Lock, Clock, Globe, Code } from "lucide-react";
 
 const TRUST_ITEMS = [
-  { icon: Shield, label: "SOC 2 Type II" },
   { icon: Lock, label: "Encrypted at rest" },
   { icon: Clock, label: "99.9% uptime SLA" },
   { icon: Globe, label: "GDPR compliant" },
@@ -34,7 +33,7 @@ export function TrustBar() {
         </div>
         {/* ── Diagonal hatching ── */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] [mask-image:linear-gradient(to_bottom,black_20%,transparent_80%)] opacity-[0.2]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.2] [mask-image:linear-gradient(to_bottom,black_20%,transparent_80%)]"
           aria-hidden="true"
         />
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-4 px-6 sm:gap-x-8 lg:gap-x-12 lg:px-8">

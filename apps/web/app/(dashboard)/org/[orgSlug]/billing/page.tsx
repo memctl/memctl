@@ -137,7 +137,7 @@ export default async function BillingPage({
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/20 to-transparent" />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                  <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                     {label}
                   </p>
                   <p

@@ -137,7 +137,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Version + Title */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
             Version
           </label>
           <Input
@@ -149,7 +149,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
           />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
             Title
           </label>
           <Input
@@ -164,7 +164,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Summary + Release Date */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
             Summary
           </label>
           <Textarea
@@ -175,7 +175,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
           />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
             Release Date
           </label>
           <Input
@@ -189,7 +189,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Status + Save */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+          <label className="text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
             Status
           </label>
           <Switch
@@ -222,7 +222,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Changes section */}
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <label className="text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+          <label className="text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
             Changes
           </label>
           <Button type="button" variant="outline" size="sm" onClick={addItem}>
@@ -306,7 +306,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
 
           {/* Preview panel */}
           <div className="flex flex-col">
-            <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+            <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
               Preview
             </label>
             <div className="flex-1 overflow-auto rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] px-6 py-4">
@@ -320,7 +320,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
                   </ReactMarkdown>
                 </div>
               ) : (
-                <p className="text-sm text-[var(--landing-text-tertiary)] italic">
+                <p className="text-sm italic text-[var(--landing-text-tertiary)]">
                   {previewIndex !== null
                     ? "Start typing to see preview..."
                     : 'Click "Preview" on a change to preview it here.'}

@@ -29,11 +29,13 @@ The extra seat price (`$8/mo`) is defined as `EXTRA_SEAT_PRICE` in `packages/sha
 
 - Create one Stripe Product per plan (`Lite`, `Pro`, `Business`, `Scale`).
 - Create recurring monthly Price objects for each product.
+- Create one recurring monthly `Extra Seat` price at `$8` (licensed quantity).
 - Put the resulting IDs in `.env`:
   - `STRIPE_LITE_PRICE_ID`
   - `STRIPE_PRO_PRICE_ID`
   - `STRIPE_BUSINESS_PRICE_ID`
   - `STRIPE_SCALE_PRICE_ID`
+  - `STRIPE_EXTRA_SEAT_PRICE_ID`
 
 ## 2. Customer type
 
@@ -50,6 +52,8 @@ When creating or syncing Stripe customers, store buyer type in metadata:
 - For both buyer types, use Stripe Checkout subscription mode.
 - For business buyers, enable invoice + tax collection where needed.
 - Keep one checkout endpoint, branch behavior by `buyerType`.
+- Enable `automatic_tax`, `tax_id_collection`, `billing_address_collection`, and
+  `customer_update` (`name` + `address`) in Checkout Session creation.
 
 Pseudo-flow:
 
@@ -61,6 +65,12 @@ POST /api/v1/orgs/:slug/checkout
   -> create Stripe Checkout session
   -> return checkout URL
 ```
+
+Recommended webhook events for billing profile sync:
+
+- `customer.updated`
+- `customer.tax_id.created`
+- `customer.tax_id.deleted`
 
 ## Apple Pay and other payment methods
 
@@ -100,5 +110,6 @@ STRIPE_LITE_PRICE_ID=price_123
 STRIPE_PRO_PRICE_ID=price_456
 STRIPE_BUSINESS_PRICE_ID=price_789
 STRIPE_SCALE_PRICE_ID=price_abc
+STRIPE_EXTRA_SEAT_PRICE_ID=price_extra
 CRON_SECRET=your-cron-secret
 ```

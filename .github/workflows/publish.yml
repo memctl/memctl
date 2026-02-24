@@ -1,10 +1,12 @@
 name: Publish CLI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "packages/cli/**"
+      - ".github/workflows/publish.yml"
 
 jobs:
   check-version:
@@ -44,10 +46,29 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter memctl build
+      - name: Ensure npm supports trusted publishing
+        run: |
+          if ! node -e "const [a,b,c]=process.versions.npm.split('.').map(Number); process.exit((a>11 || (a===11 && (b>5 || (b===5 && c>=1)))) ? 0 : 1)"; then
+            npm install -g npm@11.6.2
+          fi
+          npm --version
+      - name: Verify trusted publishing prerequisites
+        run: |
+          if [ -n "${NODE_AUTH_TOKEN:-}" ] || [ -n "${NPM_TOKEN:-}" ]; then
+            echo "Token-based npm auth variables are set. Remove them for trusted publishing."
+            exit 1
+          fi
+          echo "Using trusted publishing (OIDC), no npm token."
+      - name: Clear npm token configuration
+        run: |
+          npm config delete //registry.npmjs.org/:_authToken || true
+          rm -f ~/.npmrc
       - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
         run: |
           cd packages/cli
           npm publish --access public --provenance

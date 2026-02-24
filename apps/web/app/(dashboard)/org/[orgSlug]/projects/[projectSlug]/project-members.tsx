@@ -236,7 +236,7 @@ export function ProjectMembers({
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/20 to-transparent" />
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   {label}
                 </p>
                 <p className={`mt-1 font-mono text-lg font-bold ${color}`}>
@@ -254,7 +254,7 @@ export function ProjectMembers({
       {/* Members with access */}
       <div className="dash-card overflow-hidden">
         <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-4 py-2.5">
-          <span className="font-mono text-[10px] font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+          <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
             Members with access
           </span>
           {unassignedMembers.length > 0 && (
@@ -273,13 +273,13 @@ export function ProjectMembers({
           <Table>
             <TableHeader>
               <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Member
                 </TableHead>
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Role
                 </TableHead>
-                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell">
+                <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell">
                   Joined
                 </TableHead>
                 <TableHead className="w-12" />

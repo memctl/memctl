@@ -137,7 +137,7 @@ export default async function AdminOverviewPage() {
         {/* Recent Signups */}
         <div className="dash-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
-            <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Recent Signups
             </span>
             <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
@@ -147,10 +147,10 @@ export default async function AdminOverviewPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   User
                 </TableHead>
-                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell">
+                <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell">
                   Joined
                 </TableHead>
               </TableRow>
@@ -203,7 +203,7 @@ export default async function AdminOverviewPage() {
         {/* Orgs by Plan */}
         <div className="dash-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
-            <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Organizations by Plan
             </span>
             <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
@@ -213,10 +213,10 @@ export default async function AdminOverviewPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Plan
                 </TableHead>
-                <TableHead className="text-right font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Count
                 </TableHead>
               </TableRow>
@@ -224,7 +224,7 @@ export default async function AdminOverviewPage() {
             <TableBody>
               {Object.entries(planBreakdown).map(([plan, planCount]) => (
                 <TableRow key={plan} className="border-[var(--landing-border)]">
-                  <TableCell className="font-mono text-sm font-medium text-[var(--landing-text)] capitalize">
+                  <TableCell className="font-mono text-sm font-medium capitalize text-[var(--landing-text)]">
                     {plan}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm text-[var(--landing-text-secondary)]">

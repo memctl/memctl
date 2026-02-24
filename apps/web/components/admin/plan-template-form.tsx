@@ -41,7 +41,6 @@ interface PlanTemplateFormProps {
     projectLimit: number;
     memberLimit: number;
     memoryLimitPerProject: number;
-    memoryLimitOrg: number;
     apiRatePerMinute: number;
     stripePriceInCents: number | null;
   } | null;
@@ -69,9 +68,6 @@ export function PlanTemplateForm({
   const [memoryLimitPerProject, setMemoryLimitPerProject] = useState(
     String(template?.memoryLimitPerProject ?? 10000),
   );
-  const [memoryLimitOrg, setMemoryLimitOrg] = useState(
-    String(template?.memoryLimitOrg ?? 500000),
-  );
   const [apiRatePerMinute, setApiRatePerMinute] = useState(
     String(template?.apiRatePerMinute ?? 3000),
   );
@@ -91,7 +87,6 @@ export function PlanTemplateForm({
         projectLimit: Number(projectLimit),
         memberLimit: Number(memberLimit),
         memoryLimitPerProject: Number(memoryLimitPerProject),
-        memoryLimitOrg: Number(memoryLimitOrg),
         apiRatePerMinute: Number(apiRatePerMinute),
         stripePriceInCents: priceDollars
           ? Math.round(Number(priceDollars) * 100)
@@ -205,18 +200,6 @@ export function PlanTemplateForm({
                 min={1}
                 value={memoryLimitPerProject}
                 onChange={(e) => setMemoryLimitPerProject(e.target.value)}
-                className="font-mono"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-                Memory org-wide
-              </label>
-              <Input
-                type="number"
-                min={1}
-                value={memoryLimitOrg}
-                onChange={(e) => setMemoryLimitOrg(e.target.value)}
                 className="font-mono"
               />
             </div>

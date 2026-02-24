@@ -12,7 +12,7 @@ import {
 import { eq, and, count } from "drizzle-orm";
 import { adminOrgActionSchema } from "@memctl/shared/validators";
 import { generateId } from "@/lib/utils";
-import { PLANS } from "@memctl/shared/constants";
+import { PLANS, type PlanId } from "@memctl/shared/constants";
 import { getEffectivePlanId, clampLimit, isBillingEnabled } from "@/lib/plans";
 import {
   createCustomPrice,
@@ -180,13 +180,11 @@ export async function PATCH(
         previousProjectLimit: org.projectLimit,
         previousMemberLimit: org.memberLimit,
         previousMemoryLimitPerProject: org.memoryLimitPerProject,
-        previousMemoryLimitOrg: org.memoryLimitOrg,
         previousApiRatePerMinute: org.apiRatePerMinute,
         newProjectLimit: action.projectLimit ?? org.projectLimit,
         newMemberLimit: action.memberLimit ?? org.memberLimit,
         newMemoryLimitPerProject:
           action.memoryLimitPerProject ?? org.memoryLimitPerProject,
-        newMemoryLimitOrg: action.memoryLimitOrg ?? org.memoryLimitOrg,
         newApiRatePerMinute: action.apiRatePerMinute ?? org.apiRatePerMinute,
       };
       const updates: Record<string, unknown> = {
@@ -199,8 +197,6 @@ export async function PATCH(
         updates.memberLimit = action.memberLimit;
       if (action.memoryLimitPerProject !== undefined)
         updates.memoryLimitPerProject = action.memoryLimitPerProject;
-      if (action.memoryLimitOrg !== undefined)
-        updates.memoryLimitOrg = action.memoryLimitOrg;
       if (action.apiRatePerMinute !== undefined)
         updates.apiRatePerMinute = action.apiRatePerMinute;
       await db
@@ -216,7 +212,6 @@ export async function PATCH(
       details = {
         previousCustomLimits: org.customLimits,
         previousMemoryLimitPerProject: org.memoryLimitPerProject,
-        previousMemoryLimitOrg: org.memoryLimitOrg,
         previousApiRatePerMinute: org.apiRatePerMinute,
         resetToPlan: effectivePlanId,
       };
@@ -228,7 +223,6 @@ export async function PATCH(
           memberLimit:
             plan.memberLimit === Infinity ? 999999 : plan.memberLimit,
           memoryLimitPerProject: null,
-          memoryLimitOrg: null,
           apiRatePerMinute: null,
           customLimits: false,
           updatedAt: now,
@@ -318,17 +312,12 @@ export async function PATCH(
         customLimits: true,
         updatedAt: now,
       };
-      if (
-        !org.memoryLimitPerProject &&
-        !org.memoryLimitOrg &&
-        !org.apiRatePerMinute
-      ) {
+      if (!org.memoryLimitPerProject && !org.apiRatePerMinute) {
         updates.projectLimit = clampLimit(enterprisePlan.projectLimit);
         updates.memberLimit = clampLimit(enterprisePlan.memberLimit);
         updates.memoryLimitPerProject = clampLimit(
           enterprisePlan.memoryLimitPerProject,
         );
-        updates.memoryLimitOrg = clampLimit(enterprisePlan.memoryLimitOrg);
         updates.apiRatePerMinute = clampLimit(enterprisePlan.apiRatePerMinute);
       }
       await db
@@ -350,7 +339,6 @@ export async function PATCH(
           projectLimit: freePlan.projectLimit,
           memberLimit: freePlan.memberLimit,
           memoryLimitPerProject: null,
-          memoryLimitOrg: null,
           apiRatePerMinute: null,
           updatedAt: now,
         })
@@ -384,6 +372,12 @@ export async function PATCH(
           { status: 400 },
         );
       }
+      if (org.stripeSubscriptionId) {
+        return NextResponse.json(
+          { error: "Organization already has an active subscription" },
+          { status: 400 },
+        );
+      }
 
       let customerId = org.stripeCustomerId;
       if (!customerId) {
@@ -398,9 +392,9 @@ export async function PATCH(
           .where(eq(organizations.id, org.id));
       }
 
-      const { priceId } = await createCustomPrice({
+      const { productId, priceId } = await createCustomPrice({
         unitAmountCents: action.priceInCents,
-        productName: `Custom plan for ${org.name}`,
+        productName: `Enterprise plan for ${org.name}`,
         interval: action.interval,
       });
 
@@ -408,18 +402,30 @@ export async function PATCH(
         customerId,
         priceId,
         orgSlug: org.slug,
+        entitlementPlanId: "enterprise",
       });
 
       details = {
+        productId,
+        priceId,
         subscriptionId,
         priceInCents: action.priceInCents,
         interval: action.interval,
       };
 
       const subUpdates: Record<string, unknown> = {
+        stripeCustomerId: customerId,
         stripeSubscriptionId: subscriptionId,
+        planId: "enterprise",
+        planOverride: "enterprise",
+        planTemplateId: null,
+        trialEndsAt: null,
+        planExpiresAt: null,
         updatedAt: now,
       };
+      if (!org.customLimits) {
+        Object.assign(subUpdates, getPlanBaseLimitUpdates("enterprise"));
+      }
       await db
         .update(organizations)
         .set(subUpdates)
@@ -443,9 +449,20 @@ export async function PATCH(
         console.error("Failed to cancel subscription in Stripe:", err);
       }
 
+      const freePlan = PLANS.free;
       await db
         .update(organizations)
         .set({
+          planId: "free",
+          planOverride: null,
+          customLimits: false,
+          projectLimit: freePlan.projectLimit,
+          memberLimit: freePlan.memberLimit,
+          memoryLimitPerProject: null,
+          apiRatePerMinute: null,
+          planTemplateId: null,
+          trialEndsAt: null,
+          planExpiresAt: null,
           stripeSubscriptionId: null,
           updatedAt: now,
         })
@@ -496,21 +513,80 @@ export async function PATCH(
         templateId: template.id,
         templateName: template.name,
         basePlanId: template.basePlanId,
+        createSubscription: action.createSubscription ?? false,
       };
+
+      const templateUpdates: Record<string, unknown> = {
+        planId: template.basePlanId,
+        planOverride: template.basePlanId,
+        customLimits: true,
+        projectLimit: template.projectLimit,
+        memberLimit: template.memberLimit,
+        memoryLimitPerProject: template.memoryLimitPerProject,
+        apiRatePerMinute: template.apiRatePerMinute,
+        planTemplateId: template.id,
+        trialEndsAt: null,
+        planExpiresAt: null,
+        updatedAt: now,
+      };
+
+      if (action.createSubscription) {
+        if (!isBillingEnabled()) {
+          return NextResponse.json(
+            { error: "Billing is not enabled" },
+            { status: 400 },
+          );
+        }
+        if (!template.stripePriceInCents) {
+          return NextResponse.json(
+            { error: "Template does not have a Stripe price configured" },
+            { status: 400 },
+          );
+        }
+        if (org.stripeSubscriptionId) {
+          return NextResponse.json(
+            { error: "Organization already has an active subscription" },
+            { status: 400 },
+          );
+        }
+
+        let customerId = org.stripeCustomerId;
+        if (!customerId) {
+          const customer = await getStripe().customers.create({
+            name: org.name,
+            metadata: { orgSlug: org.slug, orgId: org.id },
+          });
+          customerId = customer.id;
+        }
+
+        const interval = action.subscriptionInterval ?? "month";
+        const { productId, priceId } = await createCustomPrice({
+          unitAmountCents: template.stripePriceInCents,
+          productName: `${template.name} plan for ${org.name}`,
+          interval,
+        });
+        const { subscriptionId } = await createAdminSubscription({
+          customerId,
+          priceId,
+          orgSlug: org.slug,
+          entitlementPlanId: template.basePlanId as PlanId,
+        });
+
+        templateUpdates.stripeCustomerId = customerId;
+        templateUpdates.stripeSubscriptionId = subscriptionId;
+        details = {
+          ...details,
+          productId,
+          priceId,
+          subscriptionId,
+          priceInCents: template.stripePriceInCents,
+          interval,
+        };
+      }
 
       await db
         .update(organizations)
-        .set({
-          planOverride: template.basePlanId,
-          customLimits: true,
-          projectLimit: template.projectLimit,
-          memberLimit: template.memberLimit,
-          memoryLimitPerProject: template.memoryLimitPerProject,
-          memoryLimitOrg: template.memoryLimitOrg,
-          apiRatePerMinute: template.apiRatePerMinute,
-          planTemplateId: template.id,
-          updatedAt: now,
-        })
+        .set(templateUpdates)
         .where(eq(organizations.id, org.id));
       break;
     }
@@ -546,4 +622,15 @@ export async function PATCH(
   });
 
   return NextResponse.json({ success: true });
+}
+
+function getPlanBaseLimitUpdates(planId: PlanId) {
+  const plan = PLANS[planId] ?? PLANS.free;
+  return {
+    projectLimit: clampLimit(plan.projectLimit),
+    memberLimit: clampLimit(plan.memberLimit),
+    memoryLimitPerProject: null,
+    apiRatePerMinute: null,
+    customLimits: false,
+  };
 }

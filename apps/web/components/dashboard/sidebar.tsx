@@ -21,6 +21,7 @@ import {
   Activity,
   HeartPulse,
   Sparkles,
+  UserCog,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -38,6 +39,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
+import { AccountSettingsDialog } from "@/components/dashboard/account-settings-dialog";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 
@@ -64,53 +66,53 @@ const navItems: {
   href: (s: string) => string;
   match?: (pathname: string, orgSlug: string) => boolean;
 }[] = [
-  {
-    label: "Overview",
-    icon: LayoutDashboard,
-    href: (s) => `/org/${s}`,
-    match: (p, s) => p === `/org/${s}`,
-  },
-  {
-    label: "Usage",
-    icon: BarChart3,
-    href: (s) => `/org/${s}/usage`,
-  },
-  {
-    label: "Members",
-    icon: Users,
-    href: (s) => `/org/${s}/members`,
-  },
-  {
-    label: "Tokens",
-    icon: Key,
-    href: (s) => `/org/${s}/tokens`,
-  },
-  {
-    label: "Billing",
-    icon: CreditCard,
-    href: (s) => `/org/${s}/billing`,
-  },
-  {
-    label: "Activity",
-    icon: Activity,
-    href: (s) => `/org/${s}/activity`,
-  },
-  {
-    label: "Health",
-    icon: HeartPulse,
-    href: (s) => `/org/${s}/health`,
-  },
-  {
-    label: "Hygiene",
-    icon: Sparkles,
-    href: (s) => `/org/${s}/hygiene`,
-  },
-  {
-    label: "Settings",
-    icon: Settings,
-    href: (s) => `/org/${s}/settings`,
-  },
-];
+    {
+      label: "Overview",
+      icon: LayoutDashboard,
+      href: (s) => `/org/${s}`,
+      match: (p, s) => p === `/org/${s}`,
+    },
+    {
+      label: "Usage",
+      icon: BarChart3,
+      href: (s) => `/org/${s}/usage`,
+    },
+    {
+      label: "Members",
+      icon: Users,
+      href: (s) => `/org/${s}/members`,
+    },
+    {
+      label: "Tokens",
+      icon: Key,
+      href: (s) => `/org/${s}/tokens`,
+    },
+    {
+      label: "Billing",
+      icon: CreditCard,
+      href: (s) => `/org/${s}/billing`,
+    },
+    {
+      label: "Activity",
+      icon: Activity,
+      href: (s) => `/org/${s}/activity`,
+    },
+    {
+      label: "Health",
+      icon: HeartPulse,
+      href: (s) => `/org/${s}/health`,
+    },
+    {
+      label: "Hygiene",
+      icon: Sparkles,
+      href: (s) => `/org/${s}/hygiene`,
+    },
+    {
+      label: "Settings",
+      icon: Settings,
+      href: (s) => `/org/${s}/settings`,
+    },
+  ];
 
 function getPlanLabel(planId: string) {
   switch (planId) {
@@ -140,6 +142,7 @@ export function Sidebar({
   const [projectsOpen, setProjectsOpen] = useState(true);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -148,17 +151,17 @@ export function Sidebar({
 
   const initials = user.name
     ? user.name
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
     : user.email[0].toUpperCase();
 
   return (
     <nav className="flex h-full w-72 flex-col border-r border-[var(--landing-border)] bg-[var(--landing-surface)]">
       {/* Org Switcher */}
-      <div className="px-3 pt-3 pb-2">
+      <div className="px-3 pb-2 pt-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors duration-150 hover:bg-[var(--landing-surface-2)] focus:outline-none data-[state=open]:bg-[var(--landing-surface-2)]">
@@ -229,8 +232,8 @@ export function Sidebar({
       <Separator className="bg-[var(--landing-border)]" />
 
       {/* Main Navigation */}
-      <div className="flex flex-1 flex-col overflow-y-auto px-3 pt-4 pb-2">
-        <span className="mb-1.5 px-3 text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+      <div className="flex flex-1 flex-col overflow-y-auto px-3 pb-2 pt-4">
+        <span className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
           General
         </span>
         <div className="flex flex-col gap-0.5">
@@ -274,7 +277,7 @@ export function Sidebar({
                   projectsOpen && "rotate-90",
                 )}
               />
-              <span className="text-[11px] font-medium tracking-widest uppercase">
+              <span className="text-[11px] font-medium uppercase tracking-widest">
                 Projects
               </span>
             </CollapsibleTrigger>
@@ -396,6 +399,13 @@ export function Sidebar({
               </p>
             </div>
             <DropdownMenuSeparator className="bg-[var(--landing-border)]" />
+            <DropdownMenuItem
+              className="gap-3 rounded-lg text-sm text-[var(--landing-text-secondary)] transition-colors hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
+              onClick={() => setAccountSettingsOpen(true)}
+            >
+              <UserCog className="h-4 w-4" />
+              Account settings
+            </DropdownMenuItem>
             {mounted && (
               <DropdownMenuItem
                 className="gap-3 rounded-lg text-sm text-[var(--landing-text-secondary)] transition-colors hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
@@ -409,6 +419,7 @@ export function Sidebar({
                 {theme === "dark" ? "Light mode" : "Dark mode"}
               </DropdownMenuItem>
             )}
+            <DropdownMenuSeparator className="bg-[var(--landing-border)]" />
             <DropdownMenuItem
               className="gap-3 rounded-lg text-sm text-[var(--landing-text-secondary)] transition-colors hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
               onClick={async () => {
@@ -421,6 +432,11 @@ export function Sidebar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <AccountSettingsDialog
+          open={accountSettingsOpen}
+          onOpenChange={setAccountSettingsOpen}
+          user={user}
+        />
       </div>
     </nav>
   );

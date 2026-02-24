@@ -11,6 +11,7 @@ import { eq, and, count } from "drizzle-orm";
 import { headers } from "next/headers";
 import { memberRoleUpdateSchema } from "@memctl/shared/validators";
 import { logAudit } from "@/lib/audit";
+import { syncSeatQuantityToMemberCount } from "@/lib/seat-billing";
 
 export async function GET(
   req: NextRequest,
@@ -283,6 +284,12 @@ export async function DELETE(
   await db
     .delete(organizationMembers)
     .where(eq(organizationMembers.id, targetMember.id));
+
+  try {
+    await syncSeatQuantityToMemberCount(org.id);
+  } catch (err) {
+    console.error("Failed to sync seat quantity after member removal:", err);
+  }
 
   await logAudit({
     orgId: org.id,

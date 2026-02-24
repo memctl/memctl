@@ -245,7 +245,7 @@ async function handleStore(
     let evictionMsg = "";
     try {
       const cap = await client.getMemoryCapacity();
-      if (cap.isFull || cap.isSoftFull) {
+      if (cap.isFull) {
         const health = await client.getHealthScores(200);
         const evictable = health.memories
           .filter((m) => !m.isPinned)

@@ -24,7 +24,7 @@ export function SortableHeader({
 
   return (
     <TableHead
-      className={`group cursor-pointer font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase select-none ${className ?? ""}`}
+      className={`group cursor-pointer select-none font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] ${className ?? ""}`}
       onClick={() => onSort(field)}
     >
       <div className="flex items-center gap-1">

@@ -512,11 +512,10 @@ function VersionTimeline() {
             duration: 0.4,
             ease: [0.25, 0.46, 0.45, 0.94],
           }}
-          className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-all duration-500 ${
-            activeIdx === i
-              ? "border-[#F97316]/30 bg-[#F97316]/[0.04]"
-              : "border-[var(--landing-border)] bg-[var(--landing-code-bg)]"
-          }`}
+          className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-all duration-500 ${activeIdx === i
+            ? "border-[#F97316]/30 bg-[#F97316]/[0.04]"
+            : "border-[var(--landing-border)] bg-[var(--landing-code-bg)]"
+            }`}
         >
           <span className="font-mono text-[11px] text-[#F97316]">
             {commit.hash}
@@ -573,11 +572,11 @@ function BentoCard({
     >
       {/* Diagonal hatching pattern */}
       <div
-        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] [mask-image:linear-gradient(to_bottom,black_50%,transparent_100%)] opacity-[0.35] transition-opacity duration-300 group-hover:opacity-[0.5]"
+        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] opacity-[0.35] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom,black_50%,transparent_100%)] group-hover:opacity-[0.5]"
         aria-hidden="true"
       />
       {visualization && (
-        <div className="pointer-events-none absolute top-4 right-4 opacity-[0.45] transition-opacity duration-300 group-hover:opacity-75">
+        <div className="pointer-events-none absolute right-4 top-4 opacity-[0.45] transition-opacity duration-300 group-hover:opacity-75">
           {visualization}
         </div>
       )}
@@ -602,7 +601,7 @@ function StackCard() {
     <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7">
       {/* Diagonal hatching */}
       <div
-        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] [mask-image:linear-gradient(to_right,black_15%,transparent_40%,transparent_60%,black_85%)] opacity-[0.2] transition-opacity duration-300 group-hover:opacity-[0.35]"
+        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.2] transition-opacity duration-300 [mask-image:linear-gradient(to_right,black_15%,transparent_40%,transparent_60%,black_85%)] group-hover:opacity-[0.35]"
         aria-hidden="true"
       />
       {/* Shimmer sweep on hover */}
@@ -668,7 +667,7 @@ export function BentoGrid() {
         <BentoCard
           icon={GitBranch}
           title="GitHub-native"
-          description="Connects directly to your repositories. Auto-indexes on push."
+          description="Works with any Git repository. Context stays in sync across branches."
           visualization={<GitBranchViz />}
         />
       </ScrollReveal>
@@ -713,10 +712,10 @@ export function BentoGrid() {
         <div className="glass-border group relative flex h-full w-full flex-col overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_var(--landing-glow)]">
           {/* Diagonal hatching */}
           <div
-            className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] [mask-image:linear-gradient(to_bottom_left,black_30%,transparent_70%)] opacity-[0.3] transition-opacity duration-300 group-hover:opacity-[0.45]"
+            className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom_left,black_30%,transparent_70%)] group-hover:opacity-[0.45]"
             aria-hidden="true"
           />
-          <div className="pointer-events-none absolute top-4 right-4 opacity-[0.45] transition-opacity duration-300 group-hover:opacity-75">
+          <div className="pointer-events-none absolute right-4 top-4 opacity-[0.45] transition-opacity duration-300 group-hover:opacity-75">
             <IndexingViz />
           </div>
           <div className="mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface-2)] transition-colors duration-300 group-hover:border-[#F97316]/30 group-hover:bg-[#F97316]/5">
@@ -743,10 +742,10 @@ export function BentoGrid() {
         <div className="glass-border group relative flex h-full w-full flex-col overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-7 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_var(--landing-glow)]">
           {/* Diagonal hatching */}
           <div
-            className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] [mask-image:linear-gradient(to_bottom_right,black_30%,transparent_70%)] opacity-[0.3] transition-opacity duration-300 group-hover:opacity-[0.45]"
+            className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] transition-opacity duration-300 [mask-image:linear-gradient(to_bottom_right,black_30%,transparent_70%)] group-hover:opacity-[0.45]"
             aria-hidden="true"
           />
-          <div className="pointer-events-none absolute top-4 right-4 opacity-[0.45] transition-opacity duration-300 group-hover:opacity-75">
+          <div className="pointer-events-none absolute right-4 top-4 opacity-[0.45] transition-opacity duration-300 group-hover:opacity-75">
             <TimelineViz />
           </div>
           <div className="mb-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface-2)] transition-colors duration-300 group-hover:border-[#F97316]/30 group-hover:bg-[#F97316]/5">

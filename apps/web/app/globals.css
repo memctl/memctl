@@ -926,6 +926,16 @@ body {
   color: #f97316;
 }
 
+@media (width >= 80rem) {
+  #nd-tocnav {
+    display: block !important;
+  }
+
+  :root:has(#nd-tocnav) {
+    --fd-tocnav-height: 40px;
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

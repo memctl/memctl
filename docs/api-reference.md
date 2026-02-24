@@ -218,9 +218,9 @@ Actions: `archive`, `unarchive`, `delete`, `pin`, `unpin`, `set_priority`, `add_
 
 #### GET /memories/capacity
 
-Get memory capacity for the project and org.
+Get memory capacity for the project.
 
-Returns: `used`, `limit`, `orgUsed`, `orgLimit`, `isFull`, `isApproaching`, `usageRatio`.
+Returns: `used`, `limit`, `isFull`, `isApproaching`, `usageRatio`.
 
 #### POST /memories/similar
 

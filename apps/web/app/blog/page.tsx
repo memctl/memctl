@@ -41,10 +41,10 @@ export default async function BlogPage() {
         {/* Header */}
         <ScrollReveal>
           <div className="mb-16">
-            <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+            <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
               FIG 01
             </span>
-            <h1 className="text-[clamp(2rem,5vw,3.5rem)] leading-[1.1] font-bold">
+            <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.1]">
               Blog
             </h1>
             <p className="mt-4 max-w-xl text-[var(--landing-text-secondary)]">
@@ -83,7 +83,7 @@ export default async function BlogPage() {
                     </div>
                   )}
                   <div className="flex flex-1 flex-col p-6">
-                    <h2 className="mb-2 text-lg leading-snug font-semibold transition-colors group-hover:text-[#F97316]">
+                    <h2 className="mb-2 text-lg font-semibold leading-snug transition-colors group-hover:text-[#F97316]">
                       {post.title}
                     </h2>
                     {post.excerpt && (

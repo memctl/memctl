@@ -316,7 +316,7 @@ export default function NewProjectPage() {
               </div>
               <button
                 onClick={handleCopyConfig}
-                className="absolute top-2 right-2 rounded-md border border-[var(--landing-border)] bg-[var(--landing-surface)] p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text)]"
+                className="absolute right-2 top-2 rounded-md border border-[var(--landing-border)] bg-[var(--landing-surface)] p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text)]"
               >
                 {copied ? (
                   <Check className="size-3.5 text-green-500" />

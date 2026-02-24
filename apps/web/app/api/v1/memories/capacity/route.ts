@@ -70,10 +70,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     used: capacity.used,
     limit: capacity.limit,
-    orgUsed: capacity.orgUsed,
-    orgLimit: capacity.orgLimit,
     isFull: capacity.isFull,
-    isSoftFull: capacity.isSoftFull,
     isApproaching: capacity.isApproaching,
     usageRatio: capacity.usageRatio,
     relevanceDistribution,
