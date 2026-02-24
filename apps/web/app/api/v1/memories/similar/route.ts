@@ -4,7 +4,11 @@ import { db } from "@/lib/db";
 import { memories } from "@memctl/db/schema";
 import { eq, and, isNull, ne, isNotNull } from "drizzle-orm";
 import { resolveOrgAndProject } from "../capacity-utils";
-import { generateEmbedding, cosineSimilarity, deserializeEmbedding } from "@/lib/embeddings";
+import {
+  generateEmbedding,
+  cosineSimilarity,
+  deserializeEmbedding,
+} from "@/lib/embeddings";
 
 /**
  * POST /api/v1/memories/similar
@@ -25,7 +29,11 @@ export async function POST(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const body = await req.json().catch(() => null);
@@ -33,7 +41,11 @@ export async function POST(req: NextRequest) {
     return jsonError("Body must have content (string)", 400);
   }
 
-  const { content, excludeKey, threshold = 0.6 } = body as {
+  const {
+    content,
+    excludeKey,
+    threshold = 0.6,
+  } = body as {
     content: string;
     excludeKey?: string;
     threshold?: number;
@@ -66,12 +78,19 @@ export async function POST(req: NextRequest) {
           try {
             const emb = deserializeEmbedding(m.embedding!);
             const sim = cosineSimilarity(queryEmbedding, emb);
-            return { key: m.key, priority: m.priority, similarity: Math.round(sim * 100) / 100 };
+            return {
+              key: m.key,
+              priority: m.priority,
+              similarity: Math.round(sim * 100) / 100,
+            };
           } catch {
             return null;
           }
         })
-        .filter((m): m is NonNullable<typeof m> => m !== null && m.similarity >= threshold)
+        .filter(
+          (m): m is NonNullable<typeof m> =>
+            m !== null && m.similarity >= threshold,
+        )
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, 10);
 
@@ -81,7 +100,11 @@ export async function POST(req: NextRequest) {
 
   // Fallback to Jaccard word overlap
   const allMemories = await db
-    .select({ key: memories.key, content: memories.content, priority: memories.priority })
+    .select({
+      key: memories.key,
+      content: memories.content,
+      priority: memories.priority,
+    })
     .from(memories)
     .where(and(...conditions));
 
@@ -94,7 +117,11 @@ export async function POST(req: NextRequest) {
     .map((m) => {
       const memWords = extractWords(m.content);
       const similarity = jaccardSimilarity(inputWords, memWords);
-      return { key: m.key, priority: m.priority, similarity: Math.round(similarity * 100) / 100 };
+      return {
+        key: m.key,
+        priority: m.priority,
+        similarity: Math.round(similarity * 100) / 100,
+      };
     })
     .filter((m) => m.similarity >= threshold)
     .sort((a, b) => b.similarity - a.similarity)

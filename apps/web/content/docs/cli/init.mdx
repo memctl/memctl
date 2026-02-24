@@ -13,25 +13,25 @@ npx memctl init [options]
 
 ## Options
 
-| Flag | Description |
-|---|---|
-| `--claude` | Write Claude Code config only (`.mcp.json`) |
-| `--cursor` | Write Cursor config only (`.cursor/mcp.json`) |
+| Flag         | Description                                                        |
+| ------------ | ------------------------------------------------------------------ |
+| `--claude`   | Write Claude Code config only (`.mcp.json`)                        |
+| `--cursor`   | Write Cursor config only (`.cursor/mcp.json`)                      |
 | `--windsurf` | Write Windsurf config only (`~/.codeium/windsurf/mcp_config.json`) |
-| `--all` | Write configs for all supported IDEs |
+| `--all`      | Write configs for all supported IDEs                               |
 
 ## Interactive mode
 
 Without flags, the wizard walks through:
 
-1. **API URL**  - defaults to `https://memctl.com/api/v1`
-2. **API token**  - from your dashboard
+1. **API URL** - defaults to `https://memctl.com/api/v1`
+2. **API token** - from your dashboard
 3. **Organization slug**
 4. **Project slug**
-5. **Token verification**  - tests the connection
-6. **IDE selection**  - choose which IDEs to configure
-7. **Config writing**  - creates MCP config files
-8. **Save to config**  - optionally saves to `~/.memctl/config.json`
+5. **Token verification** - tests the connection
+6. **IDE selection** - choose which IDEs to configure
+7. **Config writing** - creates MCP config files
+8. **Save to config** - optionally saves to `~/.memctl/config.json`
 
 ## Targeted mode
 
@@ -46,8 +46,8 @@ npx memctl init --all
 
 ## Config files written
 
-| IDE | File | Format |
-|---|---|---|
-| Claude Code | `.mcp.json` | `mcpServers` object |
-| Cursor | `.cursor/mcp.json` | `mcpServers` object |
-| Windsurf | `~/.codeium/windsurf/mcp_config.json` | `mcpServers` object |
+| IDE         | File                                  | Format              |
+| ----------- | ------------------------------------- | ------------------- |
+| Claude Code | `.mcp.json`                           | `mcpServers` object |
+| Cursor      | `.cursor/mcp.json`                    | `mcpServers` object |
+| Windsurf    | `~/.codeium/windsurf/mcp_config.json` | `mcpServers` object |

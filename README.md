@@ -26,17 +26,17 @@ mem/ctl is a cloud MCP server that gives AI coding agents (Claude Code, Cursor, 
 
 ## MCP Tools
 
-| Tool | Description |
-|---|---|
-| `memory_store` | Store a key-value memory |
-| `memory_get` | Retrieve a memory by key |
-| `memory_search` | Search memories by query |
-| `memory_list` | List all memories |
-| `memory_delete` | Delete a memory |
-| `memory_update` | Update a memory |
-| `memory_capacity` | Check used memory, limit, and full status |
+| Tool                    | Description                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| `memory_store`          | Store a key-value memory                                                           |
+| `memory_get`            | Retrieve a memory by key                                                           |
+| `memory_search`         | Search memories by query                                                           |
+| `memory_list`           | List all memories                                                                  |
+| `memory_delete`         | Delete a memory                                                                    |
+| `memory_update`         | Update a memory                                                                    |
+| `memory_capacity`       | Check used memory, limit, and full status                                          |
 | `agent_functionality_*` | Typed project guidance (coding style, folder map, architecture, constraints, etc.) |
-| `branch_context_*` | Branch-specific implementation plan storage/retrieval |
+| `branch_context_*`      | Branch-specific implementation plan storage/retrieval                              |
 
 ## Tech Stack
 

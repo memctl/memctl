@@ -33,7 +33,10 @@ export async function GET(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [currentMember] = await db
@@ -98,7 +101,10 @@ export async function PUT(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [currentMember] = await db
@@ -113,7 +119,10 @@ export async function PUT(
     .limit(1);
 
   if (!currentMember || currentMember.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const [targetMember] = await db
@@ -168,17 +177,20 @@ export async function PUT(
   const orgProjectIds = allOrgProjects.map((p) => p.id);
 
   // Get previous assignments for audit diff
-  const previousAssignments = orgProjectIds.length > 0
-    ? (await db
-        .select({ projectId: projectMembers.projectId })
-        .from(projectMembers)
-        .where(
-          and(
-            eq(projectMembers.userId, targetMember.userId),
-            inArray(projectMembers.projectId, orgProjectIds),
-          ),
-        )).map((a) => a.projectId)
-    : [];
+  const previousAssignments =
+    orgProjectIds.length > 0
+      ? (
+          await db
+            .select({ projectId: projectMembers.projectId })
+            .from(projectMembers)
+            .where(
+              and(
+                eq(projectMembers.userId, targetMember.userId),
+                inArray(projectMembers.projectId, orgProjectIds),
+              ),
+            )
+        ).map((a) => a.projectId)
+      : [];
 
   const previousSet = new Set(previousAssignments);
   const newSet = new Set(parsed.data.projectIds);

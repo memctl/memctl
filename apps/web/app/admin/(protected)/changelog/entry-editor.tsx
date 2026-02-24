@@ -137,7 +137,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Version + Title */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Version
           </label>
           <Input
@@ -149,7 +149,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
           />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Title
           </label>
           <Input
@@ -164,7 +164,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Summary + Release Date */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Summary
           </label>
           <Textarea
@@ -175,7 +175,7 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
           />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Release Date
           </label>
           <Input
@@ -189,12 +189,14 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Status + Save */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Status
           </label>
           <Switch
             checked={status === "published"}
-            onCheckedChange={(checked) => setStatus(checked ? "published" : "draft")}
+            onCheckedChange={(checked) =>
+              setStatus(checked ? "published" : "draft")
+            }
             className="data-[state=checked]:bg-[#F97316]"
           />
           <span className="text-xs text-[var(--landing-text-secondary)]">
@@ -208,7 +210,11 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
             disabled={saving || !version || !title || !hasValidItems}
             className="bg-[#F97316] text-white hover:bg-[#FB923C] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
           >
-            {saving ? "Saving..." : mode === "create" ? "Create Entry" : "Save Changes"}
+            {saving
+              ? "Saving..."
+              : mode === "create"
+                ? "Create Entry"
+                : "Save Changes"}
           </Button>
         </div>
       </div>
@@ -216,15 +222,10 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
       {/* Changes section */}
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <label className="text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Changes
           </label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addItem}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={addItem}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             Add Change
           </Button>
@@ -252,7 +253,11 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
                     </SelectTrigger>
                     <SelectContent className={selectPopoverCls}>
                       {categoryOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value} className={selectItemCls}>
+                        <SelectItem
+                          key={opt.value}
+                          value={opt.value}
+                          className={selectItemCls}
+                        >
                           {opt.label}
                         </SelectItem>
                       ))}
@@ -267,7 +272,9 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
                       variant="ghost"
                       size="sm"
                       className="h-6 px-2 text-xs"
-                      onClick={() => setPreviewIndex(previewIndex === index ? null : index)}
+                      onClick={() =>
+                        setPreviewIndex(previewIndex === index ? null : index)
+                      }
                     >
                       {previewIndex === index ? "Hide Preview" : "Preview"}
                     </Button>
@@ -286,7 +293,9 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
                 </div>
                 <Textarea
                   value={item.description}
-                  onChange={(e) => updateItem(index, "description", e.target.value)}
+                  onChange={(e) =>
+                    updateItem(index, "description", e.target.value)
+                  }
                   rows={3}
                   placeholder="Describe this change in markdown..."
                   className="resize-none font-mono text-sm leading-relaxed"
@@ -297,21 +306,24 @@ export function EntryEditor({ mode, initialData }: EntryEditorProps) {
 
           {/* Preview panel */}
           <div className="flex flex-col">
-            <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+            <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
               Preview
             </label>
             <div className="flex-1 overflow-auto rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] px-6 py-4">
               {previewIndex !== null && items[previewIndex]?.description ? (
                 <div className="blog-prose">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeSlug]}
+                  >
                     {items[previewIndex].description}
                   </ReactMarkdown>
                 </div>
               ) : (
-                <p className="text-sm italic text-[var(--landing-text-tertiary)]">
+                <p className="text-sm text-[var(--landing-text-tertiary)] italic">
                   {previewIndex !== null
                     ? "Start typing to see preview..."
-                    : "Click \"Preview\" on a change to preview it here."}
+                    : 'Click "Preview" on a change to preview it here.'}
                 </p>
               )}
             </div>

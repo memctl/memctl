@@ -60,18 +60,18 @@ export function AdminHeader() {
       </Link>
       <Separator
         orientation="vertical"
-        className="mx-3 data-[orientation=vertical]:h-4 bg-[var(--landing-border)]"
+        className="mx-3 bg-[var(--landing-border)] data-[orientation=vertical]:h-4"
       />
       <div className="min-w-0">
         <Breadcrumb>
-          <BreadcrumbList className="text-sm flex-nowrap">
+          <BreadcrumbList className="flex-nowrap text-sm">
             {crumbs.map((crumb, i) => {
               const isLast = i === crumbs.length - 1;
               return (
                 <span
                   key={`${crumb.href ?? crumb.label}-${i}`}
                   className={
-                    isLast ? "contents" : "hidden contents sm:!contents"
+                    isLast ? "contents" : "contents hidden sm:!contents"
                   }
                 >
                   {i > 0 && (

@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
-import {
-  users,
-  organizations,
-  projects,
-  memories,
-} from "@memctl/db/schema";
+import { users, organizations, projects, memories } from "@memctl/db/schema";
 import { count } from "drizzle-orm";
 
 export async function GET() {

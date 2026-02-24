@@ -2,14 +2,6 @@ import { db } from "@/lib/db";
 import { planTemplates, organizations } from "@memctl/db/schema";
 import { eq, count } from "drizzle-orm";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { PlanTemplatesClient } from "./client";
 
 export const dynamic = "force-dynamic";

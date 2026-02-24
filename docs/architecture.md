@@ -100,28 +100,28 @@ Errors at any step return the appropriate HTTP status (401, 403, 429, etc.).
 
 ### Core tables
 
-| Table | Purpose |
-|-------|---------|
-| `users` | User accounts with GitHub OAuth |
-| `organizations` | Orgs with plan, billing, limits |
-| `organizationMembers` | Org membership with roles |
-| `projects` | Projects within orgs |
-| `projectMembers` | Project access for non-admin members |
-| `memories` | The main memory store |
-| `memoryVersions` | Version history for memories |
-| `memorySnapshots` | Point-in-time snapshots |
-| `memoryLocks` | Distributed locks |
+| Table                 | Purpose                              |
+| --------------------- | ------------------------------------ |
+| `users`               | User accounts with GitHub OAuth      |
+| `organizations`       | Orgs with plan, billing, limits      |
+| `organizationMembers` | Org membership with roles            |
+| `projects`            | Projects within orgs                 |
+| `projectMembers`      | Project access for non-admin members |
+| `memories`            | The main memory store                |
+| `memoryVersions`      | Version history for memories         |
+| `memorySnapshots`     | Point-in-time snapshots              |
+| `memoryLocks`         | Distributed locks                    |
 
 ### Support tables
 
-| Table | Purpose |
-|-------|---------|
-| `contextTypes` | Custom context type definitions |
-| `orgMemoryDefaults` | Org-wide default memories |
-| `projectTemplates` | Reusable memory templates |
-| `sessionLogs` | Agent session summaries |
-| `activityLogs` | Detailed tool/action logs |
-| `apiTokens` | Bearer tokens (hashed) |
+| Table               | Purpose                         |
+| ------------------- | ------------------------------- |
+| `contextTypes`      | Custom context type definitions |
+| `orgMemoryDefaults` | Org-wide default memories       |
+| `projectTemplates`  | Reusable memory templates       |
+| `sessionLogs`       | Agent session summaries         |
+| `activityLogs`      | Detailed tool/action logs       |
+| `apiTokens`         | Bearer tokens (hashed)          |
 
 ### Key indexes
 
@@ -205,10 +205,10 @@ Sliding-window counter per user, backed by LRU cache. Limits set by org plan (60
 
 Runs via `node-cron`:
 
-| Job | Schedule | Description |
-|-----|----------|-------------|
-| Expired memory cleanup | Hourly | Deletes memories past `expiresAt` |
-| Embedding backfill | Every 6 hours | Generates missing embeddings |
+| Job                    | Schedule      | Description                       |
+| ---------------------- | ------------- | --------------------------------- |
+| Expired memory cleanup | Hourly        | Deletes memories past `expiresAt` |
+| Embedding backfill     | Every 6 hours | Generates missing embeddings      |
 
 ## Structured logging
 

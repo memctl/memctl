@@ -112,7 +112,7 @@ export default function AdminLoginPage() {
           </div>
 
           {/* ── Login card — rotating orange border ── */}
-          <div className="animate-scale-in order-2 overflow-hidden rounded-xl glow-border-spin p-7 md:order-1 md:col-span-2 lg:order-2 lg:col-span-2 lg:p-8 [animation-delay:100ms]">
+          <div className="animate-scale-in glow-border-spin order-2 overflow-hidden rounded-xl p-7 [animation-delay:100ms] md:order-1 md:col-span-2 lg:order-2 lg:col-span-2 lg:p-8">
             <AnimatePresence mode="wait">
               {sent ? (
                 /* ── Success state ── */
@@ -289,7 +289,7 @@ export default function AdminLoginPage() {
           </div>
 
           {/* ── Testimonial ── */}
-          <div className="animate-slide-in-right order-5 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 md:order-3 lg:order-3 lg:p-7 [animation-delay:200ms]">
+          <div className="animate-slide-in-right order-5 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 [animation-delay:200ms] md:order-3 lg:order-3 lg:p-7">
             <span className="animate-float mb-2 block text-3xl leading-none text-[#F97316]/20 [animation-delay:1s]">
               &ldquo;
             </span>
@@ -308,7 +308,7 @@ export default function AdminLoginPage() {
           </div>
 
           {/* ── Terminal demo — live typing loop ── */}
-          <div className="animate-fade-in-up order-3 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5 font-mono text-xs md:order-4 lg:order-4 lg:col-span-2 lg:p-6 [animation-delay:300ms]">
+          <div className="animate-fade-in-up order-3 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5 font-mono text-xs [animation-delay:300ms] md:order-4 lg:order-4 lg:col-span-2 lg:p-6">
             <div className="mb-3 flex items-center gap-1.5">
               <div className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]/80" />
               <div className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]/80" />
@@ -318,8 +318,8 @@ export default function AdminLoginPage() {
           </div>
 
           {/* ── Integrations + trust ── */}
-          <div className="animate-fade-in-up order-4 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-5 md:order-5 lg:order-5 lg:col-span-2 lg:p-6 [animation-delay:400ms]">
-            <p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          <div className="animate-fade-in-up order-4 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-5 [animation-delay:400ms] md:order-5 lg:order-5 lg:col-span-2 lg:p-6">
+            <p className="mb-3 font-mono text-[11px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
               Works with your tools
             </p>
             <div className="mb-4 flex flex-wrap gap-2">
@@ -386,7 +386,7 @@ export default function AdminLoginPage() {
           </div>
 
           {/* ── Footer ── */}
-          <div className="animate-fade-in-up order-6 col-span-full flex flex-col items-center justify-between gap-3 px-2 py-3 text-xs text-[var(--landing-text-tertiary)] sm:flex-row [animation-delay:550ms]">
+          <div className="animate-fade-in-up order-6 col-span-full flex flex-col items-center justify-between gap-3 px-2 py-3 text-xs text-[var(--landing-text-tertiary)] [animation-delay:550ms] sm:flex-row">
             <span>&copy; 2026 Mindroot Ltd</span>
             <div className="flex items-center gap-6">
               <Link

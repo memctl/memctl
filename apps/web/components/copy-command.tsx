@@ -15,7 +15,9 @@ export function CopyCommand() {
 
   return (
     <div className="inline-flex items-center gap-3 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface-2)] px-6 py-3.5">
-      <span className="select-none font-mono text-sm text-[var(--landing-text-tertiary)]">$</span>
+      <span className="font-mono text-sm text-[var(--landing-text-tertiary)] select-none">
+        $
+      </span>
       <span className="font-mono text-sm text-[var(--landing-text)]">
         npx <span className="text-orange-500">memctl</span>
       </span>

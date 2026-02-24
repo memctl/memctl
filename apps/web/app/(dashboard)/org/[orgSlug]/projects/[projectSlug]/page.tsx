@@ -83,9 +83,7 @@ export default async function ProjectDetailPage({
   const [project] = await db
     .select()
     .from(projects)
-    .where(
-      and(eq(projects.orgId, org.id), eq(projects.slug, projectSlug)),
-    )
+    .where(and(eq(projects.orgId, org.id), eq(projects.slug, projectSlug)))
     .limit(1);
 
   if (!project) redirect(`/org/${orgSlug}`);
@@ -219,7 +217,9 @@ export default async function ProjectDetailPage({
   }));
 
   // Build target user name map for audit logs
-  const targetUserIds = [...new Set(auditList.map((a) => a.targetUserId).filter(Boolean))] as string[];
+  const targetUserIds = [
+    ...new Set(auditList.map((a) => a.targetUserId).filter(Boolean)),
+  ] as string[];
   const targetUserMap: Record<string, string> = {};
   if (targetUserIds.length > 0) {
     const targetUsers = await db
@@ -236,7 +236,9 @@ export default async function ProjectDetailPage({
     id: a.id,
     action: a.action,
     actorName: a.actorName ?? "Unknown",
-    targetUserName: a.targetUserId ? (targetUserMap[a.targetUserId] ?? "Unknown") : null,
+    targetUserName: a.targetUserId
+      ? (targetUserMap[a.targetUserId] ?? "Unknown")
+      : null,
     details: a.details,
     createdAt: a.createdAt?.toISOString() ?? "",
   }));
@@ -252,15 +254,19 @@ export default async function ProjectDetailPage({
   const allActivityDates = [
     ...serializedActivities.map((a) => a.createdAt),
     ...serializedAuditLogs.map((a) => a.createdAt),
-  ].filter(Boolean).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  ]
+    .filter(Boolean)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
-  const initialActivityCursor = allActivityDates.length > 0
-    ? allActivityDates[allActivityDates.length - 1]
-    : null;
+  const initialActivityCursor =
+    allActivityDates.length > 0
+      ? allActivityDates[allActivityDates.length - 1]
+      : null;
 
-  const initialSessionsCursor = serializedSessions.length > 0
-    ? serializedSessions[serializedSessions.length - 1].startedAt
-    : null;
+  const initialSessionsCursor =
+    serializedSessions.length > 0
+      ? serializedSessions[serializedSessions.length - 1].startedAt
+      : null;
 
   const activityApiPath = `/api/v1/orgs/${orgSlug}/projects/${projectSlug}/activity`;
   const sessionsApiPath = `/api/v1/orgs/${orgSlug}/projects/${projectSlug}/activity/sessions`;
@@ -273,8 +279,17 @@ export default async function ProjectDetailPage({
 
   const activeMemories = memoryList.filter((m) => !m.archivedAt);
   const healthBuckets = { critical: 0, low: 0, medium: 0, healthy: 0 };
-  const staleMemories: Array<{ key: string; project: string; lastAccessedAt: string | null; priority: number }> = [];
-  const expiringMemories: Array<{ key: string; project: string; expiresAt: string }> = [];
+  const staleMemories: Array<{
+    key: string;
+    project: string;
+    lastAccessedAt: string | null;
+    priority: number;
+  }> = [];
+  const expiringMemories: Array<{
+    key: string;
+    project: string;
+    expiresAt: string;
+  }> = [];
   const weeklyGrowth: Record<string, number> = {};
 
   for (const m of activeMemories) {
@@ -287,20 +302,28 @@ export default async function ProjectDetailPage({
     }
 
     // Stale
-    const lastAccess = m.lastAccessedAt ? new Date(m.lastAccessedAt).getTime() : 0;
+    const lastAccess = m.lastAccessedAt
+      ? new Date(m.lastAccessedAt).getTime()
+      : 0;
     if (!m.pinnedAt && (!lastAccess || lastAccess < thirtyDaysAgo.getTime())) {
       if (staleMemories.length < 50) {
         staleMemories.push({
           key: m.key,
           project: project.slug,
-          lastAccessedAt: m.lastAccessedAt ? new Date(m.lastAccessedAt).toISOString() : null,
+          lastAccessedAt: m.lastAccessedAt
+            ? new Date(m.lastAccessedAt).toISOString()
+            : null,
           priority: m.priority ?? 0,
         });
       }
     }
 
     // Expiring
-    if (m.expiresAt && new Date(m.expiresAt).getTime() <= sevenDaysFromNow.getTime() && new Date(m.expiresAt).getTime() > nowMs) {
+    if (
+      m.expiresAt &&
+      new Date(m.expiresAt).getTime() <= sevenDaysFromNow.getTime() &&
+      new Date(m.expiresAt).getTime() > nowMs
+    ) {
       if (expiringMemories.length < 50) {
         expiringMemories.push({
           key: m.key,
@@ -311,7 +334,9 @@ export default async function ProjectDetailPage({
     }
 
     // Health score
-    const ageDays = m.createdAt ? (nowMs - m.createdAt.getTime()) / (1000 * 60 * 60 * 24) : 0;
+    const ageDays = m.createdAt
+      ? (nowMs - m.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+      : 0;
     const daysSinceAccess = m.lastAccessedAt
       ? (nowMs - new Date(m.lastAccessedAt).getTime()) / (1000 * 60 * 60 * 24)
       : Infinity;
@@ -321,9 +346,13 @@ export default async function ProjectDetailPage({
 
     const ageFactor = Math.max(0, 25 - ageDays / 14);
     const accessFactor = Math.min(25, accessCount * 2.5);
-    const feedbackFactor = 12.5 + Math.min(12.5, Math.max(-12.5, (helpfulCount - unhelpfulCount) * 2.5));
-    const freshnessFactor = daysSinceAccess === Infinity ? 0 : Math.max(0, 25 - daysSinceAccess / 7);
-    const healthScore = ageFactor + accessFactor + feedbackFactor + freshnessFactor;
+    const feedbackFactor =
+      12.5 +
+      Math.min(12.5, Math.max(-12.5, (helpfulCount - unhelpfulCount) * 2.5));
+    const freshnessFactor =
+      daysSinceAccess === Infinity ? 0 : Math.max(0, 25 - daysSinceAccess / 7);
+    const healthScore =
+      ageFactor + accessFactor + feedbackFactor + freshnessFactor;
 
     if (healthScore < 25) healthBuckets.critical++;
     else if (healthScore < 50) healthBuckets.low++;
@@ -340,7 +369,9 @@ export default async function ProjectDetailPage({
   const [versionCount] = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(memoryVersions)
-    .where(sql`${memoryVersions.memoryId} IN (SELECT id FROM memories WHERE project_id = ${project.id})`);
+    .where(
+      sql`${memoryVersions.memoryId} IN (SELECT id FROM memories WHERE project_id = ${project.id})`,
+    );
 
   const [activityCount] = await db
     .select({ count: sql<number>`COUNT(*)` })

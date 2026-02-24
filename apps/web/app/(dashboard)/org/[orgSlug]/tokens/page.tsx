@@ -175,7 +175,7 @@ export default function TokensPage() {
             Copy this token now. It won&apos;t be shown again.
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <code className="flex-1 break-all text-xs text-[var(--landing-text)]">
+            <code className="flex-1 text-xs break-all text-[var(--landing-text)]">
               {createdToken}
             </code>
             <button
@@ -233,8 +233,7 @@ export default function TokensPage() {
                           {token.userName} &middot;{" "}
                         </span>
                       )}
-                      Created{" "}
-                      {new Date(token.createdAt).toLocaleDateString()}
+                      Created {new Date(token.createdAt).toLocaleDateString()}
                       {token.lastUsedAt
                         ? ` · Last used ${new Date(token.lastUsedAt).toLocaleDateString()}`
                         : " · Never used"}
@@ -271,7 +270,7 @@ export default function TokensPage() {
                   setConfigCopied(true);
                   setTimeout(() => setConfigCopied(false), 2000);
                 }}
-                className="absolute right-2 top-2 rounded-md p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[#F97316]"
+                className="absolute top-2 right-2 rounded-md p-1.5 text-[var(--landing-text-tertiary)] transition-colors hover:text-[#F97316]"
               >
                 {configCopied ? (
                   <Check className="size-4 text-[#F97316]" />
@@ -284,7 +283,9 @@ export default function TokensPage() {
               <p className="text-xs font-medium text-[var(--landing-text-secondary)]">
                 Or authenticate via the CLI instead:
               </p>
-              <pre className="mt-1.5 text-xs text-[#F97316]">npx memctl auth</pre>
+              <pre className="mt-1.5 text-xs text-[#F97316]">
+                npx memctl auth
+              </pre>
               <p className="mt-1.5 text-[10px] text-[var(--landing-text-tertiary)]">
                 This logs you in interactively and stores the token locally — no
                 need to add it to your .mcp.json.

@@ -41,7 +41,10 @@ export async function GET(req: NextRequest) {
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   // Check membership and get role
@@ -111,7 +114,10 @@ export async function POST(req: NextRequest) {
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   // Verify membership
@@ -149,9 +155,7 @@ export async function POST(req: NextRequest) {
     orgId: org.id,
     name: parsed.data.name,
     tokenHash: hashed,
-    expiresAt: parsed.data.expiresAt
-      ? new Date(parsed.data.expiresAt)
-      : null,
+    expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
     createdAt: now,
   });
 
@@ -203,13 +207,14 @@ export async function DELETE(req: NextRequest) {
         const [token] = await db
           .select()
           .from(apiTokens)
-          .where(
-            and(eq(apiTokens.id, tokenId), eq(apiTokens.orgId, org.id)),
-          )
+          .where(and(eq(apiTokens.id, tokenId), eq(apiTokens.orgId, org.id)))
           .limit(1);
 
         if (!token) {
-          return NextResponse.json({ error: "Token not found" }, { status: 404 });
+          return NextResponse.json(
+            { error: "Token not found" },
+            { status: 404 },
+          );
         }
 
         await db
@@ -227,10 +232,7 @@ export async function DELETE(req: NextRequest) {
     .select()
     .from(apiTokens)
     .where(
-      and(
-        eq(apiTokens.id, tokenId),
-        eq(apiTokens.userId, session.user.id),
-      ),
+      and(eq(apiTokens.id, tokenId), eq(apiTokens.userId, session.user.id)),
     )
     .limit(1);
 

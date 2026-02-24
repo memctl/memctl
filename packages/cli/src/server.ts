@@ -45,7 +45,9 @@ function registerPrompts(server: McpServer) {
     "context-for-files",
     "Get relevant project context before modifying specific files",
     {
-      files: z.string().describe("Comma-separated file paths you plan to modify"),
+      files: z
+        .string()
+        .describe("Comma-separated file paths you plan to modify"),
     },
     ({ files }) => ({
       messages: [
@@ -123,30 +125,33 @@ export function createServer(config: {
   );
 
   // Attempt API ping on startup — enter offline mode if unreachable
-  client.ping().then(async (online) => {
-    if (!online) {
-      process.stderr.write(
-        "[memctl] Warning: API unreachable — running in offline mode with local cache\n",
-      );
-      return;
-    }
-
-    // Incremental sync: if we have a previous sync timestamp, fetch only delta
-    try {
-      const lastSync = client.getLocalCacheSyncAt();
-      if (lastSync > 0) {
-        const stats = await client.incrementalSync();
+  client
+    .ping()
+    .then(async (online) => {
+      if (!online) {
         process.stderr.write(
-          `[memctl] Incremental sync: +${stats.created} created, ~${stats.updated} updated, -${stats.deleted} deleted\n`,
+          "[memctl] Warning: API unreachable — running in offline mode with local cache\n",
         );
-      } else {
-        // First run: do full list to populate cache
-        await client.listMemories(100);
+        return;
       }
-    } catch {
-      // Sync failure is non-critical
-    }
-  }).catch(() => {});
+
+      // Incremental sync: if we have a previous sync timestamp, fetch only delta
+      try {
+        const lastSync = client.getLocalCacheSyncAt();
+        if (lastSync > 0) {
+          const stats = await client.incrementalSync();
+          process.stderr.write(
+            `[memctl] Incremental sync: +${stats.created} created, ~${stats.updated} updated, -${stats.deleted} deleted\n`,
+          );
+        } else {
+          // First run: do full list to populate cache
+          await client.listMemories(100);
+        }
+      } catch {
+        // Sync failure is non-critical
+      }
+    })
+    .catch(() => {});
 
   return server;
 }

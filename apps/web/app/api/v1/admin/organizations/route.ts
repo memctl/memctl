@@ -7,16 +7,7 @@ import {
   projects,
   organizationMembers,
 } from "@memctl/db/schema";
-import {
-  desc,
-  asc,
-  eq,
-  like,
-  or,
-  and,
-  count,
-  type SQL,
-} from "drizzle-orm";
+import { desc, asc, eq, like, or, and, count, type SQL } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
   try {
@@ -71,10 +62,7 @@ export async function GET(req: NextRequest) {
         })
         .from(organizations)
         .where(where),
-      db
-        .select({ value: count() })
-        .from(organizations)
-        .where(where),
+      db.select({ value: count() }).from(organizations).where(where),
     ]);
 
     const enriched = await Promise.all(
@@ -140,10 +128,7 @@ export async function GET(req: NextRequest) {
       .orderBy(orderFn(sortCol))
       .limit(limit)
       .offset(offset),
-    db
-      .select({ value: count() })
-      .from(organizations)
-      .where(where),
+    db.select({ value: count() }).from(organizations).where(where),
   ]);
 
   const enriched = await Promise.all(

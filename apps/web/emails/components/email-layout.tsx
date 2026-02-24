@@ -42,20 +42,27 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
             <Section style={footer}>
               <Hr style={divider} />
               <Text style={footerNav}>
-                <Link href={APP_URL} style={footerLink}>memctl.com</Link>
+                <Link href={APP_URL} style={footerLink}>
+                  memctl.com
+                </Link>
                 {" \u00B7 "}
-                <Link href={`${APP_URL}/docs`} style={footerLink}>Docs</Link>
+                <Link href={`${APP_URL}/docs`} style={footerLink}>
+                  Docs
+                </Link>
                 {" \u00B7 "}
-                <Link href={`${APP_URL}/privacy`} style={footerLink}>Privacy</Link>
+                <Link href={`${APP_URL}/privacy`} style={footerLink}>
+                  Privacy
+                </Link>
                 {" \u00B7 "}
-                <Link href={`${APP_URL}/terms`} style={footerLink}>Terms</Link>
+                <Link href={`${APP_URL}/terms`} style={footerLink}>
+                  Terms
+                </Link>
               </Text>
               <Text style={copyright}>
-                &copy; 2026 Mindroot Ltd &middot; Company No. 16543299 &middot; England and Wales
+                &copy; 2026 Mindroot Ltd &middot; Company No. 16543299 &middot;
+                England and Wales
               </Text>
-              <Text style={address}>
-                71-75 Shelton Street, London WC2H 9JQ
-              </Text>
+              <Text style={address}>71-75 Shelton Street, London WC2H 9JQ</Text>
             </Section>
           </Container>
         </Container>

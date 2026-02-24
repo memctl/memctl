@@ -112,12 +112,7 @@ export const ONBOARDING_ROLES = [
   "other",
 ] as const;
 
-export const ONBOARDING_TEAM_SIZES = [
-  "solo",
-  "2-5",
-  "6-20",
-  "20+",
-] as const;
+export const ONBOARDING_TEAM_SIZES = ["solo", "2-5", "6-20", "20+"] as const;
 
 export const ONBOARDING_USE_CASES = [
   "personal",

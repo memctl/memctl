@@ -31,7 +31,10 @@ export async function GET(
   const { slug } = await params;
   const orgSlug = req.nextUrl.searchParams.get("org");
   if (!orgSlug) {
-    return NextResponse.json({ error: "org query parameter required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "org query parameter required" },
+      { status: 400 },
+    );
   }
 
   const [org] = await db
@@ -41,7 +44,10 @@ export async function GET(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [member] = await db
@@ -104,7 +110,10 @@ export async function PATCH(
   const { slug } = await params;
   const orgSlug = req.nextUrl.searchParams.get("org");
   if (!orgSlug) {
-    return NextResponse.json({ error: "org query parameter required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "org query parameter required" },
+      { status: 400 },
+    );
   }
 
   const [org] = await db
@@ -114,7 +123,10 @@ export async function PATCH(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [member] = await db
@@ -129,7 +141,10 @@ export async function PATCH(
     .limit(1);
 
   if (!member || member.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const [project] = await db
@@ -150,7 +165,8 @@ export async function PATCH(
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.name) updates.name = parsed.data.name;
-  if (parsed.data.description !== undefined) updates.description = parsed.data.description;
+  if (parsed.data.description !== undefined)
+    updates.description = parsed.data.description;
 
   await db.update(projects).set(updates).where(eq(projects.id, project.id));
 
@@ -167,7 +183,9 @@ export async function PATCH(
     action: "project_updated",
     details: {
       ...(parsed.data.name ? { name: parsed.data.name } : {}),
-      ...(parsed.data.description !== undefined ? { description: parsed.data.description } : {}),
+      ...(parsed.data.description !== undefined
+        ? { description: parsed.data.description }
+        : {}),
     },
   });
 
@@ -188,7 +206,10 @@ export async function DELETE(
   const { slug } = await params;
   const orgSlug = req.nextUrl.searchParams.get("org");
   if (!orgSlug) {
-    return NextResponse.json({ error: "org query parameter required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "org query parameter required" },
+      { status: 400 },
+    );
   }
 
   const [org] = await db
@@ -198,7 +219,10 @@ export async function DELETE(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const [member] = await db
@@ -213,7 +237,10 @@ export async function DELETE(
     .limit(1);
 
   if (!member || (member.role !== "owner" && member.role !== "admin")) {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const [project] = await db
@@ -236,12 +263,16 @@ export async function DELETE(
 
   // 1. Delete child records by projectId
   await db.delete(memoryLocks).where(eq(memoryLocks.projectId, project.id));
-  await db.delete(memorySnapshots).where(eq(memorySnapshots.projectId, project.id));
+  await db
+    .delete(memorySnapshots)
+    .where(eq(memorySnapshots.projectId, project.id));
   await db.delete(activityLogs).where(eq(activityLogs.projectId, project.id));
   await db.delete(sessionLogs).where(eq(sessionLogs.projectId, project.id));
 
   // 2. Delete project members, memories (versions cascade), then project
-  await db.delete(projectMembers).where(eq(projectMembers.projectId, project.id));
+  await db
+    .delete(projectMembers)
+    .where(eq(projectMembers.projectId, project.id));
   await db.delete(memories).where(eq(memories.projectId, project.id));
   await db.delete(projects).where(eq(projects.id, project.id));
 

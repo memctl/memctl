@@ -184,11 +184,15 @@ export async function PATCH(
         previousApiRatePerMinute: org.apiRatePerMinute,
         newProjectLimit: action.projectLimit ?? org.projectLimit,
         newMemberLimit: action.memberLimit ?? org.memberLimit,
-        newMemoryLimitPerProject: action.memoryLimitPerProject ?? org.memoryLimitPerProject,
+        newMemoryLimitPerProject:
+          action.memoryLimitPerProject ?? org.memoryLimitPerProject,
         newMemoryLimitOrg: action.memoryLimitOrg ?? org.memoryLimitOrg,
         newApiRatePerMinute: action.apiRatePerMinute ?? org.apiRatePerMinute,
       };
-      const updates: Record<string, unknown> = { updatedAt: now, customLimits: true };
+      const updates: Record<string, unknown> = {
+        updatedAt: now,
+        customLimits: true,
+      };
       if (action.projectLimit !== undefined)
         updates.projectLimit = action.projectLimit;
       if (action.memberLimit !== undefined)
@@ -219,8 +223,10 @@ export async function PATCH(
       await db
         .update(organizations)
         .set({
-          projectLimit: plan.projectLimit === Infinity ? 999999 : plan.projectLimit,
-          memberLimit: plan.memberLimit === Infinity ? 999999 : plan.memberLimit,
+          projectLimit:
+            plan.projectLimit === Infinity ? 999999 : plan.projectLimit,
+          memberLimit:
+            plan.memberLimit === Infinity ? 999999 : plan.memberLimit,
           memoryLimitPerProject: null,
           memoryLimitOrg: null,
           apiRatePerMinute: null,
@@ -298,8 +304,13 @@ export async function PATCH(
     }
 
     case "start_trial": {
-      const trialEnd = new Date(now.getTime() + action.durationDays * 24 * 60 * 60 * 1000);
-      details = { durationDays: action.durationDays, trialEndsAt: trialEnd.toISOString() };
+      const trialEnd = new Date(
+        now.getTime() + action.durationDays * 24 * 60 * 60 * 1000,
+      );
+      details = {
+        durationDays: action.durationDays,
+        trialEndsAt: trialEnd.toISOString(),
+      };
       const enterprisePlan = PLANS.enterprise;
       const updates: Record<string, unknown> = {
         planOverride: "enterprise",
@@ -307,10 +318,16 @@ export async function PATCH(
         customLimits: true,
         updatedAt: now,
       };
-      if (!org.memoryLimitPerProject && !org.memoryLimitOrg && !org.apiRatePerMinute) {
+      if (
+        !org.memoryLimitPerProject &&
+        !org.memoryLimitOrg &&
+        !org.apiRatePerMinute
+      ) {
         updates.projectLimit = clampLimit(enterprisePlan.projectLimit);
         updates.memberLimit = clampLimit(enterprisePlan.memberLimit);
-        updates.memoryLimitPerProject = clampLimit(enterprisePlan.memoryLimitPerProject);
+        updates.memoryLimitPerProject = clampLimit(
+          enterprisePlan.memoryLimitPerProject,
+        );
         updates.memoryLimitOrg = clampLimit(enterprisePlan.memoryLimitOrg);
         updates.apiRatePerMinute = clampLimit(enterprisePlan.apiRatePerMinute);
       }

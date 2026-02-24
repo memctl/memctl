@@ -4,7 +4,10 @@ import { getOrgMemoryCapacity, resolveOrgAndProject } from "../capacity-utils";
 import { db } from "@/lib/db";
 import { memories } from "@memctl/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
-import { computeRelevanceScore, computeRelevanceDistribution } from "@memctl/shared/relevance";
+import {
+  computeRelevanceScore,
+  computeRelevanceDistribution,
+} from "@memctl/shared/relevance";
 
 export async function GET(req: NextRequest) {
   const authResult = await authenticateRequest(req);
@@ -17,7 +20,11 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) {
     return jsonError("Project not found", 404);
   }
@@ -44,14 +51,19 @@ export async function GET(req: NextRequest) {
 
   const now = Date.now();
   const scores = activeMemories.map((m) =>
-    computeRelevanceScore({
-      priority: m.priority ?? 0,
-      accessCount: m.accessCount ?? 0,
-      lastAccessedAt: m.lastAccessedAt ? new Date(m.lastAccessedAt).getTime() : null,
-      helpfulCount: m.helpfulCount ?? 0,
-      unhelpfulCount: m.unhelpfulCount ?? 0,
-      pinnedAt: m.pinnedAt ? new Date(m.pinnedAt).getTime() : null,
-    }, now),
+    computeRelevanceScore(
+      {
+        priority: m.priority ?? 0,
+        accessCount: m.accessCount ?? 0,
+        lastAccessedAt: m.lastAccessedAt
+          ? new Date(m.lastAccessedAt).getTime()
+          : null,
+        helpfulCount: m.helpfulCount ?? 0,
+        unhelpfulCount: m.unhelpfulCount ?? 0,
+        pinnedAt: m.pinnedAt ? new Date(m.pinnedAt).getTime() : null,
+      },
+      now,
+    ),
   );
   const relevanceDistribution = computeRelevanceDistribution(scores);
 

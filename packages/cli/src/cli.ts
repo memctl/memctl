@@ -73,7 +73,11 @@ Environment:
 `);
 }
 
-function parseArgs(args: string[]): { command: string; positional: string[]; flags: Record<string, string | boolean> } {
+function parseArgs(args: string[]): {
+  command: string;
+  positional: string[];
+  flags: Record<string, string | boolean>;
+} {
   const flags: Record<string, string | boolean> = {};
   const positional: string[] = [];
   let command = "serve";
@@ -164,9 +168,8 @@ export async function runCli(args: string[]): Promise<void> {
     const resolved = await loadConfigForCwd();
     console.log(`Config:   ${configPath}`);
     if (resolved) {
-      const masked = resolved.token.length > 8
-        ? resolved.token.slice(0, 8) + "..."
-        : "***";
+      const masked =
+        resolved.token.length > 8 ? resolved.token.slice(0, 8) + "..." : "***";
       const source = process.env.MEMCTL_TOKEN ? "env" : "file";
       console.log(`API URL:  ${resolved.baseUrl}`);
       console.log(`Org:      ${resolved.org}`);
@@ -183,7 +186,9 @@ export async function runCli(args: string[]): Promise<void> {
     const { loadConfigForCwd } = await import("./config.js");
     const resolved = await loadConfigForCwd();
     if (!resolved) {
-      console.log("Not configured. Run \"memctl auth\" and \"memctl init\" to get started.");
+      console.log(
+        'Not configured. Run "memctl auth" and "memctl init" to get started.',
+      );
       return;
     }
     console.log(`Org:      ${resolved.org}`);
@@ -195,9 +200,12 @@ export async function runCli(args: string[]): Promise<void> {
     if (online) {
       try {
         const cap = await statusClient.getMemoryCapacity();
-        const pct = cap.usageRatio != null ? (cap.usageRatio * 100).toFixed(1) : "?";
+        const pct =
+          cap.usageRatio != null ? (cap.usageRatio * 100).toFixed(1) : "?";
         console.log(`Capacity: ${cap.used}/${cap.limit} (${pct}%)`);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       try {
         const sessions = await statusClient.getSessionLogs(1);
         if (sessions.sessionLogs.length > 0) {
@@ -207,7 +215,9 @@ export async function runCli(args: string[]): Promise<void> {
             : "in progress";
           console.log(`Last session: ${last.sessionId} (${when})`);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     return;
   }
@@ -266,7 +276,10 @@ export async function runCli(args: string[]): Promise<void> {
     }
 
     case "export": {
-      const format = (positional[0] ?? flags.format ?? "agents_md") as "agents_md" | "cursorrules" | "json";
+      const format = (positional[0] ?? flags.format ?? "agents_md") as
+        | "agents_md"
+        | "cursorrules"
+        | "json";
       const result = await client.exportMemories(format);
       if (typeof result === "string") {
         console.log(result);
@@ -301,7 +314,10 @@ export async function runCli(args: string[]): Promise<void> {
         const headingMatch = line.match(/^#{1,3}\s+(.+)/);
         if (headingMatch) {
           if (currentContent.length > 0) {
-            sections.push({ heading: currentHeading, content: currentContent.join("\n").trim() });
+            sections.push({
+              heading: currentHeading,
+              content: currentContent.join("\n").trim(),
+            });
           }
           currentHeading = headingMatch[1]!;
           currentContent = [];
@@ -310,7 +326,10 @@ export async function runCli(args: string[]): Promise<void> {
         }
       }
       if (currentContent.length > 0) {
-        sections.push({ heading: currentHeading, content: currentContent.join("\n").trim() });
+        sections.push({
+          heading: currentHeading,
+          content: currentContent.join("\n").trim(),
+        });
       }
 
       let imported = 0;
@@ -321,7 +340,10 @@ export async function runCli(args: string[]): Promise<void> {
           .replace(/[^a-z0-9]+/g, "_")
           .replace(/^_|_$/g, "");
         const key = `agent/context/imported/${slug}`;
-        await client.storeMemory(key, section.content, { source: basename, heading: section.heading });
+        await client.storeMemory(key, section.content, {
+          source: basename,
+          heading: section.heading,
+        });
         imported++;
       }
       console.log(`Imported ${imported} sections from ${basename}`);
@@ -345,7 +367,9 @@ export async function runCli(args: string[]): Promise<void> {
       const data = result as { snapshots?: Array<Record<string, unknown>> };
       if (!json && data.snapshots) {
         for (const snap of data.snapshots) {
-          console.log(`  ${snap.name} (${snap.memoryCount} memories) - ${snap.createdAt}`);
+          console.log(
+            `  ${snap.name} (${snap.memoryCount} memories) - ${snap.createdAt}`,
+          );
         }
         console.log(`\n${data.snapshots.length} snapshots`);
       } else {
@@ -363,7 +387,8 @@ export async function runCli(args: string[]): Promise<void> {
           console.log(`Usage:   ${(result.usageRatio * 100).toFixed(1)}%`);
         }
         if (result.isFull) console.log("Status:  FULL");
-        else if (result.isApproaching) console.log("Status:  Approaching limit");
+        else if (result.isApproaching)
+          console.log("Status:  Approaching limit");
         else console.log("Status:  OK");
       } else {
         out(result, true);
@@ -374,7 +399,10 @@ export async function runCli(args: string[]): Promise<void> {
     case "cleanup": {
       const staleDays = flags["stale-days"] ? Number(flags["stale-days"]) : 30;
       const result = await client.suggestCleanup(staleDays, limit);
-      const data = result as { stale?: Array<Record<string, unknown>>; expired?: Array<Record<string, unknown>> };
+      const data = result as {
+        stale?: Array<Record<string, unknown>>;
+        expired?: Array<Record<string, unknown>>;
+      };
       if (!json) {
         if (data.stale?.length) {
           console.log("Stale memories:");
@@ -401,20 +429,30 @@ export async function runCli(args: string[]): Promise<void> {
       const policies = positional;
       if (policies.length === 0) {
         console.error("Usage: memctl lifecycle <policy1> [policy2] ...");
-        console.error("Policies: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy, cleanup_old_versions, cleanup_activity_logs, cleanup_expired_locks, purge_archived");
+        console.error(
+          "Policies: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy, cleanup_old_versions, cleanup_activity_logs, cleanup_expired_locks, purge_archived",
+        );
         process.exit(1);
       }
       const result = await client.runLifecycle(policies, {
-        healthThreshold: flags["health-threshold"] ? Number(flags["health-threshold"]) : undefined,
-        sessionLogMaxAgeDays: flags["session-log-days"] ? Number(flags["session-log-days"]) : undefined,
+        healthThreshold: flags["health-threshold"]
+          ? Number(flags["health-threshold"])
+          : undefined,
+        sessionLogMaxAgeDays: flags["session-log-days"]
+          ? Number(flags["session-log-days"])
+          : undefined,
       });
       out(result, true);
       break;
     }
 
     case "gc": {
-      const healthThreshold = flags["health-threshold"] ? Number(flags["health-threshold"]) : 15;
-      const sessionLogDays = flags["session-log-days"] ? Number(flags["session-log-days"]) : 30;
+      const healthThreshold = flags["health-threshold"]
+        ? Number(flags["health-threshold"])
+        : 15;
+      const sessionLogDays = flags["session-log-days"]
+        ? Number(flags["session-log-days"])
+        : 30;
 
       if (!json) console.log("Running garbage collection...\n");
 
@@ -423,7 +461,10 @@ export async function runCli(args: string[]): Promise<void> {
         const cleaned = await client.cleanupExpired();
         if (!json) console.log(`  cleanup_expired: ${cleaned.cleaned} removed`);
       } catch (err) {
-        if (!json) console.log(`  cleanup_expired: error - ${err instanceof Error ? err.message : String(err)}`);
+        if (!json)
+          console.log(
+            `  cleanup_expired: error - ${err instanceof Error ? err.message : String(err)}`,
+          );
       }
 
       // Step 2: run all lifecycle policies
@@ -448,23 +489,35 @@ export async function runCli(args: string[]): Promise<void> {
           out(result, true);
         } else {
           for (const [policy, info] of Object.entries(result.results)) {
-            const details = (info as { affected: number; details?: string }).details ? ` (${(info as { affected: number; details?: string }).details})` : "";
-            console.log(`  ${policy}: ${(info as { affected: number }).affected} affected${details}`);
+            const details = (info as { affected: number; details?: string })
+              .details
+              ? ` (${(info as { affected: number; details?: string }).details})`
+              : "";
+            console.log(
+              `  ${policy}: ${(info as { affected: number }).affected} affected${details}`,
+            );
           }
         }
       } catch (err) {
-        if (!json) console.log(`  lifecycle: error - ${err instanceof Error ? err.message : String(err)}`);
+        if (!json)
+          console.log(
+            `  lifecycle: error - ${err instanceof Error ? err.message : String(err)}`,
+          );
       }
 
       // Step 3: show final capacity
       if (!json) {
         try {
           const cap = await client.getMemoryCapacity();
-          console.log(`\nCapacity: ${cap.used}/${cap.limit} memories (${cap.usageRatio != null ? (cap.usageRatio * 100).toFixed(1) : "?"}%)`);
+          console.log(
+            `\nCapacity: ${cap.used}/${cap.limit} memories (${cap.usageRatio != null ? (cap.usageRatio * 100).toFixed(1) : "?"}%)`,
+          );
           if (cap.isFull) console.log("Status: FULL");
           else if (cap.isApproaching) console.log("Status: Approaching limit");
           else console.log("Status: OK");
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       break;
     }
@@ -477,7 +530,10 @@ export async function runCli(args: string[]): Promise<void> {
       }
       if (!flags.force) {
         const rl = await import("node:readline/promises");
-        const iface = rl.createInterface({ input: process.stdin, output: process.stdout });
+        const iface = rl.createInterface({
+          input: process.stdin,
+          output: process.stdout,
+        });
         const answer = await iface.question(`Delete "${key}"? [y/N] `);
         iface.close();
         if (answer.toLowerCase() !== "y") {

@@ -32,38 +32,61 @@ export async function GET(
   const search = url.searchParams.get("search");
   const type = url.searchParams.get("type") ?? "all";
 
-  const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, slug))
+    .limit(1);
   if (!org) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const [member] = await db
     .select()
     .from(organizationMembers)
-    .where(and(eq(organizationMembers.orgId, org.id), eq(organizationMembers.userId, session.user.id)))
+    .where(
+      and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, session.user.id),
+      ),
+    )
     .limit(1);
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const [project] = await db
     .select()
     .from(projects)
     .where(and(eq(projects.orgId, org.id), eq(projects.slug, projectSlug)))
     .limit(1);
-  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  if (!project)
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   // Check project access for members
   if (member.role === "member") {
     const [assignment] = await db
       .select()
       .from(projectMembers)
-      .where(and(eq(projectMembers.projectId, project.id), eq(projectMembers.userId, session.user.id)))
+      .where(
+        and(
+          eq(projectMembers.projectId, project.id),
+          eq(projectMembers.userId, session.user.id),
+        ),
+      )
       .limit(1);
-    if (!assignment) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!assignment)
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Fetch activities
   let activities: Array<{
-    id: string; action: string; toolName: string | null; memoryKey: string | null;
-    details: string | null; sessionId: string | null; projectName: string;
-    createdByName: string | null; createdAt: string;
+    id: string;
+    action: string;
+    toolName: string | null;
+    memoryKey: string | null;
+    details: string | null;
+    sessionId: string | null;
+    projectName: string;
+    createdByName: string | null;
+    createdAt: string;
   }> = [];
   let activityHasMore = false;
 
@@ -112,8 +135,12 @@ export async function GET(
 
   // Fetch audit logs
   let serializedAuditLogs: Array<{
-    id: string; action: string; actorName: string; targetUserName: string | null;
-    details: string | null; createdAt: string;
+    id: string;
+    action: string;
+    actorName: string;
+    targetUserName: string | null;
+    details: string | null;
+    createdAt: string;
   }> = [];
   let auditHasMore = false;
 
@@ -152,7 +179,9 @@ export async function GET(
 
     auditHasMore = auditRows.length > limit;
 
-    const targetUserIds = [...new Set(auditRows.map((a) => a.targetUserId).filter(Boolean))] as string[];
+    const targetUserIds = [
+      ...new Set(auditRows.map((a) => a.targetUserId).filter(Boolean)),
+    ] as string[];
     const targetUserMap: Record<string, string> = {};
     if (targetUserIds.length > 0) {
       const targetUsers = await db
@@ -166,7 +195,9 @@ export async function GET(
       id: a.id,
       action: a.action,
       actorName: a.actorName ?? "Unknown",
-      targetUserName: a.targetUserId ? (targetUserMap[a.targetUserId] ?? "Unknown") : null,
+      targetUserName: a.targetUserId
+        ? (targetUserMap[a.targetUserId] ?? "Unknown")
+        : null,
       details: a.details,
       createdAt: a.createdAt?.toISOString() ?? "",
     }));
@@ -176,10 +207,13 @@ export async function GET(
   const allDates = [
     ...activities.map((a) => a.createdAt),
     ...serializedAuditLogs.map((a) => a.createdAt),
-  ].filter(Boolean).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  ]
+    .filter(Boolean)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
   const hasMore = activityHasMore || auditHasMore;
-  const nextCursor = hasMore && allDates.length > 0 ? allDates[allDates.length - 1] : null;
+  const nextCursor =
+    hasMore && allDates.length > 0 ? allDates[allDates.length - 1] : null;
 
   return NextResponse.json({
     activities,

@@ -62,7 +62,9 @@ export async function GET(
     .from(changelogItems)
     .where(eq(changelogItems.entryId, entry.id));
 
-  return NextResponse.json({ entry: { ...entry, items: items.sort((a, b) => a.sortOrder - b.sortOrder) } });
+  return NextResponse.json({
+    entry: { ...entry, items: items.sort((a, b) => a.sortOrder - b.sortOrder) },
+  });
 }
 
 export async function PUT(
@@ -104,7 +106,10 @@ export async function PUT(
       .limit(1);
 
     if (conflict) {
-      return NextResponse.json({ error: "Version already exists" }, { status: 409 });
+      return NextResponse.json(
+        { error: "Version already exists" },
+        { status: 409 },
+      );
     }
   }
 
@@ -124,7 +129,9 @@ export async function PUT(
 
   // Replace items if provided
   if (items) {
-    await db.delete(changelogItems).where(eq(changelogItems.entryId, existing.id));
+    await db
+      .delete(changelogItems)
+      .where(eq(changelogItems.entryId, existing.id));
     if (items.length > 0) {
       await db.insert(changelogItems).values(
         items.map((item, index) => ({
@@ -175,7 +182,9 @@ export async function DELETE(
   }
 
   // Delete items first (in case cascade doesn't work with all drivers)
-  await db.delete(changelogItems).where(eq(changelogItems.entryId, existing.id));
+  await db
+    .delete(changelogItems)
+    .where(eq(changelogItems.entryId, existing.id));
   await db.delete(changelogEntries).where(eq(changelogEntries.id, existing.id));
 
   return NextResponse.json({ success: true });

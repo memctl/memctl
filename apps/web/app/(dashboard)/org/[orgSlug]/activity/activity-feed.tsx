@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -15,8 +15,18 @@ import type {
 } from "@/lib/activity-types";
 import type { DateRange } from "react-day-picker";
 import {
-  Search, Zap, GitBranch, ChevronDown, ChevronRight,
-  Shield, UserPlus, UserMinus, FolderPlus, FolderEdit, FolderX, X,
+  Search,
+  Zap,
+  GitBranch,
+  ChevronDown,
+  ChevronRight,
+  Shield,
+  UserPlus,
+  UserMinus,
+  FolderPlus,
+  FolderEdit,
+  FolderX,
+  X,
 } from "lucide-react";
 
 export type { ActivityItem, AuditLogItem, SessionItem };
@@ -118,8 +128,20 @@ const AUDIT_LABELS: Record<string, string> = {
   project_deleted: "Project deleted",
 };
 
-function formatAuditDetails(action: string, details: string | null, targetUserName: string | null): string {
-  const parsed = details ? (() => { try { return JSON.parse(details); } catch { return null; } })() : null;
+function formatAuditDetails(
+  action: string,
+  details: string | null,
+  targetUserName: string | null,
+): string {
+  const parsed = details
+    ? (() => {
+        try {
+          return JSON.parse(details);
+        } catch {
+          return null;
+        }
+      })()
+    : null;
 
   switch (action) {
     case "role_changed":
@@ -148,8 +170,12 @@ type SourceFilter = "all" | "usage" | "dashboard";
 
 function safeParseArray(s: string | null): string[] {
   if (!s) return [];
-  try { const parsed = JSON.parse(s); return Array.isArray(parsed) ? parsed : []; }
-  catch { return []; }
+  try {
+    const parsed = JSON.parse(s);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 interface TimelineItem {
@@ -162,9 +188,9 @@ interface TimelineItem {
 function PulsingDots() {
   return (
     <div className="flex items-center justify-center gap-1 py-3">
-      <span className="h-1.5 w-1.5 rounded-full bg-[#F97316] animate-pulse" />
-      <span className="h-1.5 w-1.5 rounded-full bg-[#F97316] animate-pulse [animation-delay:150ms]" />
-      <span className="h-1.5 w-1.5 rounded-full bg-[#F97316] animate-pulse [animation-delay:300ms]" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#F97316]" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#F97316] [animation-delay:150ms]" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#F97316] [animation-delay:300ms]" />
     </div>
   );
 }
@@ -197,8 +223,12 @@ export function ActivityFeed({
 
   // Determine active data source
   const activities = isSmartMode ? activityFeed.activities : initialActivities;
-  const auditLogs = isSmartMode ? activityFeed.auditLogs : (initialAuditLogs ?? []);
-  const sessions = isSmartMode && sessionsApiPath ? sessionFeed.sessions : initialSessions;
+  const auditLogs = useMemo(
+    () => (isSmartMode ? activityFeed.auditLogs : (initialAuditLogs ?? [])),
+    [isSmartMode, activityFeed.auditLogs, initialAuditLogs],
+  );
+  const sessions =
+    isSmartMode && sessionsApiPath ? sessionFeed.sessions : initialSessions;
 
   // Local state for filtering (legacy mode uses client-side, smart mode uses server-side)
   const [search, setSearch] = useState("");
@@ -256,7 +286,8 @@ export function ActivityFeed({
     }
   };
 
-  const hasFiltersActive = !!search || !!actionFilter || sourceFilter !== "all" || !!dateRange;
+  const hasFiltersActive =
+    !!search || !!actionFilter || sourceFilter !== "all" || !!dateRange;
 
   const clearAllFilters = () => {
     setSearch("");
@@ -284,17 +315,30 @@ export function ActivityFeed({
 
     if (sourceFilter !== "dashboard") {
       for (const a of activities) {
-        items.push({ id: a.id, type: "activity", createdAt: a.createdAt, data: a });
+        items.push({
+          id: a.id,
+          type: "activity",
+          createdAt: a.createdAt,
+          data: a,
+        });
       }
     }
 
     if (sourceFilter !== "usage" && auditLogs) {
       for (const a of auditLogs) {
-        items.push({ id: `audit-${a.id}`, type: "audit", createdAt: a.createdAt, data: a });
+        items.push({
+          id: `audit-${a.id}`,
+          type: "audit",
+          createdAt: a.createdAt,
+          data: a,
+        });
       }
     }
 
-    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    items.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
     return items;
   }, [activities, auditLogs, sourceFilter]);
 
@@ -305,8 +349,10 @@ export function ActivityFeed({
 
     if (actionFilter) {
       result = result.filter((item) => {
-        if (item.type === "activity") return (item.data as ActivityItem).action === actionFilter;
-        if (item.type === "audit") return (item.data as AuditLogItem).action === actionFilter;
+        if (item.type === "activity")
+          return (item.data as ActivityItem).action === actionFilter;
+        if (item.type === "audit")
+          return (item.data as AuditLogItem).action === actionFilter;
         return false;
       });
     }
@@ -363,15 +409,21 @@ export function ActivityFeed({
   }, [sessions, search]);
 
   const actionTypes = Object.keys(stats.actionBreakdown);
-  const hasData = initialActivities.length > 0 || initialSessions.length > 0 || (initialAuditLogs?.length ?? 0) > 0;
+  const hasData =
+    initialActivities.length > 0 ||
+    initialSessions.length > 0 ||
+    (initialAuditLogs?.length ?? 0) > 0;
 
   if (!hasData) {
     return (
       <div className="dash-card px-6 py-10 text-center">
         <Zap className="mx-auto mb-3 h-8 w-8 text-[var(--landing-text-tertiary)]" />
-        <p className="font-mono text-sm text-[var(--landing-text-secondary)]">No activity yet</p>
+        <p className="font-mono text-sm text-[var(--landing-text-secondary)]">
+          No activity yet
+        </p>
         <p className="mt-1 font-mono text-xs text-[var(--landing-text-tertiary)]">
-          Actions and sessions will appear here once agents start interacting with your projects.
+          Actions and sessions will appear here once agents start interacting
+          with your projects.
         </p>
       </div>
     );
@@ -389,21 +441,21 @@ export function ActivityFeed({
       {/* Unified toolbar */}
       <div className="dash-card overflow-hidden">
         {/* Search row */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--landing-border)]">
+        <div className="flex items-center gap-2 border-b border-[var(--landing-border)] px-3 py-2">
           <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+            <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
             <Input
               placeholder="Search actions, sessions, keys…"
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="h-9 pl-8 border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 font-mono text-xs placeholder:text-[var(--landing-text-tertiary)]/60 md:h-7"
+              className="h-9 border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 pl-8 font-mono text-xs placeholder:text-[var(--landing-text-tertiary)]/60 md:h-7"
             />
           </div>
           <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
           {hasFiltersActive && (
             <button
               onClick={clearAllFilters}
-              className="inline-flex items-center gap-1 rounded-full bg-[var(--landing-surface-2)] px-2 py-1 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] transition-colors"
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--landing-surface-2)] px-2 py-1 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text)]"
             >
               <X className="h-2.5 w-2.5" />
               Clear{activeFilterCount > 1 ? ` (${activeFilterCount})` : ""}
@@ -428,16 +480,22 @@ export function ActivityFeed({
                       : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
                   }`}
                 >
-                  {source === "all" ? "All" : source === "usage" ? "Usage" : "Dashboard"}
+                  {source === "all"
+                    ? "All"
+                    : source === "usage"
+                      ? "Usage"
+                      : "Dashboard"}
                 </button>
               ))}
             </div>
           )}
 
           {/* Separator dot */}
-          {hasAuditLogs && sourceFilter !== "dashboard" && actionTypes.length > 0 && (
-            <span className="h-3 w-px bg-[var(--landing-border)]" />
-          )}
+          {hasAuditLogs &&
+            sourceFilter !== "dashboard" &&
+            actionTypes.length > 0 && (
+              <span className="h-3 w-px bg-[var(--landing-border)]" />
+            )}
 
           {/* Action type filter group */}
           {sourceFilter !== "dashboard" && actionTypes.length > 0 && (
@@ -457,10 +515,15 @@ export function ActivityFeed({
               {actionTypes.map((action) => (
                 <button
                   key={action}
-                  onClick={() => handleActionFilterChange(actionFilter === action ? null : action)}
+                  onClick={() =>
+                    handleActionFilterChange(
+                      actionFilter === action ? null : action,
+                    )
+                  }
                   className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium transition-colors ${
                     actionFilter === action
-                      ? ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text)]"
+                      ? (ACTION_PILL_STYLES[action] ??
+                        "bg-[var(--landing-surface-2)] text-[var(--landing-text)]")
                       : "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
                   }`}
                 >
@@ -472,13 +535,15 @@ export function ActivityFeed({
 
           {/* Stats pushed to the right */}
           <div className="ml-auto flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5">
+            <div className="hidden items-center gap-1.5 sm:flex">
               {Object.entries(stats.actionBreakdown).map(([action, count]) => (
                 <span
                   key={action}
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-medium ${ACTION_PILL_STYLES[action] ?? "bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)]"}`}
                 >
-                  <span className={`h-1.5 w-1.5 rounded-full ${ACTION_DOT_BG[action] ?? "bg-[var(--landing-text-tertiary)]"}`} />
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${ACTION_DOT_BG[action] ?? "bg-[var(--landing-text-tertiary)]"}`}
+                  />
                   {ACTION_LABELS[action] ?? action}:{count}
                 </span>
               ))}
@@ -486,20 +551,32 @@ export function ActivityFeed({
             <div className="flex items-center gap-2 font-mono text-[10px]">
               <span className="text-[var(--landing-text)]">
                 <span className="font-bold">{stats.totalActions}</span>
-                <span className="text-[var(--landing-text-tertiary)]"> acts</span>
+                <span className="text-[var(--landing-text-tertiary)]">
+                  {" "}
+                  acts
+                </span>
               </span>
               <span className="text-emerald-400">
                 <span className="font-bold">{stats.activeSessions}</span>
-                <span className="text-[var(--landing-text-tertiary)]"> live</span>
+                <span className="text-[var(--landing-text-tertiary)]">
+                  {" "}
+                  live
+                </span>
               </span>
               <span className="text-[var(--landing-text)]">
                 <span className="font-bold">{stats.totalSessions}</span>
-                <span className="text-[var(--landing-text-tertiary)]"> sess</span>
+                <span className="text-[var(--landing-text-tertiary)]">
+                  {" "}
+                  sess
+                </span>
               </span>
               {hasAuditLogs && (
                 <span className="text-violet-400">
                   <span className="font-bold">{auditLogs.length}</span>
-                  <span className="text-[var(--landing-text-tertiary)]"> evt</span>
+                  <span className="text-[var(--landing-text-tertiary)]">
+                    {" "}
+                    evt
+                  </span>
                 </span>
               )}
             </div>
@@ -513,14 +590,22 @@ export function ActivityFeed({
         <div className="md:col-span-3">
           <div className="dash-card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-2">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                {sourceFilter === "dashboard" ? "Dashboard events" : sourceFilter === "usage" ? "Usage activity" : "Activity"}
+              <span className="font-mono text-[10px] font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                {sourceFilter === "dashboard"
+                  ? "Dashboard events"
+                  : sourceFilter === "usage"
+                    ? "Usage activity"
+                    : "Activity"}
               </span>
               <div className="flex items-center gap-2">
                 {hasFiltersActive && (
-                  <span className="rounded-full bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[9px] font-medium text-[#F97316]">filtered</span>
+                  <span className="rounded-full bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[9px] font-medium text-[#F97316]">
+                    filtered
+                  </span>
                 )}
-                <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredTimeline.length}</span>
+                <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                  {filteredTimeline.length}
+                </span>
               </div>
             </div>
             {isSmartMode && activityFeed.isFiltering ? (
@@ -529,7 +614,9 @@ export function ActivityFeed({
               <div className="px-4 py-8 text-center">
                 <Search className="mx-auto mb-2 h-5 w-5 text-[var(--landing-text-tertiary)]/50" />
                 <p className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
-                  {hasFiltersActive ? "No activity matching your filters" : "No activity recorded"}
+                  {hasFiltersActive
+                    ? "No activity matching your filters"
+                    : "No activity recorded"}
                 </p>
                 {hasFiltersActive && (
                   <p className="mt-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]/60">
@@ -545,35 +632,67 @@ export function ActivityFeed({
                   if (item.type === "activity") {
                     const a = item.data as ActivityItem;
                     return (
-                      <div key={item.id} className={`flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors${isLast ? "" : " border-b border-[var(--landing-border)]"}`}>
-                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${ACTION_DOT_BG[a.action] ?? "bg-[var(--landing-text-tertiary)]"}`} />
-                        <span className={`shrink-0 font-mono text-[11px] font-medium ${ACTION_COLORS[a.action] ?? "text-[var(--landing-text-tertiary)]"}`}>
+                      <div
+                        key={item.id}
+                        className={`flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors${isLast ? "" : "border-b border-[var(--landing-border)]"}`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${ACTION_DOT_BG[a.action] ?? "bg-[var(--landing-text-tertiary)]"}`}
+                        />
+                        <span
+                          className={`shrink-0 font-mono text-[11px] font-medium ${ACTION_COLORS[a.action] ?? "text-[var(--landing-text-tertiary)]"}`}
+                        >
                           {ACTION_LABELS[a.action] ?? a.action}
                         </span>
                         {a.memoryKey && (
-                          <span className="min-w-0 truncate font-mono text-[11px] text-[#F97316]">{a.memoryKey}</span>
+                          <span className="min-w-0 truncate font-mono text-[11px] text-[#F97316]">
+                            {a.memoryKey}
+                          </span>
                         )}
                         {a.toolName && !a.memoryKey && (
-                          <span className="min-w-0 truncate font-mono text-[11px] text-amber-400">{a.toolName}</span>
+                          <span className="min-w-0 truncate font-mono text-[11px] text-amber-400">
+                            {a.toolName}
+                          </span>
                         )}
                         {a.createdByName && (
-                          <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-secondary)] sm:inline">{a.createdByName}</span>
+                          <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-secondary)] sm:inline">
+                            {a.createdByName}
+                          </span>
                         )}
-                        <span className={`${a.createdByName ? "" : "ml-auto "}hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:inline`}>{a.projectName}</span>
-                        <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
+                        <span
+                          className={`${a.createdByName ? "" : "ml-auto"}hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:inline`}
+                        >
+                          {a.projectName}
+                        </span>
+                        <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                          {relativeTime(a.createdAt)}
+                        </span>
                       </div>
                     );
                   }
 
                   const a = item.data as AuditLogItem;
                   const AuditIcon = AUDIT_ICONS[a.action] ?? Shield;
-                  const detail = formatAuditDetails(a.action, a.details, a.targetUserName);
+                  const detail = formatAuditDetails(
+                    a.action,
+                    a.details,
+                    a.targetUserName,
+                  );
 
                   return (
-                    <div key={item.id} className={`flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors${isLast ? "" : " border-b border-[var(--landing-border)]"}`}>
-                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${AUDIT_DOT_BG[a.action] ?? "bg-violet-400"}`} />
-                      <AuditIcon className={`h-3 w-3 shrink-0 ${AUDIT_COLORS[a.action] ?? "text-violet-400"}`} />
-                      <span className={`shrink-0 font-mono text-[11px] font-medium ${AUDIT_COLORS[a.action] ?? "text-violet-400"}`}>
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--landing-surface-2)]/50 transition-colors${isLast ? "" : "border-b border-[var(--landing-border)]"}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${AUDIT_DOT_BG[a.action] ?? "bg-violet-400"}`}
+                      />
+                      <AuditIcon
+                        className={`h-3 w-3 shrink-0 ${AUDIT_COLORS[a.action] ?? "text-violet-400"}`}
+                      />
+                      <span
+                        className={`shrink-0 font-mono text-[11px] font-medium ${AUDIT_COLORS[a.action] ?? "text-violet-400"}`}
+                      >
                         {AUDIT_LABELS[a.action] ?? a.action}
                       </span>
                       {detail && (
@@ -584,7 +703,9 @@ export function ActivityFeed({
                       <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:inline">
                         {a.actorName}
                       </span>
-                      <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">{relativeTime(a.createdAt)}</span>
+                      <span className="shrink-0 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                        {relativeTime(a.createdAt)}
+                      </span>
                     </div>
                   );
                 })}
@@ -605,21 +726,27 @@ export function ActivityFeed({
         <div className="md:col-span-2">
           <div className="dash-card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-3 py-2">
-              <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">Sessions</span>
+              <span className="font-mono text-[10px] font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                Sessions
+              </span>
               <div className="flex items-center gap-2">
                 {stats.activeSessions > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[9px] font-medium text-emerald-400">
-                    <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
                     {stats.activeSessions} live
                   </span>
                 )}
-                <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">{filteredSessions.length}</span>
+                <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                  {filteredSessions.length}
+                </span>
               </div>
             </div>
             {filteredSessions.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <GitBranch className="mx-auto mb-2 h-5 w-5 text-[var(--landing-text-tertiary)]/50" />
-                <p className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">No sessions found</p>
+                <p className="font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+                  No sessions found
+                </p>
               </div>
             ) : (
               <div className="max-h-[32rem] overflow-y-auto">
@@ -631,18 +758,33 @@ export function ActivityFeed({
                   const isLastSession = idx === filteredSessions.length - 1;
 
                   return (
-                    <div key={s.id} className={isLastSession ? "" : "border-b border-[var(--landing-border)]"}>
+                    <div
+                      key={s.id}
+                      className={
+                        isLastSession
+                          ? ""
+                          : "border-b border-[var(--landing-border)]"
+                      }
+                    >
                       <button
-                        onClick={() => setExpandedSession(isExpanded ? null : s.id)}
-                        className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-[var(--landing-surface-2)]/50 transition-colors"
+                        onClick={() =>
+                          setExpandedSession(isExpanded ? null : s.id)
+                        }
+                        className="flex w-full items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--landing-surface-2)]/50"
                       >
                         <span className="mt-0.5 shrink-0 text-[var(--landing-text-tertiary)]">
-                          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          {isExpanded ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3" />
+                          )}
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="truncate font-mono text-[11px] font-medium text-[#F97316]">
-                              {s.sessionId.length > 12 ? s.sessionId.slice(0, 12) + "…" : s.sessionId}
+                              {s.sessionId.length > 12
+                                ? s.sessionId.slice(0, 12) + "…"
+                                : s.sessionId}
                             </span>
                             {s.branch && (
                               <span className="flex items-center gap-0.5 font-mono text-[10px] text-[var(--landing-text-secondary)]">
@@ -653,50 +795,89 @@ export function ActivityFeed({
                           </div>
                           <div className="mt-0.5 flex items-center gap-2 font-mono text-[10px]">
                             {s.endedAt ? (
-                              <span className="text-[var(--landing-text-tertiary)]">ended</span>
+                              <span className="text-[var(--landing-text-tertiary)]">
+                                ended
+                              </span>
                             ) : (
                               <span className="flex items-center gap-1 text-emerald-400">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                                 active
                               </span>
                             )}
-                            {keysRead.length > 0 && <span className="text-blue-400">R:{keysRead.length}</span>}
-                            {keysWritten.length > 0 && <span className="text-emerald-400">W:{keysWritten.length}</span>}
-                            <span className="text-[var(--landing-text-tertiary)]">{relativeTime(s.startedAt)}</span>
-                            <span className="text-[var(--landing-text-tertiary)]">{s.projectName}</span>
+                            {keysRead.length > 0 && (
+                              <span className="text-blue-400">
+                                R:{keysRead.length}
+                              </span>
+                            )}
+                            {keysWritten.length > 0 && (
+                              <span className="text-emerald-400">
+                                W:{keysWritten.length}
+                              </span>
+                            )}
+                            <span className="text-[var(--landing-text-tertiary)]">
+                              {relativeTime(s.startedAt)}
+                            </span>
+                            <span className="text-[var(--landing-text-tertiary)]">
+                              {s.projectName}
+                            </span>
                           </div>
                         </div>
                       </button>
 
                       {isExpanded && (
-                        <div className="border-t border-[var(--landing-border)] bg-[var(--landing-surface-2)]/30 px-4 py-2.5 space-y-2">
+                        <div className="space-y-2 border-t border-[var(--landing-border)] bg-[var(--landing-surface-2)]/30 px-4 py-2.5">
                           {s.summary && (
-                            <p className="font-mono text-[10px] text-[var(--landing-text-secondary)]">{s.summary}</p>
+                            <p className="font-mono text-[10px] text-[var(--landing-text-secondary)]">
+                              {s.summary}
+                            </p>
                           )}
                           {keysWritten.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                               {keysWritten.map((k) => (
-                                <Badge key={k} variant="outline" className="border-emerald-500/30 text-emerald-400 text-[9px] h-4 px-1">{k}</Badge>
+                                <Badge
+                                  key={k}
+                                  variant="outline"
+                                  className="h-4 border-emerald-500/30 px-1 text-[9px] text-emerald-400"
+                                >
+                                  {k}
+                                </Badge>
                               ))}
                             </div>
                           )}
                           {keysRead.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                               {keysRead.map((k) => (
-                                <Badge key={k} variant="outline" className="border-blue-500/30 text-blue-400 text-[9px] h-4 px-1">{k}</Badge>
+                                <Badge
+                                  key={k}
+                                  variant="outline"
+                                  className="h-4 border-blue-500/30 px-1 text-[9px] text-blue-400"
+                                >
+                                  {k}
+                                </Badge>
                               ))}
                             </div>
                           )}
                           {toolsUsed.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                               {toolsUsed.map((t) => (
-                                <Badge key={t} variant="outline" className="border-amber-500/30 text-amber-400 text-[9px] h-4 px-1">{t}</Badge>
+                                <Badge
+                                  key={t}
+                                  variant="outline"
+                                  className="h-4 border-amber-500/30 px-1 text-[9px] text-amber-400"
+                                >
+                                  {t}
+                                </Badge>
                               ))}
                             </div>
                           )}
-                          {!s.summary && keysWritten.length === 0 && keysRead.length === 0 && toolsUsed.length === 0 && (
-                            <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">No details available</p>
-                          )}
+                          {!s.summary &&
+                            keysWritten.length === 0 &&
+                            keysRead.length === 0 &&
+                            toolsUsed.length === 0 && (
+                              <p className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                                No details available
+                              </p>
+                            )}
                         </div>
                       )}
                     </div>
@@ -709,13 +890,13 @@ export function ActivityFeed({
                     <button
                       onClick={sessionFeed.loadMore}
                       disabled={sessionFeed.isLoading}
-                      className="w-full rounded-md border border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 py-1.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)] transition-all disabled:opacity-50"
+                      className="w-full rounded-md border border-[var(--landing-border)] bg-[var(--landing-surface-2)]/50 py-1.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] transition-all hover:bg-[var(--landing-surface-2)] hover:text-[var(--landing-text)] disabled:opacity-50"
                     >
                       {sessionFeed.isLoading ? (
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="h-1 w-1 rounded-full bg-[var(--landing-text-tertiary)] animate-pulse" />
-                          <span className="h-1 w-1 rounded-full bg-[var(--landing-text-tertiary)] animate-pulse [animation-delay:150ms]" />
-                          <span className="h-1 w-1 rounded-full bg-[var(--landing-text-tertiary)] animate-pulse [animation-delay:300ms]" />
+                          <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--landing-text-tertiary)]" />
+                          <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--landing-text-tertiary)] [animation-delay:150ms]" />
+                          <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--landing-text-tertiary)] [animation-delay:300ms]" />
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1">

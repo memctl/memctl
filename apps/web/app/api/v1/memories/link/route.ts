@@ -23,15 +23,30 @@ export async function POST(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const body = await req.json().catch(() => null);
-  if (!body || typeof body.key !== "string" || typeof body.relatedKey !== "string") {
-    return jsonError("Body must have key (string) and relatedKey (string)", 400);
+  if (
+    !body ||
+    typeof body.key !== "string" ||
+    typeof body.relatedKey !== "string"
+  ) {
+    return jsonError(
+      "Body must have key (string) and relatedKey (string)",
+      400,
+    );
   }
 
-  const { key, relatedKey, unlink = false } = body as {
+  const {
+    key,
+    relatedKey,
+    unlink = false,
+  } = body as {
     key: string;
     relatedKey: string;
     unlink?: boolean;
@@ -45,13 +60,20 @@ export async function POST(req: NextRequest) {
   const [memA] = await db
     .select()
     .from(memories)
-    .where(and(eq(memories.projectId, context.project.id), eq(memories.key, key)))
+    .where(
+      and(eq(memories.projectId, context.project.id), eq(memories.key, key)),
+    )
     .limit(1);
 
   const [memB] = await db
     .select()
     .from(memories)
-    .where(and(eq(memories.projectId, context.project.id), eq(memories.key, relatedKey)))
+    .where(
+      and(
+        eq(memories.projectId, context.project.id),
+        eq(memories.key, relatedKey),
+      ),
+    )
     .limit(1);
 
   if (!memA) return jsonError(`Memory "${key}" not found`, 404);
@@ -60,7 +82,11 @@ export async function POST(req: NextRequest) {
   // Parse existing related keys
   const parseRelated = (raw: string | null): string[] => {
     if (!raw) return [];
-    try { return JSON.parse(raw) as string[]; } catch { return []; }
+    try {
+      return JSON.parse(raw) as string[];
+    } catch {
+      return [];
+    }
   };
 
   let relatedA = parseRelated(memA.relatedKeys);

@@ -32,12 +32,18 @@ export function isValidAdminEmail(email: string): {
   const lower = email.toLowerCase().trim();
 
   if (!lower.endsWith("@memctl.com")) {
-    return { valid: false, error: "Only @memctl.com email addresses are allowed." };
+    return {
+      valid: false,
+      error: "Only @memctl.com email addresses are allowed.",
+    };
   }
 
   for (const prefix of BLOCKED_ADMIN_PREFIXES) {
     if (lower === prefix + "memctl.com") {
-      return { valid: false, error: "This service address cannot be used for admin login." };
+      return {
+        valid: false,
+        error: "This service address cannot be used for admin login.",
+      };
     }
   }
 

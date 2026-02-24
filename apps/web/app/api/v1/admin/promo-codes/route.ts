@@ -108,22 +108,34 @@ export async function POST(req: NextRequest) {
 
   // Validate required fields
   if (!discountType || !["percent", "fixed"].includes(discountType)) {
-    return NextResponse.json({ error: "Invalid discountType" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid discountType" },
+      { status: 400 },
+    );
   }
   if (typeof discountAmount !== "number" || discountAmount <= 0) {
-    return NextResponse.json({ error: "Invalid discountAmount" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid discountAmount" },
+      { status: 400 },
+    );
   }
   if (!duration || !["once", "repeating", "forever"].includes(duration)) {
     return NextResponse.json({ error: "Invalid duration" }, { status: 400 });
   }
   if (duration === "repeating" && (!durationInMonths || durationInMonths < 1)) {
-    return NextResponse.json({ error: "durationInMonths required for repeating" }, { status: 400 });
+    return NextResponse.json(
+      { error: "durationInMonths required for repeating" },
+      { status: 400 },
+    );
   }
 
   // Bulk generation
   if (bulkPrefix && bulkCount) {
     if (bulkCount < 2 || bulkCount > 100) {
-      return NextResponse.json({ error: "bulkCount must be 2-100" }, { status: 400 });
+      return NextResponse.json(
+        { error: "bulkCount must be 2-100" },
+        { status: 400 },
+      );
     }
 
     const created = [];
@@ -164,9 +176,13 @@ export async function POST(req: NextRequest) {
           currency: currency ?? "usd",
           duration,
           durationInMonths,
-          applicablePlans: applicablePlans ? JSON.stringify(applicablePlans) : null,
+          applicablePlans: applicablePlans
+            ? JSON.stringify(applicablePlans)
+            : null,
           minimumPlanTier,
-          restrictedToOrgs: restrictedToOrgs ? JSON.stringify(restrictedToOrgs) : null,
+          restrictedToOrgs: restrictedToOrgs
+            ? JSON.stringify(restrictedToOrgs)
+            : null,
           maxRedemptions,
           maxRedemptionsPerOrg: maxRedemptionsPerOrg ?? 1,
           firstSubscriptionOnly: firstSubscriptionOnly ?? false,
@@ -233,7 +249,9 @@ export async function POST(req: NextRequest) {
       durationInMonths,
       applicablePlans: applicablePlans ? JSON.stringify(applicablePlans) : null,
       minimumPlanTier,
-      restrictedToOrgs: restrictedToOrgs ? JSON.stringify(restrictedToOrgs) : null,
+      restrictedToOrgs: restrictedToOrgs
+        ? JSON.stringify(restrictedToOrgs)
+        : null,
       maxRedemptions,
       maxRedemptionsPerOrg: maxRedemptionsPerOrg ?? 1,
       firstSubscriptionOnly: firstSubscriptionOnly ?? false,

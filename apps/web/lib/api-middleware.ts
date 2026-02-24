@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyJwt, getCachedSession, setCachedSession } from "./jwt";
 import { auth } from "./auth";
 import { db } from "./db";
-import { sessions, organizations, organizationMembers, projectMembers, projects } from "@memctl/db/schema";
+import {
+  sessions,
+  organizations,
+  organizationMembers,
+  projectMembers,
+  projects,
+} from "@memctl/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { logger, generateRequestId } from "./logger";
 import { rateLimit } from "./rate-limit";
@@ -70,12 +76,18 @@ export async function authenticateRequest(
   // Cookie-based session auth (dashboard)
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) {
-    return NextResponse.json({ error: "Missing authorization" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Missing authorization" },
+      { status: 401 },
+    );
   }
 
   const orgSlug = req.headers.get("x-org-slug");
   if (!orgSlug) {
-    return NextResponse.json({ error: "Missing X-Org-Slug header" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing X-Org-Slug header" },
+      { status: 400 },
+    );
   }
 
   const [org] = await db
@@ -85,7 +97,10 @@ export async function authenticateRequest(
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   if (org.status === "suspended") {

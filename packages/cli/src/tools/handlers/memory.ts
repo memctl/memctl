@@ -6,41 +6,119 @@ import {
   textResponse,
   errorResponse,
   hasMemoryFullError,
-  toFiniteLimitText,
   formatCapacityGuidance,
 } from "../response.js";
-import { getBranchInfo, listAllMemories, extractAgentContextEntries } from "../../agent-context.js";
+import { getBranchInfo, listAllMemories } from "../../agent-context.js";
 
-export function registerMemoryTool(server: McpServer, client: ApiClient, rl: RateLimitState) {
+export function registerMemoryTool(
+  server: McpServer,
+  client: ApiClient,
+  rl: RateLimitState,
+) {
   server.tool(
     "memory",
     "Core memory CRUD. Actions: store, get, search, list, delete, update, pin, archive, bulk_get, store_safe, capacity",
     {
-      action: z.enum([
-        "store", "get", "search", "list", "delete", "update",
-        "pin", "archive", "bulk_get", "store_safe", "capacity",
-      ]).describe("Which operation to perform"),
-      key: z.string().optional().describe("[store,get,delete,update,pin,archive,store_safe] Memory key"),
-      content: z.string().optional().describe("[store,update,store_safe] Content to store"),
-      metadata: z.record(z.unknown()).optional().describe("[store,update,store_safe] Optional metadata object"),
-      scope: z.enum(["project", "shared"]).optional().describe("[store] 'project' (default) or 'shared' for org-wide"),
-      priority: z.number().int().min(0).max(100).optional().describe("[store,update,store_safe] Priority 0-100"),
-      tags: z.array(z.string()).optional().describe("[store,update,store_safe] Tags for categorization"),
-      expiresAt: z.number().optional().describe("[store] Unix timestamp for expiration"),
-      ttl: z.enum(["session", "pr", "sprint", "permanent"]).optional().describe("[store] Named TTL preset"),
-      dedupAction: z.enum(["warn", "skip", "merge"]).optional().describe("[store] Dedup strategy"),
-      autoBranch: z.boolean().optional().describe("[store] Auto-append branch tag"),
-      includeHints: z.boolean().optional().describe("[get] Include contextual hints"),
+      action: z
+        .enum([
+          "store",
+          "get",
+          "search",
+          "list",
+          "delete",
+          "update",
+          "pin",
+          "archive",
+          "bulk_get",
+          "store_safe",
+          "capacity",
+        ])
+        .describe("Which operation to perform"),
+      key: z
+        .string()
+        .optional()
+        .describe(
+          "[store,get,delete,update,pin,archive,store_safe] Memory key",
+        ),
+      content: z
+        .string()
+        .optional()
+        .describe("[store,update,store_safe] Content to store"),
+      metadata: z
+        .record(z.unknown())
+        .optional()
+        .describe("[store,update,store_safe] Optional metadata object"),
+      scope: z
+        .enum(["project", "shared"])
+        .optional()
+        .describe("[store] 'project' (default) or 'shared' for org-wide"),
+      priority: z
+        .number()
+        .int()
+        .min(0)
+        .max(100)
+        .optional()
+        .describe("[store,update,store_safe] Priority 0-100"),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe("[store,update,store_safe] Tags for categorization"),
+      expiresAt: z
+        .number()
+        .optional()
+        .describe("[store] Unix timestamp for expiration"),
+      ttl: z
+        .enum(["session", "pr", "sprint", "permanent"])
+        .optional()
+        .describe("[store] Named TTL preset"),
+      dedupAction: z
+        .enum(["warn", "skip", "merge"])
+        .optional()
+        .describe("[store] Dedup strategy"),
+      autoBranch: z
+        .boolean()
+        .optional()
+        .describe("[store] Auto-append branch tag"),
+      includeHints: z
+        .boolean()
+        .optional()
+        .describe("[get] Include contextual hints"),
       query: z.string().optional().describe("[search] Search query"),
-      limit: z.number().int().min(1).max(100).optional().describe("[search,list] Max results"),
-      offset: z.number().int().min(0).optional().describe("[list] Pagination offset"),
-      sort: z.enum(["updated", "priority", "created"]).optional().describe("[search,list] Sort order"),
-      includeArchived: z.boolean().optional().describe("[search,list] Include archived"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("[search,list] Max results"),
+      offset: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("[list] Pagination offset"),
+      sort: z
+        .enum(["updated", "priority", "created"])
+        .optional()
+        .describe("[search,list] Sort order"),
+      includeArchived: z
+        .boolean()
+        .optional()
+        .describe("[search,list] Include archived"),
       keys: z.array(z.string()).optional().describe("[bulk_get] Array of keys"),
       pin: z.boolean().optional().describe("[pin] true=pin, false=unpin"),
-      archiveFlag: z.boolean().optional().describe("[archive] true=archive, false=unarchive"),
-      ifUnmodifiedSince: z.number().optional().describe("[store_safe] Concurrency check timestamp"),
-      onConflict: z.enum(["reject", "last_write_wins", "append", "return_both"]).optional().describe("[store_safe] Conflict resolution"),
+      archiveFlag: z
+        .boolean()
+        .optional()
+        .describe("[archive] true=archive, false=unarchive"),
+      ifUnmodifiedSince: z
+        .number()
+        .optional()
+        .describe("[store_safe] Concurrency check timestamp"),
+      onConflict: z
+        .enum(["reject", "last_write_wins", "append", "return_both"])
+        .optional()
+        .describe("[store_safe] Conflict resolution"),
     },
     async (params) => {
       switch (params.action) {
@@ -73,10 +151,15 @@ export function registerMemoryTool(server: McpServer, client: ApiClient, rl: Rat
   );
 }
 
-async function handleStore(client: ApiClient, rl: RateLimitState, params: Record<string, unknown>) {
+async function handleStore(
+  client: ApiClient,
+  rl: RateLimitState,
+  params: Record<string, unknown>,
+) {
   try {
     const rateCheck = rl.checkRateLimit();
-    if (!rateCheck.allowed) return errorResponse("Rate limit exceeded", rateCheck.warning!);
+    if (!rateCheck.allowed)
+      return errorResponse("Rate limit exceeded", rateCheck.warning!);
     rl.incrementWriteCount();
 
     const key = params.key as string;
@@ -90,7 +173,11 @@ async function handleStore(client: ApiClient, rl: RateLimitState, params: Record
     const dedupAction = (params.dedupAction as string) ?? "warn";
     const autoBranch = params.autoBranch !== false;
 
-    if (!key || !content) return errorResponse("Missing required params", "key and content are required for store");
+    if (!key || !content)
+      return errorResponse(
+        "Missing required params",
+        "key and content are required for store",
+      );
 
     let resolvedTags = tags ?? [];
     if (autoBranch) {
@@ -98,9 +185,12 @@ async function handleStore(client: ApiClient, rl: RateLimitState, params: Record
         const bi = await getBranchInfo();
         if (bi?.branch && bi.branch !== "main" && bi.branch !== "master") {
           const branchTag = `branch:${bi.branch}`;
-          if (!resolvedTags.includes(branchTag)) resolvedTags = [...resolvedTags, branchTag];
+          if (!resolvedTags.includes(branchTag))
+            resolvedTags = [...resolvedTags, branchTag];
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     let resolvedExpiry = expiresAt;
@@ -120,19 +210,36 @@ async function handleStore(client: ApiClient, rl: RateLimitState, params: Record
       if (similar.similar.length > 0) {
         const top = similar.similar[0]!;
         if (dedupAction === "skip") {
-          return textResponse(`Skipped: similar memory "${top.key}" already exists (${Math.round(top.similarity * 100)}% match).`);
+          return textResponse(
+            `Skipped: similar memory "${top.key}" already exists (${Math.round(top.similarity * 100)}% match).`,
+          );
         }
         if (dedupAction === "merge") {
-          const existing = await client.getMemory(top.key) as Record<string, unknown>;
-          const existingMem = existing?.memory as Record<string, unknown> | undefined;
-          const existingContent = typeof existingMem?.content === "string" ? existingMem.content : "";
+          const existing = (await client.getMemory(top.key)) as Record<
+            string,
+            unknown
+          >;
+          const existingMem = existing?.memory as
+            | Record<string, unknown>
+            | undefined;
+          const existingContent =
+            typeof existingMem?.content === "string" ? existingMem.content : "";
           const merged = `${existingContent}\n\n---\n\n${content}`;
-          await client.storeMemory(top.key, merged, metadata, { scope, priority, tags: resolvedTags.length > 0 ? resolvedTags : undefined, expiresAt: resolvedExpiry });
-          return textResponse(`Merged into existing memory "${top.key}" (${Math.round(top.similarity * 100)}% match).`);
+          await client.storeMemory(top.key, merged, metadata, {
+            scope,
+            priority,
+            tags: resolvedTags.length > 0 ? resolvedTags : undefined,
+            expiresAt: resolvedExpiry,
+          });
+          return textResponse(
+            `Merged into existing memory "${top.key}" (${Math.round(top.similarity * 100)}% match).`,
+          );
         }
         dedupWarning = ` Warning: Similar memory: "${top.key}" (${Math.round(top.similarity * 100)}% match).`;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // Auto-eviction: if near capacity, archive lowest-health non-pinned memories
     let evictionMsg = "";
@@ -140,24 +247,38 @@ async function handleStore(client: ApiClient, rl: RateLimitState, params: Record
       const cap = await client.getMemoryCapacity();
       if (cap.isFull || cap.isSoftFull) {
         const health = await client.getHealthScores(200);
-        const evictable = health.memories.filter((m) => !m.isPinned).slice(0, 3);
+        const evictable = health.memories
+          .filter((m) => !m.isPinned)
+          .slice(0, 3);
         if (evictable.length > 0) {
           const evictKeys = evictable.map((m) => m.key);
           await client.batchMutate(evictKeys, "archive");
           evictionMsg = ` Auto-archived ${evictKeys.length} low-health memories to free space: ${evictKeys.join(", ")}.`;
         }
       }
-    } catch { /* ignore eviction errors */ }
+    } catch {
+      /* ignore eviction errors */
+    }
 
-    await client.storeMemory(key, content, metadata, { scope, priority, tags: resolvedTags.length > 0 ? resolvedTags : undefined, expiresAt: resolvedExpiry });
+    await client.storeMemory(key, content, metadata, {
+      scope,
+      priority,
+      tags: resolvedTags.length > 0 ? resolvedTags : undefined,
+      expiresAt: resolvedExpiry,
+    });
     const scopeMsg = scope === "shared" ? " [shared across org]" : "";
     const ttlMsg = ttl ? ` [ttl: ${ttl}]` : "";
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
     const writeWarn = rl.getSessionWriteWarning() ?? "";
-    return textResponse(`Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${evictionMsg}${rateWarn}${writeWarn}`);
+    return textResponse(
+      `Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${evictionMsg}${rateWarn}${writeWarn}`,
+    );
   } catch (error) {
     if (hasMemoryFullError(error)) {
-      return errorResponse("Error storing memory", `${error instanceof Error ? error.message : String(error)} Use memory delete or archive to free space.`);
+      return errorResponse(
+        "Error storing memory",
+        `${error instanceof Error ? error.message : String(error)} Use memory delete or archive to free space.`,
+      );
     }
     return errorResponse("Error storing memory", error);
   }
@@ -166,10 +287,13 @@ async function handleStore(client: ApiClient, rl: RateLimitState, params: Record
 async function handleGet(client: ApiClient, params: Record<string, unknown>) {
   try {
     const key = params.key as string;
-    if (!key) return errorResponse("Missing required param", "key is required for get");
+    if (!key)
+      return errorResponse("Missing required param", "key is required for get");
 
     const includeHints = params.includeHints !== false;
-    const memory = await client.getMemory(key) as { memory?: Record<string, unknown> };
+    const memory = (await client.getMemory(key)) as {
+      memory?: Record<string, unknown>;
+    };
     client.prefetchCoAccessed(key);
 
     if (includeHints && memory?.memory) {
@@ -177,17 +301,30 @@ async function handleGet(client: ApiClient, params: Record<string, unknown>) {
       const hints: string[] = [];
       const now = Date.now();
 
-      const updatedAt = mem.updatedAt ? new Date(mem.updatedAt as string).getTime() : 0;
+      const updatedAt = mem.updatedAt
+        ? new Date(mem.updatedAt as string).getTime()
+        : 0;
       if (updatedAt) {
         const daysSinceUpdate = (now - updatedAt) / 86_400_000;
-        if (daysSinceUpdate > 60) hints.push(`Stale: not updated in ${Math.round(daysSinceUpdate)} days`);
-        else if (daysSinceUpdate > 30) hints.push(`Aging: last updated ${Math.round(daysSinceUpdate)} days ago`);
+        if (daysSinceUpdate > 60)
+          hints.push(
+            `Stale: not updated in ${Math.round(daysSinceUpdate)} days`,
+          );
+        else if (daysSinceUpdate > 30)
+          hints.push(
+            `Aging: last updated ${Math.round(daysSinceUpdate)} days ago`,
+          );
       }
 
-      const lastAccessed = mem.lastAccessedAt ? new Date(mem.lastAccessedAt as string).getTime() : 0;
+      const lastAccessed = mem.lastAccessedAt
+        ? new Date(mem.lastAccessedAt as string).getTime()
+        : 0;
       if (lastAccessed) {
         const daysSinceAccess = (now - lastAccessed) / 86_400_000;
-        if (daysSinceAccess > 30) hints.push(`Rarely accessed: last read ${Math.round(daysSinceAccess)} days ago`);
+        if (daysSinceAccess > 30)
+          hints.push(
+            `Rarely accessed: last read ${Math.round(daysSinceAccess)} days ago`,
+          );
       } else {
         hints.push("Never accessed before");
       }
@@ -195,8 +332,14 @@ async function handleGet(client: ApiClient, params: Record<string, unknown>) {
       const helpful = (mem.helpfulCount as number) ?? 0;
       const unhelpful = (mem.unhelpfulCount as number) ?? 0;
       if (helpful + unhelpful > 0) {
-        if (unhelpful > helpful) hints.push(`Negative feedback: ${helpful} helpful, ${unhelpful} unhelpful`);
-        else if (helpful > 0) hints.push(`Positive feedback: ${helpful} helpful, ${unhelpful} unhelpful`);
+        if (unhelpful > helpful)
+          hints.push(
+            `Negative feedback: ${helpful} helpful, ${unhelpful} unhelpful`,
+          );
+        else if (helpful > 0)
+          hints.push(
+            `Positive feedback: ${helpful} helpful, ${unhelpful} unhelpful`,
+          );
       }
 
       if (mem.pinnedAt) hints.push("Pinned: always included in bootstrap");
@@ -205,17 +348,25 @@ async function handleGet(client: ApiClient, params: Record<string, unknown>) {
         const expiresAt = new Date(mem.expiresAt as string).getTime();
         const daysUntilExpiry = (expiresAt - now) / 86_400_000;
         if (daysUntilExpiry < 0) hints.push("Expired");
-        else if (daysUntilExpiry < 3) hints.push(`Expiring soon: ${Math.round(daysUntilExpiry * 24)} hours left`);
+        else if (daysUntilExpiry < 3)
+          hints.push(
+            `Expiring soon: ${Math.round(daysUntilExpiry * 24)} hours left`,
+          );
       }
 
-      const contentLen = typeof mem.content === "string" ? mem.content.length : 0;
-      if (contentLen > 8000) hints.push(`Large memory: ~${Math.ceil(contentLen / 4)} tokens`);
+      const contentLen =
+        typeof mem.content === "string" ? mem.content.length : 0;
+      if (contentLen > 8000)
+        hints.push(`Large memory: ~${Math.ceil(contentLen / 4)} tokens`);
 
       if (mem.relatedKeys) {
         try {
           const relKeys = JSON.parse(mem.relatedKeys as string) as string[];
-          if (relKeys.length > 0) hints.push(`Linked to ${relKeys.length} other memories`);
-        } catch { /* ignore */ }
+          if (relKeys.length > 0)
+            hints.push(`Linked to ${relKeys.length} other memories`);
+        } catch {
+          /* ignore */
+        }
       }
 
       return textResponse(JSON.stringify({ ...memory, hints }, null, 2));
@@ -227,16 +378,27 @@ async function handleGet(client: ApiClient, params: Record<string, unknown>) {
   }
 }
 
-async function handleSearch(client: ApiClient, params: Record<string, unknown>) {
+async function handleSearch(
+  client: ApiClient,
+  params: Record<string, unknown>,
+) {
   try {
     const query = params.query as string;
-    if (!query) return errorResponse("Missing required param", "query is required for search");
+    if (!query)
+      return errorResponse(
+        "Missing required param",
+        "query is required for search",
+      );
 
-    const results = await client.searchMemories(query, (params.limit as number) ?? 20, {
-      tags: params.tags as string | undefined,
-      sort: params.sort as string | undefined,
-      includeArchived: (params.includeArchived as boolean) ?? false,
-    });
+    const results = await client.searchMemories(
+      query,
+      (params.limit as number) ?? 20,
+      {
+        tags: params.tags as string | undefined,
+        sort: params.sort as string | undefined,
+        includeArchived: (params.includeArchived as boolean) ?? false,
+      },
+    );
     return textResponse(JSON.stringify(results, null, 2));
   } catch (error) {
     return errorResponse("Error searching memories", error);
@@ -260,14 +422,23 @@ async function handleList(client: ApiClient, params: Record<string, unknown>) {
   }
 }
 
-async function handleDelete(client: ApiClient, rl: RateLimitState, params: Record<string, unknown>) {
+async function handleDelete(
+  client: ApiClient,
+  rl: RateLimitState,
+  params: Record<string, unknown>,
+) {
   try {
     const rateCheck = rl.checkRateLimit();
-    if (!rateCheck.allowed) return errorResponse("Rate limit exceeded", rateCheck.warning!);
+    if (!rateCheck.allowed)
+      return errorResponse("Rate limit exceeded", rateCheck.warning!);
     rl.incrementWriteCount();
 
     const key = params.key as string;
-    if (!key) return errorResponse("Missing required param", "key is required for delete");
+    if (!key)
+      return errorResponse(
+        "Missing required param",
+        "key is required for delete",
+      );
 
     await client.deleteMemory(key);
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
@@ -277,20 +448,32 @@ async function handleDelete(client: ApiClient, rl: RateLimitState, params: Recor
   }
 }
 
-async function handleUpdate(client: ApiClient, rl: RateLimitState, params: Record<string, unknown>) {
+async function handleUpdate(
+  client: ApiClient,
+  rl: RateLimitState,
+  params: Record<string, unknown>,
+) {
   try {
     const rateCheck = rl.checkRateLimit();
-    if (!rateCheck.allowed) return errorResponse("Rate limit exceeded", rateCheck.warning!);
+    if (!rateCheck.allowed)
+      return errorResponse("Rate limit exceeded", rateCheck.warning!);
     rl.incrementWriteCount();
 
     const key = params.key as string;
-    if (!key) return errorResponse("Missing required param", "key is required for update");
+    if (!key)
+      return errorResponse(
+        "Missing required param",
+        "key is required for update",
+      );
 
     await client.updateMemory(
       key,
       params.content as string | undefined,
       params.metadata as Record<string, unknown> | undefined,
-      { priority: params.priority as number | undefined, tags: params.tags as string[] | undefined },
+      {
+        priority: params.priority as number | undefined,
+        tags: params.tags as string[] | undefined,
+      },
     );
 
     let impactWarning = "";
@@ -300,18 +483,30 @@ async function handleUpdate(client: ApiClient, rl: RateLimitState, params: Recor
         if (m.key === key) return false;
         const c = (m.content ?? "").toLowerCase();
         const rk = (m.relatedKeys ?? "").toLowerCase();
-        const meta = typeof m.metadata === "string" ? m.metadata.toLowerCase() : "";
+        const meta =
+          typeof m.metadata === "string" ? m.metadata.toLowerCase() : "";
         const keyLower = key.toLowerCase();
-        return c.includes(keyLower) || rk.includes(keyLower) || meta.includes(keyLower);
+        return (
+          c.includes(keyLower) ||
+          rk.includes(keyLower) ||
+          meta.includes(keyLower)
+        );
       });
       if (impacted.length > 0) {
-        impactWarning = ` Warning: ${impacted.length} other memories reference "${key}": ${impacted.slice(0, 5).map((m) => m.key).join(", ")}${impacted.length > 5 ? "..." : ""}.`;
+        impactWarning = ` Warning: ${impacted.length} other memories reference "${key}": ${impacted
+          .slice(0, 5)
+          .map((m) => m.key)
+          .join(", ")}${impacted.length > 5 ? "..." : ""}.`;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
     const writeWarn = rl.getSessionWriteWarning() ?? "";
-    return textResponse(`Memory updated: ${key}${impactWarning}${rateWarn}${writeWarn}`);
+    return textResponse(
+      `Memory updated: ${key}${impactWarning}${rateWarn}${writeWarn}`,
+    );
   } catch (error) {
     return errorResponse("Error updating memory", error);
   }
@@ -320,9 +515,11 @@ async function handleUpdate(client: ApiClient, rl: RateLimitState, params: Recor
 async function handlePin(client: ApiClient, params: Record<string, unknown>) {
   try {
     const key = params.key as string;
-    if (!key) return errorResponse("Missing required param", "key is required for pin");
+    if (!key)
+      return errorResponse("Missing required param", "key is required for pin");
     const pin = params.pin as boolean;
-    if (pin === undefined) return errorResponse("Missing required param", "pin is required");
+    if (pin === undefined)
+      return errorResponse("Missing required param", "pin is required");
 
     const result = await client.pinMemory(key, pin);
     return textResponse(result.message);
@@ -331,24 +528,41 @@ async function handlePin(client: ApiClient, params: Record<string, unknown>) {
   }
 }
 
-async function handleArchive(client: ApiClient, params: Record<string, unknown>) {
+async function handleArchive(
+  client: ApiClient,
+  params: Record<string, unknown>,
+) {
   try {
     const key = params.key as string;
-    if (!key) return errorResponse("Missing required param", "key is required for archive");
+    if (!key)
+      return errorResponse(
+        "Missing required param",
+        "key is required for archive",
+      );
     const archive = params.archiveFlag as boolean;
-    if (archive === undefined) return errorResponse("Missing required param", "archiveFlag is required");
+    if (archive === undefined)
+      return errorResponse("Missing required param", "archiveFlag is required");
 
     await client.archiveMemory(key, archive);
-    return textResponse(`Memory ${archive ? "archived" : "unarchived"}: ${key}`);
+    return textResponse(
+      `Memory ${archive ? "archived" : "unarchived"}: ${key}`,
+    );
   } catch (error) {
     return errorResponse("Error archiving memory", error);
   }
 }
 
-async function handleBulkGet(client: ApiClient, params: Record<string, unknown>) {
+async function handleBulkGet(
+  client: ApiClient,
+  params: Record<string, unknown>,
+) {
   try {
     const keys = params.keys as string[];
-    if (!keys || keys.length === 0) return errorResponse("Missing required param", "keys array is required for bulk_get");
+    if (!keys || keys.length === 0)
+      return errorResponse(
+        "Missing required param",
+        "keys array is required for bulk_get",
+      );
 
     const result = await client.bulkGetMemories(keys);
     return textResponse(JSON.stringify(result, null, 2));
@@ -357,13 +571,24 @@ async function handleBulkGet(client: ApiClient, params: Record<string, unknown>)
   }
 }
 
-async function handleStoreSafe(client: ApiClient, params: Record<string, unknown>) {
+async function handleStoreSafe(
+  client: ApiClient,
+  params: Record<string, unknown>,
+) {
   try {
     const key = params.key as string;
     const content = params.content as string;
     const ifUnmodifiedSince = params.ifUnmodifiedSince as number;
-    if (!key || !content) return errorResponse("Missing required params", "key and content are required for store_safe");
-    if (ifUnmodifiedSince === undefined) return errorResponse("Missing required param", "ifUnmodifiedSince is required for store_safe");
+    if (!key || !content)
+      return errorResponse(
+        "Missing required params",
+        "key and content are required for store_safe",
+      );
+    if (ifUnmodifiedSince === undefined)
+      return errorResponse(
+        "Missing required param",
+        "ifUnmodifiedSince is required for store_safe",
+      );
 
     const onConflict = (params.onConflict as string) ?? "reject";
     const metadata = params.metadata as Record<string, unknown> | undefined;
@@ -372,44 +597,73 @@ async function handleStoreSafe(client: ApiClient, params: Record<string, unknown
 
     let current: Record<string, unknown> | null = null;
     try {
-      current = await client.getMemory(key) as Record<string, unknown>;
-    } catch { /* ignore */ }
+      current = (await client.getMemory(key)) as Record<string, unknown>;
+    } catch {
+      /* ignore */
+    }
 
     const mem = current?.memory as Record<string, unknown> | undefined;
     if (mem?.updatedAt) {
-      const currentUpdated = typeof mem.updatedAt === "string"
-        ? new Date(mem.updatedAt).getTime()
-        : typeof mem.updatedAt === "number" ? mem.updatedAt : 0;
+      const currentUpdated =
+        typeof mem.updatedAt === "string"
+          ? new Date(mem.updatedAt).getTime()
+          : typeof mem.updatedAt === "number"
+            ? mem.updatedAt
+            : 0;
 
       if (currentUpdated > ifUnmodifiedSince) {
         const memContent = typeof mem.content === "string" ? mem.content : "";
 
         if (onConflict === "last_write_wins") {
           await client.storeMemory(key, content, metadata, { priority, tags });
-          return textResponse(`Memory stored with key: ${key} (conflict resolved: last_write_wins)`);
+          return textResponse(
+            `Memory stored with key: ${key} (conflict resolved: last_write_wins)`,
+          );
         }
         if (onConflict === "append") {
           const merged = `${memContent}\n\n---\n\n${content}`;
           await client.storeMemory(key, merged, metadata, { priority, tags });
-          return textResponse(`Memory stored with key: ${key} (conflict resolved: append)`);
+          return textResponse(
+            `Memory stored with key: ${key} (conflict resolved: append)`,
+          );
         }
         if (onConflict === "return_both") {
-          return textResponse(JSON.stringify({
-            conflict: true, key, strategy: "return_both",
-            message: "Memory was modified. Both versions returned for manual merge.",
-            remoteVersion: memContent, localVersion: content,
-            remoteUpdatedAt: mem.updatedAt,
-            localTimestamp: new Date(ifUnmodifiedSince).toISOString(),
-          }, null, 2));
+          return textResponse(
+            JSON.stringify(
+              {
+                conflict: true,
+                key,
+                strategy: "return_both",
+                message:
+                  "Memory was modified. Both versions returned for manual merge.",
+                remoteVersion: memContent,
+                localVersion: content,
+                remoteUpdatedAt: mem.updatedAt,
+                localTimestamp: new Date(ifUnmodifiedSince).toISOString(),
+              },
+              null,
+              2,
+            ),
+          );
         }
 
-        return textResponse(JSON.stringify({
-          conflict: true, key, strategy: "reject",
-          message: "Memory was modified since you last read it.",
-          yourVersion: content.slice(0, 500), currentVersion: memContent.slice(0, 500),
-          currentUpdatedAt: mem.updatedAt,
-          suggestion: "Read the current version, merge changes, then store again.",
-        }, null, 2));
+        return textResponse(
+          JSON.stringify(
+            {
+              conflict: true,
+              key,
+              strategy: "reject",
+              message: "Memory was modified since you last read it.",
+              yourVersion: content.slice(0, 500),
+              currentVersion: memContent.slice(0, 500),
+              currentUpdatedAt: mem.updatedAt,
+              suggestion:
+                "Read the current version, merge changes, then store again.",
+            },
+            null,
+            2,
+          ),
+        );
       }
     }
 
@@ -423,7 +677,13 @@ async function handleStoreSafe(client: ApiClient, params: Record<string, unknown
 async function handleCapacity(client: ApiClient) {
   try {
     const capacity = await client.getMemoryCapacity();
-    return textResponse(JSON.stringify({ ...capacity, guidance: formatCapacityGuidance(capacity) }, null, 2));
+    return textResponse(
+      JSON.stringify(
+        { ...capacity, guidance: formatCapacityGuidance(capacity) },
+        null,
+        2,
+      ),
+    );
   } catch (error) {
     return errorResponse("Error getting memory capacity", error);
   }

@@ -66,12 +66,7 @@ export async function POST(req: NextRequest) {
     const [existing] = await db
       .select()
       .from(memories)
-      .where(
-        and(
-          eq(memories.projectId, project.id),
-          eq(memories.key, def.key),
-        ),
-      )
+      .where(and(eq(memories.projectId, project.id), eq(memories.key, def.key)))
       .limit(1);
 
     if (existing) {

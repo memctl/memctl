@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, requireOrgMembership, checkProjectAccess, jsonError } from "@/lib/api-middleware";
+import {
+  authenticateRequest,
+  requireOrgMembership,
+  checkProjectAccess,
+  jsonError,
+} from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, organizations, projects } from "@memctl/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
@@ -39,7 +44,10 @@ export async function GET(req: NextRequest) {
   const slugB = searchParams.get("project_b");
 
   if (!slugA || !slugB) {
-    return jsonError("Both project_a and project_b query parameters are required", 400);
+    return jsonError(
+      "Both project_a and project_b query parameters are required",
+      400,
+    );
   }
 
   if (slugA === slugB) {
@@ -73,13 +81,25 @@ export async function GET(req: NextRequest) {
   // Load non-archived memories from each project
   const [memoriesA, memoriesB] = await Promise.all([
     db
-      .select({ key: memories.key, content: memories.content, priority: memories.priority })
+      .select({
+        key: memories.key,
+        content: memories.content,
+        priority: memories.priority,
+      })
       .from(memories)
-      .where(and(eq(memories.projectId, projectA.id), isNull(memories.archivedAt))),
+      .where(
+        and(eq(memories.projectId, projectA.id), isNull(memories.archivedAt)),
+      ),
     db
-      .select({ key: memories.key, content: memories.content, priority: memories.priority })
+      .select({
+        key: memories.key,
+        content: memories.content,
+        priority: memories.priority,
+      })
       .from(memories)
-      .where(and(eq(memories.projectId, projectB.id), isNull(memories.archivedAt))),
+      .where(
+        and(eq(memories.projectId, projectB.id), isNull(memories.archivedAt)),
+      ),
   ]);
 
   const mapA = new Map(memoriesA.map((m) => [m.key, m]));

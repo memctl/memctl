@@ -37,11 +37,11 @@ curl -X POST https://memctl.com/api/v1/orgs \
 
 ## Roles
 
-| Role | Permissions |
-|------|------------|
-| **owner** | Full access. Manage billing, members, all projects. |
-| **admin** | Manage members and all projects. Cannot change billing. |
-| **member** | Access only assigned projects. |
+| Role       | Permissions                                             |
+| ---------- | ------------------------------------------------------- |
+| **owner**  | Full access. Manage billing, members, all projects.     |
+| **admin**  | Manage members and all projects. Cannot change billing. |
+| **member** | Access only assigned projects.                          |
 
 Owners and admins can access all projects. Members must be explicitly assigned to projects.
 
@@ -68,14 +68,14 @@ curl -X POST https://memctl.com/api/v1/projects \
 
 Defined in `packages/shared/src/constants.ts` (`PLANS` and `EXTRA_SEAT_PRICE`).
 
-| Plan | Price | Projects | Members (included) | Extra seat | Memory/Project | Memory/Org | Rate/min |
-|------|-------|----------|-------------------|-----------|---------------|------------|----------|
-| Free | $0 | 3 | 1 | N/A | 200 | 500 | 60 |
-| Lite | $5/mo | 10 | 3 | +$8/mo | 1,000 | 10,000 | 300 |
-| Pro | $20/mo | 25 | 10 | +$8/mo | 5,000 | 100,000 | 1,000 |
-| Business | $59/mo | 100 | 30 | +$8/mo | 10,000 | 500,000 | 3,000 |
-| Scale | $149/mo | 500 | 100 | +$8/mo | 25,000 | 2,000,000 | 10,000 |
-| Enterprise | Custom | Unlimited | Unlimited | Included | Unlimited | Unlimited | Unlimited |
+| Plan       | Price   | Projects  | Members (included) | Extra seat | Memory/Project | Memory/Org | Rate/min  |
+| ---------- | ------- | --------- | ------------------ | ---------- | -------------- | ---------- | --------- |
+| Free       | $0      | 3         | 1                  | N/A        | 200            | 500        | 60        |
+| Lite       | $5/mo   | 10        | 3                  | +$8/mo     | 1,000          | 10,000     | 300       |
+| Pro        | $20/mo  | 25        | 10                 | +$8/mo     | 5,000          | 100,000    | 1,000     |
+| Business   | $59/mo  | 100       | 30                 | +$8/mo     | 10,000         | 500,000    | 3,000     |
+| Scale      | $149/mo | 500       | 100                | +$8/mo     | 25,000         | 2,000,000  | 10,000    |
+| Enterprise | Custom  | Unlimited | Unlimited          | Included   | Unlimited      | Unlimited  | Unlimited |
 
 All plans have unlimited API calls/mo. Rate limits are per-minute sliding window.
 

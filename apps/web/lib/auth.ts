@@ -5,7 +5,12 @@ import { getDb } from "./db";
 import { isValidAdminEmail, sendEmail } from "./email";
 import { AdminMagicLinkEmail } from "@/emails/admin-magic-link";
 import { WelcomeEmail } from "@/emails/welcome";
-import { users, organizations, organizationMembers, orgInvitations } from "@memctl/db/schema";
+import {
+  users,
+  organizations,
+  organizationMembers,
+  orgInvitations,
+} from "@memctl/db/schema";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { getOrgCreationLimits, isSelfHosted } from "@/lib/plans";
 
@@ -28,7 +33,10 @@ function isDevAuthBypassEnabled() {
     process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true";
 
   // Allow bypass in development OR self-hosted mode
-  return bypassRequested && (process.env.NODE_ENV === "development" || isSelfHosted());
+  return (
+    bypassRequested &&
+    (process.env.NODE_ENV === "development" || isSelfHosted())
+  );
 }
 
 function getDevBypassConfig() {
@@ -239,7 +247,10 @@ function createAuth() {
             throw new Error(validation.error);
           }
 
-          if (process.env.NODE_ENV === "development" && !process.env.RESEND_API_KEY) {
+          if (
+            process.env.NODE_ENV === "development" &&
+            !process.env.RESEND_API_KEY
+          ) {
             console.log("\n[DEV MAGIC LINK] ------------------------------");
             console.log(`   Email: ${email}`);
             console.log(`   URL:   ${url}`);

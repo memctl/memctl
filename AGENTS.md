@@ -53,6 +53,7 @@ pnpm install && pnpm dev
 ```
 
 Key env vars for dev:
+
 - `DEV_AUTH_BYPASS=true` + `NEXT_PUBLIC_DEV_AUTH_BYPASS=true` skips GitHub OAuth
 - `DEV_AUTH_BYPASS_ORG_SLUG=dev-org` sets the dev org
 - `TURSO_DATABASE_URL=http://localhost:8080` for local libSQL
@@ -65,6 +66,7 @@ Docker Compose runs libSQL on port 8080 and the web app on port 3000 with hot re
 Set `SELF_HOSTED=true` and `NEXT_PUBLIC_SELF_HOSTED=true`. This disables all billing/Stripe logic and unlocks plan limits. No Stripe keys needed.
 
 Self-hosted deployments use the same Docker production image but skip payment walls. When adding billing-gated features, always check self-hosted mode:
+
 ```typescript
 const isSelfHosted = process.env.SELF_HOSTED === "true";
 // or on client: process.env.NEXT_PUBLIC_SELF_HOSTED === "true"
@@ -79,6 +81,7 @@ docker build --build-arg NEXT_PUBLIC_APP_URL=https://your-domain.com -t memctl-w
 ```
 
 Required env vars for production:
+
 - `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` (Turso cloud)
 - `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET`
 - `BETTER_AUTH_SECRET` + `BETTER_AUTH_URL`
@@ -88,6 +91,7 @@ Required env vars for production:
 ### Environment Checklist
 
 When adding features, verify:
+
 1. Works in dev with `DEV_AUTH_BYPASS=true` (no OAuth, no Stripe)
 2. Works in self-hosted mode (no billing, all limits unlocked)
 3. Works in production (real auth, real Stripe, Turso cloud)

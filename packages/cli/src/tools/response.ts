@@ -1,5 +1,3 @@
-import type { ApiClient } from "../api-client.js";
-
 export type Freshness = "fresh" | "cached" | "stale" | "offline";
 
 export function textResponse(text: string, freshness?: Freshness) {
@@ -9,12 +7,20 @@ export function textResponse(text: string, freshness?: Freshness) {
       const parsed = JSON.parse(text);
       if (typeof parsed === "object" && parsed !== null) {
         const withMeta = { ...parsed, _meta: { freshness } };
-        return { content: [{ type: "text" as const, text: JSON.stringify(withMeta, null, 2) }] };
+        return {
+          content: [
+            { type: "text" as const, text: JSON.stringify(withMeta, null, 2) },
+          ],
+        };
       }
     } catch {
       // Not JSON, append as suffix
     }
-    return { content: [{ type: "text" as const, text: `${text}\n[freshness: ${freshness}]` }] };
+    return {
+      content: [
+        { type: "text" as const, text: `${text}\n[freshness: ${freshness}]` },
+      ],
+    };
   }
   return { content: [{ type: "text" as const, text }] };
 }

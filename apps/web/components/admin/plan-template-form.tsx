@@ -57,9 +57,15 @@ export function PlanTemplateForm({
 
   const [name, setName] = useState(template?.name ?? "");
   const [description, setDescription] = useState(template?.description ?? "");
-  const [basePlanId, setBasePlanId] = useState(template?.basePlanId ?? "enterprise");
-  const [projectLimit, setProjectLimit] = useState(String(template?.projectLimit ?? 100));
-  const [memberLimit, setMemberLimit] = useState(String(template?.memberLimit ?? 50));
+  const [basePlanId, setBasePlanId] = useState(
+    template?.basePlanId ?? "enterprise",
+  );
+  const [projectLimit, setProjectLimit] = useState(
+    String(template?.projectLimit ?? 100),
+  );
+  const [memberLimit, setMemberLimit] = useState(
+    String(template?.memberLimit ?? 50),
+  );
   const [memoryLimitPerProject, setMemoryLimitPerProject] = useState(
     String(template?.memoryLimitPerProject ?? 10000),
   );
@@ -70,7 +76,9 @@ export function PlanTemplateForm({
     String(template?.apiRatePerMinute ?? 3000),
   );
   const [priceDollars, setPriceDollars] = useState(
-    template?.stripePriceInCents ? String(template.stripePriceInCents / 100) : "",
+    template?.stripePriceInCents
+      ? String(template.stripePriceInCents / 100)
+      : "",
   );
 
   async function handleSubmit() {
@@ -85,7 +93,9 @@ export function PlanTemplateForm({
         memoryLimitPerProject: Number(memoryLimitPerProject),
         memoryLimitOrg: Number(memoryLimitOrg),
         apiRatePerMinute: Number(apiRatePerMinute),
-        stripePriceInCents: priceDollars ? Math.round(Number(priceDollars) * 100) : null,
+        stripePriceInCents: priceDollars
+          ? Math.round(Number(priceDollars) * 100)
+          : null,
       };
 
       const url = template
@@ -122,7 +132,7 @@ export function PlanTemplateForm({
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+            <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
               Name
             </label>
             <Input
@@ -133,19 +143,19 @@ export function PlanTemplateForm({
             />
           </div>
           <div>
-            <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+            <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
               Description
             </label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="font-mono resize-none"
+              className="resize-none font-mono"
               placeholder="Optional description"
             />
           </div>
           <div>
-            <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+            <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
               Base plan
             </label>
             <Select value={basePlanId} onValueChange={setBasePlanId}>
@@ -163,7 +173,7 @@ export function PlanTemplateForm({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                 Project limit
               </label>
               <Input
@@ -175,7 +185,7 @@ export function PlanTemplateForm({
               />
             </div>
             <div>
-              <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                 Member limit
               </label>
               <Input
@@ -187,7 +197,7 @@ export function PlanTemplateForm({
               />
             </div>
             <div>
-              <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                 Memory / project
               </label>
               <Input
@@ -199,7 +209,7 @@ export function PlanTemplateForm({
               />
             </div>
             <div>
-              <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                 Memory org-wide
               </label>
               <Input
@@ -211,7 +221,7 @@ export function PlanTemplateForm({
               />
             </div>
             <div>
-              <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                 API rate / min
               </label>
               <Input
@@ -223,7 +233,7 @@ export function PlanTemplateForm({
               />
             </div>
             <div>
-              <label className="block mb-1 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+              <label className="mb-1 block font-mono text-[10px] text-[var(--landing-text-tertiary)]">
                 Price ($/mo)
               </label>
               <Input
@@ -247,11 +257,17 @@ export function PlanTemplateForm({
           </Button>
           <Button
             variant="outline"
-            className="font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10"
+            className="border-[#F97316]/30 font-mono text-[#F97316] hover:bg-[#F97316]/10"
             onClick={handleSubmit}
             disabled={loading || !name.trim()}
           >
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : template ? "Save" : "Create"}
+            {loading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : template ? (
+              "Save"
+            ) : (
+              "Create"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

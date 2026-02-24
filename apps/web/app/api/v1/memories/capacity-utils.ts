@@ -1,5 +1,11 @@
 import { db } from "@/lib/db";
-import { memories, organizations, organizationMembers, projectMembers, projects } from "@memctl/db/schema";
+import {
+  memories,
+  organizations,
+  organizationMembers,
+  projectMembers,
+  projects,
+} from "@memctl/db/schema";
 import { getOrgLimits, isUnlimited } from "@/lib/plans";
 import { and, count, eq, inArray, isNull } from "drizzle-orm";
 
@@ -97,7 +103,10 @@ export async function getOrgMemoryCapacity(
       .from(memories)
       .where(
         and(
-          inArray(memories.projectId, orgProjects.map((p) => p.id)),
+          inArray(
+            memories.projectId,
+            orgProjects.map((p) => p.id),
+          ),
           isNull(memories.archivedAt),
         ),
       );
@@ -111,10 +120,7 @@ export async function getOrgMemoryCapacity(
       .select({ value: count() })
       .from(memories)
       .where(
-        and(
-          eq(memories.projectId, projectId),
-          isNull(memories.archivedAt),
-        ),
+        and(eq(memories.projectId, projectId), isNull(memories.archivedAt)),
       );
     projectUsed = projectCount?.value ?? 0;
   }
@@ -126,7 +132,8 @@ export async function getOrgMemoryCapacity(
   const isSoftFull = !isUnlimited(softLimit) && projectUsed >= softLimit;
 
   // Approaching soft limit (>80%)
-  const isApproaching = !isUnlimited(softLimit) && projectUsed >= softLimit * 0.8;
+  const isApproaching =
+    !isUnlimited(softLimit) && projectUsed >= softLimit * 0.8;
 
   return {
     used: projectId ? projectUsed : orgUsed,
@@ -137,8 +144,9 @@ export async function getOrgMemoryCapacity(
     isFull: isHardFull,
     isSoftFull,
     isApproaching,
-    usageRatio: projectId && !isUnlimited(softLimit) && softLimit > 0
-      ? Math.min(1, projectUsed / softLimit)
-      : null,
+    usageRatio:
+      projectId && !isUnlimited(softLimit) && softLimit > 0
+        ? Math.min(1, projectUsed / softLimit)
+        : null,
   };
 }

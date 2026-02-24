@@ -32,19 +32,31 @@ export default async function HealthPage({
 
   const { orgSlug } = await params;
 
-  const [org] = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
   if (!org) redirect("/");
 
   const [member] = await db
     .select()
     .from(organizationMembers)
-    .where(and(eq(organizationMembers.orgId, org.id), eq(organizationMembers.userId, session.user.id)))
+    .where(
+      and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, session.user.id),
+      ),
+    )
     .limit(1);
   if (!member) redirect("/");
 
   const currentPlan = PLANS[org.planId as PlanId] ?? PLANS.free;
   const limits = getOrgLimits(org);
-  const projectList = await db.select().from(projects).where(eq(projects.orgId, org.id));
+  const projectList = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.orgId, org.id));
 
   // Aggregate stats across all projects
   let totalMemories = 0;
@@ -72,34 +84,64 @@ export default async function HealthPage({
   const tagCounts: Record<string, number> = {};
 
   for (const project of projectList) {
-    const [memCount] = await db.select({ value: count() }).from(memories).where(eq(memories.projectId, project.id));
+    const [memCount] = await db
+      .select({ value: count() })
+      .from(memories)
+      .where(eq(memories.projectId, project.id));
     const mc = memCount?.value ?? 0;
     totalMemories += mc;
 
-    const [pinCount] = await db.select({ value: count() }).from(memories).where(and(eq(memories.projectId, project.id), isNotNull(memories.pinnedAt)));
+    const [pinCount] = await db
+      .select({ value: count() })
+      .from(memories)
+      .where(
+        and(eq(memories.projectId, project.id), isNotNull(memories.pinnedAt)),
+      );
     const pc = pinCount?.value ?? 0;
     totalPinned += pc;
 
-    const [archCount] = await db.select({ value: count() }).from(memories).where(and(eq(memories.projectId, project.id), isNotNull(memories.archivedAt)));
+    const [archCount] = await db
+      .select({ value: count() })
+      .from(memories)
+      .where(
+        and(eq(memories.projectId, project.id), isNotNull(memories.archivedAt)),
+      );
     const ac = archCount?.value ?? 0;
     totalArchived += ac;
 
-    const [expCount] = await db.select({ value: count() }).from(memories).where(and(eq(memories.projectId, project.id), isNotNull(memories.expiresAt)));
+    const [expCount] = await db
+      .select({ value: count() })
+      .from(memories)
+      .where(
+        and(eq(memories.projectId, project.id), isNotNull(memories.expiresAt)),
+      );
     totalExpiring += expCount?.value ?? 0;
 
-    const [sessCount] = await db.select({ value: count() }).from(sessionLogs).where(eq(sessionLogs.projectId, project.id));
+    const [sessCount] = await db
+      .select({ value: count() })
+      .from(sessionLogs)
+      .where(eq(sessionLogs.projectId, project.id));
     const sc = sessCount?.value ?? 0;
     totalSessions += sc;
 
-    const [actCount] = await db.select({ value: count() }).from(activityLogs).where(eq(activityLogs.projectId, project.id));
+    const [actCount] = await db
+      .select({ value: count() })
+      .from(activityLogs)
+      .where(eq(activityLogs.projectId, project.id));
     const atc = actCount?.value ?? 0;
     totalActivities += atc;
 
-    const [lockCount] = await db.select({ value: count() }).from(memoryLocks).where(eq(memoryLocks.projectId, project.id));
+    const [lockCount] = await db
+      .select({ value: count() })
+      .from(memoryLocks)
+      .where(eq(memoryLocks.projectId, project.id));
     totalActiveLocks += lockCount?.value ?? 0;
 
     // Per-project priority stats
-    const allMems = await db.select({ priority: memories.priority, tags: memories.tags }).from(memories).where(eq(memories.projectId, project.id));
+    const allMems = await db
+      .select({ priority: memories.priority, tags: memories.tags })
+      .from(memories)
+      .where(eq(memories.projectId, project.id));
     for (const m of allMems) {
       const p = m.priority ?? 0;
       if (p >= 70) priorityBuckets.high++;
@@ -115,7 +157,9 @@ export default async function HealthPage({
               tagCounts[t] = (tagCounts[t] ?? 0) + 1;
             }
           }
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
     }
 
@@ -137,19 +181,41 @@ export default async function HealthPage({
     .map(([tag, count]) => ({ tag, count }));
 
   const memoryLimit = limits.memoryLimitOrg;
-  const usagePercent = isUnlimited(memoryLimit) ? 0 : Math.round((totalMemories / memoryLimit) * 100);
+  const usagePercent = isUnlimited(memoryLimit)
+    ? 0
+    : Math.round((totalMemories / memoryLimit) * 100);
 
   const checks = [
     { name: "Database", status: "pass" as const, detail: "Connected" },
-    { name: "Memory Usage", status: usagePercent >= 95 ? "fail" as const : usagePercent >= 80 ? "warn" as const : "pass" as const, detail: `${usagePercent}% (${totalMemories}/${isUnlimited(memoryLimit) ? "∞" : memoryLimit})` },
-    { name: "Active Locks", status: totalActiveLocks > 10 ? "warn" as const : "pass" as const, detail: `${totalActiveLocks} lock(s)` },
-    { name: "Projects", status: "pass" as const, detail: `${projectList.length} project(s)` },
+    {
+      name: "Memory Usage",
+      status:
+        usagePercent >= 95
+          ? ("fail" as const)
+          : usagePercent >= 80
+            ? ("warn" as const)
+            : ("pass" as const),
+      detail: `${usagePercent}% (${totalMemories}/${isUnlimited(memoryLimit) ? "∞" : memoryLimit})`,
+    },
+    {
+      name: "Active Locks",
+      status: totalActiveLocks > 10 ? ("warn" as const) : ("pass" as const),
+      detail: `${totalActiveLocks} lock(s)`,
+    },
+    {
+      name: "Projects",
+      status: "pass" as const,
+      detail: `${projectList.length} project(s)`,
+    },
     { name: "Plan", status: "pass" as const, detail: currentPlan.name },
   ];
 
   return (
     <div>
-      <PageHeader title="System Health" description="Organization-wide diagnostics and memory analytics" />
+      <PageHeader
+        title="System Health"
+        description="Organization-wide diagnostics and memory analytics"
+      />
 
       <HealthDashboard
         checks={checks}

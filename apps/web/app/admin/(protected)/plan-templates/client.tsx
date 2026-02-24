@@ -33,11 +33,7 @@ interface Template {
   usageCount: number;
 }
 
-export function PlanTemplatesClient({
-  templates,
-}: {
-  templates: Template[];
-}) {
+export function PlanTemplatesClient({ templates }: { templates: Template[] }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editTemplate, setEditTemplate] = useState<Template | null>(null);
@@ -74,8 +70,8 @@ export function PlanTemplatesClient({
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
           <Input
             placeholder="Search name or description..."
             value={searchQuery}
@@ -84,7 +80,7 @@ export function PlanTemplatesClient({
           />
         </div>
         <Button
-          className="font-mono bg-[#F97316] hover:bg-[#F97316]/80"
+          className="bg-[#F97316] font-mono hover:bg-[#F97316]/80"
           onClick={() => {
             setEditTemplate(null);
             setShowForm(true);
@@ -99,22 +95,22 @@ export function PlanTemplatesClient({
           <Table>
             <TableHeader>
               <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                   Name
                 </TableHead>
-                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                   Base Plan
                 </TableHead>
-                <TableHead className="hidden sm:table-cell font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell">
                   Limits
                 </TableHead>
-                <TableHead className="hidden md:table-cell font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase md:table-cell">
                   Price
                 </TableHead>
-                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                   Usage
                 </TableHead>
-                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                   Actions
                 </TableHead>
               </TableRow>
@@ -148,14 +144,15 @@ export function PlanTemplatesClient({
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[11px] capitalize text-[var(--landing-text-secondary)]">
+                      <span className="inline-flex rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[11px] text-[var(--landing-text-secondary)] capitalize">
                         {t.basePlanId}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-                      {t.projectLimit}p / {t.memberLimit}m / {t.apiRatePerMinute}rpm
+                    <TableCell className="hidden font-mono text-[10px] text-[var(--landing-text-tertiary)] sm:table-cell">
+                      {t.projectLimit}p / {t.memberLimit}m /{" "}
+                      {t.apiRatePerMinute}rpm
                     </TableCell>
-                    <TableCell className="hidden md:table-cell font-mono text-[11px] text-[var(--landing-text-secondary)]">
+                    <TableCell className="hidden font-mono text-[11px] text-[var(--landing-text-secondary)] md:table-cell">
                       {t.stripePriceInCents
                         ? `$${(t.stripePriceInCents / 100).toLocaleString()}/mo`
                         : "N/A"}
@@ -179,7 +176,7 @@ export function PlanTemplatesClient({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="font-mono text-red-500 border-red-500/30 hover:bg-red-500/10"
+                          className="border-red-500/30 font-mono text-red-500 hover:bg-red-500/10"
                           onClick={() => handleArchive(t.id)}
                           disabled={archiving === t.id}
                         >

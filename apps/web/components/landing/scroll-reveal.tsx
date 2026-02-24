@@ -7,7 +7,12 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
-type Animation = "fade-up" | "fade-in" | "scale-up" | "slide-left" | "slide-right";
+type Animation =
+  | "fade-up"
+  | "fade-in"
+  | "scale-up"
+  | "slide-left"
+  | "slide-right";
 
 interface ScrollRevealProps {
   children: React.ReactNode;
@@ -38,32 +43,39 @@ export function ScrollReveal({
 }: ScrollRevealProps) {
   const container = useRef<HTMLDivElement>(null);
 
-  useGSAP(() => {
-    const el = container.current;
-    if (!el) return;
+  useGSAP(
+    () => {
+      const el = container.current;
+      if (!el) return;
 
-    gsap.set(el, FROM_VARS[animation]);
+      gsap.set(el, FROM_VARS[animation]);
 
-    gsap.to(el, {
-      autoAlpha: 1,
-      x: 0,
-      y: 0,
-      scale: 1,
-      duration: duration / 1000,
-      delay: delay / 1000,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: el,
-        start: "top 88%",
-        toggleActions: once
-          ? "play none none none"
-          : "play reverse play reverse",
-      },
-    });
-  }, { scope: container });
+      gsap.to(el, {
+        autoAlpha: 1,
+        x: 0,
+        y: 0,
+        scale: 1,
+        duration: duration / 1000,
+        delay: delay / 1000,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: el,
+          start: "top 88%",
+          toggleActions: once
+            ? "play none none none"
+            : "play reverse play reverse",
+        },
+      });
+    },
+    { scope: container },
+  );
 
   return (
-    <div ref={container} className={className} style={{ visibility: "hidden", ...style }}>
+    <div
+      ref={container}
+      className={className}
+      style={{ visibility: "hidden", ...style }}
+    >
       {children}
     </div>
   );
@@ -97,7 +109,11 @@ export function StaggerGroup({
 
 /* ---- Scroll-linked parallax (scrub-based, not trigger-based) ---- */
 
-type ParallaxEffect = "scale-in" | "parallax-up" | "parallax-down" | "fade-scale";
+type ParallaxEffect =
+  | "scale-in"
+  | "parallax-up"
+  | "parallax-down"
+  | "fade-scale";
 
 interface ScrollParallaxProps {
   children: React.ReactNode;
@@ -116,43 +132,46 @@ export function ScrollParallax({
 }: ScrollParallaxProps) {
   const container = useRef<HTMLDivElement>(null);
 
-  useGSAP(() => {
-    const el = container.current;
-    if (!el) return;
+  useGSAP(
+    () => {
+      const el = container.current;
+      if (!el) return;
 
-    let fromVars: gsap.TweenVars = {};
-    let toVars: gsap.TweenVars = {};
+      let fromVars: gsap.TweenVars = {};
+      let toVars: gsap.TweenVars = {};
 
-    switch (effect) {
-      case "scale-in":
-        fromVars = { scale: 1 - 0.15 * intensity, autoAlpha: 0.3 };
-        toVars = { scale: 1, autoAlpha: 1 };
-        break;
-      case "parallax-up":
-        fromVars = { y: 60 * intensity };
-        toVars = { y: -60 * intensity };
-        break;
-      case "parallax-down":
-        fromVars = { y: -60 * intensity };
-        toVars = { y: 60 * intensity };
-        break;
-      case "fade-scale":
-        fromVars = { scale: 1 - 0.08 * intensity, autoAlpha: 0.4 };
-        toVars = { scale: 1, autoAlpha: 1 };
-        break;
-    }
+      switch (effect) {
+        case "scale-in":
+          fromVars = { scale: 1 - 0.15 * intensity, autoAlpha: 0.3 };
+          toVars = { scale: 1, autoAlpha: 1 };
+          break;
+        case "parallax-up":
+          fromVars = { y: 60 * intensity };
+          toVars = { y: -60 * intensity };
+          break;
+        case "parallax-down":
+          fromVars = { y: -60 * intensity };
+          toVars = { y: 60 * intensity };
+          break;
+        case "fade-scale":
+          fromVars = { scale: 1 - 0.08 * intensity, autoAlpha: 0.4 };
+          toVars = { scale: 1, autoAlpha: 1 };
+          break;
+      }
 
-    gsap.fromTo(el, fromVars, {
-      ...toVars,
-      ease: "none",
-      scrollTrigger: {
-        trigger: el,
-        start: "top bottom",
-        end: "top center",
-        scrub: true,
-      },
-    });
-  }, { scope: container });
+      gsap.fromTo(el, fromVars, {
+        ...toVars,
+        ease: "none",
+        scrollTrigger: {
+          trigger: el,
+          start: "top bottom",
+          end: "top center",
+          scrub: true,
+        },
+      });
+    },
+    { scope: container },
+  );
 
   return (
     <div ref={container} className={className} style={style}>

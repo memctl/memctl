@@ -20,7 +20,11 @@ interface DeleteEntryButtonProps {
   onDeleted?: () => void;
 }
 
-export function DeleteEntryButton({ version, title, onDeleted }: DeleteEntryButtonProps) {
+export function DeleteEntryButton({
+  version,
+  title,
+  onDeleted,
+}: DeleteEntryButtonProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -50,7 +54,11 @@ export function DeleteEntryButton({ version, title, onDeleted }: DeleteEntryButt
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-auto p-0 text-xs font-medium text-red-500 hover:text-red-400 hover:bg-transparent">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto p-0 text-xs font-medium text-red-500 hover:bg-transparent hover:text-red-400"
+        >
           Delete
         </Button>
       </DialogTrigger>

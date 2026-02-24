@@ -115,7 +115,10 @@ function getGrouping(period: Period): "daily" | "weekly" | "monthly" {
   }
 }
 
-function getBucketKey(ts: number, grouping: "daily" | "weekly" | "monthly"): string {
+function getBucketKey(
+  ts: number,
+  grouping: "daily" | "weekly" | "monthly",
+): string {
   const d = new Date(ts);
   if (grouping === "monthly") {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -130,7 +133,10 @@ function getBucketKey(ts: number, grouping: "daily" | "weekly" | "monthly"): str
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function formatBucketLabel(key: string, grouping: "daily" | "weekly" | "monthly"): string {
+function formatBucketLabel(
+  key: string,
+  grouping: "daily" | "weekly" | "monthly",
+): string {
   if (grouping === "monthly") {
     const [year, month] = key.split("-");
     const d = new Date(Number(year), Number(month) - 1);
@@ -141,10 +147,14 @@ function formatBucketLabel(key: string, grouping: "daily" | "weekly" | "monthly"
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function generateBuckets(startMs: number, grouping: "daily" | "weekly" | "monthly"): string[] {
+function generateBuckets(
+  startMs: number,
+  grouping: "daily" | "weekly" | "monthly",
+): string[] {
   const buckets: string[] = [];
   const now = new Date();
-  const start = startMs === 0 ? new Date(now.getFullYear() - 2, 0, 1) : new Date(startMs);
+  const start =
+    startMs === 0 ? new Date(now.getFullYear() - 2, 0, 1) : new Date(startMs);
 
   if (grouping === "monthly") {
     const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
@@ -162,7 +172,11 @@ function generateBuckets(startMs: number, grouping: "daily" | "weekly" | "monthl
       cursor.setDate(cursor.getDate() + 7);
     }
   } else {
-    const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const cursor = new Date(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate(),
+    );
     while (cursor <= now) {
       buckets.push(getBucketKey(cursor.getTime(), grouping));
       cursor.setDate(cursor.getDate() + 1);
@@ -178,7 +192,8 @@ function formatDollars(cents: number): string {
 
 function formatDollarsCompact(cents: number): string {
   const dollars = cents / 100;
-  if (dollars >= 1000) return `$${(dollars / 1000).toFixed(dollars % 1000 === 0 ? 0 : 1)}K`;
+  if (dollars >= 1000)
+    return `$${(dollars / 1000).toFixed(dollars % 1000 === 0 ? 0 : 1)}K`;
   return `$${dollars.toFixed(0)}`;
 }
 
@@ -285,7 +300,8 @@ export function OverviewCharts({
           fill:
             REFERRER_COLORS[r.source.toLowerCase()] ??
             FALLBACK_COLORS[i % FALLBACK_COLORS.length],
-          pct: referrerTotal > 0 ? Math.round((r.count / referrerTotal) * 100) : 0,
+          pct:
+            referrerTotal > 0 ? Math.round((r.count / referrerTotal) * 100) : 0,
         })),
     [referrerData, referrerTotal],
   );
@@ -294,11 +310,11 @@ export function OverviewCharts({
     <div className="space-y-2">
       {/* ── Stats bento ── */}
       {!selfHosted ? (
-        <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
           {/* MRR hero: 2 cols, 2 rows */}
-          <div className="col-span-2 row-span-2 dash-card relative overflow-hidden border-l-2 border-l-[#F97316] p-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#F97316]/[0.04] to-transparent pointer-events-none" />
-            <span className="relative block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          <div className="dash-card relative col-span-2 row-span-2 overflow-hidden border-l-2 border-l-[#F97316] p-5">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#F97316]/[0.04] to-transparent" />
+            <span className="relative block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
               Monthly Recurring Revenue
             </span>
             <span className="relative mt-2 block text-4xl font-bold tracking-tight text-[var(--landing-text)]">
@@ -306,7 +322,7 @@ export function OverviewCharts({
             </span>
             <div className="relative mt-3 flex items-center gap-4">
               <div>
-                <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+                <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
                   Paid Orgs
                 </span>
                 <span className="block text-sm font-semibold text-[var(--landing-text)]">
@@ -315,7 +331,7 @@ export function OverviewCharts({
               </div>
               <div className="h-6 w-px bg-[var(--landing-border)]" />
               <div>
-                <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+                <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
                   Active Trials
                 </span>
                 <span className="block text-sm font-semibold text-[var(--landing-text)]">
@@ -330,19 +346,22 @@ export function OverviewCharts({
           <StatCard label="Memories" value={stats.memories.toLocaleString()} />
         </div>
       ) : (
-        <div className="grid gap-2 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
           <StatCard label="Users" value={stats.users.toLocaleString()} />
           <StatCard label="Organizations" value={stats.orgs.toLocaleString()} />
           <StatCard label="Projects" value={stats.projects.toLocaleString()} />
           <StatCard label="Memories" value={stats.memories.toLocaleString()} />
-          <StatCard label="Active Trials" value={stats.activeTrials.toLocaleString()} />
+          <StatCard
+            label="Active Trials"
+            value={stats.activeTrials.toLocaleString()}
+          />
         </div>
       )}
 
       {/* ── Signups: full width with embedded period selector ── */}
       <div className="dash-card min-w-0 overflow-hidden p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
             Signups
           </span>
           <div className="flex items-center gap-1">
@@ -369,7 +388,10 @@ export function OverviewCharts({
                 <stop offset="100%" stopColor="#F97316" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--landing-border)" />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="var(--landing-border)"
+            />
             <XAxis
               dataKey="label"
               tick={{ fontSize: 9, fill: "var(--landing-text-tertiary)" }}
@@ -399,11 +421,14 @@ export function OverviewCharts({
       {!selfHosted ? (
         <div className="grid gap-2 lg:grid-cols-3">
           {/* Revenue: 2 cols */}
-          <div className="lg:col-span-2 dash-card min-w-0 overflow-hidden p-4">
-            <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          <div className="dash-card min-w-0 overflow-hidden p-4 lg:col-span-2">
+            <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
               Revenue (MRR)
             </span>
-            <ChartContainer config={revenueChartConfig} className="h-[200px] w-full">
+            <ChartContainer
+              config={revenueChartConfig}
+              className="h-[200px] w-full"
+            >
               <AreaChart data={revenueData}>
                 <defs>
                   <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
@@ -411,7 +436,10 @@ export function OverviewCharts({
                     <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--landing-border)" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--landing-border)"
+                />
                 <XAxis
                   dataKey="label"
                   tick={{ fontSize: 9, fill: "var(--landing-text-tertiary)" }}
@@ -445,9 +473,9 @@ export function OverviewCharts({
           </div>
 
           {/* Plan distribution: 1 col, spans 2 rows */}
-          <div className="lg:col-span-1 lg:row-span-2 flex flex-col">
+          <div className="flex flex-col lg:col-span-1 lg:row-span-2">
             <div className="dash-card flex flex-1 flex-col p-4">
-              <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+              <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
                 Plans
               </span>
               {planDistribution.length === 0 ? (
@@ -485,7 +513,7 @@ export function OverviewCharts({
                           className="h-2 w-2 shrink-0 rounded-sm"
                           style={{ backgroundColor: entry.fill }}
                         />
-                        <span className="flex-1 font-mono text-[10px] capitalize text-[var(--landing-text-secondary)]">
+                        <span className="flex-1 font-mono text-[10px] text-[var(--landing-text-secondary)] capitalize">
                           {entry.name}
                         </span>
                         <span className="font-mono text-[10px] font-medium text-[var(--landing-text)]">
@@ -500,8 +528,8 @@ export function OverviewCharts({
           </div>
 
           {/* Referrer: 2 cols, horizontal layout */}
-          <div className="lg:col-span-2 dash-card min-w-0 overflow-hidden p-4">
-            <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          <div className="dash-card min-w-0 overflow-hidden p-4 lg:col-span-2">
+            <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
               Referrers
             </span>
             {referrerEntries.length === 0 ? (
@@ -539,7 +567,7 @@ export function OverviewCharts({
                         className="h-2 w-2 shrink-0 rounded-sm"
                         style={{ backgroundColor: entry.fill }}
                       />
-                      <span className="flex-1 font-mono text-[10px] capitalize text-[var(--landing-text-secondary)]">
+                      <span className="flex-1 font-mono text-[10px] text-[var(--landing-text-secondary)] capitalize">
                         {entry.name}
                       </span>
                       <span className="font-mono text-[10px] font-medium text-[var(--landing-text)]">
@@ -562,8 +590,8 @@ export function OverviewCharts({
             data={planDistribution}
             empty="No organizations yet"
           />
-          <div className="lg:col-span-2 dash-card min-w-0 overflow-hidden p-4">
-            <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          <div className="dash-card min-w-0 overflow-hidden p-4 lg:col-span-2">
+            <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
               Referrers
             </span>
             {referrerEntries.length === 0 ? (
@@ -601,7 +629,7 @@ export function OverviewCharts({
                         className="h-2 w-2 shrink-0 rounded-sm"
                         style={{ backgroundColor: entry.fill }}
                       />
-                      <span className="flex-1 font-mono text-[10px] capitalize text-[var(--landing-text-secondary)]">
+                      <span className="flex-1 font-mono text-[10px] text-[var(--landing-text-secondary)] capitalize">
                         {entry.name}
                       </span>
                       <span className="font-mono text-[10px] font-medium text-[var(--landing-text)]">
@@ -625,7 +653,7 @@ export function OverviewCharts({
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="dash-card p-3">
-      <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+      <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
         {label}
       </span>
       <span className="block text-lg font-semibold text-[var(--landing-text)]">
@@ -646,12 +674,14 @@ function DonutCard({
 }) {
   return (
     <div className="dash-card p-4">
-      <span className="mb-3 block font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+      <span className="mb-3 block font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
         {title}
       </span>
       {data.length === 0 ? (
         <div className="flex h-[160px] items-center justify-center">
-          <p className="font-mono text-xs text-[var(--landing-text-tertiary)]">{empty}</p>
+          <p className="font-mono text-xs text-[var(--landing-text-tertiary)]">
+            {empty}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3">
@@ -682,7 +712,7 @@ function DonutCard({
                   className="h-2 w-2 shrink-0 rounded-sm"
                   style={{ backgroundColor: entry.fill }}
                 />
-                <span className="flex-1 font-mono text-[10px] capitalize text-[var(--landing-text-secondary)]">
+                <span className="flex-1 font-mono text-[10px] text-[var(--landing-text-secondary)] capitalize">
                   {entry.name}
                 </span>
                 <span className="font-mono text-[10px] font-medium text-[var(--landing-text)]">

@@ -12,14 +12,14 @@ Use this as a reference model for Stripe billing in memctl.
 
 Prices defined in `apps/web/lib/stripe.ts` (`STRIPE_PLANS`) and `packages/shared/src/constants.ts` (`PLANS`, `EXTRA_SEAT_PRICE`).
 
-| Plan | Monthly Price | Included Seats | Extra Seat | Buyer Types | Notes |
-|---|---:|---:|---:|---|---|
-| Free | $0 | 1 | N/A | Individual | Solo tier |
-| Lite | $5 | 3 | +$8/mo | Individual, Business | Entry plan |
-| Pro | $20 | 10 | +$8/mo | Individual, Business | Team starter |
-| Business | $59 | 30 | +$8/mo | Business (default), Individual (optional) | Higher limits + invoices |
-| Scale | $149 | 100 | +$8/mo | Business | Highest self-serve tier |
-| Enterprise | Custom | Unlimited | Included | Business | Sales-led contract |
+| Plan       | Monthly Price | Included Seats | Extra Seat | Buyer Types                               | Notes                    |
+| ---------- | ------------: | -------------: | ---------: | ----------------------------------------- | ------------------------ |
+| Free       |            $0 |              1 |        N/A | Individual                                | Solo tier                |
+| Lite       |            $5 |              3 |     +$8/mo | Individual, Business                      | Entry plan               |
+| Pro        |           $20 |             10 |     +$8/mo | Individual, Business                      | Team starter             |
+| Business   |           $59 |             30 |     +$8/mo | Business (default), Individual (optional) | Higher limits + invoices |
+| Scale      |          $149 |            100 |     +$8/mo | Business                                  | Highest self-serve tier  |
+| Enterprise |        Custom |      Unlimited |   Included | Business                                  | Sales-led contract       |
 
 The extra seat price (`$8/mo`) is defined as `EXTRA_SEAT_PRICE` in `packages/shared/src/constants.ts`.
 
@@ -79,6 +79,7 @@ Practical notes:
 For the actual enforced limits per plan (memory counts, API calls, rate limits), see the [Organization & Teams](./organization-and-teams.md#plan-limits) documentation.
 
 Key source files:
+
 - `packages/shared/src/constants.ts` -- `PLANS` (limits per plan), `EXTRA_SEAT_PRICE` ($8/mo per extra member)
 - `apps/web/lib/stripe.ts` -- `STRIPE_PLANS` (Stripe price IDs and display prices)
 - `apps/web/lib/plans.ts` -- `getEffectivePlanId()`, `getOrgLimits()`, trial/expiry helpers
@@ -86,6 +87,7 @@ Key source files:
 ## Enterprise billing
 
 Admin-created enterprise subscriptions use custom Stripe prices (no checkout redirect). See `apps/web/lib/stripe.ts`:
+
 - `createCustomPrice()` -- creates a one-off Stripe price for the enterprise deal
 - `createAdminSubscription()` -- attaches the price to the org's Stripe customer
 

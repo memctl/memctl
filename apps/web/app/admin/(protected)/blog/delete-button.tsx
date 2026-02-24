@@ -20,7 +20,11 @@ interface DeletePostButtonProps {
   onDeleted?: () => void;
 }
 
-export function DeletePostButton({ slug, title, onDeleted }: DeletePostButtonProps) {
+export function DeletePostButton({
+  slug,
+  title,
+  onDeleted,
+}: DeletePostButtonProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -48,7 +52,11 @@ export function DeletePostButton({ slug, title, onDeleted }: DeletePostButtonPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-auto p-0 text-xs font-medium text-red-500 hover:text-red-400 hover:bg-transparent">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto p-0 text-xs font-medium text-red-500 hover:bg-transparent hover:text-red-400"
+        >
           Delete
         </Button>
       </DialogTrigger>

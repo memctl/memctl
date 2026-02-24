@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const statusFilter = searchParams.get("status");
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "10", 10)));
+  const limit = Math.min(
+    50,
+    Math.max(1, parseInt(searchParams.get("limit") ?? "10", 10)),
+  );
   const offset = (page - 1) * limit;
 
   const { isAdmin } = await getOptionalAdmin();

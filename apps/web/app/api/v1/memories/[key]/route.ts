@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, jsonError, checkRateLimit } from "@/lib/api-middleware";
+import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, memoryVersions, activityLogs } from "@memctl/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -26,7 +26,11 @@ export async function GET(
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
   const { project } = context;
 
@@ -57,7 +61,10 @@ export async function GET(
   db.update(memories)
     .set(accessUpdates)
     .where(eq(memories.id, memory.id))
-    .then(() => {}, () => {});
+    .then(
+      () => {},
+      () => {},
+    );
 
   const body = JSON.stringify({ memory });
   const etag = generateETag(body);
@@ -90,7 +97,11 @@ export async function PATCH(
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
   const { org, project } = context;
 
@@ -114,20 +125,27 @@ export async function PATCH(
   if (ifMatch) {
     const currentEtag = generateETag(JSON.stringify({ memory: existing }));
     if (ifMatch !== currentEtag) {
-      return jsonError("Conflict: memory has been modified since last read", 409);
+      return jsonError(
+        "Conflict: memory has been modified since last read",
+        409,
+      );
     }
   }
 
   // Validate content against context type schema if content is changing
   if (parsed.data.content) {
-    const existingMeta = existing.metadata ? JSON.parse(existing.metadata) : null;
+    const existingMeta = existing.metadata
+      ? JSON.parse(existing.metadata)
+      : null;
     const newMeta = parsed.data.metadata ?? existingMeta;
     if (newMeta && typeof newMeta === "object" && "contextType" in newMeta) {
       const ctSlug = String(newMeta.contextType);
       const [ct] = await db
         .select({ schema: contextTypes.schema })
         .from(contextTypes)
-        .where(and(eq(contextTypes.orgId, org.id), eq(contextTypes.slug, ctSlug)))
+        .where(
+          and(eq(contextTypes.orgId, org.id), eq(contextTypes.slug, ctSlug)),
+        )
         .limit(1);
       if (ct?.schema) {
         const validation = validateContent(ct.schema, parsed.data.content);
@@ -164,11 +182,16 @@ export async function PATCH(
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.content) updates.content = parsed.data.content;
-  if (parsed.data.metadata) updates.metadata = JSON.stringify(parsed.data.metadata);
-  if (parsed.data.priority !== undefined) updates.priority = parsed.data.priority;
-  if (parsed.data.tags !== undefined) updates.tags = JSON.stringify(parsed.data.tags);
+  if (parsed.data.metadata)
+    updates.metadata = JSON.stringify(parsed.data.metadata);
+  if (parsed.data.priority !== undefined)
+    updates.priority = parsed.data.priority;
+  if (parsed.data.tags !== undefined)
+    updates.tags = JSON.stringify(parsed.data.tags);
   if (parsed.data.expiresAt !== undefined) {
-    updates.expiresAt = parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null;
+    updates.expiresAt = parsed.data.expiresAt
+      ? new Date(parsed.data.expiresAt)
+      : null;
   }
 
   await db.update(memories).set(updates).where(eq(memories.id, existing.id));
@@ -176,26 +199,36 @@ export async function PATCH(
   // Regenerate embedding if content changed (fire-and-forget)
   if (parsed.data.content || parsed.data.tags) {
     const text = `${decodedKey} ${parsed.data.content ?? existing.content} ${parsed.data.tags?.join(" ") ?? ""}`;
-    generateEmbedding(text).then((emb) => {
-      if (emb) {
-        db.update(memories)
-          .set({ embedding: serializeEmbedding(emb) })
-          .where(eq(memories.id, existing.id))
-          .then(() => {}, () => {});
-      }
-    }).catch(() => {});
+    generateEmbedding(text)
+      .then((emb) => {
+        if (emb) {
+          db.update(memories)
+            .set({ embedding: serializeEmbedding(emb) })
+            .where(eq(memories.id, existing.id))
+            .then(
+              () => {},
+              () => {},
+            );
+        }
+      })
+      .catch(() => {});
   }
 
   // Log activity (fire-and-forget)
-  db.insert(activityLogs).values({
-    id: generateId(),
-    projectId: project.id,
-    action: "memory_write",
-    memoryKey: decodedKey,
-    details: JSON.stringify({ changeType: "updated" }),
-    createdBy: authResult.userId,
-    createdAt: new Date(),
-  }).then(() => {}, () => {});
+  db.insert(activityLogs)
+    .values({
+      id: generateId(),
+      projectId: project.id,
+      action: "memory_write",
+      memoryKey: decodedKey,
+      details: JSON.stringify({ changeType: "updated" }),
+      createdBy: authResult.userId,
+      createdAt: new Date(),
+    })
+    .then(
+      () => {},
+      () => {},
+    );
 
   return NextResponse.json({
     memory: { ...existing, ...updates },
@@ -217,7 +250,11 @@ export async function DELETE(
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
   const { project } = context;
 
@@ -237,22 +274,30 @@ export async function DELETE(
   if (ifMatch) {
     const currentEtag = generateETag(JSON.stringify({ memory: existing }));
     if (ifMatch !== currentEtag) {
-      return jsonError("Conflict: memory has been modified since last read", 409);
+      return jsonError(
+        "Conflict: memory has been modified since last read",
+        409,
+      );
     }
   }
 
   await db.delete(memories).where(eq(memories.id, existing.id));
 
   // Log activity (fire-and-forget)
-  db.insert(activityLogs).values({
-    id: generateId(),
-    projectId: project.id,
-    action: "memory_delete",
-    memoryKey: decodedKey,
-    details: null,
-    createdBy: authResult.userId,
-    createdAt: new Date(),
-  }).then(() => {}, () => {});
+  db.insert(activityLogs)
+    .values({
+      id: generateId(),
+      projectId: project.id,
+      action: "memory_delete",
+      memoryKey: decodedKey,
+      details: null,
+      createdBy: authResult.userId,
+      createdAt: new Date(),
+    })
+    .then(
+      () => {},
+      () => {},
+    );
 
   return NextResponse.json({ deleted: true });
 }

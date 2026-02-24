@@ -152,7 +152,8 @@ export default async function DashboardLayout({
     }),
   ).then((orgs) => orgs.filter(Boolean));
 
-  const totalProjectCount = userRole === "member" ? filteredCount : (projectCountResult[0]?.value ?? 0);
+  const totalProjectCount =
+    userRole === "member" ? filteredCount : (projectCountResult[0]?.value ?? 0);
 
   const trialActive = isActiveTrial(currentOrg);
   const trialDays = trialActive ? daysUntilExpiry(currentOrg) : null;

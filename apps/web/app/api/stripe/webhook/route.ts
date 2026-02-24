@@ -10,7 +10,10 @@ import { generateId } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   if (!isBillingEnabled()) {
-    return NextResponse.json({ error: "Billing is not enabled" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Billing is not enabled" },
+      { status: 400 },
+    );
   }
 
   const body = await req.text();
@@ -46,7 +49,8 @@ export async function POST(req: NextRequest) {
 
       if (orgSlug && subscriptionId) {
         // Fetch subscription to get the plan
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const subscription =
+          await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0]?.price.id;
         const planId = getPlanFromPriceId(priceId);
 
@@ -90,11 +94,15 @@ export async function POST(req: NextRequest) {
           const totalDiscount = session.total_details?.amount_discount ?? 0;
           // Check if a promotion code was applied via discounts
           const sessionAny = session as unknown as Record<string, unknown>;
-          const discountObjs = sessionAny.discounts as Array<{ promotion_code?: string }> | undefined;
+          const discountObjs = sessionAny.discounts as
+            | Array<{ promotion_code?: string }>
+            | undefined;
           const appliedPromoCodeId =
             discountObjs?.[0]?.promotion_code ??
-            (typeof sessionAny.discount === "object" && sessionAny.discount !== null
-              ? (sessionAny.discount as { promotion_code?: string }).promotion_code
+            (typeof sessionAny.discount === "object" &&
+            sessionAny.discount !== null
+              ? (sessionAny.discount as { promotion_code?: string })
+                  .promotion_code
               : undefined);
 
           if (appliedPromoCodeId && typeof appliedPromoCodeId === "string") {
@@ -188,7 +196,10 @@ export async function POST(req: NextRequest) {
 
       if (customerId) {
         const [existingOrg] = await db
-          .select({ id: organizations.id, stripeSubscriptionId: organizations.stripeSubscriptionId })
+          .select({
+            id: organizations.id,
+            stripeSubscriptionId: organizations.stripeSubscriptionId,
+          })
           .from(organizations)
           .where(eq(organizations.stripeCustomerId, customerId))
           .limit(1);

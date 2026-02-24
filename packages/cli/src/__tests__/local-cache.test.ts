@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { LocalCache } from "../local-cache";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
@@ -51,8 +51,18 @@ describe("LocalCache", () => {
   it("searches by key and content", () => {
     const cache = createCache();
     cache.sync([
-      { key: "auth-setup", content: "authentication configuration", priority: 0, updatedAt: Date.now() },
-      { key: "db-config", content: "database settings", priority: 0, updatedAt: Date.now() },
+      {
+        key: "auth-setup",
+        content: "authentication configuration",
+        priority: 0,
+        updatedAt: Date.now(),
+      },
+      {
+        key: "db-config",
+        content: "database settings",
+        priority: 0,
+        updatedAt: Date.now(),
+      },
     ]);
 
     const results = cache.search("auth");
@@ -74,10 +84,17 @@ describe("LocalCache", () => {
   it("getByPath returns memory for key path", () => {
     const cache = createCache();
     cache.sync([
-      { key: "my-key", content: "my content", priority: 0, updatedAt: Date.now() },
+      {
+        key: "my-key",
+        content: "my content",
+        priority: 0,
+        updatedAt: Date.now(),
+      },
     ]);
 
-    const result = cache.getByPath("/memories/my-key") as { memory: Record<string, unknown> } | null;
+    const result = cache.getByPath("/memories/my-key") as {
+      memory: Record<string, unknown>;
+    } | null;
     expect(result).not.toBeNull();
     expect(result!.memory.key).toBe("my-key");
   });
@@ -85,10 +102,17 @@ describe("LocalCache", () => {
   it("getByPath returns list for search path", () => {
     const cache = createCache();
     cache.sync([
-      { key: "auth", content: "auth content", priority: 0, updatedAt: Date.now() },
+      {
+        key: "auth",
+        content: "auth content",
+        priority: 0,
+        updatedAt: Date.now(),
+      },
     ]);
 
-    const result = cache.getByPath("/memories?q=auth") as { memories: unknown[] } | null;
+    const result = cache.getByPath("/memories?q=auth") as {
+      memories: unknown[];
+    } | null;
     expect(result).not.toBeNull();
     expect(result!.memories.length).toBe(1);
   });

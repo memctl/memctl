@@ -31,7 +31,7 @@ export default async function AdminLayout({
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--landing-bg)] text-[var(--landing-text)]">
         <div className="text-center">
-          <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
+          <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
             403
           </span>
           <h1 className="mb-2 text-2xl font-bold">Access Denied</h1>
@@ -43,7 +43,5 @@ export default async function AdminLayout({
     );
   }
 
-  return (
-    <AdminShell user={session.user}>{children}</AdminShell>
-  );
+  return <AdminShell user={session.user}>{children}</AdminShell>;
 }

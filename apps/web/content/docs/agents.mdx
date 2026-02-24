@@ -5,7 +5,7 @@ description: Configure mem/ctl in any MCP-compatible AI agent
 
 # Agent Setup
 
-Every agent below connects to mem/ctl the same way  - run `npx memctl auth` once, then add your org and project to the agent's MCP config. No token in project files.
+Every agent below connects to mem/ctl the same way - run `npx memctl auth` once, then add your org and project to the agent's MCP config. No token in project files.
 
 ```bash
 npx memctl auth
@@ -13,19 +13,19 @@ npx memctl auth
 
 ## Quick reference
 
-| Agent | Config location | Config key | Auto-setup |
-|---|---|---|---|
-| Claude Code | `.mcp.json` | `mcpServers` | `memctl init --claude` |
-| Cursor | `.cursor/mcp.json` | `mcpServers` | `memctl init --cursor` |
-| VS Code + Copilot | `.vscode/mcp.json` | `servers` |  - |
-| Windsurf | `~/.codeium/windsurf/mcp_config.json` | `mcpServers` | `memctl init --windsurf` |
-| Cline | Extension UI | `mcpServers` |  - |
-| Roo Code | `.roo/mcp.json` | `mcpServers` |  - |
-| Continue | `.continue/config.yaml` | `mcpServers` |  - |
-| Zed | Zed settings | `context_servers` |  - |
-| JetBrains | Settings UI |  - |  - |
-| Amazon Q | `.amazonq/mcp.json` | `mcpServers` |  - |
-| Aider | N/A |  - |  - |
+| Agent             | Config location                       | Config key        | Auto-setup               |
+| ----------------- | ------------------------------------- | ----------------- | ------------------------ |
+| Claude Code       | `.mcp.json`                           | `mcpServers`      | `memctl init --claude`   |
+| Cursor            | `.cursor/mcp.json`                    | `mcpServers`      | `memctl init --cursor`   |
+| VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | -                        |
+| Windsurf          | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`      | `memctl init --windsurf` |
+| Cline             | Extension UI                          | `mcpServers`      | -                        |
+| Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | -                        |
+| Continue          | `.continue/config.yaml`               | `mcpServers`      | -                        |
+| Zed               | Zed settings                          | `context_servers` | -                        |
+| JetBrains         | Settings UI                           | -                 | -                        |
+| Amazon Q          | `.amazonq/mcp.json`                   | `mcpServers`      | -                        |
+| Aider             | N/A                                   | -                 | -                        |
 
 ## Configuration
 
@@ -164,7 +164,7 @@ Config file location varies by OS:
 
 <Accordion title="Roo Code" id="roo-code">
 
-**Per-project**  - create `.roo/mcp.json` in your project root:
+**Per-project** - create `.roo/mcp.json` in your project root:
 
 ```json
 {
@@ -181,7 +181,7 @@ Config file location varies by OS:
 }
 ```
 
-**Global**  - configure via the Roo Code extension settings UI, similar to Cline.
+**Global** - configure via the Roo Code extension settings UI, similar to Cline.
 
 </Accordion>
 
@@ -228,7 +228,7 @@ Add to `.continue/config.json`:
 </Tab>
 </Tabs>
 
-Continue uses an **array** format for `mcpServers`  - each entry needs a `"name"` field.
+Continue uses an **array** format for `mcpServers` - each entry needs a `"name"` field.
 
 Continue auto-reloads config on save. If tools don't appear, restart the IDE.
 
@@ -256,6 +256,7 @@ Open Zed settings (`Cmd+,`) and add:
 ```
 
 Zed's format differs from other agents:
+
 - Top-level key is `"context_servers"` (not `"mcpServers"`)
 - Command is nested: `"command": { "path": "...", "args": [...] }`
 - Uses `"path"` instead of `"command"` for the executable
@@ -344,7 +345,7 @@ After an Aider session, import updates back:
 npx memctl import AGENTS.md
 ```
 
-This is a one-way sync  - re-export and re-import manually between sessions.
+This is a one-way sync - re-export and re-import manually between sessions.
 
 </Accordion>
 
@@ -367,7 +368,7 @@ For any agent that supports the MCP standard, use this config as a starting poin
 }
 ```
 
-Check your agent's docs for the exact config location and key name  - most use `mcpServers` but some differ (VS Code uses `servers`, Zed uses `context_servers`).
+Check your agent's docs for the exact config location and key name - most use `mcpServers` but some differ (VS Code uses `servers`, Zed uses `context_servers`).
 
 </Accordion>
 

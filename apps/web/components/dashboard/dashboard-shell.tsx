@@ -1,7 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { MobileSidebarProvider, useMobileSidebar } from "./sidebar-mobile-context";
+import {
+  MobileSidebarProvider,
+  useMobileSidebar,
+} from "./sidebar-mobile-context";
 import { MobileSidebarSheet } from "./mobile-sidebar-sheet";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";

@@ -4,7 +4,11 @@ import * as React from "react";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { type DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface DateRangePickerProps {
   value: DateRange | undefined;
@@ -56,7 +60,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                 e.stopPropagation();
                 onChange(undefined);
               }}
-              className="ml-0.5 rounded-full p-0.5 hover:bg-[#F97316]/20 transition-colors"
+              className="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-[#F97316]/20"
             >
               <X className="h-2.5 w-2.5" />
             </span>
@@ -68,7 +72,9 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
         align="end"
       >
         <div className="flex items-center gap-1.5 border-b border-[var(--landing-border)] px-3 py-2">
-          <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">Quick:</span>
+          <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+            Quick:
+          </span>
           {PRESETS.map((preset) => (
             <button
               key={preset.days}
@@ -86,7 +92,9 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
             onChange(range);
             if (range?.from && range?.to) setOpen(false);
           }}
-          numberOfMonths={typeof window !== "undefined" && window.innerWidth >= 768 ? 2 : 1}
+          numberOfMonths={
+            typeof window !== "undefined" && window.innerWidth >= 768 ? 2 : 1
+          }
           disabled={{ after: new Date() }}
         />
       </PopoverContent>

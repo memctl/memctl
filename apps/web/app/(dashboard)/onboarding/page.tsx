@@ -316,9 +316,7 @@ export default function OnboardingPage() {
                       }
                       delay={i * 0.05}
                       onClick={() => {
-                        setUseCase(
-                          opt.label.toLowerCase().replace(/ /g, "_")
-                        );
+                        setUseCase(opt.label.toLowerCase().replace(/ /g, "_"));
                         setOrgName("My Hobby");
                         setOrgSlug("my-hobby");
                         next();
@@ -352,7 +350,7 @@ export default function OnboardingPage() {
                         setOrgName(e.target.value);
                         setOrgSlug(slugify(e.target.value));
                       }}
-                      className="w-full rounded-lg border border-[var(--landing-border)] bg-[var(--landing-bg)] px-3 py-2.5 text-sm text-[var(--landing-text)] placeholder:text-[var(--landing-text-tertiary)] focus:border-[#F97316]/50 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
+                      className="w-full rounded-lg border border-[var(--landing-border)] bg-[var(--landing-bg)] px-3 py-2.5 text-sm text-[var(--landing-text)] placeholder:text-[var(--landing-text-tertiary)] focus:border-[#F97316]/50 focus:ring-2 focus:ring-[#F97316]/20 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -401,12 +399,7 @@ export default function OnboardingPage() {
                           stroke="currentColor"
                           strokeWidth="2"
                         >
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            strokeOpacity="0.25"
-                          />
+                          <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
                           <path d="M12 2a10 10 0 0 1 10 10" />
                         </svg>
                         Creating&hellip;
@@ -438,8 +431,7 @@ export default function OnboardingPage() {
                         {
                           "--x": p.x,
                           "--y": p.y,
-                          backgroundColor:
-                            i % 2 === 0 ? "#F97316" : "#FB923C",
+                          backgroundColor: i % 2 === 0 ? "#F97316" : "#FB923C",
                           animationDelay: `${i * 0.06}s`,
                         } as React.CSSProperties
                       }
@@ -465,7 +457,11 @@ export default function OnboardingPage() {
                       strokeLinejoin="round"
                       initial={{ pathLength: 0 }}
                       animate={{ pathLength: 1 }}
-                      transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
+                      transition={{
+                        delay: 0.3,
+                        duration: 0.5,
+                        ease: "easeOut",
+                      }}
                     />
                   </svg>
                 </div>

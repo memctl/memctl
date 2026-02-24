@@ -14,7 +14,7 @@ import {
   sessionLogs,
   activityLogs,
 } from "@memctl/db/schema";
-import { eq, and, count, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, count, isNull } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { getOrgLimits, isUnlimited as isUnlimitedValue } from "@/lib/plans";
@@ -32,22 +32,40 @@ export default async function UsagePage({
 
   const { orgSlug } = await params;
 
-  const [org] = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
   if (!org) redirect("/");
 
   const [member] = await db
     .select()
     .from(organizationMembers)
-    .where(and(eq(organizationMembers.orgId, org.id), eq(organizationMembers.userId, session.user.id)))
+    .where(
+      and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, session.user.id),
+      ),
+    )
     .limit(1);
   if (!member) redirect("/");
 
   const currentPlan = PLANS[org.planId as PlanId] ?? PLANS.free;
   const limits = getOrgLimits(org);
-  const projectList = await db.select().from(projects).where(eq(projects.orgId, org.id));
+  const projectList = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.orgId, org.id));
 
-  const [memberCount] = await db.select({ value: count() }).from(organizationMembers).where(eq(organizationMembers.orgId, org.id));
-  const [tokenCount] = await db.select({ value: count() }).from(apiTokens).where(and(eq(apiTokens.orgId, org.id), isNull(apiTokens.revokedAt)));
+  const [memberCount] = await db
+    .select({ value: count() })
+    .from(organizationMembers)
+    .where(eq(organizationMembers.orgId, org.id));
+  await db
+    .select({ value: count() })
+    .from(apiTokens)
+    .where(and(eq(apiTokens.orgId, org.id), isNull(apiTokens.revokedAt)));
 
   let totalMemories = 0;
   let totalSessions = 0;
@@ -57,19 +75,31 @@ export default async function UsagePage({
   const tagCounts: Record<string, number> = {};
 
   for (const project of projectList) {
-    const [result] = await db.select({ value: count() }).from(memories).where(eq(memories.projectId, project.id));
+    const [result] = await db
+      .select({ value: count() })
+      .from(memories)
+      .where(eq(memories.projectId, project.id));
     const memCount = result?.value ?? 0;
     totalMemories += memCount;
     memoryByProject.push({ name: project.name, count: memCount });
 
-    const [sessCount] = await db.select({ value: count() }).from(sessionLogs).where(eq(sessionLogs.projectId, project.id));
+    const [sessCount] = await db
+      .select({ value: count() })
+      .from(sessionLogs)
+      .where(eq(sessionLogs.projectId, project.id));
     totalSessions += sessCount?.value ?? 0;
 
-    const [actCount] = await db.select({ value: count() }).from(activityLogs).where(eq(activityLogs.projectId, project.id));
+    const [actCount] = await db
+      .select({ value: count() })
+      .from(activityLogs)
+      .where(eq(activityLogs.projectId, project.id));
     totalActivities += actCount?.value ?? 0;
 
     // Priority and tag aggregation
-    const allMems = await db.select({ priority: memories.priority, tags: memories.tags }).from(memories).where(eq(memories.projectId, project.id));
+    const allMems = await db
+      .select({ priority: memories.priority, tags: memories.tags })
+      .from(memories)
+      .where(eq(memories.projectId, project.id));
     for (const m of allMems) {
       const p = m.priority ?? 0;
       if (p >= 70) priorityDistribution.high++;
@@ -83,7 +113,9 @@ export default async function UsagePage({
           if (Array.isArray(tags)) {
             for (const t of tags) tagCounts[t] = (tagCounts[t] ?? 0) + 1;
           }
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
     }
   }
@@ -94,8 +126,16 @@ export default async function UsagePage({
     .map(([tag, count]) => ({ tag, count }));
 
   const usageItems = [
-    { label: "Projects", current: projectList.length, limit: limits.projectLimit },
-    { label: "Members", current: memberCount?.value ?? 0, limit: limits.memberLimit },
+    {
+      label: "Projects",
+      current: projectList.length,
+      limit: limits.projectLimit,
+    },
+    {
+      label: "Members",
+      current: memberCount?.value ?? 0,
+      limit: limits.memberLimit,
+    },
     { label: "Memories", current: totalMemories, limit: limits.memoryLimitOrg },
     { label: "API Calls", current: 0, limit: currentPlan.apiCallLimit },
     { label: "Sessions", current: totalSessions, limit: 999999 },
@@ -104,26 +144,41 @@ export default async function UsagePage({
 
   return (
     <div>
-      <PageHeader title="Usage & Analytics" description={`${currentPlan.name} plan`} />
+      <PageHeader
+        title="Usage & Analytics"
+        description={`${currentPlan.name} plan`}
+      />
 
       {/* Plan Usage - 3 columns for density */}
       <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {usageItems.map((item) => {
           const unlimited = isUnlimitedValue(item.limit);
-          const percentage = unlimited ? 0 : Math.min((item.current / item.limit) * 100, 100);
+          const percentage = unlimited
+            ? 0
+            : Math.min((item.current / item.limit) * 100, 100);
 
           return (
-            <div key={item.label} className="dash-card glass-border relative p-3">
+            <div
+              key={item.label}
+              className="dash-card glass-border relative p-3"
+            >
               <div className="mb-2 flex items-center justify-between">
-                <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">{item.label}</span>
+                <span className="font-mono text-[11px] font-medium text-[var(--landing-text)]">
+                  {item.label}
+                </span>
                 <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-                  {item.current.toLocaleString()} / {unlimited ? "∞" : item.limit.toLocaleString()}
+                  {item.current.toLocaleString()} /{" "}
+                  {unlimited ? "∞" : item.limit.toLocaleString()}
                 </span>
               </div>
               <Progress
                 value={unlimited ? 0 : percentage}
                 className={`h-1.5 bg-[var(--landing-surface-2)] ${
-                  percentage >= 90 ? "[&>div]:bg-red-500" : percentage >= 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-[#F97316]"
+                  percentage >= 90
+                    ? "[&>div]:bg-red-500"
+                    : percentage >= 70
+                      ? "[&>div]:bg-amber-500"
+                      : "[&>div]:bg-[#F97316]"
                 }`}
               />
             </div>

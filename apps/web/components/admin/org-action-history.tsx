@@ -18,7 +18,8 @@ const actionBadgeStyles: Record<string, string> = {
   plan_overridden: "bg-blue-500/10 text-blue-500",
   limits_overridden: "bg-purple-500/10 text-purple-500",
   ownership_transferred: "bg-[#F97316]/10 text-[#F97316]",
-  notes_updated: "bg-[var(--landing-surface-2)] text-[var(--landing-text-secondary)]",
+  notes_updated:
+    "bg-[var(--landing-surface-2)] text-[var(--landing-text-secondary)]",
 };
 
 function formatAction(action: string): string {
@@ -36,9 +37,7 @@ function summarizeDetails(
     case "org_banned":
       return details.reason ? String(details.reason) : null;
     case "org_reactivated":
-      return details.previousStatus
-        ? `Was: ${details.previousStatus}`
-        : null;
+      return details.previousStatus ? `Was: ${details.previousStatus}` : null;
     case "plan_overridden":
       return details.newPlanOverride
         ? `Set to: ${details.newPlanOverride}`
@@ -53,9 +52,7 @@ function summarizeDetails(
 }
 
 function timeAgo(dateStr: string): string {
-  const seconds = Math.floor(
-    (Date.now() - new Date(dateStr).getTime()) / 1000,
-  );
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
@@ -78,8 +75,8 @@ export function OrgActionHistory({ orgSlug }: { orgSlug: string }) {
 
   return (
     <div className="dash-card overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
-        <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+      <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
+        <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
           Action History
         </span>
         <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
@@ -91,9 +88,9 @@ export function OrgActionHistory({ orgSlug }: { orgSlug: string }) {
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-text-tertiary)] animate-pulse" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-text-tertiary)] animate-pulse [animation-delay:150ms]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-text-tertiary)] animate-pulse [animation-delay:300ms]" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--landing-text-tertiary)]" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--landing-text-tertiary)] [animation-delay:150ms]" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--landing-text-tertiary)] [animation-delay:300ms]" />
             </div>
           </div>
         ) : actions.length === 0 ? (
@@ -103,7 +100,8 @@ export function OrgActionHistory({ orgSlug }: { orgSlug: string }) {
         ) : (
           actions.map((entry, i) => {
             const badge =
-              actionBadgeStyles[entry.action] ?? actionBadgeStyles.notes_updated;
+              actionBadgeStyles[entry.action] ??
+              actionBadgeStyles.notes_updated;
             const summary = summarizeDetails(entry.action, entry.details);
             return (
               <div
@@ -114,7 +112,7 @@ export function OrgActionHistory({ orgSlug }: { orgSlug: string }) {
                     : ""
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
+                <div className="mb-1 flex items-center justify-between">
                   <span
                     className={`inline-flex rounded-full px-2 py-0.5 font-mono text-[10px] font-medium capitalize ${badge}`}
                   >

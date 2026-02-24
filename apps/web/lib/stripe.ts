@@ -80,12 +80,17 @@ export async function createStripeCouponAndPromoCode(params: {
   const coupon = await s.coupons.create({
     ...(params.discountType === "percent"
       ? { percent_off: params.discountAmount }
-      : { amount_off: params.discountAmount, currency: params.currency ?? "usd" }),
+      : {
+          amount_off: params.discountAmount,
+          currency: params.currency ?? "usd",
+        }),
     duration: params.duration,
     ...(params.duration === "repeating" && params.durationInMonths
       ? { duration_in_months: params.durationInMonths }
       : {}),
-    ...(params.maxRedemptions ? { max_redemptions: params.maxRedemptions } : {}),
+    ...(params.maxRedemptions
+      ? { max_redemptions: params.maxRedemptions }
+      : {}),
     ...(params.expiresAt
       ? { redeem_by: Math.floor(params.expiresAt.getTime() / 1000) }
       : {}),

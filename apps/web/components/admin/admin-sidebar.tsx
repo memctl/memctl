@@ -26,11 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { useTheme } from "next-themes";
@@ -114,7 +110,12 @@ function NavItem({
   pathname,
   onNavigate,
 }: {
-  item: { label: string; icon: LucideIcon; href: string; match?: (p: string) => boolean };
+  item: {
+    label: string;
+    icon: LucideIcon;
+    href: string;
+    match?: (p: string) => boolean;
+  };
   pathname: string;
   onNavigate?: () => void;
 }) {
@@ -167,7 +168,7 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
           <span className="font-mono text-sm font-bold text-[var(--landing-text)]">
             mem<span className="text-[#F97316]">/</span>ctl
           </span>
-          <span className="rounded bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-[#F97316]">
+          <span className="rounded bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#F97316] uppercase">
             Admin
           </span>
         </Link>
@@ -178,7 +179,7 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
       {/* Navigation */}
       <div className="flex flex-1 flex-col overflow-y-auto px-3 pt-4 pb-2">
         {/* Platform section */}
-        <span className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+        <span className="mb-1.5 px-3 text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
           Platform
         </span>
         <div className="flex flex-col gap-0.5">
@@ -193,7 +194,7 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
         </div>
 
         {/* Content section */}
-        <span className="mt-6 mb-1.5 px-3 text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+        <span className="mt-6 mb-1.5 px-3 text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
           Content
         </span>
         <div className="flex flex-col gap-0.5">
@@ -216,11 +217,12 @@ export function AdminSidebar({ user, onNavigate }: AdminSidebarProps) {
       <div className="px-3 py-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex h-auto w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-all duration-200 hover:bg-[var(--landing-surface-2)] focus:outline-none">
+            <Button
+              variant="ghost"
+              className="flex h-auto w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-all duration-200 hover:bg-[var(--landing-surface-2)] focus:outline-none"
+            >
               <Avatar className="h-8 w-8 border border-[var(--landing-border)]">
-                {user.image && (
-                  <AvatarImage src={user.image} alt={user.name} />
-                )}
+                {user.image && <AvatarImage src={user.image} alt={user.name} />}
                 <AvatarFallback className="bg-[var(--landing-surface-2)] text-xs font-medium text-[var(--landing-text-secondary)]">
                   {initials}
                 </AvatarFallback>

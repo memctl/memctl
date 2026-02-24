@@ -10,8 +10,14 @@ import {
 } from "@memctl/db/schema";
 import { eq, count } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
-import type { PlanId } from "@memctl/shared/constants";
-import { getEffectivePlanId, getOrgLimits, isUnlimited, formatLimitValue, clampLimit, isActiveTrial, daysUntilExpiry } from "@/lib/plans";
+import {
+  getEffectivePlanId,
+  getOrgLimits,
+  formatLimitValue,
+  clampLimit,
+  isActiveTrial,
+  daysUntilExpiry,
+} from "@/lib/plans";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import {
   Table,
@@ -21,11 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { OrgActionsPanel } from "@/components/admin/org-actions-panel";
 import { OrgActionHistory } from "@/components/admin/org-action-history";
 
@@ -106,7 +108,12 @@ export default async function AdminOrgDetailPage({
   const trialActive = isActiveTrial(org);
   const remainingDays = daysUntilExpiry(org);
 
-  const stats: { label: string; value: string; className?: string; sub?: string }[] = [
+  const stats: {
+    label: string;
+    value: string;
+    className?: string;
+    sub?: string;
+  }[] = [
     {
       label: "Status",
       value: org.status,
@@ -124,12 +131,11 @@ export default async function AdminOrgDetailPage({
     {
       label: "Plan",
       value: currentPlan.name,
-      sub:
-        org.planOverride
-          ? `Override (Stripe: ${org.planId})`
-          : currentPlan.price === -1
-            ? "Custom"
-            : `$${currentPlan.price}/mo`,
+      sub: org.planOverride
+        ? `Override (Stripe: ${org.planId})`
+        : currentPlan.price === -1
+          ? "Custom"
+          : `$${currentPlan.price}/mo`,
     },
   ];
 
@@ -160,8 +166,8 @@ export default async function AdminOrgDetailPage({
         <div
           className={`mb-4 rounded-md px-4 py-3 font-mono text-[11px] ${
             org.status === "banned"
-              ? "bg-red-500/10 text-red-500 border border-red-500/20"
-              : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+              ? "border border-red-500/20 bg-red-500/10 text-red-500"
+              : "border border-amber-500/20 bg-amber-500/10 text-amber-500"
           }`}
         >
           This organization is {org.status}.
@@ -169,10 +175,10 @@ export default async function AdminOrgDetailPage({
         </div>
       )}
 
-      <div className="mb-4 grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {stats.map((s) => (
           <div key={s.label} className="dash-card p-3">
-            <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+            <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
               {s.label}
             </span>
             <span
@@ -196,8 +202,8 @@ export default async function AdminOrgDetailPage({
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Members */}
         <div className="dash-card overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
-            <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
+            <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
               Members
             </span>
             <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
@@ -208,10 +214,10 @@ export default async function AdminOrgDetailPage({
             <Table>
               <TableHeader>
                 <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Member
                   </TableHead>
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Role
                   </TableHead>
                 </TableRow>
@@ -273,8 +279,8 @@ export default async function AdminOrgDetailPage({
 
         {/* Projects */}
         <div className="dash-card overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)]">
-            <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
+            <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
               Projects
             </span>
             <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
@@ -285,10 +291,10 @@ export default async function AdminOrgDetailPage({
             <Table>
               <TableHeader>
                 <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Project
                   </TableHead>
-                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                     Created
                   </TableHead>
                 </TableRow>
@@ -346,9 +352,17 @@ export default async function AdminOrgDetailPage({
             customLimits: org.customLimits,
             ownerId: org.ownerId,
             adminNotes: org.adminNotes,
-            planDefaultProjectLimit: currentPlan.projectLimit === Infinity ? 999999 : currentPlan.projectLimit,
-            planDefaultMemberLimit: currentPlan.memberLimit === Infinity ? 999999 : currentPlan.memberLimit,
-            planDefaultMemoryPerProject: clampLimit(currentPlan.memoryLimitPerProject),
+            planDefaultProjectLimit:
+              currentPlan.projectLimit === Infinity
+                ? 999999
+                : currentPlan.projectLimit,
+            planDefaultMemberLimit:
+              currentPlan.memberLimit === Infinity
+                ? 999999
+                : currentPlan.memberLimit,
+            planDefaultMemoryPerProject: clampLimit(
+              currentPlan.memoryLimitPerProject,
+            ),
             planDefaultMemoryOrg: clampLimit(currentPlan.memoryLimitOrg),
             planDefaultApiRate: clampLimit(currentPlan.apiRatePerMinute),
             trialEndsAt: org.trialEndsAt?.toISOString() ?? null,

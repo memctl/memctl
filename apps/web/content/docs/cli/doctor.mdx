@@ -13,16 +13,16 @@ npx memctl doctor
 
 ## Checks performed
 
-| Check | What it verifies |
-|---|---|
-| Token present | `MEMCTL_TOKEN` is set or available in config |
-| Org slug present | `MEMCTL_ORG` is set |
-| Project slug present | `MEMCTL_PROJECT` is set |
-| API reachable | Can connect to the API URL |
-| Token valid | Token authenticates successfully |
-| Org accessible | Token has access to the specified org |
-| Project accessible | Token has access to the specified project |
-| Memory capacity | Current usage and limit |
+| Check                | What it verifies                             |
+| -------------------- | -------------------------------------------- |
+| Token present        | `MEMCTL_TOKEN` is set or available in config |
+| Org slug present     | `MEMCTL_ORG` is set                          |
+| Project slug present | `MEMCTL_PROJECT` is set                      |
+| API reachable        | Can connect to the API URL                   |
+| Token valid          | Token authenticates successfully             |
+| Org accessible       | Token has access to the specified org        |
+| Project accessible   | Token has access to the specified project    |
+| Memory capacity      | Current usage and limit                      |
 
 ## Example output
 
@@ -43,7 +43,7 @@ npx memctl doctor
 
 ## Common failures
 
-- **Token not present**  - run `npx memctl auth` or set `MEMCTL_TOKEN`
-- **API not reachable**  - check network, firewall, or `MEMCTL_API_URL`
-- **Token invalid**  - regenerate token in the dashboard
-- **Org/project not accessible**  - verify slugs match dashboard URLs
+- **Token not present** - run `npx memctl auth` or set `MEMCTL_TOKEN`
+- **API not reachable** - check network, firewall, or `MEMCTL_API_URL`
+- **Token invalid** - regenerate token in the dashboard
+- **Org/project not accessible** - verify slugs match dashboard URLs

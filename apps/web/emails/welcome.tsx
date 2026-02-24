@@ -1,9 +1,4 @@
-import {
-  Section,
-  Text,
-  Link,
-  Hr,
-} from "@react-email/components";
+import { Section, Text, Link, Hr } from "@react-email/components";
 import { EmailLayout } from "./components/email-layout";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://memctl.com";
@@ -22,11 +17,11 @@ export function WelcomeEmail({ name }: WelcomeEmailProps) {
         <Text style={heading}>Hey {name}</Text>
 
         <Text style={body}>
-          memctl gives your AI agents a brain that persists. Every session
-          picks up where the last one left off: your agent knows the open
-          TODOs, remembers what broke yesterday, understands the architecture,
-          and stays on the right branch. No more re-explaining your codebase
-          from scratch.
+          memctl gives your AI agents a brain that persists. Every session picks
+          up where the last one left off: your agent knows the open TODOs,
+          remembers what broke yesterday, understands the architecture, and
+          stays on the right branch. No more re-explaining your codebase from
+          scratch.
         </Text>
 
         <Hr style={hr} />
@@ -44,21 +39,24 @@ export function WelcomeEmail({ name }: WelcomeEmailProps) {
             <tr>
               <td>
                 <Text style={termLine}>
-                  <span style={termCheck}>&#10003; </span>3 open TODOs from last session
+                  <span style={termCheck}>&#10003; </span>3 open TODOs from last
+                  session
                 </Text>
               </td>
             </tr>
             <tr>
               <td>
                 <Text style={termLine}>
-                  <span style={termCheck}>&#10003; </span>Branch: feat/auth-flow (12 memories)
+                  <span style={termCheck}>&#10003; </span>Branch: feat/auth-flow
+                  (12 memories)
                 </Text>
               </td>
             </tr>
             <tr>
               <td>
                 <Text style={termLine}>
-                  <span style={termCheck}>&#10003; </span>Last session: refactored API middleware
+                  <span style={termCheck}>&#10003; </span>Last session:
+                  refactored API middleware
                 </Text>
               </td>
             </tr>
@@ -77,21 +75,32 @@ export function WelcomeEmail({ name }: WelcomeEmailProps) {
 
       {/* Feature strip */}
       <Section style={stripCard}>
-        <table cellPadding="0" cellSpacing="0" role="presentation" style={{ width: "100%" }}>
+        <table
+          cellPadding="0"
+          cellSpacing="0"
+          role="presentation"
+          style={{ width: "100%" }}
+        >
           <tr>
             <td style={stripCell}>
               <Text style={stripLabel}>SESSION HISTORY</Text>
-              <Text style={stripValue}>Agents recall past sessions, decisions, and context</Text>
+              <Text style={stripValue}>
+                Agents recall past sessions, decisions, and context
+              </Text>
             </td>
             <td style={stripDivider} />
             <td style={stripCell}>
               <Text style={stripLabel}>BRANCH-AWARE</Text>
-              <Text style={stripValue}>Memory scoped to the branch your agent is working on</Text>
+              <Text style={stripValue}>
+                Memory scoped to the branch your agent is working on
+              </Text>
             </td>
             <td style={stripDivider} />
             <td style={stripCell}>
               <Text style={stripLabel}>TEAM SYNC</Text>
-              <Text style={stripValue}>Shared knowledge across every agent and member</Text>
+              <Text style={stripValue}>
+                Shared knowledge across every agent and member
+              </Text>
             </td>
           </tr>
         </table>
@@ -99,7 +108,10 @@ export function WelcomeEmail({ name }: WelcomeEmailProps) {
 
       <Text style={sub}>
         Questions? Reply to this email or visit the{" "}
-        <Link href={`${APP_URL}/docs`} style={link}>docs</Link>.
+        <Link href={`${APP_URL}/docs`} style={link}>
+          docs
+        </Link>
+        .
       </Text>
     </EmailLayout>
   );

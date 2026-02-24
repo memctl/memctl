@@ -5,17 +5,13 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "radix-ui";
 import { useAdminMobileSidebar } from "./admin-sidebar-mobile-context";
 
-export function AdminMobileSidebarSheet({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function AdminMobileSidebarSheet({ children }: { children: ReactNode }) {
   const { open, setOpen } = useAdminMobileSidebar();
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent
         side="left"
-        className="w-72 p-0 border-[var(--landing-border)] bg-[var(--landing-surface)]"
+        className="w-72 border-[var(--landing-border)] bg-[var(--landing-surface)] p-0"
         showCloseButton={false}
       >
         <VisuallyHidden.Root>

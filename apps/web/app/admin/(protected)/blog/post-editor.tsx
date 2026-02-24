@@ -33,7 +33,9 @@ export function PostEditor({ mode, initialData }: PostEditorProps) {
   const [slugManual, setSlugManual] = useState(!!initialData?.slug);
   const [excerpt, setExcerpt] = useState(initialData?.excerpt ?? "");
   const [content, setContent] = useState(initialData?.content ?? "");
-  const [coverImageUrl, setCoverImageUrl] = useState(initialData?.coverImageUrl ?? "");
+  const [coverImageUrl, setCoverImageUrl] = useState(
+    initialData?.coverImageUrl ?? "",
+  );
   const [status, setStatus] = useState(initialData?.status ?? "draft");
 
   const handleTitleChange = useCallback(
@@ -89,7 +91,7 @@ export function PostEditor({ mode, initialData }: PostEditorProps) {
       {/* Title + Slug */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Title
           </label>
           <Input
@@ -100,7 +102,7 @@ export function PostEditor({ mode, initialData }: PostEditorProps) {
           />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Slug
           </label>
           <Input
@@ -119,7 +121,7 @@ export function PostEditor({ mode, initialData }: PostEditorProps) {
       {/* Excerpt + Cover */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Excerpt
           </label>
           <Textarea
@@ -130,7 +132,7 @@ export function PostEditor({ mode, initialData }: PostEditorProps) {
           />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Cover Image URL
           </label>
           <Input
@@ -145,12 +147,14 @@ export function PostEditor({ mode, initialData }: PostEditorProps) {
       {/* Status + Save */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Status
           </label>
           <Switch
             checked={status === "published"}
-            onCheckedChange={(checked) => setStatus(checked ? "published" : "draft")}
+            onCheckedChange={(checked) =>
+              setStatus(checked ? "published" : "draft")
+            }
             className="data-[state=checked]:bg-[#F97316]"
           />
           <span className="text-xs text-[var(--landing-text-secondary)]">
@@ -164,7 +168,11 @@ export function PostEditor({ mode, initialData }: PostEditorProps) {
             disabled={saving || !title || !content}
             className="bg-[#F97316] text-white hover:bg-[#FB923C] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
           >
-            {saving ? "Saving..." : mode === "create" ? "Create Post" : "Save Changes"}
+            {saving
+              ? "Saving..."
+              : mode === "create"
+                ? "Create Post"
+                : "Save Changes"}
           </Button>
         </div>
       </div>
@@ -173,7 +181,7 @@ export function PostEditor({ mode, initialData }: PostEditorProps) {
       <div className="grid min-h-[500px] gap-6 lg:grid-cols-2">
         {/* Editor */}
         <div className="flex flex-col">
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Content (Markdown)
           </label>
           <Textarea
@@ -186,18 +194,21 @@ export function PostEditor({ mode, initialData }: PostEditorProps) {
 
         {/* Preview */}
         <div className="flex flex-col">
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <label className="mb-2 block text-xs font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Preview
           </label>
           <div className="flex-1 overflow-auto rounded-lg border border-[var(--landing-border)] bg-[var(--landing-surface)] px-6 py-4">
             {content ? (
               <div className="blog-prose">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeSlug]}
+                >
                   {content}
                 </ReactMarkdown>
               </div>
             ) : (
-              <p className="text-sm italic text-[var(--landing-text-tertiary)]">
+              <p className="text-sm text-[var(--landing-text-tertiary)] italic">
                 Preview will appear here...
               </p>
             )}

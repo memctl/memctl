@@ -3,7 +3,16 @@
 import { Suspense, useRef, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Brain, Zap, Trash2, Settings, Users, ChevronLeft, ChevronRight, Network } from "lucide-react";
+import {
+  Brain,
+  Zap,
+  Trash2,
+  Settings,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  Network,
+} from "lucide-react";
 import { MemoryBrowser } from "@/components/dashboard/memories/memory-browser";
 import { MemoryGraph } from "@/components/dashboard/memories/memory-graph";
 import { ActivityFeed } from "../../activity/activity-feed";
@@ -65,8 +74,18 @@ interface ActivityStats {
 }
 
 interface HygieneData {
-  healthBuckets: { critical: number; low: number; medium: number; healthy: number };
-  staleMemories: Array<{ key: string; project: string; lastAccessedAt: string | null; priority: number }>;
+  healthBuckets: {
+    critical: number;
+    low: number;
+    medium: number;
+    healthy: number;
+  };
+  staleMemories: Array<{
+    key: string;
+    project: string;
+    lastAccessedAt: string | null;
+    priority: number;
+  }>;
   expiringMemories: Array<{ key: string; project: string; expiresAt: string }>;
   growth: Array<{ week: string; count: number }>;
   capacity: { used: number; limit: number | null; usagePercent: number };
@@ -199,7 +218,10 @@ function ProjectTabsInner({
       if (elLeft < visLeft) {
         container.scrollTo({ left: elLeft - 8, behavior: "smooth" });
       } else if (elRight > visRight) {
-        container.scrollTo({ left: elRight - container.clientWidth + 8, behavior: "smooth" });
+        container.scrollTo({
+          left: elRight - container.clientWidth + 8,
+          behavior: "smooth",
+        });
       }
     }
   }, [currentTab]);
@@ -221,27 +243,37 @@ function ProjectTabsInner({
   return (
     <div>
       {/* Tab bar */}
-      <div ref={navRef} className="relative mb-6 border-b border-[var(--landing-border)]">
+      <div
+        ref={navRef}
+        className="relative mb-6 border-b border-[var(--landing-border)]"
+      >
         {canScrollLeft && (
           <button
-            onClick={() => scrollRef.current?.scrollBy({ left: -120, behavior: "smooth" })}
-            className="absolute left-0 top-0 bottom-0 z-10 flex w-8 items-center justify-start bg-gradient-to-r from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pl-1"
+            onClick={() =>
+              scrollRef.current?.scrollBy({ left: -120, behavior: "smooth" })
+            }
+            className="absolute top-0 bottom-0 left-0 z-10 flex w-8 items-center justify-start bg-gradient-to-r from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pl-1"
           >
             <ChevronLeft className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
           </button>
         )}
         {canScrollRight && (
           <button
-            onClick={() => scrollRef.current?.scrollBy({ left: 120, behavior: "smooth" })}
-            className="absolute right-0 top-0 bottom-0 z-10 flex w-8 items-center justify-end bg-gradient-to-l from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pr-1"
+            onClick={() =>
+              scrollRef.current?.scrollBy({ left: 120, behavior: "smooth" })
+            }
+            className="absolute top-0 right-0 bottom-0 z-10 flex w-8 items-center justify-end bg-gradient-to-l from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pr-1"
           >
             <ChevronRight className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
           </button>
         )}
         <div
           ref={scrollRef}
-          className="relative flex overflow-x-auto scrollbar-hide"
-          onScroll={() => { checkScroll(); updateIndicator(); }}
+          className="scrollbar-hide relative flex overflow-x-auto"
+          onScroll={() => {
+            checkScroll();
+            updateIndicator();
+          }}
         >
           {tabs.map((tab) => {
             const isActive = tab.id === currentTab;
@@ -320,9 +352,7 @@ function ProjectTabsInner({
             </>
           )}
 
-          {currentTab === "graph" && (
-            <MemoryGraph memories={memories} />
-          )}
+          {currentTab === "graph" && <MemoryGraph memories={memories} />}
 
           {currentTab === "members" && isAdmin && (
             <ProjectMembers

@@ -26,7 +26,7 @@ export function StatCard({
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/20 to-transparent" />
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+          <p className="font-mono text-[11px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
             {label}
           </p>
           <p className="mt-2 font-mono text-2xl font-bold text-[var(--landing-text)]">

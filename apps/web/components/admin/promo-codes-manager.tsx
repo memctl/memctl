@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -173,22 +172,28 @@ const defaultForm: FormData = {
 function getStatus(code: PromoCode): string {
   if (!code.active) return "inactive";
   const now = Date.now();
-  if (code.startsAt && new Date(code.startsAt).getTime() > now) return "scheduled";
-  if (code.expiresAt && new Date(code.expiresAt).getTime() < now) return "expired";
-  if (code.maxRedemptions !== null && code.timesRedeemed >= code.maxRedemptions) return "maxed";
+  if (code.startsAt && new Date(code.startsAt).getTime() > now)
+    return "scheduled";
+  if (code.expiresAt && new Date(code.expiresAt).getTime() < now)
+    return "expired";
+  if (code.maxRedemptions !== null && code.timesRedeemed >= code.maxRedemptions)
+    return "maxed";
   return "active";
 }
 
 function statusBadge(status: string) {
   const styles: Record<string, string> = {
     active: "bg-emerald-500/10 text-emerald-500",
-    inactive: "bg-[var(--landing-surface-2)] text-[var(--landing-text-secondary)]",
+    inactive:
+      "bg-[var(--landing-surface-2)] text-[var(--landing-text-secondary)]",
     expired: "bg-red-500/10 text-red-500",
     maxed: "bg-amber-500/10 text-amber-500",
     scheduled: "bg-blue-500/10 text-blue-500",
   };
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${styles[status] ?? styles.inactive}`}>
+    <span
+      className={`inline-flex rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${styles[status] ?? styles.inactive}`}
+    >
       {status}
     </span>
   );
@@ -263,11 +268,15 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
   }, [fetchCodes]);
 
   const filteredCodes = codes.filter((code) => {
-    if (filterStatus === "expired" && getStatus(code) !== "expired") return false;
+    if (filterStatus === "expired" && getStatus(code) !== "expired")
+      return false;
     if (filterStatus === "maxed" && getStatus(code) !== "maxed") return false;
-    if (filterStatus === "scheduled" && getStatus(code) !== "scheduled") return false;
-    if (filterDiscountType === "percent" && code.discountType !== "percent") return false;
-    if (filterDiscountType === "fixed" && code.discountType !== "fixed") return false;
+    if (filterStatus === "scheduled" && getStatus(code) !== "scheduled")
+      return false;
+    if (filterDiscountType === "percent" && code.discountType !== "percent")
+      return false;
+    if (filterDiscountType === "fixed" && code.discountType !== "fixed")
+      return false;
     return true;
   });
 
@@ -282,11 +291,17 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           body: JSON.stringify({
             description: form.description || null,
             campaign: form.campaign || null,
-            applicablePlans: form.applicablePlans.length > 0 ? form.applicablePlans : null,
+            applicablePlans:
+              form.applicablePlans.length > 0 ? form.applicablePlans : null,
             minimumPlanTier: form.minimumPlanTier || null,
-            restrictedToOrgs: form.restrictedToOrgs.length > 0 ? form.restrictedToOrgs : null,
-            maxRedemptions: form.maxRedemptions ? parseInt(form.maxRedemptions) : null,
-            maxRedemptionsPerOrg: form.maxRedemptionsPerOrg ? parseInt(form.maxRedemptionsPerOrg) : 1,
+            restrictedToOrgs:
+              form.restrictedToOrgs.length > 0 ? form.restrictedToOrgs : null,
+            maxRedemptions: form.maxRedemptions
+              ? parseInt(form.maxRedemptions)
+              : null,
+            maxRedemptionsPerOrg: form.maxRedemptionsPerOrg
+              ? parseInt(form.maxRedemptionsPerOrg)
+              : 1,
             firstSubscriptionOnly: form.firstSubscriptionOnly,
             noPreviousPromo: form.noPreviousPromo,
             startsAt: form.startsAt || null,
@@ -300,14 +315,23 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           discountAmount: parseInt(form.discountAmount),
           currency: form.currency,
           duration: form.duration,
-          durationInMonths: form.duration === "repeating" ? parseInt(form.durationInMonths) : undefined,
+          durationInMonths:
+            form.duration === "repeating"
+              ? parseInt(form.durationInMonths)
+              : undefined,
           description: form.description || null,
           campaign: form.campaign || null,
-          applicablePlans: form.applicablePlans.length > 0 ? form.applicablePlans : null,
+          applicablePlans:
+            form.applicablePlans.length > 0 ? form.applicablePlans : null,
           minimumPlanTier: form.minimumPlanTier || null,
-          restrictedToOrgs: form.restrictedToOrgs.length > 0 ? form.restrictedToOrgs : null,
-          maxRedemptions: form.maxRedemptions ? parseInt(form.maxRedemptions) : null,
-          maxRedemptionsPerOrg: form.maxRedemptionsPerOrg ? parseInt(form.maxRedemptionsPerOrg) : 1,
+          restrictedToOrgs:
+            form.restrictedToOrgs.length > 0 ? form.restrictedToOrgs : null,
+          maxRedemptions: form.maxRedemptions
+            ? parseInt(form.maxRedemptions)
+            : null,
+          maxRedemptionsPerOrg: form.maxRedemptionsPerOrg
+            ? parseInt(form.maxRedemptionsPerOrg)
+            : 1,
           firstSubscriptionOnly: form.firstSubscriptionOnly,
           noPreviousPromo: form.noPreviousPromo,
           startsAt: form.startsAt || null,
@@ -349,15 +373,24 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
       currency: code.currency ?? "usd",
       duration: code.duration as "once" | "repeating" | "forever",
       durationInMonths: String(code.durationInMonths ?? 3),
-      applicablePlans: code.applicablePlans ? JSON.parse(code.applicablePlans) : [],
+      applicablePlans: code.applicablePlans
+        ? JSON.parse(code.applicablePlans)
+        : [],
       minimumPlanTier: code.minimumPlanTier ?? "",
-      restrictedToOrgs: code.restrictedToOrgs ? JSON.parse(code.restrictedToOrgs) : [],
-      maxRedemptions: code.maxRedemptions !== null ? String(code.maxRedemptions) : "",
+      restrictedToOrgs: code.restrictedToOrgs
+        ? JSON.parse(code.restrictedToOrgs)
+        : [],
+      maxRedemptions:
+        code.maxRedemptions !== null ? String(code.maxRedemptions) : "",
       maxRedemptionsPerOrg: String(code.maxRedemptionsPerOrg ?? 1),
       firstSubscriptionOnly: code.firstSubscriptionOnly ?? false,
       noPreviousPromo: code.noPreviousPromo ?? false,
-      startsAt: code.startsAt ? new Date(code.startsAt).toISOString().slice(0, 16) : "",
-      expiresAt: code.expiresAt ? new Date(code.expiresAt).toISOString().slice(0, 16) : "",
+      startsAt: code.startsAt
+        ? new Date(code.startsAt).toISOString().slice(0, 16)
+        : "",
+      expiresAt: code.expiresAt
+        ? new Date(code.expiresAt).toISOString().slice(0, 16)
+        : "",
       bulkPrefix: "",
       bulkCount: "",
     });
@@ -456,7 +489,8 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
     }
     const base = `$${(basePrice / 100).toFixed(2)}/mo`;
     const disc = `$${(discounted / 100).toFixed(2)}/mo`;
-    if (form.duration === "once") return `Pro plan: ~${base}~ → ${disc} for first month, then ${base}`;
+    if (form.duration === "once")
+      return `Pro plan: ~${base}~ → ${disc} for first month, then ${base}`;
     if (form.duration === "forever") return `Pro plan: ~${base}~ → ${disc}`;
     return `Pro plan: ~${base}~ → ${disc} for ${form.durationInMonths || "?"} months, then ${base}`;
   };
@@ -466,15 +500,27 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
       {/* Stats Grid */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Ticket} label="Total Codes" value={stats.totalCodes} />
-        <StatCard icon={CheckCircle} label="Active Codes" value={stats.activeCodes} />
-        <StatCard icon={Hash} label="Total Redemptions" value={stats.totalRedemptions} />
-        <StatCard icon={DollarSign} label="Total Discount Given" value={formatCents(stats.totalDiscountGiven)} />
+        <StatCard
+          icon={CheckCircle}
+          label="Active Codes"
+          value={stats.activeCodes}
+        />
+        <StatCard
+          icon={Hash}
+          label="Total Redemptions"
+          value={stats.totalRedemptions}
+        />
+        <StatCard
+          icon={DollarSign}
+          label="Total Discount Given"
+          value={formatCents(stats.totalDiscountGiven)}
+        />
       </div>
 
       {/* Filters Bar */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
           <Input
             placeholder="Search by code or description..."
             value={searchQuery}
@@ -486,10 +532,21 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Campaign" />
           </SelectTrigger>
-          <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+          <SelectContent
+            position="popper"
+            align="start"
+            sideOffset={4}
+            className="zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3 z-[100] duration-200"
+            style={{
+              backgroundColor: "var(--landing-surface)",
+              borderColor: "var(--landing-border)",
+            }}
+          >
             <SelectItem value="all">All Campaigns</SelectItem>
             {campaigns.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -497,7 +554,16 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
-          <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+          <SelectContent
+            position="popper"
+            align="start"
+            sideOffset={4}
+            className="zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3 z-[100] duration-200"
+            style={{
+              backgroundColor: "var(--landing-surface)",
+              borderColor: "var(--landing-border)",
+            }}
+          >
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
@@ -506,11 +572,23 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
             <SelectItem value="scheduled">Scheduled</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={filterDiscountType} onValueChange={setFilterDiscountType}>
+        <Select
+          value={filterDiscountType}
+          onValueChange={setFilterDiscountType}
+        >
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Discount Type" />
           </SelectTrigger>
-          <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+          <SelectContent
+            position="popper"
+            align="start"
+            sideOffset={4}
+            className="zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3 z-[100] duration-200"
+            style={{
+              backgroundColor: "var(--landing-surface)",
+              borderColor: "var(--landing-border)",
+            }}
+          >
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="percent">Percentage</SelectItem>
             <SelectItem value="fixed">Fixed Amount</SelectItem>
@@ -537,7 +615,11 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           <Button size="sm" variant="outline" onClick={() => bulkToggle(false)}>
             Deactivate
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSelectedIds(new Set())}
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -550,7 +632,10 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
             <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
               <TableHead className="w-10">
                 <Checkbox
-                  checked={selectedIds.size > 0 && selectedIds.size === filteredCodes.length}
+                  checked={
+                    selectedIds.size > 0 &&
+                    selectedIds.size === filteredCodes.length
+                  }
                   onCheckedChange={(checked) => {
                     if (checked) {
                       setSelectedIds(new Set(filteredCodes.map((c) => c.id)));
@@ -560,14 +645,30 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                   }}
                 />
               </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Code</TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Discount</TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Duration</TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Plans</TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Orgs</TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Redeemed</TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Status</TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">Actions</TableHead>
+              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                Code
+              </TableHead>
+              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                Discount
+              </TableHead>
+              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                Duration
+              </TableHead>
+              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                Plans
+              </TableHead>
+              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                Orgs
+              </TableHead>
+              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                Redeemed
+              </TableHead>
+              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                Status
+              </TableHead>
+              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -575,17 +676,27 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
               <AdminTableLoader colSpan={9} />
             ) : filteredCodes.length === 0 ? (
               <TableRow className="border-[var(--landing-border)]">
-                <TableCell colSpan={9} className="py-8 text-center font-mono text-sm text-[var(--landing-text-tertiary)]">
+                <TableCell
+                  colSpan={9}
+                  className="py-8 text-center font-mono text-sm text-[var(--landing-text-tertiary)]"
+                >
                   No promo codes found
                 </TableCell>
               </TableRow>
             ) : (
               filteredCodes.map((code) => {
                 const status = getStatus(code);
-                const plans = code.applicablePlans ? JSON.parse(code.applicablePlans) as string[] : null;
-                const orgs = code.restrictedToOrgs ? JSON.parse(code.restrictedToOrgs) as string[] : null;
+                const plans = code.applicablePlans
+                  ? (JSON.parse(code.applicablePlans) as string[])
+                  : null;
+                const orgs = code.restrictedToOrgs
+                  ? (JSON.parse(code.restrictedToOrgs) as string[])
+                  : null;
                 return (
-                  <TableRow key={code.id} className="border-[var(--landing-border)]">
+                  <TableRow
+                    key={code.id}
+                    className="border-[var(--landing-border)]"
+                  >
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.has(code.id)}
@@ -602,7 +713,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => copyCode(code.code)}
-                        className="h-auto p-0 font-mono text-sm font-medium text-[var(--landing-text)] hover:text-[#F97316] hover:bg-transparent"
+                        className="h-auto p-0 font-mono text-sm font-medium text-[var(--landing-text)] hover:bg-transparent hover:text-[#F97316]"
                         title="Click to copy"
                       >
                         {code.code}
@@ -618,13 +729,18 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                       {plans ? (
                         <div className="flex flex-wrap gap-1">
                           {plans.map((p) => (
-                            <span key={p} className="inline-flex rounded-full bg-[#F97316]/10 px-2 py-0.5 font-mono text-[10px] font-medium capitalize text-[#F97316]">
+                            <span
+                              key={p}
+                              className="inline-flex rounded-full bg-[#F97316]/10 px-2 py-0.5 font-mono text-[10px] font-medium text-[#F97316] capitalize"
+                            >
                               {p}
                             </span>
                           ))}
                         </div>
                       ) : (
-                        <span className="font-mono text-xs text-[var(--landing-text-tertiary)]">All</span>
+                        <span className="font-mono text-xs text-[var(--landing-text-tertiary)]">
+                          All
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -633,7 +749,9 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                           {orgs.length} org{orgs.length !== 1 ? "s" : ""}
                         </span>
                       ) : (
-                        <span className="font-mono text-xs text-[var(--landing-text-tertiary)]">All</span>
+                        <span className="font-mono text-xs text-[var(--landing-text-tertiary)]">
+                          All
+                        </span>
                       )}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-[var(--landing-text-secondary)]">
@@ -643,7 +761,11 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -654,18 +776,23 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                           <DropdownMenuItem onClick={() => openEdit(code)}>
                             <Pencil className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => {
-                            setCloneSourceId(code.id);
-                            setCloneCode("");
-                            setCloneDialogOpen(true);
-                          }}>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setCloneSourceId(code.id);
+                              setCloneCode("");
+                              setCloneDialogOpen(true);
+                            }}
+                          >
                             <Copy className="mr-2 h-4 w-4" /> Clone
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => toggleActive(code)}>
                             <Power className="mr-2 h-4 w-4" />
                             {code.active ? "Deactivate" : "Activate"}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setDeleteConfirmId(code.id)} className="text-red-500 focus:text-red-500">
+                          <DropdownMenuItem
+                            onClick={() => setDeleteConfirmId(code.id)}
+                            className="text-red-500 focus:text-red-500"
+                          >
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -681,7 +808,13 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-5" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto p-5 sm:max-w-5xl"
+          style={{
+            backgroundColor: "var(--landing-surface)",
+            borderColor: "var(--landing-border)",
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="font-mono text-[var(--landing-text)]">
               {editingId ? "Edit Promo Code" : "Create Promo Code"}
@@ -693,11 +826,20 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
             <div className="space-y-3">
               {!editingId && (
                 <div className="space-y-1">
-                  <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Code</Label>
+                  <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                    Code
+                  </Label>
                   <div className="flex gap-2">
                     <Input
                       value={form.code}
-                      onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "") })}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          code: e.target.value
+                            .toUpperCase()
+                            .replace(/[^A-Z0-9-]/g, ""),
+                        })
+                      }
                       placeholder="LAUNCH50"
                       className="font-mono"
                       disabled={showBulk}
@@ -705,7 +847,9 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setForm({ ...form, code: generateRandomCode() })}
+                      onClick={() =>
+                        setForm({ ...form, code: generateRandomCode() })
+                      }
                       className="shrink-0"
                       disabled={showBulk}
                     >
@@ -717,10 +861,14 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Campaign</Label>
+                  <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                    Campaign
+                  </Label>
                   <Input
                     value={form.campaign}
-                    onChange={(e) => setForm({ ...form, campaign: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, campaign: e.target.value })
+                    }
                     placeholder="launch-2026"
                     list="campaign-list"
                   />
@@ -731,40 +879,64 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                   </datalist>
                 </div>
                 <div className="space-y-1">
-                  <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Description</Label>
+                  <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                    Description
+                  </Label>
                   <Input
                     value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, description: e.target.value })
+                    }
                     placeholder="Partner deal with Acme"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Discount</Label>
+                <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                  Discount
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   <Select
                     value={form.discountType}
-                    onValueChange={(v) => setForm({ ...form, discountType: v as "percent" | "fixed" })}
+                    onValueChange={(v) =>
+                      setForm({
+                        ...form,
+                        discountType: v as "percent" | "fixed",
+                      })
+                    }
                     disabled={!!editingId}
                   >
                     <SelectTrigger className="w-[120px]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+                    <SelectContent
+                      position="popper"
+                      align="start"
+                      sideOffset={4}
+                      className="zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3 z-[100] duration-200"
+                      style={{
+                        backgroundColor: "var(--landing-surface)",
+                        borderColor: "var(--landing-border)",
+                      }}
+                    >
                       <SelectItem value="percent">Percentage</SelectItem>
                       <SelectItem value="fixed">Fixed</SelectItem>
                     </SelectContent>
                   </Select>
                   <div className="relative min-w-[100px] flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--landing-text-tertiary)]">
+                    <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-[var(--landing-text-tertiary)]">
                       {form.discountType === "percent" ? "%" : "$"}
                     </span>
                     <Input
                       type="number"
                       value={form.discountAmount}
-                      onChange={(e) => setForm({ ...form, discountAmount: e.target.value })}
-                      placeholder={form.discountType === "percent" ? "50" : "500"}
+                      onChange={(e) =>
+                        setForm({ ...form, discountAmount: e.target.value })
+                      }
+                      placeholder={
+                        form.discountType === "percent" ? "50" : "500"
+                      }
                       className="pl-8"
                       disabled={!!editingId}
                     />
@@ -778,7 +950,16 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                       <SelectTrigger className="w-[90px]">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+                      <SelectContent
+                        position="popper"
+                        align="start"
+                        sideOffset={4}
+                        className="zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3 z-[100] duration-200"
+                        style={{
+                          backgroundColor: "var(--landing-surface)",
+                          borderColor: "var(--landing-border)",
+                        }}
+                      >
                         <SelectItem value="usd">USD</SelectItem>
                         <SelectItem value="eur">EUR</SelectItem>
                         <SelectItem value="gbp">GBP</SelectItem>
@@ -789,17 +970,33 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
               </div>
 
               <div className="space-y-1">
-                <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Duration</Label>
+                <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                  Duration
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   <Select
                     value={form.duration}
-                    onValueChange={(v) => setForm({ ...form, duration: v as "once" | "repeating" | "forever" })}
+                    onValueChange={(v) =>
+                      setForm({
+                        ...form,
+                        duration: v as "once" | "repeating" | "forever",
+                      })
+                    }
                     disabled={!!editingId}
                   >
                     <SelectTrigger className="w-[120px]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+                    <SelectContent
+                      position="popper"
+                      align="start"
+                      sideOffset={4}
+                      className="zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3 z-[100] duration-200"
+                      style={{
+                        backgroundColor: "var(--landing-surface)",
+                        borderColor: "var(--landing-border)",
+                      }}
+                    >
                       <SelectItem value="once">Once</SelectItem>
                       <SelectItem value="repeating">Repeating</SelectItem>
                       <SelectItem value="forever">Forever</SelectItem>
@@ -812,33 +1009,47 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                         min={1}
                         max={36}
                         value={form.durationInMonths}
-                        onChange={(e) => setForm({ ...form, durationInMonths: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, durationInMonths: e.target.value })
+                        }
                         className="w-20"
                         disabled={!!editingId}
                       />
-                      <span className="text-xs text-[var(--landing-text-secondary)]">months</span>
+                      <span className="text-xs text-[var(--landing-text-secondary)]">
+                        months
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="space-y-1">
-                <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Scheduling</Label>
+                <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                  Scheduling
+                </Label>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <span className="text-[10px] text-[var(--landing-text-tertiary)]">Starts</span>
+                    <span className="text-[10px] text-[var(--landing-text-tertiary)]">
+                      Starts
+                    </span>
                     <Input
                       type="datetime-local"
                       value={form.startsAt}
-                      onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, startsAt: e.target.value })
+                      }
                     />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[10px] text-[var(--landing-text-tertiary)]">Expires</span>
+                    <span className="text-[10px] text-[var(--landing-text-tertiary)]">
+                      Expires
+                    </span>
                     <Input
                       type="datetime-local"
                       value={form.expiresAt}
-                      onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, expiresAt: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -850,34 +1061,54 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowBulk(!showBulk)}
-                    className="h-auto p-0 font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)] hover:bg-transparent"
+                    className="h-auto p-0 font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase hover:bg-transparent hover:text-[var(--landing-text)]"
                   >
-                    <ChevronDown className={`mr-2 h-3 w-3 transition-transform ${showBulk ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`mr-2 h-3 w-3 transition-transform ${showBulk ? "rotate-180" : ""}`}
+                    />
                     Bulk Generation
                   </Button>
                   {showBulk && (
                     <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
                       <div className="space-y-1">
-                        <span className="text-[10px] text-[var(--landing-text-tertiary)]">Prefix</span>
+                        <span className="text-[10px] text-[var(--landing-text-tertiary)]">
+                          Prefix
+                        </span>
                         <Input
                           value={form.bulkPrefix}
-                          onChange={(e) => setForm({ ...form, bulkPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "") })}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              bulkPrefix: e.target.value
+                                .toUpperCase()
+                                .replace(/[^A-Z0-9-]/g, ""),
+                            })
+                          }
                           placeholder="BETA"
                           className="font-mono"
                         />
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[10px] text-[var(--landing-text-tertiary)]">Count (2-100)</span>
+                        <span className="text-[10px] text-[var(--landing-text-tertiary)]">
+                          Count (2-100)
+                        </span>
                         <Input
                           type="number"
                           min={2}
                           max={100}
                           value={form.bulkCount}
-                          onChange={(e) => setForm({ ...form, bulkCount: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, bulkCount: e.target.value })
+                          }
                         />
                       </div>
                       <p className="col-span-2 text-[10px] text-[var(--landing-text-tertiary)]">
-                        Generates {form.bulkPrefix || "PREFIX"}001 through {form.bulkPrefix || "PREFIX"}{String(parseInt(form.bulkCount) || 10).padStart(3, "0")}
+                        Generates {form.bulkPrefix || "PREFIX"}001 through{" "}
+                        {form.bulkPrefix || "PREFIX"}
+                        {String(parseInt(form.bulkCount) || 10).padStart(
+                          3,
+                          "0",
+                        )}
                       </p>
                     </div>
                   )}
@@ -887,10 +1118,14 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
             {/* Column 2: Restrictions */}
             <div className="space-y-3">
-              <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Restrictions</Label>
+              <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                Restrictions
+              </Label>
 
               <div className="space-y-1.5">
-                <span className="text-xs text-[var(--landing-text-secondary)]">Applicable Plans</span>
+                <span className="text-xs text-[var(--landing-text-secondary)]">
+                  Applicable Plans
+                </span>
                 <div className="flex flex-wrap gap-2">
                   {PLAN_OPTIONS.map((plan) => (
                     <label key={plan} className="flex items-center gap-1.5">
@@ -898,85 +1133,151 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                         checked={form.applicablePlans.includes(plan)}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            setForm({ ...form, applicablePlans: [...form.applicablePlans, plan] });
+                            setForm({
+                              ...form,
+                              applicablePlans: [...form.applicablePlans, plan],
+                            });
                           } else {
-                            setForm({ ...form, applicablePlans: form.applicablePlans.filter((p) => p !== plan) });
+                            setForm({
+                              ...form,
+                              applicablePlans: form.applicablePlans.filter(
+                                (p) => p !== plan,
+                              ),
+                            });
                           }
                         }}
                       />
-                      <span className="text-xs capitalize text-[var(--landing-text)]">{plan}</span>
+                      <span className="text-xs text-[var(--landing-text)] capitalize">
+                        {plan}
+                      </span>
                     </label>
                   ))}
                 </div>
                 {form.applicablePlans.length === 0 && (
-                  <p className="text-[10px] text-[var(--landing-text-tertiary)]">No selection = all plans</p>
+                  <p className="text-[10px] text-[var(--landing-text-tertiary)]">
+                    No selection = all plans
+                  </p>
                 )}
               </div>
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <span className="text-[10px] text-[var(--landing-text-tertiary)]">Min Tier</span>
-                  <Select value={form.minimumPlanTier} onValueChange={(v) => setForm({ ...form, minimumPlanTier: v === "none" ? "" : v })}>
+                  <span className="text-[10px] text-[var(--landing-text-tertiary)]">
+                    Min Tier
+                  </span>
+                  <Select
+                    value={form.minimumPlanTier}
+                    onValueChange={(v) =>
+                      setForm({
+                        ...form,
+                        minimumPlanTier: v === "none" ? "" : v,
+                      })
+                    }
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="None" />
                     </SelectTrigger>
-                    <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+                    <SelectContent
+                      position="popper"
+                      align="start"
+                      sideOffset={4}
+                      className="zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3 z-[100] duration-200"
+                      style={{
+                        backgroundColor: "var(--landing-surface)",
+                        borderColor: "var(--landing-border)",
+                      }}
+                    >
                       {PLAN_TIER_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value || "none"} value={opt.value || "none"}>{opt.label}</SelectItem>
+                        <SelectItem
+                          key={opt.value || "none"}
+                          value={opt.value || "none"}
+                        >
+                          {opt.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] text-[var(--landing-text-tertiary)]">Max Total</span>
+                  <span className="text-[10px] text-[var(--landing-text-tertiary)]">
+                    Max Total
+                  </span>
                   <Input
                     type="number"
                     value={form.maxRedemptions}
-                    onChange={(e) => setForm({ ...form, maxRedemptions: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, maxRedemptions: e.target.value })
+                    }
                     placeholder="\u221E"
                   />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] text-[var(--landing-text-tertiary)]">Max/Org</span>
+                  <span className="text-[10px] text-[var(--landing-text-tertiary)]">
+                    Max/Org
+                  </span>
                   <Input
                     type="number"
                     value={form.maxRedemptionsPerOrg}
-                    onChange={(e) => setForm({ ...form, maxRedemptionsPerOrg: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, maxRedemptionsPerOrg: e.target.value })
+                    }
                   />
                 </div>
               </div>
 
-              <div className="rounded-lg border p-3 space-y-2">
+              <div className="space-y-2 rounded-lg border p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[var(--landing-text)]">First subscription only</span>
+                  <span className="text-xs text-[var(--landing-text)]">
+                    First subscription only
+                  </span>
                   <Switch
                     checked={form.firstSubscriptionOnly}
-                    onCheckedChange={(v) => setForm({ ...form, firstSubscriptionOnly: v })}
+                    onCheckedChange={(v) =>
+                      setForm({ ...form, firstSubscriptionOnly: v })
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[var(--landing-text)]">No previous promo</span>
+                  <span className="text-xs text-[var(--landing-text)]">
+                    No previous promo
+                  </span>
                   <Switch
                     checked={form.noPreviousPromo}
-                    onCheckedChange={(v) => setForm({ ...form, noPreviousPromo: v })}
+                    onCheckedChange={(v) =>
+                      setForm({ ...form, noPreviousPromo: v })
+                    }
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <span className="text-xs text-[var(--landing-text-secondary)]">Org Restrictions</span>
+                <span className="text-xs text-[var(--landing-text-secondary)]">
+                  Org Restrictions
+                </span>
                 <Select
                   value=""
                   onValueChange={(v) => {
                     if (v && !form.restrictedToOrgs.includes(v)) {
-                      setForm({ ...form, restrictedToOrgs: [...form.restrictedToOrgs, v] });
+                      setForm({
+                        ...form,
+                        restrictedToOrgs: [...form.restrictedToOrgs, v],
+                      });
                     }
                   }}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Add organization..." />
                   </SelectTrigger>
-                  <SelectContent position="popper" align="start" sideOffset={4} className="z-[100] duration-200 zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+                  <SelectContent
+                    position="popper"
+                    align="start"
+                    sideOffset={4}
+                    className="zoom-in-90 data-[state=closed]:zoom-out-90 slide-in-from-top-3 data-[state=closed]:slide-out-to-top-3 z-[100] duration-200"
+                    style={{
+                      backgroundColor: "var(--landing-surface)",
+                      borderColor: "var(--landing-border)",
+                    }}
+                  >
                     {orgList
                       .filter((o) => !form.restrictedToOrgs.includes(o.id))
                       .map((org) => (
@@ -991,9 +1292,24 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                     {form.restrictedToOrgs.map((orgId) => {
                       const org = orgList.find((o) => o.id === orgId);
                       return (
-                        <span key={orgId} className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] text-blue-500">
+                        <span
+                          key={orgId}
+                          className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] text-blue-500"
+                        >
                           {org?.name ?? orgId}
-                          <Button variant="ghost" size="sm" className="h-auto w-auto p-0 hover:bg-transparent" onClick={() => setForm({ ...form, restrictedToOrgs: form.restrictedToOrgs.filter((id) => id !== orgId) })}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto w-auto p-0 hover:bg-transparent"
+                            onClick={() =>
+                              setForm({
+                                ...form,
+                                restrictedToOrgs: form.restrictedToOrgs.filter(
+                                  (id) => id !== orgId,
+                                ),
+                              })
+                            }
+                          >
                             <X className="h-3 w-3" />
                           </Button>
                         </span>
@@ -1005,20 +1321,36 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || (!editingId && !showBulk && !form.code) || !form.discountAmount}
+                disabled={
+                  submitting ||
+                  (!editingId && !showBulk && !form.code) ||
+                  !form.discountAmount
+                }
                 variant="outline"
-                className="w-full font-mono text-[#F97316] border-[#F97316]/30 hover:bg-[#F97316]/10"
+                className="w-full border-[#F97316]/30 font-mono text-[#F97316] hover:bg-[#F97316]/10"
               >
-                {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : editingId ? "Save Changes" : showBulk ? "Generate Codes" : "Create Code"}
+                {submitting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : editingId ? (
+                  "Save Changes"
+                ) : showBulk ? (
+                  "Generate Codes"
+                ) : (
+                  "Create Code"
+                )}
               </Button>
             </div>
 
             {/* Column 3: Live Preview */}
             <div className="space-y-2 md:col-span-2 xl:col-span-1">
-              <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">Preview</Label>
+              <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                Preview
+              </Label>
               <div className="rounded-lg border p-4">
                 <p className="font-mono text-base font-bold text-[var(--landing-text)]">
-                  {showBulk ? `${form.bulkPrefix || "PREFIX"}001` : form.code || "CODE"}
+                  {showBulk
+                    ? `${form.bulkPrefix || "PREFIX"}001`
+                    : form.code || "CODE"}
                 </p>
 
                 <div className="mt-2">
@@ -1034,16 +1366,26 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                   </p>
                 </div>
 
-                {(form.applicablePlans.length > 0 || form.minimumPlanTier || form.firstSubscriptionOnly || form.noPreviousPromo || form.restrictedToOrgs.length > 0 || form.maxRedemptions || form.expiresAt) && (
+                {(form.applicablePlans.length > 0 ||
+                  form.minimumPlanTier ||
+                  form.firstSubscriptionOnly ||
+                  form.noPreviousPromo ||
+                  form.restrictedToOrgs.length > 0 ||
+                  form.maxRedemptions ||
+                  form.expiresAt) && (
                   <div className="mt-3 flex flex-wrap gap-1">
                     {form.applicablePlans.length > 0 && (
                       <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
-                        {form.applicablePlans.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(", ")}
+                        {form.applicablePlans
+                          .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+                          .join(", ")}
                       </span>
                     )}
                     {form.minimumPlanTier && (
                       <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
-                        {form.minimumPlanTier.charAt(0).toUpperCase() + form.minimumPlanTier.slice(1)}+
+                        {form.minimumPlanTier.charAt(0).toUpperCase() +
+                          form.minimumPlanTier.slice(1)}
+                        +
                       </span>
                     )}
                     {form.firstSubscriptionOnly && (
@@ -1058,7 +1400,8 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                     )}
                     {form.restrictedToOrgs.length > 0 && (
                       <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
-                        {form.restrictedToOrgs.length} org{form.restrictedToOrgs.length !== 1 ? "s" : ""}
+                        {form.restrictedToOrgs.length} org
+                        {form.restrictedToOrgs.length !== 1 ? "s" : ""}
                       </span>
                     )}
                     {form.maxRedemptions && (
@@ -1075,12 +1418,14 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                 )}
 
                 <div className="mt-3 border-t border-[var(--landing-border)] pt-3">
-                  {form.startsAt && new Date(form.startsAt).getTime() > Date.now() ? (
+                  {form.startsAt &&
+                  new Date(form.startsAt).getTime() > Date.now() ? (
                     <span className="flex items-center gap-1.5 text-[10px] text-blue-500">
                       <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                       Scheduled: {new Date(form.startsAt).toLocaleDateString()}
                     </span>
-                  ) : form.expiresAt && new Date(form.expiresAt).getTime() < Date.now() ? (
+                  ) : form.expiresAt &&
+                    new Date(form.expiresAt).getTime() < Date.now() ? (
                     <span className="flex items-center gap-1.5 text-[10px] text-red-500">
                       <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                       Expired
@@ -1100,16 +1445,30 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
       {/* Clone Dialog */}
       <Dialog open={cloneDialogOpen} onOpenChange={setCloneDialogOpen}>
-        <DialogContent className="sm:max-w-md" style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+        <DialogContent
+          className="sm:max-w-md"
+          style={{
+            backgroundColor: "var(--landing-surface)",
+            borderColor: "var(--landing-border)",
+          }}
+        >
           <DialogHeader>
-            <DialogTitle className="font-mono text-[var(--landing-text)]">Clone Promo Code</DialogTitle>
+            <DialogTitle className="font-mono text-[var(--landing-text)]">
+              Clone Promo Code
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">New Code</Label>
+              <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                New Code
+              </Label>
               <Input
                 value={cloneCode}
-                onChange={(e) => setCloneCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""))}
+                onChange={(e) =>
+                  setCloneCode(
+                    e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""),
+                  )
+                }
                 placeholder="NEW-CODE"
                 className="font-mono"
               />
@@ -1126,16 +1485,33 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
-        <DialogContent style={{ backgroundColor: "var(--landing-surface)", borderColor: "var(--landing-border)" }}>
+      <Dialog
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmId(null);
+        }}
+      >
+        <DialogContent
+          style={{
+            backgroundColor: "var(--landing-surface)",
+            borderColor: "var(--landing-border)",
+          }}
+        >
           <DialogHeader>
-            <DialogTitle className="font-mono text-[var(--landing-text)]">Deactivate Promo Code</DialogTitle>
+            <DialogTitle className="font-mono text-[var(--landing-text)]">
+              Deactivate Promo Code
+            </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-[var(--landing-text-secondary)]">
-            Are you sure you want to deactivate &ldquo;{codes.find((c) => c.id === deleteConfirmId)?.code}&rdquo;?
+            Are you sure you want to deactivate &ldquo;
+            {codes.find((c) => c.id === deleteConfirmId)?.code}&rdquo;?
           </p>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDeleteConfirmId(null)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteConfirmId(null)}
+            >
               Cancel
             </Button>
             <Button
@@ -1166,75 +1542,167 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                   <Ticket className="h-4 w-4" />
                   {formatDiscount(detailCode)} {formatDuration(detailCode)}
                 </span>
-                <div className="mt-3">
-                  {statusBadge(getStatus(detailCode))}
-                </div>
+                <div className="mt-3">{statusBadge(getStatus(detailCode))}</div>
               </div>
 
               {/* Settings summary */}
               <div className="space-y-3">
-                <h4 className="font-mono text-xs uppercase tracking-wider text-[var(--landing-text-tertiary)]">Settings</h4>
+                <h4 className="font-mono text-xs tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  Settings
+                </h4>
                 <dl className="space-y-2 text-sm">
                   {detailCode.description && (
-                    <div><dt className="text-[var(--landing-text-tertiary)]">Description</dt><dd className="text-[var(--landing-text)]">{detailCode.description}</dd></div>
+                    <div>
+                      <dt className="text-[var(--landing-text-tertiary)]">
+                        Description
+                      </dt>
+                      <dd className="text-[var(--landing-text)]">
+                        {detailCode.description}
+                      </dd>
+                    </div>
                   )}
                   {detailCode.campaign && (
-                    <div><dt className="text-[var(--landing-text-tertiary)]">Campaign</dt><dd className="text-[var(--landing-text)]">{detailCode.campaign}</dd></div>
+                    <div>
+                      <dt className="text-[var(--landing-text-tertiary)]">
+                        Campaign
+                      </dt>
+                      <dd className="text-[var(--landing-text)]">
+                        {detailCode.campaign}
+                      </dd>
+                    </div>
                   )}
-                  <div><dt className="text-[var(--landing-text-tertiary)]">Redeemed</dt><dd className="text-[var(--landing-text)]">{detailCode.timesRedeemed} / {detailCode.maxRedemptions ?? "\u221E"}</dd></div>
-                  <div><dt className="text-[var(--landing-text-tertiary)]">Total Discount</dt><dd className="text-[var(--landing-text)]">{formatCents(detailCode.totalDiscountGiven)}</dd></div>
-                  <div><dt className="text-[var(--landing-text-tertiary)]">Per Org Limit</dt><dd className="text-[var(--landing-text)]">{detailCode.maxRedemptionsPerOrg ?? 1}</dd></div>
+                  <div>
+                    <dt className="text-[var(--landing-text-tertiary)]">
+                      Redeemed
+                    </dt>
+                    <dd className="text-[var(--landing-text)]">
+                      {detailCode.timesRedeemed} /{" "}
+                      {detailCode.maxRedemptions ?? "\u221E"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--landing-text-tertiary)]">
+                      Total Discount
+                    </dt>
+                    <dd className="text-[var(--landing-text)]">
+                      {formatCents(detailCode.totalDiscountGiven)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--landing-text-tertiary)]">
+                      Per Org Limit
+                    </dt>
+                    <dd className="text-[var(--landing-text)]">
+                      {detailCode.maxRedemptionsPerOrg ?? 1}
+                    </dd>
+                  </div>
                   {detailCode.firstSubscriptionOnly && (
-                    <div><dt className="text-[var(--landing-text-tertiary)]">First Subscription Only</dt><dd className="text-emerald-500">Yes</dd></div>
+                    <div>
+                      <dt className="text-[var(--landing-text-tertiary)]">
+                        First Subscription Only
+                      </dt>
+                      <dd className="text-emerald-500">Yes</dd>
+                    </div>
                   )}
                   {detailCode.noPreviousPromo && (
-                    <div><dt className="text-[var(--landing-text-tertiary)]">No Previous Promo</dt><dd className="text-emerald-500">Yes</dd></div>
+                    <div>
+                      <dt className="text-[var(--landing-text-tertiary)]">
+                        No Previous Promo
+                      </dt>
+                      <dd className="text-emerald-500">Yes</dd>
+                    </div>
                   )}
                   {detailCode.startsAt && (
-                    <div><dt className="text-[var(--landing-text-tertiary)]">Starts At</dt><dd className="text-[var(--landing-text)]">{new Date(detailCode.startsAt).toLocaleString()}</dd></div>
+                    <div>
+                      <dt className="text-[var(--landing-text-tertiary)]">
+                        Starts At
+                      </dt>
+                      <dd className="text-[var(--landing-text)]">
+                        {new Date(detailCode.startsAt).toLocaleString()}
+                      </dd>
+                    </div>
                   )}
                   {detailCode.expiresAt && (
-                    <div><dt className="text-[var(--landing-text-tertiary)]">Expires At</dt><dd className="text-[var(--landing-text)]">{new Date(detailCode.expiresAt).toLocaleString()}</dd></div>
+                    <div>
+                      <dt className="text-[var(--landing-text-tertiary)]">
+                        Expires At
+                      </dt>
+                      <dd className="text-[var(--landing-text)]">
+                        {new Date(detailCode.expiresAt).toLocaleString()}
+                      </dd>
+                    </div>
                   )}
                 </dl>
               </div>
 
               {/* Actions */}
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => { setDetailOpen(false); openEdit(detailCode); }}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setDetailOpen(false);
+                    openEdit(detailCode);
+                  }}
+                >
                   <Pencil className="mr-2 h-4 w-4" /> Edit
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => {
-                  setDetailOpen(false);
-                  setCloneSourceId(detailCode.id);
-                  setCloneCode("");
-                  setCloneDialogOpen(true);
-                }}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setDetailOpen(false);
+                    setCloneSourceId(detailCode.id);
+                    setCloneCode("");
+                    setCloneDialogOpen(true);
+                  }}
+                >
                   <Copy className="mr-2 h-4 w-4" /> Clone
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => { setDetailOpen(false); setDeleteConfirmId(detailCode.id); }} className="border-red-500/20 text-red-500 hover:bg-red-500/10">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setDetailOpen(false);
+                    setDeleteConfirmId(detailCode.id);
+                  }}
+                  className="border-red-500/20 text-red-500 hover:bg-red-500/10"
+                >
                   <Trash2 className="mr-2 h-4 w-4" /> Delete
                 </Button>
               </div>
 
               {/* Redemption history */}
               <div>
-                <h4 className="font-mono text-xs uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <h4 className="font-mono text-xs tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                   Redemption History ({detailRedemptions.length})
                 </h4>
                 {detailRedemptions.length === 0 ? (
-                  <p className="mt-3 text-sm text-[var(--landing-text-tertiary)]">No redemptions yet</p>
+                  <p className="mt-3 text-sm text-[var(--landing-text-tertiary)]">
+                    No redemptions yet
+                  </p>
                 ) : (
                   <div className="mt-3 space-y-2">
                     {detailRedemptions.map((r) => (
-                      <div key={r.id} className="flex items-center justify-between rounded-lg border border-[var(--landing-border)] p-3">
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between rounded-lg border border-[var(--landing-border)] p-3"
+                      >
                         <div>
-                          <p className="text-sm font-medium text-[var(--landing-text)]">{r.orgName ?? "Unknown Org"}</p>
-                          <p className="text-xs text-[var(--landing-text-tertiary)]">{r.userName} &middot; {r.planId}</p>
+                          <p className="text-sm font-medium text-[var(--landing-text)]">
+                            {r.orgName ?? "Unknown Org"}
+                          </p>
+                          <p className="text-xs text-[var(--landing-text-tertiary)]">
+                            {r.userName} &middot; {r.planId}
+                          </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-mono text-sm font-medium text-[var(--landing-text)]">{formatCents(r.discountApplied)}</p>
-                          <p className="text-xs text-[var(--landing-text-tertiary)]">{new Date(r.redeemedAt).toLocaleDateString()}</p>
+                          <p className="font-mono text-sm font-medium text-[var(--landing-text)]">
+                            {formatCents(r.discountApplied)}
+                          </p>
+                          <p className="text-xs text-[var(--landing-text-tertiary)]">
+                            {new Date(r.redeemedAt).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
                     ))}

@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { cosineSimilarity, quantizeEmbedding, dequantizeEmbedding, serializeEmbedding, deserializeEmbedding } from "../lib/embeddings";
+import {
+  cosineSimilarity,
+  quantizeEmbedding,
+  dequantizeEmbedding,
+  serializeEmbedding,
+  deserializeEmbedding,
+} from "../lib/embeddings";
 
 describe("cosineSimilarity", () => {
   it("returns 1 for identical vectors", () => {

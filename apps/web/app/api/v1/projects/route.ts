@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   // Verify membership
@@ -77,16 +80,23 @@ export async function GET(req: NextRequest) {
 
   // Pagination
   const pageParam = parseInt(req.nextUrl.searchParams.get("page") ?? "1", 10);
-  const perPageParam = parseInt(req.nextUrl.searchParams.get("per_page") ?? "20", 10);
+  const perPageParam = parseInt(
+    req.nextUrl.searchParams.get("per_page") ?? "20",
+    10,
+  );
   const page = Math.max(1, pageParam);
   const perPage = Math.max(1, Math.min(100, perPageParam));
   const offset = (page - 1) * perPage;
 
-  const projectFilter = accessibleProjectIds !== null
-    ? accessibleProjectIds.length > 0
-      ? and(eq(projects.orgId, org.id), inArray(projects.id, accessibleProjectIds))
-      : undefined
-    : eq(projects.orgId, org.id);
+  const projectFilter =
+    accessibleProjectIds !== null
+      ? accessibleProjectIds.length > 0
+        ? and(
+            eq(projects.orgId, org.id),
+            inArray(projects.id, accessibleProjectIds),
+          )
+        : undefined
+      : eq(projects.orgId, org.id);
 
   // If member has no project access, return empty
   if (accessibleProjectIds !== null && accessibleProjectIds.length === 0) {
@@ -97,10 +107,7 @@ export async function GET(req: NextRequest) {
   }
 
   const [totalResult, projectList] = await Promise.all([
-    db
-      .select({ value: count() })
-      .from(projects)
-      .where(projectFilter),
+    db.select({ value: count() }).from(projects).where(projectFilter),
     db
       .select()
       .from(projects)
@@ -145,7 +152,10 @@ export async function POST(req: NextRequest) {
     .limit(1);
 
   if (!org) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   // Verify admin or owner
@@ -161,7 +171,10 @@ export async function POST(req: NextRequest) {
     .limit(1);
 
   if (!member || member.role === "member") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   // Check project limit
@@ -170,7 +183,10 @@ export async function POST(req: NextRequest) {
     .from(projects)
     .where(eq(projects.orgId, org.id));
 
-  if (!isUnlimited(org.projectLimit) && existingProjects.length >= org.projectLimit) {
+  if (
+    !isUnlimited(org.projectLimit) &&
+    existingProjects.length >= org.projectLimit
+  ) {
     return NextResponse.json(
       { error: "Project limit reached. Upgrade your plan." },
       { status: 403 },
@@ -187,9 +203,7 @@ export async function POST(req: NextRequest) {
   const [existingSlug] = await db
     .select()
     .from(projects)
-    .where(
-      and(eq(projects.orgId, org.id), eq(projects.slug, parsed.data.slug)),
-    )
+    .where(and(eq(projects.orgId, org.id), eq(projects.slug, parsed.data.slug)))
     .limit(1);
 
   if (existingSlug) {

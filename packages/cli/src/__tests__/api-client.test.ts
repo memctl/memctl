@@ -9,13 +9,25 @@ vi.mock("../local-cache", () => {
   return {
     LocalCache: class {
       sync() {}
-      get() { return null; }
-      search() { return []; }
-      list() { return []; }
-      getByPath() { return null; }
-      isStale() { return true; }
+      get() {
+        return null;
+      }
+      search() {
+        return [];
+      }
+      list() {
+        return [];
+      }
+      getByPath() {
+        return null;
+      }
+      isStale() {
+        return true;
+      }
       queueWrite() {}
-      getPendingWrites() { return []; }
+      getPendingWrites() {
+        return [];
+      }
       clearPendingWrites() {}
     },
   };
@@ -46,7 +58,7 @@ describe("ApiClient", () => {
     await client.listMemories();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    const [url, opts] = mockFetch.mock.calls[0];
+    const [, opts] = mockFetch.mock.calls[0];
     expect(opts.headers.Authorization).toBe("Bearer test-token");
     expect(opts.headers["X-Org-Slug"]).toBe("test-org");
     expect(opts.headers["X-Project-Slug"]).toBe("test-project");
@@ -114,7 +126,11 @@ describe("ApiClient", () => {
 
     // Override the cache with a very short TTL and no stale window
     const cacheModule = await import("../cache");
-    (client as unknown as { cache: InstanceType<typeof cacheModule.MemoryCache> }).cache = new cacheModule.MemoryCache(10, 0); // 10ms TTL, 0ms stale
+    (
+      client as unknown as {
+        cache: InstanceType<typeof cacheModule.MemoryCache>;
+      }
+    ).cache = new cacheModule.MemoryCache(10, 0); // 10ms TTL, 0ms stale
 
     const data = { memory: { key: "k" } };
 

@@ -1,17 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, jsonError, checkRateLimit } from "@/lib/api-middleware";
+import {
+  authenticateRequest,
+  jsonError,
+  checkRateLimit,
+} from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { memories, memoryVersions, projects, activityLogs } from "@memctl/db/schema";
+import {
+  memories,
+  memoryVersions,
+  projects,
+  activityLogs,
+} from "@memctl/db/schema";
 import { eq, and, like, isNull, inArray, desc, or, lt } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { memoryStoreSchema } from "@memctl/shared/validators";
 import { getOrgMemoryCapacity, resolveOrgAndProject } from "./capacity-utils";
-import { ensureFts, ftsSearch, vectorSearch, mergeSearchResults } from "@/lib/fts";
+import {
+  ensureFts,
+  ftsSearch,
+  vectorSearch,
+  mergeSearchResults,
+} from "@/lib/fts";
 import { generateETag, checkConditional } from "@/lib/etag";
 import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
 import { validateContent } from "@/lib/schema-validator";
 import { contextTypes } from "@memctl/db/schema";
-import { logger } from "@/lib/logger";
 import { computeRelevanceScore } from "@memctl/shared/relevance";
 
 export async function GET(req: NextRequest) {
@@ -25,7 +38,11 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) {
     return jsonError("Project not found", 404);
   }
@@ -48,19 +65,22 @@ export async function GET(req: NextRequest) {
       .select({ id: projects.id })
       .from(projects)
       .where(eq(projects.orgId, org.id));
-    sharedProjectIds = orgProjects.map((p) => p.id).filter((id) => id !== project.id);
+    sharedProjectIds = orgProjects
+      .map((p) => p.id)
+      .filter((id) => id !== project.id);
   }
 
   // Build scope filter: own project memories + shared memories from other projects
-  const scopeFilter = sharedProjectIds.length > 0
-    ? or(
-        eq(memories.projectId, project.id),
-        and(
-          inArray(memories.projectId, sharedProjectIds),
-          eq(memories.scope, "shared"),
-        ),
-      )
-    : eq(memories.projectId, project.id);
+  const scopeFilter =
+    sharedProjectIds.length > 0
+      ? or(
+          eq(memories.projectId, project.id),
+          and(
+            inArray(memories.projectId, sharedProjectIds),
+            eq(memories.scope, "shared"),
+          ),
+        )
+      : eq(memories.projectId, project.id);
 
   let results;
 
@@ -158,7 +178,9 @@ export async function GET(req: NextRequest) {
 
   // Filter by tags if requested
   if (tagsFilter && results.length > 0) {
-    const requestedTags = tagsFilter.split(",").map((t) => t.trim().toLowerCase());
+    const requestedTags = tagsFilter
+      .split(",")
+      .map((t) => t.trim().toLowerCase());
     results = results.filter((m) => {
       if (!m.tags) return false;
       try {
@@ -178,8 +200,12 @@ export async function GET(req: NextRequest) {
       const accessCount = m.accessCount ?? 0;
       const helpful = m.helpfulCount ?? 0;
       const unhelpful = m.unhelpfulCount ?? 0;
-      const lastAccess = m.lastAccessedAt ? new Date(m.lastAccessedAt).getTime() : 0;
-      const daysSinceAccess = lastAccess ? (now - lastAccess) / 86_400_000 : 999;
+      const lastAccess = m.lastAccessedAt
+        ? new Date(m.lastAccessedAt).getTime()
+        : 0;
+      const daysSinceAccess = lastAccess
+        ? (now - lastAccess) / 86_400_000
+        : 999;
       const isPinned = m.pinnedAt ? 1 : 0;
 
       // Composite score (higher = more relevant)
@@ -191,7 +217,15 @@ export async function GET(req: NextRequest) {
 
       return {
         memory: m,
-        _relevanceScore: Math.round((priorityScore + accessScore + feedbackScore + recencyScore + pinBoost) * 100) / 100,
+        _relevanceScore:
+          Math.round(
+            (priorityScore +
+              accessScore +
+              feedbackScore +
+              recencyScore +
+              pinBoost) *
+              100,
+          ) / 100,
       };
     });
     scored.sort((a, b) => b._relevanceScore - a._relevanceScore);
@@ -208,7 +242,9 @@ export async function GET(req: NextRequest) {
 
         // Fetch any vector-only results not already in results
         const existingIds = new Set(results.map((r) => r.id));
-        const missingIds = mergedIds.filter((id: string) => !existingIds.has(id));
+        const missingIds = mergedIds.filter(
+          (id: string) => !existingIds.has(id),
+        );
 
         if (missingIds.length > 0) {
           const extra = await db
@@ -219,7 +255,9 @@ export async function GET(req: NextRequest) {
         }
 
         // Reorder by merged ranking
-        const idOrder = new Map<string, number>(mergedIds.map((id: string, i: number) => [id, i] as [string, number]));
+        const idOrder = new Map<string, number>(
+          mergedIds.map((id: string, i: number) => [id, i] as [string, number]),
+        );
         results.sort((a, b) => {
           const orderA: number = idOrder.get(a.id) ?? 999;
           const orderB: number = idOrder.get(b.id) ?? 999;
@@ -236,14 +274,19 @@ export async function GET(req: NextRequest) {
   const now = Date.now();
   const memoriesWithRelevance = results.map((m) => ({
     ...m,
-    relevance_score: computeRelevanceScore({
-      priority: m.priority ?? 0,
-      accessCount: m.accessCount ?? 0,
-      lastAccessedAt: m.lastAccessedAt ? new Date(m.lastAccessedAt).getTime() : null,
-      helpfulCount: m.helpfulCount ?? 0,
-      unhelpfulCount: m.unhelpfulCount ?? 0,
-      pinnedAt: m.pinnedAt ? new Date(m.pinnedAt).getTime() : null,
-    }, now),
+    relevance_score: computeRelevanceScore(
+      {
+        priority: m.priority ?? 0,
+        accessCount: m.accessCount ?? 0,
+        lastAccessedAt: m.lastAccessedAt
+          ? new Date(m.lastAccessedAt).getTime()
+          : null,
+        helpfulCount: m.helpfulCount ?? 0,
+        unhelpfulCount: m.unhelpfulCount ?? 0,
+        pinnedAt: m.pinnedAt ? new Date(m.pinnedAt).getTime() : null,
+      },
+      now,
+    ),
   }));
 
   // Sort by relevance if requested
@@ -252,8 +295,14 @@ export async function GET(req: NextRequest) {
   }
 
   // Include cursor for next page
-  const nextCursor = memoriesWithRelevance.length === limit ? memoriesWithRelevance[memoriesWithRelevance.length - 1]?.id : undefined;
-  const body = JSON.stringify({ memories: memoriesWithRelevance, ...(nextCursor ? { nextCursor } : {}) });
+  const nextCursor =
+    memoriesWithRelevance.length === limit
+      ? memoriesWithRelevance[memoriesWithRelevance.length - 1]?.id
+      : undefined;
+  const body = JSON.stringify({
+    memories: memoriesWithRelevance,
+    ...(nextCursor ? { nextCursor } : {}),
+  });
   const etag = generateETag(body);
 
   if (checkConditional(req, etag)) {
@@ -283,7 +332,11 @@ export async function POST(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) {
     return jsonError("Project not found", 404);
   }
@@ -295,7 +348,8 @@ export async function POST(req: NextRequest) {
     return jsonError(parsed.error.message, 400);
   }
 
-  const { key, content, metadata, scope, priority, tags, expiresAt } = parsed.data;
+  const { key, content, metadata, scope, priority, tags, expiresAt } =
+    parsed.data;
 
   // Validate content against context type schema if applicable
   if (metadata && typeof metadata === "object" && "contextType" in metadata) {
@@ -322,9 +376,7 @@ export async function POST(req: NextRequest) {
   const [existing] = await db
     .select()
     .from(memories)
-    .where(
-      and(eq(memories.projectId, project.id), eq(memories.key, key)),
-    )
+    .where(and(eq(memories.projectId, project.id), eq(memories.key, key)))
     .limit(1);
 
   if (existing) {
@@ -356,40 +408,46 @@ export async function POST(req: NextRequest) {
     if (metadata !== undefined) updates.metadata = JSON.stringify(metadata);
     if (priority !== undefined) updates.priority = priority;
     if (tags !== undefined) updates.tags = JSON.stringify(tags);
-    if (expiresAt !== undefined) updates.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    if (expiresAt !== undefined)
+      updates.expiresAt = expiresAt ? new Date(expiresAt) : null;
 
     // Unarchive if re-storing an archived memory
     if (existing.archivedAt) {
       updates.archivedAt = null;
     }
 
-    await db
-      .update(memories)
-      .set(updates)
-      .where(eq(memories.id, existing.id));
+    await db.update(memories).set(updates).where(eq(memories.id, existing.id));
 
     // Generate embedding async (fire-and-forget)
-    generateEmbedding(
-      `${key} ${content} ${tags?.join(" ") ?? ""}`,
-    ).then((emb) => {
-      if (emb) {
-        db.update(memories)
-          .set({ embedding: serializeEmbedding(emb) })
-          .where(eq(memories.id, existing.id))
-          .then(() => {}, () => {});
-      }
-    }).catch(() => {});
+    generateEmbedding(`${key} ${content} ${tags?.join(" ") ?? ""}`)
+      .then((emb) => {
+        if (emb) {
+          db.update(memories)
+            .set({ embedding: serializeEmbedding(emb) })
+            .where(eq(memories.id, existing.id))
+            .then(
+              () => {},
+              () => {},
+            );
+        }
+      })
+      .catch(() => {});
 
     // Log activity (fire-and-forget)
-    db.insert(activityLogs).values({
-      id: generateId(),
-      projectId: project.id,
-      action: "memory_write",
-      memoryKey: key,
-      details: JSON.stringify({ changeType: "updated" }),
-      createdBy: authResult.userId,
-      createdAt: new Date(),
-    }).then(() => {}, () => {});
+    db.insert(activityLogs)
+      .values({
+        id: generateId(),
+        projectId: project.id,
+        action: "memory_write",
+        memoryKey: key,
+        details: JSON.stringify({ changeType: "updated" }),
+        createdBy: authResult.userId,
+        createdAt: new Date(),
+      })
+      .then(
+        () => {},
+        () => {},
+      );
 
     return NextResponse.json({ memory: { ...existing, ...updates } });
   }
@@ -437,27 +495,35 @@ export async function POST(req: NextRequest) {
   });
 
   // Generate embedding async (fire-and-forget)
-  generateEmbedding(
-    `${key} ${content} ${tags?.join(" ") ?? ""}`,
-  ).then((emb) => {
-    if (emb) {
-      db.update(memories)
-        .set({ embedding: JSON.stringify(Array.from(emb)) })
-        .where(eq(memories.id, id))
-        .then(() => {}, () => {});
-    }
-  }).catch(() => {});
+  generateEmbedding(`${key} ${content} ${tags?.join(" ") ?? ""}`)
+    .then((emb) => {
+      if (emb) {
+        db.update(memories)
+          .set({ embedding: JSON.stringify(Array.from(emb)) })
+          .where(eq(memories.id, id))
+          .then(
+            () => {},
+            () => {},
+          );
+      }
+    })
+    .catch(() => {});
 
   // Log activity (fire-and-forget)
-  db.insert(activityLogs).values({
-    id: generateId(),
-    projectId: project.id,
-    action: "memory_write",
-    memoryKey: key,
-    details: JSON.stringify({ changeType: "created" }),
-    createdBy: authResult.userId,
-    createdAt: now,
-  }).then(() => {}, () => {});
+  db.insert(activityLogs)
+    .values({
+      id: generateId(),
+      projectId: project.id,
+      action: "memory_write",
+      memoryKey: key,
+      details: JSON.stringify({ changeType: "created" }),
+      createdBy: authResult.userId,
+      createdAt: now,
+    })
+    .then(
+      () => {},
+      () => {},
+    );
 
   return NextResponse.json(
     {

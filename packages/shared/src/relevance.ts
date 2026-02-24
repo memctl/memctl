@@ -25,7 +25,10 @@ const DECAY_RATE = 0.03; // per day
 const PIN_BOOST = 1.5;
 const MAX_SCORE = 100;
 
-export function computeRelevanceScore(input: RelevanceInput, now?: number): number {
+export function computeRelevanceScore(
+  input: RelevanceInput,
+  now?: number,
+): number {
   const currentTime = now ?? Date.now();
 
   // Base priority normalized to 0–1 range, with a minimum floor
@@ -37,7 +40,10 @@ export function computeRelevanceScore(input: RelevanceInput, now?: number): numb
   // Time decay: exponential decay based on days since last access
   let timeFactor = 1;
   if (input.lastAccessedAt !== null && input.lastAccessedAt > 0) {
-    const daysSinceAccess = Math.max(0, (currentTime - input.lastAccessedAt) / 86_400_000);
+    const daysSinceAccess = Math.max(
+      0,
+      (currentTime - input.lastAccessedAt) / 86_400_000,
+    );
     timeFactor = Math.exp(-DECAY_RATE * daysSinceAccess);
   }
 
@@ -53,7 +59,13 @@ export function computeRelevanceScore(input: RelevanceInput, now?: number): numb
   // Pin boost
   const pinBoost = input.pinnedAt !== null ? PIN_BOOST : 1;
 
-  const raw = basePriority * usageFactor * timeFactor * feedbackFactor * pinBoost * MAX_SCORE;
+  const raw =
+    basePriority *
+    usageFactor *
+    timeFactor *
+    feedbackFactor *
+    pinBoost *
+    MAX_SCORE;
   return Math.min(MAX_SCORE, Math.max(0, Math.round(raw * 100) / 100));
 }
 
@@ -66,8 +78,15 @@ export function getRelevanceBucket(score: number): RelevanceBucket {
   return "poor";
 }
 
-export function computeRelevanceDistribution(scores: number[]): Record<RelevanceBucket, number> {
-  const dist: Record<RelevanceBucket, number> = { excellent: 0, good: 0, fair: 0, poor: 0 };
+export function computeRelevanceDistribution(
+  scores: number[],
+): Record<RelevanceBucket, number> {
+  const dist: Record<RelevanceBucket, number> = {
+    excellent: 0,
+    good: 0,
+    fair: 0,
+    poor: 0,
+  };
   for (const score of scores) {
     dist[getRelevanceBucket(score)]++;
   }

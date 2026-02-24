@@ -47,14 +47,17 @@ export function ProjectSettings({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/v1/projects/${projectSlug}?org=${orgSlug}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name || undefined,
-          description: description || undefined,
-        }),
-      });
+      const res = await fetch(
+        `/api/v1/projects/${projectSlug}?org=${orgSlug}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name || undefined,
+            description: description || undefined,
+          }),
+        },
+      );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error ?? "Failed to save project settings");
@@ -72,9 +75,12 @@ export function ProjectSettings({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/v1/projects/${projectSlug}?org=${orgSlug}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/v1/projects/${projectSlug}?org=${orgSlug}`,
+        {
+          method: "DELETE",
+        },
+      );
       if (res.ok) {
         toast.success("Project deleted");
         router.push(`/org/${orgSlug}`);
@@ -140,7 +146,10 @@ export function ProjectSettings({
                   Created
                 </Label>
                 <Input
-                  value={new Date(project.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+                  value={new Date(project.createdAt).toLocaleDateString(
+                    undefined,
+                    { year: "numeric", month: "long", day: "numeric" },
+                  )}
                   disabled
                   className="mt-1 border-[var(--landing-border)] bg-[var(--landing-surface-2)] text-[var(--landing-text-tertiary)]"
                 />
@@ -172,7 +181,11 @@ export function ProjectSettings({
             <div className="mb-3 flex items-start gap-2 rounded-lg border border-[#F97316]/20 bg-[#F97316]/5 px-3 py-2">
               <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F97316]" />
               <p className="font-mono text-[11px] leading-relaxed text-[var(--landing-text-secondary)]">
-                Run <code className="rounded bg-[var(--landing-surface-2)] px-1 py-0.5 text-[#F97316]">npx memctl auth</code> to authenticate. No token needed in the config.
+                Run{" "}
+                <code className="rounded bg-[var(--landing-surface-2)] px-1 py-0.5 text-[#F97316]">
+                  npx memctl auth
+                </code>{" "}
+                to authenticate. No token needed in the config.
               </p>
             </div>
             <div className="relative overflow-hidden rounded-lg bg-[var(--landing-code-bg)] p-4">
@@ -191,7 +204,8 @@ export function ProjectSettings({
           Danger Zone
         </h2>
         <p className="mb-4 text-sm text-[var(--landing-text-tertiary)]">
-          Deleting a project will permanently remove all memories, activity logs, and session data.
+          Deleting a project will permanently remove all memories, activity
+          logs, and session data.
         </p>
         <Dialog>
           <DialogTrigger asChild>
@@ -199,14 +213,21 @@ export function ProjectSettings({
           </DialogTrigger>
           <DialogContent className="border-[var(--landing-border)] bg-[var(--landing-bg)]">
             <DialogHeader>
-              <DialogTitle className="text-[var(--landing-text)]">Delete project</DialogTitle>
+              <DialogTitle className="text-[var(--landing-text)]">
+                Delete project
+              </DialogTitle>
               <DialogDescription className="text-[var(--landing-text-tertiary)]">
-                This action cannot be undone. All memories, activity logs, and session data will be permanently deleted.
+                This action cannot be undone. All memories, activity logs, and
+                session data will be permanently deleted.
               </DialogDescription>
             </DialogHeader>
             <div className="py-2">
               <Label className="text-xs text-[var(--landing-text-secondary)]">
-                Type <code className="rounded bg-[var(--landing-surface-2)] px-1 py-0.5 font-mono text-red-400">{project.slug}</code> to confirm
+                Type{" "}
+                <code className="rounded bg-[var(--landing-surface-2)] px-1 py-0.5 font-mono text-red-400">
+                  {project.slug}
+                </code>{" "}
+                to confirm
               </Label>
               <Input
                 value={confirmSlug}
@@ -217,7 +238,10 @@ export function ProjectSettings({
             </div>
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="outline" className="border-[var(--landing-border)] text-[var(--landing-text-secondary)]">
+                <Button
+                  variant="outline"
+                  className="border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
+                >
                   Cancel
                 </Button>
               </DialogClose>

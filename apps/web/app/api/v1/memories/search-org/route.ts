@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateRequest, requireOrgMembership, getAccessibleProjectIds, jsonError } from "@/lib/api-middleware";
+import {
+  authenticateRequest,
+  requireOrgMembership,
+  getAccessibleProjectIds,
+  jsonError,
+} from "@/lib/api-middleware";
 import { db } from "@/lib/db";
 import { memories, organizations, projects } from "@memctl/db/schema";
 import { eq, and, isNull, or, like } from "drizzle-orm";
@@ -34,7 +39,11 @@ export async function GET(req: NextRequest) {
   const role = await requireOrgMembership(authResult.userId, org.id);
   if (!role) return jsonError("Not a member", 403);
 
-  const accessibleIds = await getAccessibleProjectIds(authResult.userId, org.id, role);
+  const accessibleIds = await getAccessibleProjectIds(
+    authResult.userId,
+    org.id,
+    role,
+  );
 
   const { searchParams } = new URL(req.url);
   const query = searchParams.get("q") ?? "";
@@ -56,7 +65,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (orgProjects.length === 0) {
-    return NextResponse.json({ results: [], projectsSearched: 0, totalMatches: 0 });
+    return NextResponse.json({
+      results: [],
+      projectsSearched: 0,
+      totalMatches: 0,
+    });
   }
 
   const pattern = `%${query}%`;
@@ -104,7 +117,11 @@ export async function GET(req: NextRequest) {
 
     let parsedTags: string[] | null = null;
     if (m.tags) {
-      try { parsedTags = JSON.parse(m.tags); } catch { /* skip */ }
+      try {
+        parsedTags = JSON.parse(m.tags);
+      } catch {
+        /* skip */
+      }
     }
 
     filtered.push({

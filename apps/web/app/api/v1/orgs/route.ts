@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import {
-  organizations,
-  organizationMembers,
-} from "@memctl/db/schema";
+import { organizations, organizationMembers } from "@memctl/db/schema";
 import { eq } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { orgCreateSchema } from "@memctl/shared/validators";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
-import { getOrgCreationLimits, isBillingEnabled, isSelfHosted, FREE_ORG_LIMIT_PER_USER } from "@/lib/plans";
+import {
+  getOrgCreationLimits,
+  isBillingEnabled,
+  isSelfHosted,
+  FREE_ORG_LIMIT_PER_USER,
+} from "@/lib/plans";
 
 export async function GET() {
   const session = await auth.api.getSession({
@@ -72,7 +74,10 @@ export async function POST(req: NextRequest) {
 
   if (freeOwnedCount >= FREE_ORG_LIMIT_PER_USER) {
     return NextResponse.json(
-      { error: "Free organization limit reached. Upgrade an existing organization or contact support." },
+      {
+        error:
+          "Free organization limit reached. Upgrade an existing organization or contact support.",
+      },
       { status: 403 },
     );
   }
@@ -80,10 +85,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const parsed = orgCreateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.message },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: parsed.error.message }, { status: 400 });
   }
 
   // Check slug uniqueness

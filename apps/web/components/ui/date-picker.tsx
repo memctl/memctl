@@ -64,7 +64,8 @@ export function DatePicker({
           defaultMonth={value}
           className="bg-[var(--landing-surface)]"
           classNames={{
-            outside: "text-muted-foreground/30 aria-selected:text-muted-foreground/30",
+            outside:
+              "text-muted-foreground/30 aria-selected:text-muted-foreground/30",
           }}
           initialFocus
         />
@@ -73,7 +74,7 @@ export function DatePicker({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-full font-mono text-[10px] text-muted-foreground"
+              className="text-muted-foreground h-7 w-full font-mono text-[10px]"
               onClick={() => {
                 onChange(undefined);
                 setOpen(false);

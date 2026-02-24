@@ -13,9 +13,7 @@ export function BlogLayout({ children }: BlogLayoutProps) {
     <div className="min-h-screen bg-[var(--landing-bg)] text-[var(--landing-text)]">
       <Navbar />
 
-      <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
-        {children}
-      </div>
+      <div className="mx-auto max-w-[1600px] px-6 lg:px-8">{children}</div>
 
       {/* Compact footer */}
       <footer className="border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)]">

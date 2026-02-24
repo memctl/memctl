@@ -22,15 +22,16 @@ export async function GET(req: NextRequest) {
     return jsonError("X-Org-Slug and X-Project-Slug headers are required", 400);
   }
 
-  const context = await resolveOrgAndProject(orgSlug, projectSlug, authResult.userId);
+  const context = await resolveOrgAndProject(
+    orgSlug,
+    projectSlug,
+    authResult.userId,
+  );
   if (!context) return jsonError("Project not found", 404);
 
   const url = new URL(req.url);
   const sinceParam = url.searchParams.get("since");
-  const limit = Math.min(
-    parseInt(url.searchParams.get("limit") ?? "100"),
-    500,
-  );
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500);
 
   if (!sinceParam) {
     return jsonError("since query parameter (unix ms) is required", 400);
@@ -38,7 +39,10 @@ export async function GET(req: NextRequest) {
 
   const sinceMs = parseInt(sinceParam);
   if (isNaN(sinceMs) || sinceMs < 0) {
-    return jsonError("since must be a valid unix timestamp in milliseconds", 400);
+    return jsonError(
+      "since must be a valid unix timestamp in milliseconds",
+      400,
+    );
   }
 
   const sinceDate = new Date(sinceMs);

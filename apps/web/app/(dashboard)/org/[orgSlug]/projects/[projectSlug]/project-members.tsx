@@ -3,11 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -73,7 +69,7 @@ const roleBadgeStyles: Record<string, string> = {
 
 export function ProjectMembers({
   orgSlug,
-  projectSlug,
+  projectSlug: _projectSlug,
   projectId,
   members: initialMembers,
   currentUserId,
@@ -214,9 +210,24 @@ export function ProjectMembers({
       {/* Stats */}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {[
-          { icon: Crown, label: "Owners", value: ownerCount, color: "text-[#F97316]" },
-          { icon: Shield, label: "Admins", value: adminCount, color: "text-blue-400" },
-          { icon: Users, label: "Members", value: memberCount, color: "text-[var(--landing-text)]" },
+          {
+            icon: Crown,
+            label: "Owners",
+            value: ownerCount,
+            color: "text-[#F97316]",
+          },
+          {
+            icon: Shield,
+            label: "Admins",
+            value: adminCount,
+            color: "text-blue-400",
+          },
+          {
+            icon: Users,
+            label: "Members",
+            value: memberCount,
+            color: "text-[var(--landing-text)]",
+          },
         ].map(({ icon: Icon, label, value, color }) => (
           <div
             key={label}
@@ -225,7 +236,7 @@ export function ProjectMembers({
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/20 to-transparent" />
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+                <p className="font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
                   {label}
                 </p>
                 <p className={`mt-1 font-mono text-lg font-bold ${color}`}>
@@ -243,7 +254,7 @@ export function ProjectMembers({
       {/* Members with access */}
       <div className="dash-card overflow-hidden">
         <div className="flex items-center justify-between border-b border-[var(--landing-border)] px-4 py-2.5">
-          <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+          <span className="font-mono text-[10px] font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
             Members with access
           </span>
           {unassignedMembers.length > 0 && (
@@ -259,120 +270,120 @@ export function ProjectMembers({
           )}
         </div>
         <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Member
-              </TableHead>
-              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
-                Role
-              </TableHead>
-              <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell">
-                Joined
-              </TableHead>
-              <TableHead className="w-12" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {assignedMembers.map((m) => {
-              const isOwner = m.role === "owner";
-              const isSelf = m.userId === currentUserId;
-              const isRegularMember = m.role === "member";
+          <Table>
+            <TableHeader>
+              <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
+                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  Member
+                </TableHead>
+                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  Role
+                </TableHead>
+                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell">
+                  Joined
+                </TableHead>
+                <TableHead className="w-12" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {assignedMembers.map((m) => {
+                const isOwner = m.role === "owner";
+                const isSelf = m.userId === currentUserId;
+                const isRegularMember = m.role === "member";
 
-              return (
-                <TableRow
-                  key={m.id}
-                  className="border-[var(--landing-border)]"
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-7 w-7 border border-[var(--landing-border)]">
-                        {m.user?.avatarUrl && (
-                          <AvatarImage
-                            src={m.user.avatarUrl}
-                            alt={m.user.name}
-                          />
-                        )}
-                        <AvatarFallback className="bg-[var(--landing-surface-2)] font-mono text-[10px] text-[var(--landing-text-secondary)]">
-                          {initials(m.user?.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <p className="truncate font-mono text-xs font-medium text-[var(--landing-text)]">
-                          {m.user?.name ?? "Unknown"}
-                        </p>
-                        <p className="truncate font-mono text-[10px] text-[var(--landing-text-tertiary)]">
-                          {m.user?.email}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex rounded-full border px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${
-                        roleBadgeStyles[m.role] ?? roleBadgeStyles.member
-                      }`}
-                    >
-                      {m.role}
-                    </span>
-                  </TableCell>
-                  <TableCell className="hidden font-mono text-[11px] text-[var(--landing-text-tertiary)] sm:table-cell">
-                    {new Date(m.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {!isOwner && !isSelf && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className="h-7 w-7 p-0 text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
-                          >
-                            <MoreHorizontal className="h-3.5 w-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="w-48 rounded-xl border-[var(--landing-border)] bg-[var(--landing-surface)] shadow-lg"
-                        >
-                          <DropdownMenuItem
-                            className="gap-2 rounded-lg text-sm text-[var(--landing-text-secondary)] hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
-                            onClick={() =>
-                              handleRoleChange(
-                                m.id,
-                                m.role === "admin" ? "member" : "admin",
-                              )
-                            }
-                          >
-                            <Shield className="h-4 w-4" />
-                            {m.role === "admin"
-                              ? "Demote to Member"
-                              : "Promote to Admin"}
-                          </DropdownMenuItem>
-                          {isRegularMember && (
-                            <>
-                              <DropdownMenuSeparator className="bg-[var(--landing-border)]" />
-                              <DropdownMenuItem
-                                className="gap-2 rounded-lg text-sm text-red-500 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-500"
-                                disabled={saving === m.id}
-                                onClick={() =>
-                                  handleRemoveFromProject(m.id, m.userId)
-                                }
-                              >
-                                <UserMinus className="h-4 w-4" />
-                                Remove from project
-                              </DropdownMenuItem>
-                            </>
+                return (
+                  <TableRow
+                    key={m.id}
+                    className="border-[var(--landing-border)]"
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-7 w-7 border border-[var(--landing-border)]">
+                          {m.user?.avatarUrl && (
+                            <AvatarImage
+                              src={m.user.avatarUrl}
+                              alt={m.user.name}
+                            />
                           )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                          <AvatarFallback className="bg-[var(--landing-surface-2)] font-mono text-[10px] text-[var(--landing-text-secondary)]">
+                            {initials(m.user?.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="truncate font-mono text-xs font-medium text-[var(--landing-text)]">
+                            {m.user?.name ?? "Unknown"}
+                          </p>
+                          <p className="truncate font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                            {m.user?.email}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex rounded-full border px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${
+                          roleBadgeStyles[m.role] ?? roleBadgeStyles.member
+                        }`}
+                      >
+                        {m.role}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden font-mono text-[11px] text-[var(--landing-text-tertiary)] sm:table-cell">
+                      {new Date(m.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {!isOwner && !isSelf && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-[var(--landing-text-tertiary)] hover:text-[var(--landing-text)]"
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-48 rounded-xl border-[var(--landing-border)] bg-[var(--landing-surface)] shadow-lg"
+                          >
+                            <DropdownMenuItem
+                              className="gap-2 rounded-lg text-sm text-[var(--landing-text-secondary)] hover:bg-[var(--landing-surface-2)] focus:bg-[var(--landing-surface-2)] focus:text-[var(--landing-text)]"
+                              onClick={() =>
+                                handleRoleChange(
+                                  m.id,
+                                  m.role === "admin" ? "member" : "admin",
+                                )
+                              }
+                            >
+                              <Shield className="h-4 w-4" />
+                              {m.role === "admin"
+                                ? "Demote to Member"
+                                : "Promote to Admin"}
+                            </DropdownMenuItem>
+                            {isRegularMember && (
+                              <>
+                                <DropdownMenuSeparator className="bg-[var(--landing-border)]" />
+                                <DropdownMenuItem
+                                  className="gap-2 rounded-lg text-sm text-red-500 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-500"
+                                  disabled={saving === m.id}
+                                  onClick={() =>
+                                    handleRemoveFromProject(m.id, m.userId)
+                                  }
+                                >
+                                  <UserMinus className="h-4 w-4" />
+                                  Remove from project
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       </div>
 
@@ -401,10 +412,7 @@ export function ProjectMembers({
                   >
                     <Avatar className="h-7 w-7 border border-[var(--landing-border)]">
                       {m.user?.avatarUrl && (
-                        <AvatarImage
-                          src={m.user.avatarUrl}
-                          alt={m.user.name}
-                        />
+                        <AvatarImage src={m.user.avatarUrl} alt={m.user.name} />
                       )}
                       <AvatarFallback className="bg-[var(--landing-surface-2)] font-mono text-[10px] text-[var(--landing-text-secondary)]">
                         {initials(m.user?.name)}

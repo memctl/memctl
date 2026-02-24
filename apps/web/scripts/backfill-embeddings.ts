@@ -45,7 +45,10 @@ async function backfill() {
               .where(eq(memories.id, batch[j].id));
             processed++;
           } catch (err) {
-            console.error(`Failed to store embedding for ${batch[j].key}:`, err);
+            console.error(
+              `Failed to store embedding for ${batch[j].key}:`,
+              err,
+            );
             failed++;
           }
         } else {

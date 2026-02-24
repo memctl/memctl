@@ -160,7 +160,7 @@ export class ApiClient {
       throw new Error(`API error ${res.status}: ${text}`);
     }
 
-    const data = await res.json() as T;
+    const data = (await res.json()) as T;
     this.lastFreshness = "fresh";
 
     // Cache GET responses with ETag
@@ -205,7 +205,9 @@ export class ApiClient {
   }
 
   // ── Batch Operations ────────────────────────────────────────
-  async batch(operations: Array<{ method: string; path: string; body?: unknown }>) {
+  async batch(
+    operations: Array<{ method: string; path: string; body?: unknown }>,
+  ) {
     return this.request<{
       results: Array<{ status: number; body: unknown }>;
     }>("POST", "/batch", { operations });
@@ -217,7 +219,12 @@ export class ApiClient {
     key: string,
     content: string,
     metadata?: Record<string, unknown>,
-    options?: { scope?: string; priority?: number; tags?: string[]; expiresAt?: number },
+    options?: {
+      scope?: string;
+      priority?: number;
+      tags?: string[];
+      expiresAt?: number;
+    },
   ) {
     return this.request("POST", "/memories", {
       key,
@@ -231,7 +238,11 @@ export class ApiClient {
     return this.request("GET", `/memories/${encodeURIComponent(key)}`);
   }
 
-  async searchMemories(query: string, limit = 20, options?: { tags?: string; sort?: string; includeArchived?: boolean }) {
+  async searchMemories(
+    query: string,
+    limit = 20,
+    options?: { tags?: string; sort?: string; includeArchived?: boolean },
+  ) {
     const params = new URLSearchParams({
       q: query,
       limit: String(limit),
@@ -242,7 +253,16 @@ export class ApiClient {
     return this.request("GET", `/memories?${params}`);
   }
 
-  async listMemories(limit = 100, offset = 0, options?: { sort?: string; includeArchived?: boolean; tags?: string; after?: string }) {
+  async listMemories(
+    limit = 100,
+    offset = 0,
+    options?: {
+      sort?: string;
+      includeArchived?: boolean;
+      tags?: string;
+      after?: string;
+    },
+  ) {
     const params = new URLSearchParams({
       limit: String(limit),
     });
@@ -313,7 +333,10 @@ export class ApiClient {
         changeType: string;
         createdAt: unknown;
       }>;
-    }>("GET", `/memories/versions?key=${encodeURIComponent(key)}&limit=${limit}`);
+    }>(
+      "GET",
+      `/memories/versions?key=${encodeURIComponent(key)}&limit=${limit}`,
+    );
   }
 
   async restoreMemoryVersion(key: string, version: number) {
@@ -409,7 +432,10 @@ export class ApiClient {
         reason: string;
       }>;
       staleDaysThreshold: number;
-    }>("GET", `/memories/suggest-cleanup?stale_days=${staleDays}&limit=${limit}`);
+    }>(
+      "GET",
+      `/memories/suggest-cleanup?stale_days=${staleDays}&limit=${limit}`,
+    );
   }
 
   // ── Watch ───────────────────────────────────────────────────────
@@ -472,14 +498,20 @@ export class ApiClient {
       key: string;
       from: string;
       to: string;
-      diff: Array<{ type: "add" | "remove" | "same"; line: string; lineNumber?: number }>;
+      diff: Array<{
+        type: "add" | "remove" | "same";
+        line: string;
+        lineNumber?: number;
+      }>;
       summary: { added: number; removed: number; unchanged: number };
     }>("GET", `/memories/diff?${params}`);
   }
 
   // ── Export ─────────────────────────────────────────────────────
 
-  async exportMemories(format: "agents_md" | "cursorrules" | "json" = "agents_md") {
+  async exportMemories(
+    format: "agents_md" | "cursorrules" | "json" = "agents_md",
+  ) {
     return this.request<string>("GET", `/memories/export?format=${format}`);
   }
 
@@ -558,16 +590,19 @@ export class ApiClient {
 
   // ── Lifecycle ──────────────────────────────────────────────────
 
-  async runLifecycle(policies: string[], options?: {
-    sessionLogMaxAgeDays?: number;
-    accessThreshold?: number;
-    feedbackThreshold?: number;
-    mergedBranches?: string[];
-    healthThreshold?: number;
-    maxVersionsPerMemory?: number;
-    activityLogMaxAgeDays?: number;
-    archivePurgeDays?: number;
-  }) {
+  async runLifecycle(
+    policies: string[],
+    options?: {
+      sessionLogMaxAgeDays?: number;
+      accessThreshold?: number;
+      feedbackThreshold?: number;
+      mergedBranches?: string[];
+      healthThreshold?: number;
+      maxVersionsPerMemory?: number;
+      activityLogMaxAgeDays?: number;
+      archivePurgeDays?: number;
+    },
+  ) {
     return this.request<{
       results: Record<string, { affected: number; details?: string }>;
     }>("POST", "/memories/lifecycle", { policies, ...options });
@@ -591,7 +626,11 @@ export class ApiClient {
   // ── Delta Bootstrap / Incremental Sync ──────────────────────────
 
   /** Incremental sync: fetch only changed memories since last sync, apply to local cache. */
-  async incrementalSync(): Promise<{ created: number; updated: number; deleted: number }> {
+  async incrementalSync(): Promise<{
+    created: number;
+    updated: number;
+    deleted: number;
+  }> {
     const lastSync = this.localCache.getLastSyncAt();
     const delta = await this.getDelta(lastSync);
 
@@ -628,7 +667,10 @@ export class ApiClient {
       nodes: Array<{ key: string; content: string; depth: number }>;
       edges: Array<{ from: string; to: string }>;
       maxDepthReached: boolean;
-    }>("GET", `/memories/traverse?key=${encodeURIComponent(key)}&depth=${depth}`);
+    }>(
+      "GET",
+      `/memories/traverse?key=${encodeURIComponent(key)}&depth=${depth}`,
+    );
   }
 
   // ── Co-Access Patterns ────────────────────────────────────────────
@@ -637,7 +679,10 @@ export class ApiClient {
     return this.request<{
       key: string;
       coAccessed: Array<{ key: string; count: number }>;
-    }>("GET", `/memories/co-accessed?key=${encodeURIComponent(key)}&limit=${limit}`);
+    }>(
+      "GET",
+      `/memories/co-accessed?key=${encodeURIComponent(key)}&limit=${limit}`,
+    );
   }
 
   /** Fire-and-forget: fetch co-accessed keys and prefetch them into cache. */
@@ -660,7 +705,12 @@ export class ApiClient {
       memories: Array<{
         key: string;
         healthScore: number;
-        factors: { age: number; access: number; feedback: number; freshness: number };
+        factors: {
+          age: number;
+          access: number;
+          feedback: number;
+          freshness: number;
+        };
         priority: number;
         accessCount: number;
         lastAccessedAt: unknown;
@@ -694,8 +744,16 @@ export class ApiClient {
       totalAccessCount: number;
       averagePriority: number;
       averageHealthScore: number;
-      mostAccessed: Array<{ key: string; accessCount: number; lastAccessedAt: unknown }>;
-      leastAccessed: Array<{ key: string; accessCount: number; lastAccessedAt: unknown }>;
+      mostAccessed: Array<{
+        key: string;
+        accessCount: number;
+        lastAccessedAt: unknown;
+      }>;
+      leastAccessed: Array<{
+        key: string;
+        accessCount: number;
+        lastAccessedAt: unknown;
+      }>;
       neverAccessed: string[];
       byScope: { project: number; shared: number };
       byTag: Record<string, number>;
@@ -710,7 +768,12 @@ export class ApiClient {
     return this.request<{
       since: number;
       until: number;
-      summary: { created: number; updated: number; deleted: number; total: number };
+      summary: {
+        created: number;
+        updated: number;
+        deleted: number;
+        total: number;
+      };
       changes: Array<{
         action: string;
         memoryKey: string | null;
@@ -736,7 +799,11 @@ export class ApiClient {
     }>("GET", "/project-templates");
   }
 
-  async createTemplate(name: string, description: string | undefined, data: Array<Record<string, unknown>>) {
+  async createTemplate(
+    name: string,
+    description: string | undefined,
+    data: Array<Record<string, unknown>>,
+  ) {
     return this.request<{
       template: { id: string; name: string };
     }>("POST", "/project-templates", { name, description, data });
@@ -856,12 +923,15 @@ export class ApiClient {
         accessCount: number;
         updatedAt: unknown;
       }>;
-      grouped: Record<string, Array<{
-        key: string;
-        contentPreview: string;
-        projectSlug: string;
-        projectName: string;
-      }>>;
+      grouped: Record<
+        string,
+        Array<{
+          key: string;
+          contentPreview: string;
+          projectSlug: string;
+          projectName: string;
+        }>
+      >;
       projectsSearched: number;
       totalMatches: number;
     }>("GET", `/memories/search-org?${params}`);

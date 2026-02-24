@@ -72,7 +72,8 @@ export function getOrgLimits(org: {
   return {
     projectLimit: org.projectLimit,
     memberLimit: org.memberLimit,
-    memoryLimitPerProject: org.memoryLimitPerProject ?? clampLimit(plan.memoryLimitPerProject),
+    memoryLimitPerProject:
+      org.memoryLimitPerProject ?? clampLimit(plan.memoryLimitPerProject),
     memoryLimitOrg: org.memoryLimitOrg ?? clampLimit(plan.memoryLimitOrg),
     apiRatePerMinute: org.apiRatePerMinute ?? clampLimit(plan.apiRatePerMinute),
   };
@@ -108,7 +109,10 @@ export function getEffectivePlanId(org: {
   // Expired trial falls back to free (unless Stripe subscription is active via planId)
   if (org.trialEndsAt && org.trialEndsAt <= now) {
     // Trial expired, check if there's still a valid Stripe plan
-    if ((PLAN_IDS as readonly string[]).includes(org.planId) && org.planId !== "free") {
+    if (
+      (PLAN_IDS as readonly string[]).includes(org.planId) &&
+      org.planId !== "free"
+    ) {
       return org.planId as PlanId;
     }
     return "free";

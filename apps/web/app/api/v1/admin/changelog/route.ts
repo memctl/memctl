@@ -1,21 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
-import {
-  changelogEntries,
-  changelogItems,
-  users,
-} from "@memctl/db/schema";
-import {
-  eq,
-  like,
-  or,
-  desc,
-  asc,
-  count,
-  and,
-  type SQL,
-} from "drizzle-orm";
+import { changelogEntries, changelogItems, users } from "@memctl/db/schema";
+import { eq, like, or, desc, asc, count, and, type SQL } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
   try {
@@ -67,10 +54,7 @@ export async function GET(req: NextRequest) {
         .from(changelogEntries)
         .innerJoin(users, eq(changelogEntries.authorId, users.id))
         .where(where),
-      db
-        .select({ value: count() })
-        .from(changelogEntries)
-        .where(where),
+      db.select({ value: count() }).from(changelogEntries).where(where),
     ]);
 
     const itemCounts = await db
@@ -134,10 +118,7 @@ export async function GET(req: NextRequest) {
       .orderBy(orderFn(sortCol))
       .limit(limit)
       .offset(offset),
-    db
-      .select({ value: count() })
-      .from(changelogEntries)
-      .where(where),
+    db.select({ value: count() }).from(changelogEntries).where(where),
   ]);
 
   const entryIds = entries.map((e) => e.id);

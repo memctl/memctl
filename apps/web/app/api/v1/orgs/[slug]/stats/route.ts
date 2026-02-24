@@ -64,9 +64,7 @@ export async function GET(
   const [tokenCount] = await db
     .select({ value: count() })
     .from(apiTokens)
-    .where(
-      and(eq(apiTokens.orgId, org.id), isNull(apiTokens.revokedAt)),
-    );
+    .where(and(eq(apiTokens.orgId, org.id), isNull(apiTokens.revokedAt)));
 
   // Memory counts per project
   const memoryByProject: { name: string; count: number }[] = [];

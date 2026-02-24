@@ -1,8 +1,4 @@
-import {
-  Section,
-  Text,
-  Link,
-} from "@react-email/components";
+import { Section, Text, Link } from "@react-email/components";
 import { EmailLayout } from "./components/email-layout";
 
 interface AdminMagicLinkEmailProps {
@@ -21,8 +17,8 @@ export function AdminMagicLinkEmail({ url, email }: AdminMagicLinkEmailProps) {
         <Text style={heading}>Sign in to the admin panel</Text>
 
         <Text style={body}>
-          Click the button below to authenticate. This link is single-use
-          and expires in 5 minutes.
+          Click the button below to authenticate. This link is single-use and
+          expires in 5 minutes.
         </Text>
 
         {/* CTA */}
@@ -35,7 +31,12 @@ export function AdminMagicLinkEmail({ url, email }: AdminMagicLinkEmailProps) {
 
       {/* Meta row */}
       <Section style={metaCard}>
-        <table cellPadding="0" cellSpacing="0" role="presentation" style={{ width: "100%" }}>
+        <table
+          cellPadding="0"
+          cellSpacing="0"
+          role="presentation"
+          style={{ width: "100%" }}
+        >
           <tr>
             <td style={metaCell}>
               <Text style={metaLabel}>Account</Text>

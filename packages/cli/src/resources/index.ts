@@ -1,7 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ApiClient } from "../api-client.js";
 import {
-  BUILTIN_AGENT_CONTEXT_TYPES,
   buildBranchPlanKey,
   extractAgentContextEntries,
   getAllContextTypeInfo,
@@ -32,7 +31,11 @@ export function registerResources(server: McpServer, client: ApiClient) {
     async (uri) => {
       try {
         const memories = await client.listMemories(100, 0);
-        return textContent(uri, "application/json", JSON.stringify(memories, null, 2));
+        return textContent(
+          uri,
+          "application/json",
+          JSON.stringify(memories, null, 2),
+        );
       } catch (error) {
         return textContent(
           uri,
@@ -51,7 +54,11 @@ export function registerResources(server: McpServer, client: ApiClient) {
       const key = parts[parts.length - 1];
       try {
         const memory = await client.getMemory(key);
-        return textContent(uri, "application/json", JSON.stringify(memory, null, 2));
+        return textContent(
+          uri,
+          "application/json",
+          JSON.stringify(memory, null, 2),
+        );
       } catch (error) {
         return textContent(
           uri,
@@ -62,22 +69,22 @@ export function registerResources(server: McpServer, client: ApiClient) {
     },
   );
 
-  server.resource(
-    "memory-capacity",
-    "memory://capacity",
-    async (uri) => {
-      try {
-        const capacity = await client.getMemoryCapacity();
-        return textContent(uri, "application/json", JSON.stringify(capacity, null, 2));
-      } catch (error) {
-        return textContent(
-          uri,
-          "text/plain",
-          `Error: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    },
-  );
+  server.resource("memory-capacity", "memory://capacity", async (uri) => {
+    try {
+      const capacity = await client.getMemoryCapacity();
+      return textContent(
+        uri,
+        "application/json",
+        JSON.stringify(capacity, null, 2),
+      );
+    } catch (error) {
+      return textContent(
+        uri,
+        "text/plain",
+        `Error: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  });
 
   server.resource(
     "agent-functionalities",
@@ -92,22 +99,24 @@ export function registerResources(server: McpServer, client: ApiClient) {
         const entries = extractAgentContextEntries(allMemories);
         const capacity = await client.getMemoryCapacity().catch(() => null);
 
-        const functionalityTypes = Object.entries(allTypeInfo).map(([type, info]) => ({
-          type,
-          label: info.label,
-          description: info.description,
-          count: entries.filter((entry) => entry.type === type).length,
-          items: entries
-            .filter((entry) => entry.type === type)
-            .map((entry) => ({
-              id: entry.id,
-              title: entry.title,
-              key: entry.key,
-              priority: entry.priority,
-              tags: entry.tags,
-              updatedAt: entry.updatedAt,
-            })),
-        }));
+        const functionalityTypes = Object.entries(allTypeInfo).map(
+          ([type, info]) => ({
+            type,
+            label: info.label,
+            description: info.description,
+            count: entries.filter((entry) => entry.type === type).length,
+            items: entries
+              .filter((entry) => entry.type === type)
+              .map((entry) => ({
+                id: entry.id,
+                title: entry.title,
+                key: entry.key,
+                priority: entry.priority,
+                tags: entry.tags,
+                updatedAt: entry.updatedAt,
+              })),
+          }),
+        );
 
         return textContent(
           uri,
@@ -204,7 +213,9 @@ export function registerResources(server: McpServer, client: ApiClient) {
         }
 
         const branchPlanKey = buildBranchPlanKey(branchInfo.branch);
-        const branchPlan = await client.getMemory(branchPlanKey).catch(() => null);
+        const branchPlan = await client
+          .getMemory(branchPlanKey)
+          .catch(() => null);
         return textContent(
           uri,
           "application/json",
@@ -228,21 +239,20 @@ export function registerResources(server: McpServer, client: ApiClient) {
     },
   );
 
-  server.resource(
-    "agent-bootstrap",
-    "agent://bootstrap",
-    async (uri) => {
-      try {
-        const [allMemories, branchInfo, allTypeInfo, capacity] = await Promise.all([
+  server.resource("agent-bootstrap", "agent://bootstrap", async (uri) => {
+    try {
+      const [allMemories, branchInfo, allTypeInfo, capacity] =
+        await Promise.all([
           listAllMemories(client),
           getBranchInfo(),
           getAllContextTypeInfo(client),
           client.getMemoryCapacity().catch(() => null),
         ]);
 
-        const entries = extractAgentContextEntries(allMemories);
+      const entries = extractAgentContextEntries(allMemories);
 
-        const functionalityTypes = Object.entries(allTypeInfo).map(([type, info]) => ({
+      const functionalityTypes = Object.entries(allTypeInfo).map(
+        ([type, info]) => ({
           type,
           label: info.label,
           description: info.description,
@@ -258,36 +268,36 @@ export function registerResources(server: McpServer, client: ApiClient) {
               content: e.content,
               updatedAt: e.updatedAt,
             })),
-        }));
+        }),
+      );
 
-        let branchPlan = null;
-        if (branchInfo?.branch) {
-          const planKey = buildBranchPlanKey(branchInfo.branch);
-          branchPlan = await client.getMemory(planKey).catch(() => null);
-        }
-
-        return textContent(
-          uri,
-          "application/json",
-          JSON.stringify(
-            {
-              functionalityTypes,
-              currentBranch: branchInfo,
-              branchPlan,
-              memoryStatus: capacity,
-              availableTypes: Object.keys(allTypeInfo),
-            },
-            null,
-            2,
-          ),
-        );
-      } catch (error) {
-        return textContent(
-          uri,
-          "text/plain",
-          `Error: ${error instanceof Error ? error.message : String(error)}`,
-        );
+      let branchPlan = null;
+      if (branchInfo?.branch) {
+        const planKey = buildBranchPlanKey(branchInfo.branch);
+        branchPlan = await client.getMemory(planKey).catch(() => null);
       }
-    },
-  );
+
+      return textContent(
+        uri,
+        "application/json",
+        JSON.stringify(
+          {
+            functionalityTypes,
+            currentBranch: branchInfo,
+            branchPlan,
+            memoryStatus: capacity,
+            availableTypes: Object.keys(allTypeInfo),
+          },
+          null,
+          2,
+        ),
+      );
+    } catch (error) {
+      return textContent(
+        uri,
+        "text/plain",
+        `Error: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  });
 }

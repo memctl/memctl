@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import {
-  LegalLayout,
-  LegalSection,
-} from "@/components/landing/legal-layout";
+import { LegalLayout, LegalSection } from "@/components/landing/legal-layout";
 
 export const metadata: Metadata = {
   title: "Security | memctl",
@@ -91,8 +88,8 @@ export default function SecurityPage() {
         </p>
         <p>
           <strong>Session management.</strong> Sessions are managed through
-          secure, HTTP only cookies with appropriate expiration policies. Session
-          tokens are cryptographically random and rotated regularly.
+          secure, HTTP only cookies with appropriate expiration policies.
+          Session tokens are cryptographically random and rotated regularly.
         </p>
         <p>
           <strong>API access.</strong> API keys are generated with sufficient
@@ -100,14 +97,18 @@ export default function SecurityPage() {
           API requests are authenticated and rate limited.
         </p>
         <p>
-          <strong>Internal access.</strong> Employee access to production systems
-          follows the principle of least privilege. All access is logged and
-          reviewed. Multi factor authentication is required for all internal
+          <strong>Internal access.</strong> Employee access to production
+          systems follows the principle of least privilege. All access is logged
+          and reviewed. Multi factor authentication is required for all internal
           systems.
         </p>
       </LegalSection>
 
-      <LegalSection id="infrastructure" number="04" title="Infrastructure Security">
+      <LegalSection
+        id="infrastructure"
+        number="04"
+        title="Infrastructure Security"
+      >
         <p>
           Our infrastructure is hosted on industry leading cloud platforms with
           strong physical and network security controls, including:
@@ -121,9 +122,7 @@ export default function SecurityPage() {
             DDoS protection and web application firewalls on all public
             endpoints.
           </li>
-          <li>
-            Regular vulnerability scanning and penetration testing.
-          </li>
+          <li>Regular vulnerability scanning and penetration testing.</li>
           <li>
             Automated patching and updates for operating systems and
             dependencies.
@@ -177,15 +176,19 @@ export default function SecurityPage() {
         </p>
       </LegalSection>
 
-      <LegalSection id="data-handling" number="06" title="Data Handling and Isolation">
+      <LegalSection
+        id="data-handling"
+        number="06"
+        title="Data Handling and Isolation"
+      >
         <p>
           <strong>Tenant isolation.</strong> Each organisation&rsquo;s data is
           logically isolated. Access controls ensure that users can only access
           data belonging to their own projects and teams.
         </p>
         <p>
-          <strong>Data minimisation.</strong> We collect and retain only the data
-          necessary to provide the Service. We do not sell, share, or use
+          <strong>Data minimisation.</strong> We collect and retain only the
+          data necessary to provide the Service. We do not sell, share, or use
           customer data for advertising or training models.
         </p>
         <p>
@@ -195,7 +198,11 @@ export default function SecurityPage() {
         </p>
       </LegalSection>
 
-      <LegalSection id="incident-response" number="07" title="Incident Response">
+      <LegalSection
+        id="incident-response"
+        number="07"
+        title="Incident Response"
+      >
         <p>
           We maintain a documented incident response plan that covers detection,
           containment, investigation, remediation, and communication. Our
@@ -205,9 +212,7 @@ export default function SecurityPage() {
           <li>
             24/7 monitoring and automated alerting for suspicious activity.
           </li>
-          <li>
-            Defined escalation procedures and an on call rotation.
-          </li>
+          <li>Defined escalation procedures and an on call rotation.</li>
           <li>
             Post incident reviews with root cause analysis for all security
             events.
@@ -239,8 +244,8 @@ export default function SecurityPage() {
             </a>
           </p>
           <p className="mt-2">
-            Please include a detailed description of the vulnerability,
-            steps to reproduce, and any relevant proof of concept.
+            Please include a detailed description of the vulnerability, steps to
+            reproduce, and any relevant proof of concept.
           </p>
         </div>
         <p>We ask that you:</p>

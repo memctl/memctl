@@ -30,11 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Collapsible,
   CollapsibleContent,
@@ -234,7 +230,7 @@ export function Sidebar({
 
       {/* Main Navigation */}
       <div className="flex flex-1 flex-col overflow-y-auto px-3 pt-4 pb-2">
-        <span className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
+        <span className="mb-1.5 px-3 text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
           General
         </span>
         <div className="flex flex-col gap-0.5">
@@ -278,13 +274,13 @@ export function Sidebar({
                   projectsOpen && "rotate-90",
                 )}
               />
-              <span className="text-[11px] font-medium uppercase tracking-widest">
+              <span className="text-[11px] font-medium tracking-widest uppercase">
                 Projects
               </span>
             </CollapsibleTrigger>
             {userRole === "member" ? (
               <span
-                className="rounded-md p-1 text-[var(--landing-text-tertiary)] opacity-40 cursor-not-allowed"
+                className="cursor-not-allowed rounded-md p-1 text-[var(--landing-text-tertiary)] opacity-40"
                 title="Only owners and admins can create projects"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -303,7 +299,7 @@ export function Sidebar({
             <div className="flex flex-col gap-0.5">
               {visibleProjects.length === 0 ? (
                 userRole === "member" ? (
-                  <span className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-[var(--landing-text-tertiary)] opacity-40 cursor-not-allowed">
+                  <span className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-[var(--landing-text-tertiary)] opacity-40">
                     <Plus className="h-4 w-4 shrink-0" />
                     No projects assigned
                   </span>

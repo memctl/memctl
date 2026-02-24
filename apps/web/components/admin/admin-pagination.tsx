@@ -63,7 +63,7 @@ export function AdminPagination({
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <div className="hidden sm:flex items-center gap-1">
+        <div className="hidden items-center gap-1 sm:flex">
           {getPageNumbers().map((p, i) =>
             p === "ellipsis" ? (
               <span
@@ -78,9 +78,7 @@ export function AdminPagination({
                 variant={p === page ? "default" : "outline"}
                 size="sm"
                 className={`h-8 w-8 p-0 font-mono text-xs ${
-                  p === page
-                    ? "bg-[#F97316] text-white hover:bg-[#EA580C]"
-                    : ""
+                  p === page ? "bg-[#F97316] text-white hover:bg-[#EA580C]" : ""
                 }`}
                 onClick={() => onPageChange(p)}
               >
@@ -89,7 +87,7 @@ export function AdminPagination({
             ),
           )}
         </div>
-        <span className="sm:hidden font-mono text-[11px] text-[var(--landing-text-tertiary)]">
+        <span className="font-mono text-[11px] text-[var(--landing-text-tertiary)] sm:hidden">
           {page} of {totalPages}
         </span>
         <Button

@@ -58,10 +58,7 @@ export async function GET(req: NextRequest) {
       .orderBy(orderFn(sortCol))
       .limit(limit)
       .offset(offset),
-    db
-      .select({ value: count() })
-      .from(blogPosts)
-      .where(where),
+    db.select({ value: count() }).from(blogPosts).where(where),
   ]);
 
   return NextResponse.json({

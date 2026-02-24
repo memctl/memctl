@@ -20,7 +20,10 @@ function getCacheDir(): string {
 }
 
 export class LocalCache {
-  private static fallbackMemories = new Map<string, Map<string, Record<string, unknown>>>();
+  private static fallbackMemories = new Map<
+    string,
+    Map<string, Record<string, unknown>>
+  >();
   private static fallbackSyncMeta = new Map<string, number>();
 
   private db: DB | null = null;
@@ -36,7 +39,8 @@ export class LocalCache {
 
   private init(): void {
     if (!Database) {
-      this.lastSyncAt = LocalCache.fallbackSyncMeta.get(this.getFallbackScopeKey()) ?? 0;
+      this.lastSyncAt =
+        LocalCache.fallbackSyncMeta.get(this.getFallbackScopeKey()) ?? 0;
       return;
     }
 
@@ -74,12 +78,15 @@ export class LocalCache {
 
       // Load last sync time
       const row = this.db
-        .prepare("SELECT last_sync_at FROM sync_meta WHERE org = ? AND project = ?")
+        .prepare(
+          "SELECT last_sync_at FROM sync_meta WHERE org = ? AND project = ?",
+        )
         .get(this.org, this.project) as { last_sync_at: number } | undefined;
       this.lastSyncAt = row?.last_sync_at ?? 0;
     } catch {
       this.db = null;
-      this.lastSyncAt = LocalCache.fallbackSyncMeta.get(this.getFallbackScopeKey()) ?? 0;
+      this.lastSyncAt =
+        LocalCache.fallbackSyncMeta.get(this.getFallbackScopeKey()) ?? 0;
     }
   }
 
@@ -98,8 +105,12 @@ export class LocalCache {
             upsert.run(
               String(m.key ?? ""),
               String(m.content ?? ""),
-              typeof m.metadata === "string" ? m.metadata : JSON.stringify(m.metadata ?? null),
-              typeof m.tags === "string" ? m.tags : JSON.stringify(m.tags ?? null),
+              typeof m.metadata === "string"
+                ? m.metadata
+                : JSON.stringify(m.metadata ?? null),
+              typeof m.tags === "string"
+                ? m.tags
+                : JSON.stringify(m.tags ?? null),
               Number(m.priority ?? 0),
               this.project,
               this.org,
@@ -141,8 +152,12 @@ export class LocalCache {
       store.set(key, {
         key,
         content: String(m.content ?? ""),
-        metadata: typeof m.metadata === "string" ? m.metadata : JSON.stringify(m.metadata ?? null),
-        tags: typeof m.tags === "string" ? m.tags : JSON.stringify(m.tags ?? null),
+        metadata:
+          typeof m.metadata === "string"
+            ? m.metadata
+            : JSON.stringify(m.metadata ?? null),
+        tags:
+          typeof m.tags === "string" ? m.tags : JSON.stringify(m.tags ?? null),
         priority: Number(m.priority ?? 0),
         project: this.project,
         org: this.org,
@@ -151,7 +166,10 @@ export class LocalCache {
     }
 
     this.lastSyncAt = Date.now();
-    LocalCache.fallbackSyncMeta.set(this.getFallbackScopeKey(), this.lastSyncAt);
+    LocalCache.fallbackSyncMeta.set(
+      this.getFallbackScopeKey(),
+      this.lastSyncAt,
+    );
   }
 
   private getFallbackScopeKey(): string {
@@ -175,7 +193,9 @@ export class LocalCache {
           .prepare(
             "SELECT * FROM cached_memories WHERE org = ? AND project = ? AND key = ?",
           )
-          .get(this.org, this.project, key) as Record<string, unknown> | undefined;
+          .get(this.org, this.project, key) as
+          | Record<string, unknown>
+          | undefined;
 
         return row ?? null;
       } catch {
@@ -236,7 +256,10 @@ export class LocalCache {
 
   /** Try to return cached data for a given API path. */
   getByPath(path: string): unknown {
-    if (!this.db && !LocalCache.fallbackMemories.has(this.getFallbackScopeKey())) {
+    if (
+      !this.db &&
+      !LocalCache.fallbackMemories.has(this.getFallbackScopeKey())
+    ) {
       return null;
     }
 
@@ -297,7 +320,11 @@ export class LocalCache {
 
   // ── Pending writes queue ────────────────────────────────────
 
-  queueWrite(operation: { method: string; path: string; body?: unknown }): void {
+  queueWrite(operation: {
+    method: string;
+    path: string;
+    body?: unknown;
+  }): void {
     try {
       const cacheDir = getCacheDir();
       if (!existsSync(cacheDir)) {

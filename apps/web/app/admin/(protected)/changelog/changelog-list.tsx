@@ -88,8 +88,8 @@ export function ChangelogList() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
           <Input
             placeholder="Search version or title..."
             value={searchQuery}
@@ -135,10 +135,10 @@ export function ChangelogList() {
                   currentOrder={order}
                   onSort={handleSort}
                 />
-                <TableHead className="hidden sm:table-cell font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell">
                   Title
                 </TableHead>
-                <TableHead className="hidden md:table-cell font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase md:table-cell">
                   Status
                 </TableHead>
                 <SortableHeader
@@ -155,9 +155,9 @@ export function ChangelogList() {
                   currentSort={sort}
                   currentOrder={order}
                   onSort={handleSort}
-                  className="hidden lg:table-cell text-right"
+                  className="hidden text-right lg:table-cell"
                 />
-                <TableHead className="text-right font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
+                <TableHead className="text-right font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
                   Actions
                 </TableHead>
               </TableRow>
@@ -167,10 +167,7 @@ export function ChangelogList() {
                 <AdminTableLoader colSpan={6} />
               ) : entries.length === 0 ? (
                 <TableRow className="border-[var(--landing-border)]">
-                  <TableCell
-                    colSpan={6}
-                    className="py-8 text-center"
-                  >
+                  <TableCell colSpan={6} className="py-8 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <History className="h-8 w-8 text-[var(--landing-text-tertiary)]" />
                       <span className="font-mono text-sm text-[var(--landing-text-tertiary)]">
