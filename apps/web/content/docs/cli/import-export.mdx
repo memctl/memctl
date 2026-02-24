@@ -5,6 +5,78 @@ description: Import and export memories in various formats
 
 # Import & Export
 
+## generate
+
+Write agent config files directly to disk. Unlike `export` (which prints to stdout), `generate` creates the files for you.
+
+```bash
+npx memctl generate
+```
+
+### Flags
+
+| Flag | File written | Format |
+| ---- | ------------ | ------ |
+| _(none)_ | `AGENTS.md` | agents_md (always written) |
+| `--claude` | `CLAUDE.md` | agents_md |
+| `--gemini` | `GEMINI.md` | agents_md |
+| `--cursor` | `.cursorrules` | cursorrules |
+| `--copilot` | `.github/copilot-instructions.md` | agents_md |
+| `--all` | All of the above | |
+| `--link` | Symlink to `AGENTS.md` instead of copying | |
+
+Flags are combinable. `--all` is shorthand for `--claude --gemini --cursor --copilot`.
+
+Directories are created automatically (e.g. `.github/`).
+
+### Examples
+
+```bash
+# AGENTS.md only
+npx memctl generate
+
+# AGENTS.md + CLAUDE.md
+npx memctl generate --claude
+
+# AGENTS.md + CLAUDE.md + .cursorrules
+npx memctl generate --claude --cursor
+
+# All agent config files
+npx memctl generate --all
+
+# All files, but symlink CLAUDE.md, GEMINI.md, and copilot-instructions.md to AGENTS.md
+npx memctl generate --all --link
+```
+
+### Example output
+
+```
+Wrote 1 file(s): AGENTS.md
+```
+
+With `--all`:
+
+```
+Wrote 5 file(s): AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md
+```
+
+With `--all --link`:
+
+```
+Wrote 2 file(s): AGENTS.md, .cursorrules
+Linked 3 file(s): CLAUDE.md -> AGENTS.md, GEMINI.md -> AGENTS.md, .github/copilot-instructions.md -> AGENTS.md
+```
+
+### --link
+
+`CLAUDE.md`, `GEMINI.md`, and `copilot-instructions.md` all use the same `agents_md` format, so their content is identical to `AGENTS.md`. With `--link`, these files become symlinks to `AGENTS.md` instead of separate copies. This avoids content drift and keeps a single source of truth.
+
+`.cursorrules` uses a different format (`cursorrules`) so it is always written as a real file.
+
+### Difference from export
+
+`export` prints to stdout so you can pipe or redirect it. `generate` writes files to disk in a single step. Use `export` when you need to pipe into another tool or customize the output path. Use `generate` when you want the standard files written with no extra flags.
+
 ## export
 
 Export memories to stdout in various formats.

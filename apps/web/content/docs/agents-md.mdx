@@ -7,13 +7,14 @@ description: Copy-paste AGENTS.md template for mem/ctl MCP usage
 
 Copy this into your repository root as `AGENTS.md`. This works with any MCP-compatible agent (Claude Code, Cursor, VS Code, Windsurf, Cline, etc.).
 
-Some agents read a different filename. Symlink instead of duplicating:
+Some agents read a different filename. Use `generate --link` to create symlinks automatically, or create them manually:
 
 ```bash
-# Claude Code reads CLAUDE.md
-ln -s AGENTS.md CLAUDE.md
+# Automatic: generate AGENTS.md and symlink CLAUDE.md + GEMINI.md to it
+npx memctl generate --claude --gemini --link
 
-# Google Gemini reads GEMINI.md
+# Manual
+ln -s AGENTS.md CLAUDE.md
 ln -s AGENTS.md GEMINI.md
 ```
 
@@ -72,16 +73,32 @@ Run every few sessions:
 
 ## Importing and exporting
 
-You can generate this file from your stored context:
+Generate agent config files from your stored context:
 
 ```bash
-# Export stored context as AGENTS.md
-npx memctl export agents_md > AGENTS.md
+# Write AGENTS.md to the current directory
+npx memctl generate
+
+# Pick specific agents
+npx memctl generate --claude           # + CLAUDE.md
+npx memctl generate --gemini           # + GEMINI.md
+npx memctl generate --cursor           # + .cursorrules
+npx memctl generate --copilot          # + .github/copilot-instructions.md
+npx memctl generate --all              # all of the above
+
+# Symlink instead of copying (avoids content drift)
+npx memctl generate --all --link
 
 # Import an existing AGENTS.md into memctl
 npx memctl import AGENTS.md
+```
 
-# Export as .cursorrules for Cursor
+With `--link`, files that share the same format as `AGENTS.md` (CLAUDE.md, GEMINI.md, copilot-instructions.md) become symlinks. `.cursorrules` is always a real file because it uses a different format. See [generate docs](/docs/cli/import-export#generate) for details.
+
+For pipe-friendly output, use `export` instead:
+
+```bash
+npx memctl export agents_md > custom-path/AGENTS.md
 npx memctl export cursorrules > .cursorrules
 ```
 
