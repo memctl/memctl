@@ -297,8 +297,9 @@ function createAuth() {
 
             for (const invite of pendingInvites) {
               try {
-                const seatResult =
-                  await ensureSeatForAdditionalMember(invite.orgId);
+                const seatResult = await ensureSeatForAdditionalMember(
+                  invite.orgId,
+                );
                 if (!seatResult.ok) {
                   continue;
                 }
@@ -317,7 +318,9 @@ function createAuth() {
               } catch {
                 try {
                   await syncSeatQuantityToMemberCount(invite.orgId);
-                } catch {}
+                } catch {
+                  // ignore seat sync failure
+                }
                 // Ignore duplicate membership races
               }
             }

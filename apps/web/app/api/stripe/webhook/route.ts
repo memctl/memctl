@@ -59,9 +59,8 @@ export async function POST(req: NextRequest) {
         const planId =
           getPlanFromSubscription(subscription) ??
           getPlanFromMetadata(session.metadata);
-        const extraSeatQuantity = getExtraSeatQuantityFromSubscription(
-          subscription,
-        );
+        const extraSeatQuantity =
+          getExtraSeatQuantityFromSubscription(subscription);
 
         if (planId) {
           const [existingOrg] = await db
@@ -172,9 +171,8 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.updated": {
       const subscription = event.data.object;
       const planId = getPlanFromSubscription(subscription);
-      const extraSeatQuantity = getExtraSeatQuantityFromSubscription(
-        subscription,
-      );
+      const extraSeatQuantity =
+        getExtraSeatQuantityFromSubscription(subscription);
 
       if (planId) {
         const [existingOrg] = await db
@@ -229,9 +227,8 @@ export async function POST(req: NextRequest) {
       const subscription = event.data.object;
       const customerId = getCustomerId(subscription.customer);
       const planId = getPlanFromSubscription(subscription);
-      const extraSeatQuantity = getExtraSeatQuantityFromSubscription(
-        subscription,
-      );
+      const extraSeatQuantity =
+        getExtraSeatQuantityFromSubscription(subscription);
       const metadataOrgSlug = getOrgSlugFromMetadata(subscription.metadata);
 
       let existingOrg:
@@ -443,7 +440,9 @@ function isEntitlementManaged(subscription: {
 }
 
 function getExtraSeatQuantityFromSubscription(subscription: {
-  items: { data: Array<{ price: { id: string }; quantity: number | null }> };
+  items: {
+    data: Array<{ price: { id: string }; quantity?: number | null }>;
+  };
 }): number {
   if (!STRIPE_EXTRA_SEAT_PRICE_ID) return 0;
 
@@ -461,14 +460,19 @@ function getCustomerId(
   return customer.id;
 }
 
-function formatBillingAddress(address: {
-  line1?: string | null;
-  line2?: string | null;
-  city?: string | null;
-  state?: string | null;
-  postal_code?: string | null;
-  country?: string | null;
-} | null): string | null {
+function formatBillingAddress(
+  address:
+    | {
+        line1?: string | null;
+        line2?: string | null;
+        city?: string | null;
+        state?: string | null;
+        postal_code?: string | null;
+        country?: string | null;
+      }
+    | null
+    | undefined,
+): string | null {
   if (!address) return null;
 
   const parts = [

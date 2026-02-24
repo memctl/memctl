@@ -297,7 +297,9 @@ export async function POST(
     } catch {
       try {
         await syncSeatQuantityToMemberCount(org.id);
-      } catch {}
+      } catch {
+        // ignore seat sync failure
+      }
       return NextResponse.json(
         { error: "Invitation already exists for this email" },
         { status: 409 },

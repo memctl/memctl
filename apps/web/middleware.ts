@@ -8,7 +8,8 @@ function isHostProtected(requestHost: string): boolean {
     .split(",")
     .map((host) => host.trim().toLowerCase())
     .filter(Boolean);
-  if (configuredHosts.length === 0 || configuredHosts.includes("*")) return true;
+  if (configuredHosts.length === 0 || configuredHosts.includes("*"))
+    return true;
 
   const normalizedHost = requestHost.split(":")[0]?.toLowerCase() ?? "";
   return configuredHosts.includes(normalizedHost);
@@ -25,7 +26,7 @@ function isAuthorized(request: NextRequest): boolean {
   const encoded = header.slice(6).trim();
   if (!encoded) return false;
 
-  let decoded = "";
+  let decoded: string;
   try {
     decoded = atob(encoded);
   } catch {
@@ -45,7 +46,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (isHostProtected(request.headers.get("host") ?? "") && !isAuthorized(request)) {
+  if (
+    isHostProtected(request.headers.get("host") ?? "") &&
+    !isAuthorized(request)
+  ) {
     return new NextResponse("Authentication required", {
       status: 401,
       headers: {
