@@ -19,8 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPagination } from "@/components/admin/admin-pagination";
+import { AdminTableLoader } from "@/components/admin/admin-table-loader";
 import { SortableHeader } from "@/components/admin/sortable-header";
 import { Search, Plus, FileText } from "lucide-react";
 import { DeletePostButton } from "./delete-button";
@@ -155,25 +155,7 @@ export function BlogList() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i} className="border-[var(--landing-border)]">
-                    <TableCell>
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Skeleton className="h-4 w-16" />
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Skeleton className="h-4 w-20" />
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="ml-auto h-4 w-16" />
-                    </TableCell>
-                  </TableRow>
-                ))
+                <AdminTableLoader colSpan={5} />
               ) : posts.length === 0 ? (
                 <TableRow className="border-[var(--landing-border)]">
                   <TableCell

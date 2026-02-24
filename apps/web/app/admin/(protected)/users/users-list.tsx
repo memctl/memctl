@@ -22,8 +22,8 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPagination } from "@/components/admin/admin-pagination";
+import { AdminTableLoader } from "@/components/admin/admin-table-loader";
 import { SortableHeader } from "@/components/admin/sortable-header";
 import { Search } from "lucide-react";
 import { UserAdminToggle } from "./user-admin-toggle";
@@ -182,31 +182,7 @@ export function UsersList() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i} className="border-[var(--landing-border)]">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-32" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-10" />
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Skeleton className="h-4 w-16" />
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Skeleton className="ml-auto h-4 w-8" />
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                  </TableRow>
-                ))
+                <AdminTableLoader colSpan={6} />
               ) : userList.length === 0 ? (
                 <TableRow className="border-[var(--landing-border)]">
                   <TableCell

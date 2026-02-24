@@ -41,6 +41,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { AdminTableLoader } from "@/components/admin/admin-table-loader";
 import { StatCard } from "@/components/dashboard/shared/stat-card";
 import {
   Ticket,
@@ -571,11 +572,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow className="border-[var(--landing-border)]">
-                <TableCell colSpan={9} className="py-8 text-center font-mono text-sm text-[var(--landing-text-tertiary)]">
-                  Loading...
-                </TableCell>
-              </TableRow>
+              <AdminTableLoader colSpan={9} />
             ) : filteredCodes.length === 0 ? (
               <TableRow className="border-[var(--landing-border)]">
                 <TableCell colSpan={9} className="py-8 text-center font-mono text-sm text-[var(--landing-text-tertiary)]">
