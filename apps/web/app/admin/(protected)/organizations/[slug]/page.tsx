@@ -182,7 +182,7 @@ export default async function AdminOrgDetailPage({
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {stats.map((s) => (
           <div key={s.label} className="dash-card p-3">
-            <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               {s.label}
             </span>
             <span
@@ -207,7 +207,7 @@ export default async function AdminOrgDetailPage({
         {/* Members */}
         <div className="dash-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
-            <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Members
             </span>
             <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
@@ -218,10 +218,10 @@ export default async function AdminOrgDetailPage({
             <Table>
               <TableHeader>
                 <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Member
                   </TableHead>
-                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Role
                   </TableHead>
                 </TableRow>
@@ -284,7 +284,7 @@ export default async function AdminOrgDetailPage({
         {/* Projects */}
         <div className="dash-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
-            <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Projects
             </span>
             <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
@@ -295,10 +295,10 @@ export default async function AdminOrgDetailPage({
             <Table>
               <TableHeader>
                 <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Project
                   </TableHead>
-                  <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Created
                   </TableHead>
                 </TableRow>

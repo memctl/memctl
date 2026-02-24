@@ -290,7 +290,7 @@ export default function AdminLoginPage() {
 
           {/* ── Admin access ── */}
           <div className="animate-slide-in-right order-5 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 [animation-delay:200ms] md:order-3 lg:order-3 lg:p-7">
-            <p className="mb-2 font-mono text-[11px] tracking-widest text-[#F97316] uppercase">
+            <p className="mb-2 font-mono text-[11px] uppercase tracking-widest text-[#F97316]">
               Admin access
             </p>
             <p className="mb-3 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
@@ -298,8 +298,8 @@ export default function AdminLoginPage() {
               and account management.
             </p>
             <p className="text-xs text-[var(--landing-text-tertiary)]">
-              Only @memctl.com addresses can request a magic link, and each
-              link expires in 5 minutes.
+              Only @memctl.com addresses can request a magic link, and each link
+              expires in 5 minutes.
             </p>
           </div>
 
@@ -315,7 +315,7 @@ export default function AdminLoginPage() {
 
           {/* ── Integrations + trust ── */}
           <div className="animate-fade-in-up order-4 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-5 [animation-delay:400ms] md:order-5 lg:order-5 lg:col-span-2 lg:p-6">
-            <p className="mb-3 font-mono text-[11px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               Works with your tools
             </p>
             <div className="mb-4 flex flex-wrap gap-2">

@@ -8,30 +8,26 @@ import { getEffectivePlanId } from "@/lib/plans";
 export const dynamic = "force-dynamic";
 
 export default async function AdminOrganizationsPage() {
-  const [
-    [totalResult],
-    [activeResult],
-    [suspendedBannedResult],
-    allOrgPlans,
-  ] = await Promise.all([
-    db.select({ value: count() }).from(organizations),
-    db
-      .select({ value: count() })
-      .from(organizations)
-      .where(eq(organizations.status, "active")),
-    db
-      .select({ value: count() })
-      .from(organizations)
-      .where(and(ne(organizations.status, "active"))),
-    db
-      .select({
-        planId: organizations.planId,
-        planOverride: organizations.planOverride,
-        trialEndsAt: organizations.trialEndsAt,
-        planExpiresAt: organizations.planExpiresAt,
-      })
-      .from(organizations),
-  ]);
+  const [[totalResult], [activeResult], [suspendedBannedResult], allOrgPlans] =
+    await Promise.all([
+      db.select({ value: count() }).from(organizations),
+      db
+        .select({ value: count() })
+        .from(organizations)
+        .where(eq(organizations.status, "active")),
+      db
+        .select({ value: count() })
+        .from(organizations)
+        .where(and(ne(organizations.status, "active"))),
+      db
+        .select({
+          planId: organizations.planId,
+          planOverride: organizations.planOverride,
+          trialEndsAt: organizations.trialEndsAt,
+          planExpiresAt: organizations.planExpiresAt,
+        })
+        .from(organizations),
+    ]);
   const proPlusCount = allOrgPlans.filter(
     (org) => getEffectivePlanId(org) !== "free",
   ).length;
@@ -50,7 +46,7 @@ export default async function AdminOrganizationsPage() {
       <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="dash-card p-3">
-            <span className="block font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+            <span className="block font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
               {s.label}
             </span>
             <span className="block text-lg font-semibold text-[var(--landing-text)]">

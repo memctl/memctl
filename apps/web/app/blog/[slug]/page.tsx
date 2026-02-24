@@ -89,10 +89,10 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* Article header */}
         <ScrollReveal>
           <header className="mx-auto mb-12 max-w-3xl">
-            <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+            <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
               Blog
             </span>
-            <h1 className="mb-6 text-[clamp(1.75rem,4vw,3rem)] leading-[1.15] font-bold">
+            <h1 className="mb-6 text-[clamp(1.75rem,4vw,3rem)] font-bold leading-[1.15]">
               {post.title}
             </h1>
             <div className="flex items-center gap-3">

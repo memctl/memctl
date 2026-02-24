@@ -134,7 +134,7 @@ export function TerminalAnimation() {
       >
         {/* Command line */}
         <div className="flex">
-          <span className="mr-2 text-[#F97316] select-none">$</span>
+          <span className="mr-2 select-none text-[#F97316]">$</span>
           <span className="text-[var(--landing-text)]">
             {seq.command.slice(0, typedChars)}
           </span>
@@ -164,13 +164,13 @@ export function TerminalAnimation() {
         {/* Blinking cursor after output */}
         {phase === "output" && visibleLines >= seq.output.length && (
           <div className="mt-2 flex">
-            <span className="mr-2 text-[#F97316] select-none">$</span>
+            <span className="mr-2 select-none text-[#F97316]">$</span>
             <span className="terminal-cursor" />
           </div>
         )}
         {phase === "pause" && (
           <div className="mt-2 flex">
-            <span className="mr-2 text-[#F97316] select-none">$</span>
+            <span className="mr-2 select-none text-[#F97316]">$</span>
             <span className="terminal-cursor" />
           </div>
         )}

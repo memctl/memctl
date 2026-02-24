@@ -135,7 +135,9 @@ export async function ensureSeatForAdditionalMember(
   return { ok: true };
 }
 
-export async function syncSeatQuantityToMemberCount(orgId: string): Promise<void> {
+export async function syncSeatQuantityToMemberCount(
+  orgId: string,
+): Promise<void> {
   if (isSelfHosted() || !isBillingEnabled() || !STRIPE_EXTRA_SEAT_PRICE_ID) {
     return;
   }

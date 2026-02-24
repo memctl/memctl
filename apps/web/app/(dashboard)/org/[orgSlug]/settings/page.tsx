@@ -93,10 +93,7 @@ export default async function OrgSettingsPage({
         {/* Settings form - 3 cols */}
         <div className="lg:col-span-3">
           <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-            <OrgSettingsForm
-              orgSlug={orgSlug}
-              initialName={org.name}
-            />
+            <OrgSettingsForm orgSlug={orgSlug} initialName={org.name} />
           </div>
         </div>
 

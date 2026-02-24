@@ -79,7 +79,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
             <button
               key={preset.days}
               onClick={() => applyPreset(preset.days)}
-              className="rounded-md bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] transition-colors hover:bg-[var(--landing-surface-2)]/80 hover:text-[var(--landing-text)]"
+              className="hover:bg-[var(--landing-surface-2)]/80 rounded-md bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] font-medium text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text)]"
             >
               {preset.label}
             </button>

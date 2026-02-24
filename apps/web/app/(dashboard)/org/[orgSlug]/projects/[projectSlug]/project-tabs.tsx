@@ -252,7 +252,7 @@ function ProjectTabsInner({
             onClick={() =>
               scrollRef.current?.scrollBy({ left: -120, behavior: "smooth" })
             }
-            className="absolute top-0 bottom-0 left-0 z-10 flex w-8 items-center justify-start bg-gradient-to-r from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pl-1"
+            className="via-[var(--landing-bg)]/80 absolute bottom-0 left-0 top-0 z-10 flex w-8 items-center justify-start bg-gradient-to-r from-[var(--landing-bg)] to-transparent pl-1"
           >
             <ChevronLeft className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
           </button>
@@ -262,7 +262,7 @@ function ProjectTabsInner({
             onClick={() =>
               scrollRef.current?.scrollBy({ left: 120, behavior: "smooth" })
             }
-            className="absolute top-0 right-0 bottom-0 z-10 flex w-8 items-center justify-end bg-gradient-to-l from-[var(--landing-bg)] via-[var(--landing-bg)]/80 to-transparent pr-1"
+            className="via-[var(--landing-bg)]/80 absolute bottom-0 right-0 top-0 z-10 flex w-8 items-center justify-end bg-gradient-to-l from-[var(--landing-bg)] to-transparent pr-1"
           >
             <ChevronRight className="h-4 w-4 text-[var(--landing-text-tertiary)]" />
           </button>
@@ -285,7 +285,7 @@ function ProjectTabsInner({
                   if (el) tabRefs.current.set(tab.id, el);
                 }}
                 onClick={() => handleTabChange(tab.id)}
-                className="relative flex shrink-0 items-center gap-1.5 px-4 py-2.5 font-mono text-xs font-medium transition-colors outline-none"
+                className="relative flex shrink-0 items-center gap-1.5 px-4 py-2.5 font-mono text-xs font-medium outline-none transition-colors"
                 style={{
                   color: isActive
                     ? "var(--landing-text)"

@@ -751,7 +751,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
         <div className="h-3 w-px bg-[var(--landing-border)]" />
 
         <div className="relative">
-          <Search className="absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+          <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
           <Input
             placeholder="Search nodes..."
             value={searchQuery}
@@ -761,7 +761,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute top-1/2 right-2 -translate-y-1/2"
+              className="absolute right-2 top-1/2 -translate-y-1/2"
             >
               <X className="h-3 w-3 text-[var(--landing-text-tertiary)]" />
             </button>
@@ -882,7 +882,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
               className="dash-card w-full shrink-0 space-y-3 overflow-y-auto p-4 md:max-h-[500px] md:w-72"
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="font-mono text-xs font-medium break-all text-[#F97316]">
+                <p className="break-all font-mono text-xs font-medium text-[#F97316]">
                   {selectedNode.id}
                 </p>
                 <button
@@ -894,7 +894,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
               </div>
 
               <div>
-                <p className="mb-1 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Content
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--landing-text-secondary)]">
@@ -905,7 +905,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <p className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Priority
                   </p>
                   <div className="mt-1 flex items-center gap-2">
@@ -929,7 +929,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
                   </div>
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Relevance
                   </p>
                   <div className="mt-1 flex items-center gap-2">
@@ -971,7 +971,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
 
               {selectedNode.tags.length > 0 && (
                 <div>
-                  <p className="mb-1 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Tags
                   </p>
                   <div className="flex flex-wrap gap-1">
@@ -990,7 +990,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
 
               {selectedRelated.length > 0 && (
                 <div>
-                  <p className="mb-1 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Connected ({selectedRelated.length})
                   </p>
                   <div className="space-y-1">
@@ -998,7 +998,7 @@ export function MemoryGraph({ memories }: MemoryGraphProps) {
                       <button
                         key={key}
                         onClick={() => navigateToNode(key)}
-                        className="block w-full truncate rounded bg-[var(--landing-surface-2)] px-2 py-1 text-left font-mono text-[10px] text-[var(--landing-text-secondary)] transition-colors hover:bg-[var(--landing-surface-2)]/80 hover:text-[#F97316]"
+                        className="hover:bg-[var(--landing-surface-2)]/80 block w-full truncate rounded bg-[var(--landing-surface-2)] px-2 py-1 text-left font-mono text-[10px] text-[var(--landing-text-secondary)] transition-colors hover:text-[#F97316]"
                       >
                         {key}
                       </button>

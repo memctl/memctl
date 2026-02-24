@@ -246,7 +246,7 @@ export default async function MembersPage({
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/20 to-transparent" />
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   {label}
                 </p>
                 <p className={`mt-1 font-mono text-lg font-bold ${color}`}>
@@ -270,19 +270,19 @@ export default async function MembersPage({
           <Table>
             <TableHeader>
               <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Member
                 </TableHead>
-                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase sm:table-cell">
+                <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] sm:table-cell">
                   Email
                 </TableHead>
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Role
                 </TableHead>
-                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase md:table-cell">
+                <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] md:table-cell">
                   Projects
                 </TableHead>
-                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase lg:table-cell">
+                <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] lg:table-cell">
                   Joined
                 </TableHead>
                 <TableHead className="w-12" />
@@ -374,7 +374,7 @@ export default async function MembersPage({
       {/* Role distribution */}
       {members.length > 1 && (
         <div className="dash-card mt-4 p-3">
-          <p className="mb-2 font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
             Role distribution
           </p>
           <div className="flex h-2 overflow-hidden rounded-full bg-[var(--landing-surface-2)]">

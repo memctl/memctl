@@ -178,7 +178,7 @@ function LogoItem({ logo }: { logo: (typeof LOGOS)[number] }) {
           />
         ))}
       </svg>
-      <span className="font-mono text-sm font-medium whitespace-nowrap">
+      <span className="whitespace-nowrap font-mono text-sm font-medium">
         {logo.name}
       </span>
     </div>
@@ -200,21 +200,21 @@ export function LogoCloud() {
       </div>
       {/* ── Diagonal hatching ── */}
       <div
-        className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] [mask-image:linear-gradient(to_top,black_15%,transparent_75%)] opacity-[0.15]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.15] [mask-image:linear-gradient(to_top,black_15%,transparent_75%)]"
         aria-hidden="true"
       />
       <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
         <div className="mb-8 text-center">
-          <span className="text-[12px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+          <span className="text-[12px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
             Trusted by engineering teams at
           </span>
         </div>
 
         {/* Single row marquee */}
         <div className="relative overflow-hidden">
-          <div className="absolute top-0 left-0 z-10 h-full w-16 bg-gradient-to-r from-[var(--landing-bg)] to-transparent sm:w-24" />
-          <div className="absolute top-0 right-0 z-10 h-full w-16 bg-gradient-to-l from-[var(--landing-bg)] to-transparent sm:w-24" />
-          <div className="flex [animation:marquee_40s_linear_infinite] will-change-transform">
+          <div className="absolute left-0 top-0 z-10 h-full w-16 bg-gradient-to-r from-[var(--landing-bg)] to-transparent sm:w-24" />
+          <div className="absolute right-0 top-0 z-10 h-full w-16 bg-gradient-to-l from-[var(--landing-bg)] to-transparent sm:w-24" />
+          <div className="flex will-change-transform [animation:marquee_40s_linear_infinite]">
             {[...LOGOS, ...LOGOS].map((logo, i) => (
               <LogoItem key={i} logo={logo} />
             ))}

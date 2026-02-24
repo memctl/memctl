@@ -217,7 +217,7 @@ export function HealthDashboard({
             <div key={label} className="dash-card p-2.5">
               <div className="mb-1 flex items-center gap-1.5">
                 <Icon className={`h-3 w-3 ${color}`} />
-                <span className="font-mono text-[9px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   {label}
                 </span>
               </div>
@@ -327,25 +327,25 @@ export function HealthDashboard({
             <Table>
               <TableHeader>
                 <TableRow className="border-[var(--landing-border)] bg-[var(--landing-code-bg)] hover:bg-[var(--landing-code-bg)]">
-                  <TableHead className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Project
                   </TableHead>
-                  <TableHead className="text-right font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="text-right font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Memories
                   </TableHead>
-                  <TableHead className="text-right font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="text-right font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Pinned
                   </TableHead>
-                  <TableHead className="text-right font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="text-right font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Archived
                   </TableHead>
-                  <TableHead className="text-right font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="text-right font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Sessions
                   </TableHead>
-                  <TableHead className="text-right font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="text-right font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Actions
                   </TableHead>
-                  <TableHead className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                  <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                     Share
                   </TableHead>
                 </TableRow>

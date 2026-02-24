@@ -271,22 +271,22 @@ export function FeatureShowcase() {
         </div>
         {/* ── Diagonal hatching ── */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] [mask-image:linear-gradient(to_right,black_10%,transparent_50%)] opacity-[0.15]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(-45deg,transparent,transparent_7px,var(--landing-border)_7px,var(--landing-border)_8px)] opacity-[0.15] [mask-image:linear-gradient(to_right,black_10%,transparent_50%)]"
           aria-hidden="true"
         />
         {/* Cyan glow orb */}
         <div
-          className="pointer-events-none absolute top-[30%] right-[5%] -z-10 h-[450px] w-[450px] rounded-full bg-cyan-500/[0.04] blur-[120px]"
+          className="pointer-events-none absolute right-[5%] top-[30%] -z-10 h-[450px] w-[450px] rounded-full bg-cyan-500/[0.04] blur-[120px]"
           aria-hidden="true"
         />
         <div ref={sectionRef} className="relative lg:min-h-screen">
           <div className="mx-auto max-w-[1600px] px-6 py-20 lg:px-8 lg:py-0 lg:pt-24">
             {/* Header */}
             <div className="mb-10 lg:mb-12">
-              <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+              <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
                 The protocol
               </span>
-              <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.1] font-bold">
+              <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1]">
                 The MCP read/write loop
               </h2>
               <p className="mt-4 max-w-xl text-lg text-[var(--landing-text-secondary)]">
@@ -321,7 +321,7 @@ export function FeatureShowcase() {
                 data-conn-left
                 className="flex flex-1 flex-col items-center px-4"
               >
-                <span className="mb-1.5 font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <span className="mb-1.5 font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   repo sync
                 </span>
                 <div className="relative h-[2px] w-full overflow-hidden rounded-full bg-[#F97316]/20">
@@ -362,7 +362,7 @@ export function FeatureShowcase() {
                 data-conn-right
                 className="flex flex-1 flex-col items-center px-4 opacity-15"
               >
-                <span className="mb-1.5 font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <span className="mb-1.5 font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   MCP protocol
                 </span>
                 <div className="relative h-[2px] w-full overflow-hidden rounded-full bg-[#F97316]/20">
@@ -404,7 +404,7 @@ export function FeatureShowcase() {
             </div>
 
             {/* Phase dots - desktop sidebar */}
-            <div className="pointer-events-none absolute top-1/2 left-8 z-10 hidden -translate-y-1/2 flex-col gap-5 lg:flex">
+            <div className="pointer-events-none absolute left-8 top-1/2 z-10 hidden -translate-y-1/2 flex-col gap-5 lg:flex">
               {PHASES.map((phase, i) => (
                 <div key={i} className="flex items-center gap-2.5">
                   <div
@@ -412,7 +412,7 @@ export function FeatureShowcase() {
                     className="h-2.5 w-2.5 rounded-full"
                     style={{ background: "var(--landing-border)" }}
                   />
-                  <span className="font-mono text-[9px] tracking-wide text-[var(--landing-text-tertiary)] uppercase">
+                  <span className="font-mono text-[9px] uppercase tracking-wide text-[var(--landing-text-tertiary)]">
                     {phase.label}
                   </span>
                 </div>
@@ -438,7 +438,7 @@ export function FeatureShowcase() {
                         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#F97316]/10 font-mono text-xs font-bold text-[#F97316]">
                           {phase.step}
                         </span>
-                        <span className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                           {phase.label}
                         </span>
                       </div>
@@ -454,7 +454,7 @@ export function FeatureShowcase() {
                     <div className="relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5">
                       {/* Diagonal hatching */}
                       <div
-                        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] [mask-image:linear-gradient(to_bottom,black_25%,transparent_65%)] opacity-[0.3]"
+                        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] opacity-[0.3] [mask-image:linear-gradient(to_bottom,black_25%,transparent_65%)]"
                         aria-hidden="true"
                       />
                       <div className="mb-3 flex items-center gap-2">

@@ -121,7 +121,7 @@ export default async function ChangelogVersionPage({ params }: PageProps) {
             <span className="mb-4 inline-block rounded-full bg-orange-500/10 px-3 py-1 font-mono text-sm font-semibold text-[#F97316]">
               v{entry.version}
             </span>
-            <h1 className="mb-4 text-[clamp(1.75rem,4vw,3rem)] leading-[1.15] font-bold">
+            <h1 className="mb-4 text-[clamp(1.75rem,4vw,3rem)] font-bold leading-[1.15]">
               {entry.title}
             </h1>
             {entry.summary && (

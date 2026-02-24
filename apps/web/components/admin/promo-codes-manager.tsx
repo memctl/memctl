@@ -520,7 +520,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
       {/* Filters Bar */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[200px] flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
           <Input
             placeholder="Search by code or description..."
             value={searchQuery}
@@ -645,28 +645,28 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                   }}
                 />
               </TableHead>
-              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Code
               </TableHead>
-              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Discount
               </TableHead>
-              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Duration
               </TableHead>
-              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Plans
               </TableHead>
-              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Orgs
               </TableHead>
-              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Redeemed
               </TableHead>
-              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Status
               </TableHead>
-              <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Actions
               </TableHead>
             </TableRow>
@@ -731,7 +731,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                           {plans.map((p) => (
                             <span
                               key={p}
-                              className="inline-flex rounded-full bg-[#F97316]/10 px-2 py-0.5 font-mono text-[10px] font-medium text-[#F97316] capitalize"
+                              className="inline-flex rounded-full bg-[#F97316]/10 px-2 py-0.5 font-mono text-[10px] font-medium capitalize text-[#F97316]"
                             >
                               {p}
                             </span>
@@ -826,7 +826,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
             <div className="space-y-3">
               {!editingId && (
                 <div className="space-y-1">
-                  <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                  <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                     Code
                   </Label>
                   <div className="flex gap-2">
@@ -861,7 +861,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                  <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                     Campaign
                   </Label>
                   <Input
@@ -879,7 +879,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                   </datalist>
                 </div>
                 <div className="space-y-1">
-                  <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                  <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                     Description
                   </Label>
                   <Input
@@ -893,7 +893,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
               </div>
 
               <div className="space-y-1">
-                <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   Discount
                 </Label>
                 <div className="flex flex-wrap gap-2">
@@ -925,7 +925,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                     </SelectContent>
                   </Select>
                   <div className="relative min-w-[100px] flex-1">
-                    <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-[var(--landing-text-tertiary)]">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--landing-text-tertiary)]">
                       {form.discountType === "percent" ? "%" : "$"}
                     </span>
                     <Input
@@ -970,7 +970,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
               </div>
 
               <div className="space-y-1">
-                <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   Duration
                 </Label>
                 <div className="flex flex-wrap gap-2">
@@ -1024,7 +1024,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
               </div>
 
               <div className="space-y-1">
-                <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   Scheduling
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -1061,7 +1061,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowBulk(!showBulk)}
-                    className="h-auto p-0 font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase hover:bg-transparent hover:text-[var(--landing-text)]"
+                    className="h-auto p-0 font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)] hover:bg-transparent hover:text-[var(--landing-text)]"
                   >
                     <ChevronDown
                       className={`mr-2 h-3 w-3 transition-transform ${showBulk ? "rotate-180" : ""}`}
@@ -1118,7 +1118,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
             {/* Column 2: Restrictions */}
             <div className="space-y-3">
-              <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+              <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                 Restrictions
               </Label>
 
@@ -1147,7 +1147,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
                           }
                         }}
                       />
-                      <span className="text-xs text-[var(--landing-text)] capitalize">
+                      <span className="text-xs capitalize text-[var(--landing-text)]">
                         {plan}
                       </span>
                     </label>
@@ -1343,7 +1343,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
             {/* Column 3: Live Preview */}
             <div className="space-y-2 md:col-span-2 xl:col-span-1">
-              <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+              <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                 Preview
               </Label>
               <div className="rounded-lg border p-4">
@@ -1459,7 +1459,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label className="font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+              <Label className="font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                 New Code
               </Label>
               <Input
@@ -1547,7 +1547,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
               {/* Settings summary */}
               <div className="space-y-3">
-                <h4 className="font-mono text-xs tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <h4 className="font-mono text-xs uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Settings
                 </h4>
                 <dl className="space-y-2 text-sm">
@@ -1674,7 +1674,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
               {/* Redemption history */}
               <div>
-                <h4 className="font-mono text-xs tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <h4 className="font-mono text-xs uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Redemption History ({detailRedemptions.length})
                 </h4>
                 {detailRedemptions.length === 0 ? (

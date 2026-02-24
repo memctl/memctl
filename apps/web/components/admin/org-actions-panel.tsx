@@ -76,7 +76,7 @@ const dialogCls =
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-4 py-2.5">
-      <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+      <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
         {children}
       </span>
     </div>
@@ -85,7 +85,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-1.5 block font-mono text-[10px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+    <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
       {children}
     </span>
   );
@@ -150,7 +150,9 @@ export function OrgActionsPanel({
   const [contractEnd, setContractEnd] = useState<Date | undefined>(
     org.contractEndDate ? new Date(org.contractEndDate) : undefined,
   );
-  const selectedTemplateConfig = templates.find((t) => t.id === selectedTemplate);
+  const selectedTemplateConfig = templates.find(
+    (t) => t.id === selectedTemplate,
+  );
 
   async function doAction(body: Record<string, unknown>) {
     setLoading(true);
@@ -293,7 +295,7 @@ export function OrgActionsPanel({
           <div className="flex items-center gap-2">
             Limits
             {org.customLimits && (
-              <span className="rounded-full bg-[#F97316]/10 px-2 py-0.5 font-mono text-[9px] font-medium tracking-normal text-[#F97316] normal-case">
+              <span className="rounded-full bg-[#F97316]/10 px-2 py-0.5 font-mono text-[9px] font-medium normal-case tracking-normal text-[#F97316]">
                 Custom
               </span>
             )}
@@ -453,7 +455,7 @@ export function OrgActionsPanel({
             <SectionLabel>Subscription</SectionLabel>
             {org.stripeSubscriptionId ? (
               <div className="mt-2">
-                <div className="mb-2 rounded-md border border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2 font-mono text-[10px] break-all text-[var(--landing-text-secondary)]">
+                <div className="mb-2 break-all rounded-md border border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2 font-mono text-[10px] text-[var(--landing-text-secondary)]">
                   {org.stripeSubscriptionId}
                 </div>
                 <Button
@@ -834,7 +836,7 @@ export function OrgActionsPanel({
       >
         <DialogContent className={dialogCls}>
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm text-[var(--landing-text)] capitalize">
+            <DialogTitle className="font-mono text-sm capitalize text-[var(--landing-text)]">
               {statusDialog} Organization
             </DialogTitle>
           </DialogHeader>

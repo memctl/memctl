@@ -158,7 +158,7 @@ export function Sidebar({
   return (
     <nav className="flex h-full w-72 flex-col border-r border-[var(--landing-border)] bg-[var(--landing-surface)]">
       {/* Org Switcher */}
-      <div className="px-3 pt-3 pb-2">
+      <div className="px-3 pb-2 pt-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors duration-150 hover:bg-[var(--landing-surface-2)] focus:outline-none data-[state=open]:bg-[var(--landing-surface-2)]">
@@ -229,8 +229,8 @@ export function Sidebar({
       <Separator className="bg-[var(--landing-border)]" />
 
       {/* Main Navigation */}
-      <div className="flex flex-1 flex-col overflow-y-auto px-3 pt-4 pb-2">
-        <span className="mb-1.5 px-3 text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+      <div className="flex flex-1 flex-col overflow-y-auto px-3 pb-2 pt-4">
+        <span className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
           General
         </span>
         <div className="flex flex-col gap-0.5">
@@ -274,7 +274,7 @@ export function Sidebar({
                   projectsOpen && "rotate-90",
                 )}
               />
-              <span className="text-[11px] font-medium tracking-widest uppercase">
+              <span className="text-[11px] font-medium uppercase tracking-widest">
                 Projects
               </span>
             </CollapsibleTrigger>

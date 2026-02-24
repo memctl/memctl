@@ -118,20 +118,20 @@ export function BeforeAfter() {
         </div>
         {/* ── Diagonal hatching ── */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] [mask-image:radial-gradient(ellipse_50%_45%_at_50%_50%,black_30%,transparent_70%)] opacity-[0.18]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,var(--landing-border)_8px,var(--landing-border)_9px)] opacity-[0.18] [mask-image:radial-gradient(ellipse_50%_45%_at_50%_50%,black_30%,transparent_70%)]"
           aria-hidden="true"
         />
         {/* Indigo glow */}
         <div
-          className="pointer-events-none absolute top-1/2 left-1/2 -z-10 h-[400px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/[0.03] blur-[100px]"
+          className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[400px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/[0.03] blur-[100px]"
           aria-hidden="true"
         />
         <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
           <div className="mb-16 text-center">
-            <span className="mb-4 inline-block font-mono text-[11px] font-medium text-[#F97316] uppercase">
+            <span className="mb-4 inline-block font-mono text-[11px] font-medium uppercase text-[#F97316]">
               The problem
             </span>
-            <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.1] font-bold">
+            <h2 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1]">
               AI context resets every session
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-lg text-[var(--landing-text-secondary)]">
@@ -144,7 +144,7 @@ export function BeforeAfter() {
             {/* Connecting line */}
             <div
               ref={lineRef}
-              className="pointer-events-none absolute top-1/2 left-1/2 z-10 hidden h-px w-16 origin-left -translate-x-1/2 -translate-y-1/2 bg-[#F97316] lg:block"
+              className="pointer-events-none absolute left-1/2 top-1/2 z-10 hidden h-px w-16 origin-left -translate-x-1/2 -translate-y-1/2 bg-[#F97316] lg:block"
             />
 
             {/* Without memctl */}
@@ -152,7 +152,7 @@ export function BeforeAfter() {
               <div className="relative h-full overflow-hidden rounded-xl border border-red-500/20 bg-[var(--landing-surface)] p-8">
                 {/* Diagonal hatching */}
                 <div
-                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] [mask-image:linear-gradient(to_bottom_right,black_30%,transparent_70%)] opacity-[0.3]"
+                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] [mask-image:linear-gradient(to_bottom_right,black_30%,transparent_70%)]"
                   aria-hidden="true"
                 />
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/5 px-3 py-1">
@@ -196,7 +196,7 @@ export function BeforeAfter() {
               <div className="relative h-full overflow-hidden rounded-xl border border-emerald-500/20 bg-[var(--landing-surface)] p-8">
                 {/* Diagonal hatching */}
                 <div
-                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] [mask-image:linear-gradient(to_bottom_left,black_30%,transparent_70%)] opacity-[0.3]"
+                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,var(--landing-border)_5px,var(--landing-border)_6px)] opacity-[0.3] [mask-image:linear-gradient(to_bottom_left,black_30%,transparent_70%)]"
                   aria-hidden="true"
                 />
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1">

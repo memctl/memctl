@@ -23,7 +23,12 @@ import {
 
 interface UsageChartsProps {
   memoryByProject: { name: string; count: number }[];
-  activityTrendData: { date: string; writes: number; deletes: number; other: number }[];
+  activityTrendData: {
+    date: string;
+    writes: number;
+    deletes: number;
+    other: number;
+  }[];
   priorityDistribution?: {
     high: number;
     medium: number;

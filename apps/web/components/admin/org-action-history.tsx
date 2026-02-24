@@ -76,7 +76,7 @@ export function OrgActionHistory({ orgSlug }: { orgSlug: string }) {
   return (
     <div className="dash-card overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-3 py-2">
-        <span className="font-mono text-[11px] font-medium tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+        <span className="font-mono text-[11px] font-medium uppercase tracking-widest text-[var(--landing-text-tertiary)]">
           Action History
         </span>
         <span className="rounded-full bg-[var(--landing-surface-2)] px-2 py-0.5 font-mono text-[10px] text-[var(--landing-text-tertiary)]">

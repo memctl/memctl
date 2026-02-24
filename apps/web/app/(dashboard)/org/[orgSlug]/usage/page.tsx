@@ -82,18 +82,26 @@ export default async function UsagePage({
     date.setDate(date.getDate() + index);
     return {
       key: toDateKey(date),
-      date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      date: date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
       writes: 0,
       deletes: 0,
       other: 0,
     };
   });
 
-  const trendByDay = new Map(trendBuckets.map((bucket) => [bucket.key, bucket]));
+  const trendByDay = new Map(
+    trendBuckets.map((bucket) => [bucket.key, bucket]),
+  );
 
   if (projectList.length > 0) {
     const recentActivity = await db
-      .select({ action: activityLogs.action, createdAt: activityLogs.createdAt })
+      .select({
+        action: activityLogs.action,
+        createdAt: activityLogs.createdAt,
+      })
       .from(activityLogs)
       .where(
         and(
@@ -120,12 +128,14 @@ export default async function UsagePage({
     }
   }
 
-  const activityTrendData = trendBuckets.map(({ date, writes, deletes, other }) => ({
-    date,
-    writes,
-    deletes,
-    other,
-  }));
+  const activityTrendData = trendBuckets.map(
+    ({ date, writes, deletes, other }) => ({
+      date,
+      writes,
+      deletes,
+      other,
+    }),
+  );
 
   let totalMemories = 0;
   let totalSessions = 0;
@@ -197,7 +207,11 @@ export default async function UsagePage({
       limit: limits.memberLimit,
     },
     { label: "Memories", current: totalMemories, limit: limits.memoryLimitOrg },
-    { label: "API Tokens", current: activeTokenCount?.value ?? 0, limit: 999999 },
+    {
+      label: "API Tokens",
+      current: activeTokenCount?.value ?? 0,
+      limit: 999999,
+    },
     { label: "Sessions", current: totalSessions, limit: 999999 },
     { label: "Activity Logs", current: totalActivities, limit: 999999 },
   ];

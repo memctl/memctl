@@ -304,7 +304,7 @@ export default async function OrgDashboardPage({
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F97316]/20 to-transparent" />
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-mono text-[9px] tracking-widest text-[var(--landing-text-tertiary)] uppercase">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-[var(--landing-text-tertiary)]">
                   {label}
                 </p>
                 <p className={`mt-1 font-mono text-lg font-bold ${color}`}>
@@ -365,7 +365,7 @@ export default async function OrgDashboardPage({
                 {recentMemories.map((m, i) => (
                   <div
                     key={`${m.key}-${i}`}
-                    className="flex items-start gap-3 px-3 py-2 transition-colors hover:bg-[var(--landing-surface-2)]/50"
+                    className="hover:bg-[var(--landing-surface-2)]/50 flex items-start gap-3 px-3 py-2 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -486,7 +486,7 @@ export default async function OrgDashboardPage({
             <div className="divide-y divide-[var(--landing-border)]">
               {quickLinks.map((link) => (
                 <Link key={link.label} href={link.href}>
-                  <div className="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-[var(--landing-surface-2)]/50">
+                  <div className="hover:bg-[var(--landing-surface-2)]/50 flex items-center gap-3 px-3 py-2 transition-colors">
                     <link.icon className="h-3.5 w-3.5 text-[#F97316]" />
                     <span className="flex-1 font-mono text-[11px] text-[var(--landing-text-secondary)]">
                       {link.label}
@@ -523,7 +523,7 @@ export default async function OrgDashboardPage({
                       key={p.slug}
                       href={`/org/${orgSlug}/projects/${p.slug}`}
                     >
-                      <div className="flex items-center gap-2 px-3 py-2 transition-colors hover:bg-[var(--landing-surface-2)]/50">
+                      <div className="hover:bg-[var(--landing-surface-2)]/50 flex items-center gap-2 px-3 py-2 transition-colors">
                         <FolderOpen className="h-3 w-3 shrink-0 text-[#F97316]" />
                         <span className="flex-1 truncate font-mono text-[11px] text-[var(--landing-text-secondary)]">
                           {p.name}
@@ -556,7 +556,7 @@ export default async function OrgDashboardPage({
           {/* Plan info */}
           <div className="dash-card p-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="font-mono text-[10px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                 Plan
               </span>
               <span className="rounded bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#F97316]">

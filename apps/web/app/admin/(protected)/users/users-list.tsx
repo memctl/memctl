@@ -87,7 +87,7 @@ export function UsersList() {
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[200px] flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--landing-text-tertiary)]" />
           <Input
             placeholder="Search name or email..."
             value={searchQuery}
@@ -152,10 +152,10 @@ export function UsersList() {
                   currentOrder={order}
                   onSort={handleSort}
                 />
-                <TableHead className="font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                <TableHead className="font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)]">
                   Admin
                 </TableHead>
-                <TableHead className="hidden font-mono text-[11px] tracking-wider text-[var(--landing-text-tertiary)] uppercase md:table-cell">
+                <TableHead className="hidden font-mono text-[11px] uppercase tracking-wider text-[var(--landing-text-tertiary)] md:table-cell">
                   GitHub ID
                 </TableHead>
                 <SortableHeader

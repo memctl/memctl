@@ -400,7 +400,7 @@ function AnimatedBarChart() {
                 {bar.label}
               </span>
               <motion.span
-                className="font-mono text-xs text-[var(--landing-text-tertiary)] tabular-nums"
+                className="font-mono text-xs tabular-nums text-[var(--landing-text-tertiary)]"
                 initial={{ opacity: 0 }}
                 animate={isInView ? { opacity: 1 } : {}}
                 transition={{ delay: settled ? 0 : 0.6 + i * 0.15 }}

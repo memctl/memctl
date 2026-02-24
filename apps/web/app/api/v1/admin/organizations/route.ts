@@ -62,7 +62,11 @@ function sortByRequestedField(
 
 async function enrichOrg(org: BaseOrgRow & { effectivePlanId: string }) {
   const [[owner], [projectCount], [memberCount]] = await Promise.all([
-    db.select({ name: users.name }).from(users).where(eq(users.id, org.ownerId)).limit(1),
+    db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, org.ownerId))
+      .limit(1),
     db
       .select({ value: count() })
       .from(projects)

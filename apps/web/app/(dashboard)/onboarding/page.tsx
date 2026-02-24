@@ -350,7 +350,7 @@ export default function OnboardingPage() {
                         setOrgName(e.target.value);
                         setOrgSlug(slugify(e.target.value));
                       }}
-                      className="w-full rounded-lg border border-[var(--landing-border)] bg-[var(--landing-bg)] px-3 py-2.5 text-sm text-[var(--landing-text)] placeholder:text-[var(--landing-text-tertiary)] focus:border-[#F97316]/50 focus:ring-2 focus:ring-[#F97316]/20 focus:outline-none"
+                      className="w-full rounded-lg border border-[var(--landing-border)] bg-[var(--landing-bg)] px-3 py-2.5 text-sm text-[var(--landing-text)] placeholder:text-[var(--landing-text-tertiary)] focus:border-[#F97316]/50 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
                     />
                   </div>
                   <div>
