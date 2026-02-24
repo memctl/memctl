@@ -512,11 +512,10 @@ function VersionTimeline() {
             duration: 0.4,
             ease: [0.25, 0.46, 0.45, 0.94],
           }}
-          className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-all duration-500 ${
-            activeIdx === i
-              ? "border-[#F97316]/30 bg-[#F97316]/[0.04]"
-              : "border-[var(--landing-border)] bg-[var(--landing-code-bg)]"
-          }`}
+          className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-all duration-500 ${activeIdx === i
+            ? "border-[#F97316]/30 bg-[#F97316]/[0.04]"
+            : "border-[var(--landing-border)] bg-[var(--landing-code-bg)]"
+            }`}
         >
           <span className="font-mono text-[11px] text-[#F97316]">
             {commit.hash}
