@@ -134,6 +134,27 @@ LOG_LEVEL=info
 GITHUB_TOKEN=ghp_xxx
 ```
 
+## Example 7: Private beta pages (API stays open)
+
+Use this when you want page access protected with a password prompt, while keeping API routes available for CLI and integrations.
+
+```env
+# Keep your normal production/beta settings, then add:
+BETA_GATE_ENABLED=true
+# Empty means all hosts. You can also set "*" for all hosts,
+# or a list like "dev.memctl.com,beta.memctl.com"
+BETA_GATE_HOSTS=
+BETA_GATE_USERNAME=beta
+BETA_GATE_PASSWORD=replace-with-strong-password
+```
+
+Notes:
+
+- The beta gate applies to page routes only.
+- `/api/*` is not beta-password gated.
+- API auth still works normally (Bearer tokens, sessions).
+- For real beta isolation, deploy to a separate environment with a separate database.
+
 ## Copy/paste quick bootstrap
 
 ```bash

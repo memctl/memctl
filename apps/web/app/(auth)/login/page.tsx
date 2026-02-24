@@ -184,23 +184,19 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* ── Testimonial ── */}
+          {/* ── Product notes ── */}
           <div className="animate-slide-in-right order-5 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 [animation-delay:200ms] md:order-3 lg:order-3 lg:p-7">
-            <span className="animate-float mb-2 block text-3xl leading-none text-[#F97316]/20 [animation-delay:1s]">
-              &ldquo;
-            </span>
-            <p className="mb-4 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
-              memctl eliminated the #1 problem with AI coding assistants: every
-              new conversation starts from zero.
+            <p className="mb-2 font-mono text-[11px] tracking-widest text-[#F97316] uppercase">
+              What memctl does
             </p>
-            <div>
-              <p className="text-xs font-medium text-[var(--landing-text)]">
-                Sarah Chen
-              </p>
-              <p className="text-xs text-[var(--landing-text-tertiary)]">
-                VP of Engineering
-              </p>
-            </div>
+            <p className="mb-3 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
+              memctl stores project memory for AI coding agents, so context
+              persists across sessions and branches.
+            </p>
+            <p className="text-xs text-[var(--landing-text-tertiary)]">
+              Teams use it to reduce repeated setup prompts and keep shared
+              context consistent.
+            </p>
           </div>
 
           {/* ── Terminal demo — live typing loop ── */}

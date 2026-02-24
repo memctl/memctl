@@ -288,23 +288,19 @@ export default function AdminLoginPage() {
             </AnimatePresence>
           </div>
 
-          {/* ── Testimonial ── */}
+          {/* ── Admin access ── */}
           <div className="animate-slide-in-right order-5 flex flex-col justify-center rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 [animation-delay:200ms] md:order-3 lg:order-3 lg:p-7">
-            <span className="animate-float mb-2 block text-3xl leading-none text-[#F97316]/20 [animation-delay:1s]">
-              &ldquo;
-            </span>
-            <p className="mb-4 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
-              We switched from maintaining CLAUDE.md files manually to memctl.
-              It&rsquo;s night and day.
+            <p className="mb-2 font-mono text-[11px] tracking-widest text-[#F97316] uppercase">
+              Admin access
             </p>
-            <div>
-              <p className="text-xs font-medium text-[var(--landing-text)]">
-                Priya Sharma
-              </p>
-              <p className="text-xs text-[var(--landing-text-tertiary)]">
-                Staff Engineer
-              </p>
-            </div>
+            <p className="mb-3 text-sm leading-relaxed text-[var(--landing-text-secondary)]">
+              This portal is for internal memctl operations, billing support,
+              and account management.
+            </p>
+            <p className="text-xs text-[var(--landing-text-tertiary)]">
+              Only @memctl.com addresses can request a magic link, and each
+              link expires in 5 minutes.
+            </p>
           </div>
 
           {/* ── Terminal demo — live typing loop ── */}
