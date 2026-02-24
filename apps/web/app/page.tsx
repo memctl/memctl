@@ -766,7 +766,7 @@ export default async function HomePage() {
       <TrustBar />
 
       {/* ================================================================
-          SECTION 7 - Testimonial
+          SECTION 7 - Product Messaging
           ================================================================ */}
       {/* ── Gradient divider with intersection dots ── */}
       <div className="relative flex items-center" aria-hidden="true">
@@ -778,7 +778,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <section className="relative overflow-hidden bg-[var(--landing-code-bg)] py-24 lg:py-32">
+      <section className="relative overflow-hidden bg-[var(--landing-code-bg)] py-20 lg:py-28">
         {/* ── Structural frame lines ── */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -800,72 +800,433 @@ export default async function HomePage() {
           className="pointer-events-none absolute top-[10%] left-[30%] -z-10 h-[350px] w-[350px] rounded-full bg-indigo-500/[0.04] blur-[100px]"
           aria-hidden="true"
         />
-        <div className="mx-auto max-w-[1600px] px-6 text-center lg:px-8">
-          <ScrollReveal animation="scale-up">
-            <div className="mx-auto max-w-3xl">
-              {/* Large floating quote mark */}
-              <div className="animate-float mb-8 font-mono text-7xl leading-none text-[#F97316] opacity-20">
-                &ldquo;
-              </div>
-              <blockquote className="text-xl leading-relaxed font-normal text-[var(--landing-text)] italic sm:text-2xl">
-                memctl eliminated the #1 problem with AI coding assistants:
-                every new conversation starts from zero. Now our agents pick up
-                exactly where they left off, across the entire team.
-              </blockquote>
-              <div className="mt-8">
-                <div className="font-semibold text-[var(--landing-text)]">
-                  Sarah Chen
-                </div>
-                <div className="mt-1 text-sm text-[var(--landing-text-tertiary)]">
-                  VP of Engineering, Acme Corp
-                </div>
-              </div>
+
+        <div className="mx-auto max-w-[1600px] px-6 lg:px-8">
+          {/* Section header */}
+          <ScrollReveal animation="fade-up">
+            <div className="mb-10">
+              <p className="mb-3 font-mono text-[11px] font-medium tracking-[0.22em] text-[#F97316] uppercase">
+                How teams use memctl
+              </p>
+              <p className="max-w-2xl text-lg leading-relaxed text-[var(--landing-text-secondary)]">
+                Shared, persistent memory for AI coding agents. Context stays
+                available across sessions, branches, and projects.
+              </p>
             </div>
           </ScrollReveal>
 
-          {/* Smaller testimonial cards */}
-          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-4 text-left sm:grid-cols-3">
-            {[
-              {
-                quote:
-                  "Onboarding new engineers went from days to hours. Their AI agents already know the codebase.",
-                name: "Marcus Johnson",
-                role: "CTO, Buildkit",
-              },
-              {
-                quote:
-                  "We switched from maintaining CLAUDE.md files manually to memctl. It's night and day.",
-                name: "Priya Sharma",
-                role: "Staff Engineer, Nexus",
-              },
-              {
-                quote:
-                  "The MCP integration is seamless. Our whole team was using it within 10 minutes.",
-                name: "Alex Rivera",
-                role: "Lead Developer, Stackflow",
-              },
-            ].map((testimonial, i) => (
-              <ScrollReveal key={i} animation="fade-up" delay={i * 100}>
-                <div className="relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-                  {/* Diagonal hatching */}
-                  <div
-                    className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] [mask-image:linear-gradient(to_bottom,black_40%,transparent_90%)] opacity-[0.35]"
-                    aria-hidden="true"
-                  />
-                  <p className="relative text-sm leading-relaxed text-[var(--landing-text-secondary)]">
-                    &ldquo;{testimonial.quote}&rdquo;
-                  </p>
-                  <div className="mt-4">
-                    <div className="text-sm font-medium text-[var(--landing-text)]">
-                      {testimonial.name}
+          {/* Visual cards grid */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            {/* ── Card 1: Persistent Context (wide) ── */}
+            <ScrollReveal animation="fade-up" className="lg:col-span-7">
+              <div className="relative h-full overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)]">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] [mask-image:linear-gradient(to_bottom,black_30%,transparent_80%)] opacity-[0.25]"
+                  aria-hidden="true"
+                />
+                <div className="relative grid grid-cols-1 md:grid-cols-[1fr_1.2fr]">
+                  {/* Text */}
+                  <div className="flex flex-col justify-center p-6 md:p-7">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)]">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                        >
+                          <circle cx="6" cy="3" r="2" fill="#F97316" />
+                          <circle
+                            cx="3"
+                            cy="9"
+                            r="1.5"
+                            fill="#F97316"
+                            opacity="0.6"
+                          />
+                          <circle
+                            cx="9"
+                            cy="9"
+                            r="1.5"
+                            fill="#F97316"
+                            opacity="0.6"
+                          />
+                          <line
+                            x1="6"
+                            y1="5"
+                            x2="3"
+                            y2="7.5"
+                            stroke="#F97316"
+                            strokeWidth="0.8"
+                            opacity="0.4"
+                          />
+                          <line
+                            x1="6"
+                            y1="5"
+                            x2="9"
+                            y2="7.5"
+                            stroke="#F97316"
+                            strokeWidth="0.8"
+                            opacity="0.4"
+                          />
+                        </svg>
+                      </div>
+                      <span className="font-mono text-[10px] font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                        01
+                      </span>
                     </div>
-                    <div className="text-xs text-[var(--landing-text-tertiary)]">
-                      {testimonial.role}
+                    <h3 className="text-sm font-semibold text-[var(--landing-text)]">
+                      Persistent context
+                    </h3>
+                    <p className="mt-2 text-xs leading-relaxed text-[var(--landing-text-tertiary)]">
+                      Memory is scoped by organization, project, and branch.
+                      Agents resume with exactly the context they need, no
+                      repeated setup.
+                    </p>
+                  </div>
+                  {/* Visual: Scoping tree */}
+                  <div className="border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5 font-mono text-[11px] leading-[1.8] md:border-t-0 md:border-l">
+                    <div className="text-[var(--landing-text-tertiary)]">
+                      <span className="text-[#F97316]">org</span>/acme-corp
+                    </div>
+                    <div className="ml-2 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        ├──
+                      </span>{" "}
+                      <span className="text-[#F97316]">project</span>/frontend
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        ├──
+                      </span>{" "}
+                      main
+                      <span className="ml-3 text-[10px] opacity-50">
+                        12 memories
+                      </span>
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        ├──
+                      </span>{" "}
+                      feat/auth
+                      <span className="ml-3 text-[10px] opacity-50">
+                        3 memories
+                      </span>
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        └──
+                      </span>{" "}
+                      fix/nav
+                      <span className="ml-3 text-[10px] opacity-50">
+                        1 memory
+                      </span>
+                    </div>
+                    <div className="ml-2 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        └──
+                      </span>{" "}
+                      <span className="text-[#F97316]">project</span>/backend
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        ├──
+                      </span>{" "}
+                      main
+                      <span className="ml-3 text-[10px] opacity-50">
+                        8 memories
+                      </span>
+                    </div>
+                    <div className="ml-6 text-[var(--landing-text-tertiary)]">
+                      <span className="text-[var(--landing-text-secondary)]">
+                        └──
+                      </span>{" "}
+                      feat/api
+                      <span className="ml-3 text-[10px] opacity-50">
+                        5 memories
+                      </span>
                     </div>
                   </div>
                 </div>
-              </ScrollReveal>
-            ))}
+              </div>
+            </ScrollReveal>
+
+            {/* ── Card 2: Shared Across Tools ── */}
+            <ScrollReveal
+              animation="fade-up"
+              delay={100}
+              className="lg:col-span-5"
+            >
+              <div className="relative h-full overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)]">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] [mask-image:linear-gradient(to_bottom,black_30%,transparent_80%)] opacity-[0.25]"
+                  aria-hidden="true"
+                />
+                <div className="relative p-6 md:p-7">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)]">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                      >
+                        <rect
+                          x="1"
+                          y="4"
+                          width="4"
+                          height="4"
+                          rx="0.5"
+                          fill="#F97316"
+                          opacity="0.6"
+                        />
+                        <rect
+                          x="7"
+                          y="4"
+                          width="4"
+                          height="4"
+                          rx="0.5"
+                          fill="#F97316"
+                          opacity="0.6"
+                        />
+                        <rect
+                          x="4"
+                          y="1"
+                          width="4"
+                          height="4"
+                          rx="0.5"
+                          fill="#F97316"
+                        />
+                        <line
+                          x1="6"
+                          y1="5"
+                          x2="3"
+                          y2="4"
+                          stroke="#F97316"
+                          strokeWidth="0.6"
+                          opacity="0.4"
+                        />
+                        <line
+                          x1="6"
+                          y1="5"
+                          x2="9"
+                          y2="4"
+                          stroke="#F97316"
+                          strokeWidth="0.6"
+                          opacity="0.4"
+                        />
+                      </svg>
+                    </div>
+                    <span className="font-mono text-[10px] font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                      02
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-[var(--landing-text)]">
+                    Shared across tools
+                  </h3>
+                  <p className="mt-2 text-xs leading-relaxed text-[var(--landing-text-tertiary)]">
+                    Access the same context through the dashboard, API, and any
+                    MCP-compatible agent.
+                  </p>
+                </div>
+                {/* Visual: Connection flow */}
+                <div className="relative border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)] px-6 py-5">
+                  <div className="flex items-center justify-between gap-2 font-mono text-[10px] sm:gap-3">
+                    {/* Left: agents */}
+                    <div className="flex shrink-0 flex-col gap-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          Claude Code
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          Cursor
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          Copilot
+                        </span>
+                      </div>
+                    </div>
+                    {/* Left arrows */}
+                    <div className="hidden flex-col gap-2.5 text-[var(--landing-text-tertiary)] opacity-30 sm:flex">
+                      <span>---&gt;</span>
+                      <span>---&gt;</span>
+                      <span>---&gt;</span>
+                    </div>
+                    {/* Center: memctl hub */}
+                    <div className="shrink-0 rounded border border-[#F97316]/30 bg-[#F97316]/[0.08] px-3 py-2.5">
+                      <span className="text-[11px] font-medium text-[#F97316]">
+                        memctl
+                      </span>
+                    </div>
+                    {/* Right arrows */}
+                    <div className="hidden flex-col gap-[14px] text-[var(--landing-text-tertiary)] opacity-30 sm:flex">
+                      <span>&lt;---</span>
+                      <span>&lt;---</span>
+                    </div>
+                    {/* Right: access methods */}
+                    <div className="flex shrink-0 flex-col gap-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          Dashboard
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                        <span className="text-[var(--landing-text-tertiary)]">
+                          REST API
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* ── Card 3: Built for Operations (full width) ── */}
+            <ScrollReveal
+              animation="fade-up"
+              delay={200}
+              className="lg:col-span-12"
+            >
+              <div className="relative overflow-hidden rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)]">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_4px,var(--landing-border)_4px,var(--landing-border)_5px)] [mask-image:linear-gradient(to_bottom,black_30%,transparent_80%)] opacity-[0.25]"
+                  aria-hidden="true"
+                />
+                <div className="relative grid grid-cols-1 md:grid-cols-[1fr_1.5fr]">
+                  {/* Text */}
+                  <div className="flex flex-col justify-center p-6 md:p-7">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded border border-[var(--landing-border)] bg-[var(--landing-surface-2)]">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                        >
+                          <rect
+                            x="1"
+                            y="1"
+                            width="10"
+                            height="10"
+                            rx="1.5"
+                            stroke="#F97316"
+                            strokeWidth="0.8"
+                          />
+                          <line
+                            x1="1"
+                            y1="4"
+                            x2="11"
+                            y2="4"
+                            stroke="#F97316"
+                            strokeWidth="0.6"
+                            opacity="0.5"
+                          />
+                          <rect
+                            x="2.5"
+                            y="5.5"
+                            width="3"
+                            height="1"
+                            rx="0.3"
+                            fill="#F97316"
+                            opacity="0.6"
+                          />
+                          <rect
+                            x="2.5"
+                            y="7.5"
+                            width="5"
+                            height="1"
+                            rx="0.3"
+                            fill="#F97316"
+                            opacity="0.4"
+                          />
+                          <rect
+                            x="2.5"
+                            y="9.5"
+                            width="2"
+                            height="1"
+                            rx="0.3"
+                            fill="#F97316"
+                            opacity="0.3"
+                          />
+                        </svg>
+                      </div>
+                      <span className="font-mono text-[10px] font-medium tracking-wider text-[var(--landing-text-tertiary)] uppercase">
+                        03
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-[var(--landing-text)]">
+                      Built for operations
+                    </h3>
+                    <p className="mt-2 text-xs leading-relaxed text-[var(--landing-text-tertiary)]">
+                      Manage members, usage, billing, and access policies from
+                      one place. Full visibility into your organization.
+                    </p>
+                  </div>
+                  {/* Visual: Mini dashboard */}
+                  <div className="border-t border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-5 font-mono text-[10px] md:border-t-0 md:border-l">
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-[var(--landing-text)]">
+                        acme-corp
+                      </span>
+                      <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-400">
+                        pro plan
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-[var(--landing-text-tertiary)]">
+                          <span>Members</span>
+                          <span>5 / 10</span>
+                        </div>
+                        <div className="mt-1 h-1 w-full rounded-full bg-[var(--landing-border)]">
+                          <div className="h-1 w-1/2 rounded-full bg-[#F97316]" />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[var(--landing-text-tertiary)]">
+                          <span>Projects</span>
+                          <span>3 / 20</span>
+                        </div>
+                        <div className="mt-1 h-1 w-full rounded-full bg-[var(--landing-border)]">
+                          <div className="h-1 w-[15%] rounded-full bg-[#F97316]" />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[var(--landing-text-tertiary)]">
+                          <span>Memories</span>
+                          <span>847 this month</span>
+                        </div>
+                        <div className="mt-1 h-1 w-full rounded-full bg-[var(--landing-border)]">
+                          <div className="h-1 w-[68%] rounded-full bg-[#F97316]" />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-[var(--landing-text-tertiary)]">
+                        <span className="flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                          2 API keys active
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-blue-400" />
+                          SSO enabled
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-amber-400" />
+                          Audit log on
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -945,11 +1306,10 @@ export default async function HomePage() {
                   delay={i * 100}
                 >
                   <div
-                    className={`glass-border relative flex h-full flex-col rounded-xl border p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_var(--landing-glow)] ${
-                      plan.highlighted
-                        ? "border-[#F97316]/50 bg-[var(--landing-surface)] shadow-[0_0_40px_rgba(249,115,22,0.1)]"
-                        : "border-[var(--landing-border)] bg-[var(--landing-surface)]"
-                    }`}
+                    className={`glass-border relative flex h-full flex-col rounded-xl border p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_var(--landing-glow)] ${plan.highlighted
+                      ? "border-[#F97316]/50 bg-[var(--landing-surface)] shadow-[0_0_40px_rgba(249,115,22,0.1)]"
+                      : "border-[var(--landing-border)] bg-[var(--landing-surface)]"
+                      }`}
                   >
                     {/* Diagonal hatching */}
                     <div
@@ -1004,11 +1364,10 @@ export default async function HomePage() {
                     </ul>
                     <Link
                       href={plan.id === "enterprise" ? "/contact" : "/login"}
-                      className={`block rounded-lg py-3 text-center text-sm font-medium transition-all ${
-                        plan.highlighted
-                          ? "bg-[#F97316] text-white hover:bg-[#FB923C] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
-                          : "border border-[var(--landing-border-hover)] text-[var(--landing-text-secondary)] hover:border-[#F97316] hover:text-[var(--landing-text)]"
-                      }`}
+                      className={`block rounded-lg py-3 text-center text-sm font-medium transition-all ${plan.highlighted
+                        ? "bg-[#F97316] text-white hover:bg-[#FB923C] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
+                        : "border border-[var(--landing-border-hover)] text-[var(--landing-text-secondary)] hover:border-[#F97316] hover:text-[var(--landing-text)]"
+                        }`}
                     >
                       {plan.cta}
                     </Link>
