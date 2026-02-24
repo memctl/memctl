@@ -6,6 +6,14 @@
   "bin": {
     "memctl": "./dist/index.js"
   },
+  "homepage": "https://memctl.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/memctl/memctl.git"
+  },
+  "bugs": {
+    "url": "https://github.com/memctl/memctl/issues"
+  },
   "exports": {
     ".": "./dist/index.js"
   },
