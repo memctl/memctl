@@ -11,7 +11,7 @@ import {
 } from "@memctl/db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { adminOrgActionSchema } from "@memctl/shared/validators";
-import { nanoid } from "nanoid";
+import { generateId } from "@/lib/utils";
 import { PLANS } from "@memctl/shared/constants";
 import { getEffectivePlanId, clampLimit, isBillingEnabled } from "@/lib/plans";
 import {
@@ -537,7 +537,7 @@ export async function PATCH(
   const actionName = actionNameMap[action.action] ?? action.action;
 
   await db.insert(adminActions).values({
-    id: nanoid(),
+    id: generateId(),
     orgId: org.id,
     adminId,
     action: actionName,
