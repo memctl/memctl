@@ -1,4 +1,3 @@
-import { LRUCache } from "lru-cache";
 import { UNLIMITED_SENTINEL } from "./plans";
 
 interface RateLimitEntry {
@@ -6,10 +5,15 @@ interface RateLimitEntry {
   resetAt: number;
 }
 
-const cache = new LRUCache<string, RateLimitEntry>({
-  max: 10_000,
-  ttl: 60_000, // 1 minute
-});
+const cache = new Map<string, RateLimitEntry>();
+
+// Sweep expired entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of cache) {
+    if (now >= entry.resetAt) cache.delete(key);
+  }
+}, 5 * 60_000);
 
 export interface RateLimitResult {
   allowed: boolean;

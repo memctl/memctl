@@ -1,7 +1,6 @@
-import { Shield, Lock, Clock, Globe, Code } from "lucide-react";
+import { Lock, Clock, Globe, Code } from "lucide-react";
 
 const TRUST_ITEMS = [
-  { icon: Shield, label: "SOC 2 Type II" },
   { icon: Lock, label: "Encrypted at rest" },
   { icon: Clock, label: "99.9% uptime SLA" },
   { icon: Globe, label: "GDPR compliant" },

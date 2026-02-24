@@ -4,9 +4,9 @@ import { rateLimit } from "../lib/rate-limit";
 describe("rateLimit", () => {
   it("allows requests within limit", () => {
     const id = `test-user-${Date.now()}-allow`;
-    const result = rateLimit(id, 1000); // 1000/min
+    const result = rateLimit(id, 150); // 150/min
     expect(result.allowed).toBe(true);
-    expect(result.remaining).toBe(999);
+    expect(result.remaining).toBe(149);
   });
 
   it("blocks requests exceeding limit", () => {
@@ -32,10 +32,10 @@ describe("rateLimit", () => {
 
   it("tracks remaining count correctly", () => {
     const id = `test-user-${Date.now()}-remaining`;
-    const r1 = rateLimit(id, 300); // 300/min
-    expect(r1.remaining).toBe(299);
-    const r2 = rateLimit(id, 300);
-    expect(r2.remaining).toBe(298);
+    const r1 = rateLimit(id, 100); // 100/min
+    expect(r1.remaining).toBe(99);
+    const r2 = rateLimit(id, 100);
+    expect(r2.remaining).toBe(98);
   });
 
   it("uses separate counters per identifier", () => {

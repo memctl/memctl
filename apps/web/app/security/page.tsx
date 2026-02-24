@@ -4,11 +4,11 @@ import { LegalLayout, LegalSection } from "@/components/landing/legal-layout";
 export const metadata: Metadata = {
   title: "Security | memctl",
   description:
-    "Learn about memctl security practices, encryption, infrastructure security, SOC 2 compliance, and responsible disclosure. Operated by Mindroot Ltd.",
+    "Learn about memctl security practices, encryption, infrastructure security, and responsible disclosure. Operated by Mindroot Ltd.",
   openGraph: {
     title: "Security | memctl",
     description:
-      "Learn about memctl security practices, encryption, infrastructure security, SOC 2 compliance, and responsible disclosure.",
+      "Learn about memctl security practices, encryption, infrastructure security, and responsible disclosure.",
     type: "website",
     url: "https://memctl.com/security",
   },
@@ -22,11 +22,10 @@ const SECTIONS = [
   { id: "encryption", label: "Encryption", number: "02" },
   { id: "authentication", label: "Authentication & Access", number: "03" },
   { id: "infrastructure", label: "Infrastructure", number: "04" },
-  { id: "soc2", label: "SOC 2 Compliance", number: "05" },
-  { id: "data-handling", label: "Data Handling", number: "06" },
-  { id: "incident-response", label: "Incident Response", number: "07" },
-  { id: "disclosure", label: "Responsible Disclosure", number: "08" },
-  { id: "compliance", label: "Compliance", number: "09" },
+  { id: "data-handling", label: "Data Handling", number: "05" },
+  { id: "incident-response", label: "Incident Response", number: "06" },
+  { id: "disclosure", label: "Responsible Disclosure", number: "07" },
+  { id: "compliance", label: "Compliance", number: "08" },
 ];
 
 export default function SecurityPage() {
@@ -138,47 +137,9 @@ export default function SecurityPage() {
         </ul>
       </LegalSection>
 
-      <LegalSection id="soc2" number="05" title="SOC 2 Compliance">
-        <p>
-          We are actively working towards SOC 2 Type II certification. Our
-          compliance programme covers the Trust Services Criteria for Security,
-          Availability, and Confidentiality.
-        </p>
-        <p>Current status of our SOC 2 journey:</p>
-        <ul className="list-disc space-y-2 pl-6">
-          <li>
-            <strong>Policies and procedures.</strong> Comprehensive information
-            security policies have been established covering access control,
-            incident response, change management, risk assessment, and vendor
-            management.
-          </li>
-          <li>
-            <strong>Technical controls.</strong> Monitoring, logging, alerting,
-            encryption, and access controls are implemented in accordance with
-            SOC 2 requirements.
-          </li>
-          <li>
-            <strong>Audit readiness.</strong> We are in the process of engaging
-            an independent auditor. We will publish our SOC 2 Type II report
-            upon completion.
-          </li>
-        </ul>
-        <p>
-          If you require our SOC 2 readiness documentation for your vendor
-          assessment, please contact{" "}
-          <a
-            href="mailto:team@memctl.com"
-            className="text-[#F97316] hover:underline"
-          >
-            team@memctl.com
-          </a>
-          .
-        </p>
-      </LegalSection>
-
       <LegalSection
         id="data-handling"
-        number="06"
+        number="05"
         title="Data Handling and Isolation"
       >
         <p>
@@ -200,7 +161,7 @@ export default function SecurityPage() {
 
       <LegalSection
         id="incident-response"
-        number="07"
+        number="06"
         title="Incident Response"
       >
         <p>
@@ -224,7 +185,7 @@ export default function SecurityPage() {
         </ul>
       </LegalSection>
 
-      <LegalSection id="disclosure" number="08" title="Responsible Disclosure">
+      <LegalSection id="disclosure" number="07" title="Responsible Disclosure">
         <p>
           We welcome reports from security researchers who discover
           vulnerabilities in our Service. If you believe you have found a
@@ -269,7 +230,7 @@ export default function SecurityPage() {
         </p>
       </LegalSection>
 
-      <LegalSection id="compliance" number="09" title="Compliance">
+      <LegalSection id="compliance" number="08" title="Compliance">
         <p>
           We maintain compliance with the following standards and regulations:
         </p>
@@ -279,10 +240,6 @@ export default function SecurityPage() {
             registered with the Information Commissioner&rsquo;s Office (ICO
             Registration: ZB958997) and comply with all applicable UK data
             protection legislation.
-          </li>
-          <li>
-            <strong>SOC 2.</strong> Actively working towards SOC 2 Type II
-            certification (see above).
           </li>
           <li>
             <strong>PECR.</strong> We comply with the Privacy and Electronic

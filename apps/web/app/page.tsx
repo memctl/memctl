@@ -1458,7 +1458,7 @@ export default async function HomePage() {
           <ScrollReveal delay={300}>
             <p className="mt-12 text-center text-sm text-[var(--landing-text-tertiary)]">
               All plans include: GitHub integration, MCP protocol support,
-              encrypted at rest, SOC 2 compliant.{" "}
+              encrypted at rest.{" "}
               <Link href="/pricing" className="text-[#F97316] hover:underline">
                 Compare all plans
               </Link>

@@ -43,7 +43,7 @@ export const PLANS: Record<
     memoryLimitPerProject: 1_000,
     memoryLimitOrg: 10_000,
     apiCallLimit: Infinity,
-    apiRatePerMinute: 300,
+    apiRatePerMinute: 100,
   },
   pro: {
     name: "Pro",
@@ -53,7 +53,7 @@ export const PLANS: Record<
     memoryLimitPerProject: 5_000,
     memoryLimitOrg: 100_000,
     apiCallLimit: Infinity,
-    apiRatePerMinute: 1_000,
+    apiRatePerMinute: 150,
   },
   business: {
     name: "Business",
@@ -63,7 +63,7 @@ export const PLANS: Record<
     memoryLimitPerProject: 10_000,
     memoryLimitOrg: 500_000,
     apiCallLimit: Infinity,
-    apiRatePerMinute: 3_000,
+    apiRatePerMinute: 150,
   },
   scale: {
     name: "Scale",
@@ -73,7 +73,7 @@ export const PLANS: Record<
     memoryLimitPerProject: 25_000,
     memoryLimitOrg: 2_000_000,
     apiCallLimit: Infinity,
-    apiRatePerMinute: 10_000,
+    apiRatePerMinute: 150,
   },
   enterprise: {
     name: "Enterprise",
@@ -83,7 +83,7 @@ export const PLANS: Record<
     memoryLimitPerProject: Infinity,
     memoryLimitOrg: Infinity,
     apiCallLimit: Infinity,
-    apiRatePerMinute: Infinity,
+    apiRatePerMinute: 150,
   },
 };
 
