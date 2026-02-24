@@ -668,7 +668,7 @@ export function BentoGrid() {
         <BentoCard
           icon={GitBranch}
           title="GitHub-native"
-          description="Connects directly to your repositories. Auto-indexes on push."
+          description="Works with any Git repository. Context stays in sync across branches."
           visualization={<GitBranchViz />}
         />
       </ScrollReveal>

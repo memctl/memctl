@@ -17,7 +17,7 @@ export function AnnouncementBanner() {
           href="/login"
           className="group inline-flex items-center font-semibold text-white underline decoration-white/40 underline-offset-2 transition-all hover:decoration-white"
         >
-          Connect your first repo
+          Get started free
           <span className="ml-1 inline-block transition-transform group-hover:translate-x-1">
             {"\u2192"}
           </span>

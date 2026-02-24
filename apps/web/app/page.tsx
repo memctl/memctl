@@ -22,10 +22,10 @@ import { NoiseTexture } from "@/components/landing/noise-texture";
 const STEPS = [
   {
     icon: GitBranch,
-    title: "Connect your repo",
+    title: "Set up your project",
     description:
-      "Point memctl at your GitHub repository. It indexes structure, conventions, and architecture automatically.",
-    code: "memctl init --repo github.com/org/project",
+      "Create an org and project, then authenticate. Your agents start building context automatically.",
+    code: "npx memctl auth && npx memctl init",
   },
   {
     icon: Users,
@@ -291,8 +291,8 @@ export default async function HomePage() {
 
               <p className="animate-fade-in-up mt-5 max-w-[520px] text-[clamp(1rem,2vw,1.2rem)] leading-[1.65] text-[var(--landing-text-secondary)] [animation-delay:200ms]">
                 Give your AI coding agents shared, branch-aware memory.
-                Connected to your repos, synced across every IDE and tool via
-                MCP. Every session picks up where the last one left off.
+                Synced across every IDE, machine, and tool via MCP. Every
+                session picks up where the last one left off.
               </p>
 
               <div className="animate-fade-in-up mt-7 flex flex-col gap-3.5 [animation-delay:300ms] sm:flex-row">
@@ -1712,8 +1712,7 @@ export default async function HomePage() {
                 Stop re-explaining your codebase
               </h2>
               <p className="mx-auto mt-4 max-w-lg text-lg text-[var(--landing-text-secondary)]">
-                Connect your first repo and let your agents remember everything.
-                One command to start.
+                Set up in one command and let your agents remember everything.
               </p>
 
               <div className="mt-8 flex justify-center">
