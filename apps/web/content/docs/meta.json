@@ -11,6 +11,8 @@
     "cli",
     "mcp-server",
     "api",
+    "organizations",
+    "context-system",
     "---Deployment---",
     "local-development",
     "deployment",

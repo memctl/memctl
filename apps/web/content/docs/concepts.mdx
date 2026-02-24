@@ -181,6 +181,8 @@ Offline mode is automatic - no configuration needed. The agent continues working
 
 ## Rate limiting
 
+### CLI session write limits
+
 Write operations (`memory.store`, `memory.delete`, `memory.update`, `batch_mutate`) are rate-limited per session:
 
 - **Default**: 500 writes per session
@@ -189,6 +191,21 @@ Write operations (`memory.store`, `memory.delete`, `memory.update`, `batch_mutat
 - **Blocked**: At 100%, writes are rejected until the session resets
 
 Read operations are not rate-limited.
+
+### API rate limits
+
+HTTP API requests are rate-limited per user per minute using a sliding window. Limits vary by plan:
+
+| Plan       | Requests/min |
+| ---------- | ------------ |
+| Free       | 60           |
+| Lite       | 100          |
+| Pro        | 150          |
+| Business   | 150          |
+| Scale      | 150          |
+| Enterprise | 150          |
+
+These API rate limits are separate from the CLI session write limits above. The session limit caps total writes within a single agent session. The API rate limit caps HTTP requests per minute across all sessions for a user.
 
 ## Memory lifecycle
 
