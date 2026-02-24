@@ -3,6 +3,7 @@ import { organizations } from "@memctl/db/schema";
 import { eq, count, and, ne } from "drizzle-orm";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { OrganizationsList } from "./organizations-list";
+import { getEffectivePlanId } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function AdminOrganizationsPage() {
     [totalResult],
     [activeResult],
     [suspendedBannedResult],
-    [proPlusResult],
+    allOrgPlans,
   ] = await Promise.all([
     db.select({ value: count() }).from(organizations),
     db
@@ -23,16 +24,23 @@ export default async function AdminOrganizationsPage() {
       .from(organizations)
       .where(and(ne(organizations.status, "active"))),
     db
-      .select({ value: count() })
-      .from(organizations)
-      .where(ne(organizations.planId, "free")),
+      .select({
+        planId: organizations.planId,
+        planOverride: organizations.planOverride,
+        trialEndsAt: organizations.trialEndsAt,
+        planExpiresAt: organizations.planExpiresAt,
+      })
+      .from(organizations),
   ]);
+  const proPlusCount = allOrgPlans.filter(
+    (org) => getEffectivePlanId(org) !== "free",
+  ).length;
 
   const stats = [
     { label: "Total Orgs", value: totalResult?.value ?? 0 },
     { label: "Active", value: activeResult?.value ?? 0 },
     { label: "Suspended/Banned", value: suspendedBannedResult?.value ?? 0 },
-    { label: "Pro+", value: proPlusResult?.value ?? 0 },
+    { label: "Pro+", value: proPlusCount },
   ];
 
   return (

@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { stripe, STRIPE_EXTRA_SEAT_PRICE_ID } from "@/lib/stripe";
 import { db } from "@/lib/db";
-import { organizations, promoCodes, promoRedemptions } from "@memctl/db/schema";
-import { eq, sql } from "drizzle-orm";
-import { PLANS } from "@memctl/shared/constants";
+import {
+  organizations,
+  organizationMembers,
+  promoCodes,
+  promoRedemptions,
+} from "@memctl/db/schema";
+import { count, eq, sql } from "drizzle-orm";
+import { PLAN_IDS, PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
-import { isBillingEnabled } from "@/lib/plans";
+import { clampLimit, isBillingEnabled } from "@/lib/plans";
 import { generateId } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
@@ -46,46 +51,58 @@ export async function POST(req: NextRequest) {
         typeof session.subscription === "string"
           ? session.subscription
           : session.subscription?.id;
+      const customerId = getCustomerId(session.customer);
 
       if (orgSlug && subscriptionId) {
-        // Fetch subscription to get the plan
         const subscription =
           await stripe.subscriptions.retrieve(subscriptionId);
-        const priceId = subscription.items.data[0]?.price.id;
-        const planId = getPlanFromPriceId(priceId);
+        const planId =
+          getPlanFromSubscription(subscription) ??
+          getPlanFromMetadata(session.metadata);
+        const extraSeatQuantity = getExtraSeatQuantityFromSubscription(
+          subscription,
+        );
 
         if (planId) {
           const [existingOrg] = await db
-            .select({ customLimits: organizations.customLimits })
+            .select({
+              id: organizations.id,
+              customLimits: organizations.customLimits,
+            })
             .from(organizations)
             .where(eq(organizations.slug, orgSlug))
             .limit(1);
 
-          const plan = PLANS[planId];
-          if (existingOrg?.customLimits) {
-            // Only update planId, preserve admin-set limits
+          const isManagedEntitlement = isEntitlementManaged(subscription);
+          const updateValues: Record<string, unknown> = {
+            stripeSubscriptionId: subscriptionId,
+            planId,
+            updatedAt: new Date(),
+          };
+          if (isManagedEntitlement) {
+            updateValues.planOverride = planId;
+            updateValues.trialEndsAt = null;
+            updateValues.planExpiresAt = null;
+          }
+
+          if (!existingOrg?.customLimits) {
+            const plan = PLANS[planId];
+            updateValues.projectLimit = clampLimit(plan.projectLimit);
+            updateValues.memberLimit = clampLimit(
+              plan.memberLimit + extraSeatQuantity,
+            );
+            updateValues.memoryLimitPerProject = null;
+            updateValues.memoryLimitOrg = null;
+            updateValues.apiRatePerMinute = null;
+            updateValues.customLimits = false;
+          }
+
+          if (existingOrg) {
             await db
               .update(organizations)
-              .set({
-                stripeSubscriptionId: subscriptionId,
-                planId,
-                updatedAt: new Date(),
-              })
-              .where(eq(organizations.slug, orgSlug));
-          } else {
-            await db
-              .update(organizations)
-              .set({
-                stripeSubscriptionId: subscriptionId,
-                planId,
-                projectLimit: plan.projectLimit,
-                memberLimit: plan.memberLimit,
-                memoryLimitPerProject: null,
-                memoryLimitOrg: null,
-                apiRatePerMinute: null,
-                updatedAt: new Date(),
-              })
-              .where(eq(organizations.slug, orgSlug));
+              .set(updateValues)
+              .where(eq(organizations.id, existingOrg.id));
+            await enforceSeatComplianceStatus(existingOrg.id);
           }
         }
 
@@ -145,74 +162,151 @@ export async function POST(req: NextRequest) {
           console.error("Failed to track promo redemption:", err);
         }
       }
+
+      if (customerId) {
+        await syncOrgBillingProfile(customerId);
+      }
       break;
     }
 
     case "customer.subscription.updated": {
       const subscription = event.data.object;
-      const priceId = subscription.items.data[0]?.price.id;
-      const planId = getPlanFromPriceId(priceId);
+      const planId = getPlanFromSubscription(subscription);
+      const extraSeatQuantity = getExtraSeatQuantityFromSubscription(
+        subscription,
+      );
 
       if (planId) {
         const [existingOrg] = await db
-          .select({ customLimits: organizations.customLimits })
+          .select({
+            id: organizations.id,
+            customLimits: organizations.customLimits,
+          })
           .from(organizations)
           .where(eq(organizations.stripeSubscriptionId, subscription.id))
           .limit(1);
 
-        const plan = PLANS[planId];
-        if (existingOrg?.customLimits) {
+        if (existingOrg) {
+          const isManagedEntitlement = isEntitlementManaged(subscription);
+          const updateValues: Record<string, unknown> = {
+            planId,
+            updatedAt: new Date(),
+          };
+          if (isManagedEntitlement) {
+            updateValues.planOverride = planId;
+            updateValues.trialEndsAt = null;
+            updateValues.planExpiresAt = null;
+          }
+
+          if (!existingOrg.customLimits) {
+            const plan = PLANS[planId];
+            updateValues.projectLimit = clampLimit(plan.projectLimit);
+            updateValues.memberLimit = clampLimit(
+              plan.memberLimit + extraSeatQuantity,
+            );
+            updateValues.memoryLimitPerProject = null;
+            updateValues.memoryLimitOrg = null;
+            updateValues.apiRatePerMinute = null;
+            updateValues.customLimits = false;
+          }
+
           await db
             .update(organizations)
-            .set({
-              planId,
-              updatedAt: new Date(),
-            })
-            .where(eq(organizations.stripeSubscriptionId, subscription.id));
-        } else {
-          await db
-            .update(organizations)
-            .set({
-              planId,
-              projectLimit: plan.projectLimit,
-              memberLimit: plan.memberLimit,
-              memoryLimitPerProject: null,
-              memoryLimitOrg: null,
-              apiRatePerMinute: null,
-              updatedAt: new Date(),
-            })
-            .where(eq(organizations.stripeSubscriptionId, subscription.id));
+            .set(updateValues)
+            .where(eq(organizations.id, existingOrg.id));
+          await enforceSeatComplianceStatus(existingOrg.id);
         }
+      }
+
+      const customerId = getCustomerId(subscription.customer);
+      if (customerId) {
+        await syncOrgBillingProfile(customerId);
       }
       break;
     }
 
     case "customer.subscription.created": {
       const subscription = event.data.object;
-      const customerId =
-        typeof subscription.customer === "string"
-          ? subscription.customer
-          : subscription.customer?.id;
+      const customerId = getCustomerId(subscription.customer);
+      const planId = getPlanFromSubscription(subscription);
+      const extraSeatQuantity = getExtraSeatQuantityFromSubscription(
+        subscription,
+      );
+      const metadataOrgSlug = getOrgSlugFromMetadata(subscription.metadata);
 
-      if (customerId) {
-        const [existingOrg] = await db
+      let existingOrg:
+        | {
+            id: string;
+            stripeSubscriptionId: string | null;
+            customLimits: boolean | null;
+          }
+        | undefined;
+
+      if (metadataOrgSlug) {
+        [existingOrg] = await db
           .select({
             id: organizations.id,
             stripeSubscriptionId: organizations.stripeSubscriptionId,
+            customLimits: organizations.customLimits,
+          })
+          .from(organizations)
+          .where(eq(organizations.slug, metadataOrgSlug))
+          .limit(1);
+      }
+      if (!existingOrg && customerId) {
+        [existingOrg] = await db
+          .select({
+            id: organizations.id,
+            stripeSubscriptionId: organizations.stripeSubscriptionId,
+            customLimits: organizations.customLimits,
           })
           .from(organizations)
           .where(eq(organizations.stripeCustomerId, customerId))
           .limit(1);
+      }
 
-        if (existingOrg && !existingOrg.stripeSubscriptionId) {
-          await db
-            .update(organizations)
-            .set({
-              stripeSubscriptionId: subscription.id,
-              updatedAt: new Date(),
-            })
-            .where(eq(organizations.id, existingOrg.id));
+      if (
+        existingOrg &&
+        (!existingOrg.stripeSubscriptionId ||
+          existingOrg.stripeSubscriptionId === subscription.id)
+      ) {
+        const updateValues: Record<string, unknown> = {
+          stripeSubscriptionId: subscription.id,
+          updatedAt: new Date(),
+        };
+        if (customerId) {
+          updateValues.stripeCustomerId = customerId;
         }
+        if (planId) {
+          updateValues.planId = planId;
+          if (isEntitlementManaged(subscription)) {
+            updateValues.planOverride = planId;
+            updateValues.trialEndsAt = null;
+            updateValues.planExpiresAt = null;
+          }
+          if (!existingOrg.customLimits) {
+            const plan = PLANS[planId];
+            updateValues.projectLimit = clampLimit(plan.projectLimit);
+            updateValues.memberLimit = clampLimit(
+              plan.memberLimit + extraSeatQuantity,
+            );
+            updateValues.memoryLimitPerProject = null;
+            updateValues.memoryLimitOrg = null;
+            updateValues.apiRatePerMinute = null;
+            updateValues.customLimits = false;
+          }
+        }
+
+        await db
+          .update(organizations)
+          .set(updateValues)
+          .where(eq(organizations.id, existingOrg.id));
+
+        await enforceSeatComplianceStatus(existingOrg.id);
+      }
+
+      if (customerId) {
+        await syncOrgBillingProfile(customerId);
       }
       break;
     }
@@ -221,36 +315,42 @@ export async function POST(req: NextRequest) {
       const subscription = event.data.object;
 
       const [existingOrg] = await db
-        .select({ customLimits: organizations.customLimits })
+        .select({
+          id: organizations.id,
+          customLimits: organizations.customLimits,
+        })
         .from(organizations)
         .where(eq(organizations.stripeSubscriptionId, subscription.id))
         .limit(1);
 
-      const freePlan = PLANS.free;
-      if (existingOrg?.customLimits) {
-        await db
-          .update(organizations)
-          .set({
-            planId: "free",
-            stripeSubscriptionId: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(organizations.stripeSubscriptionId, subscription.id));
-      } else {
-        await db
-          .update(organizations)
-          .set({
-            planId: "free",
-            stripeSubscriptionId: null,
-            projectLimit: freePlan.projectLimit,
-            memberLimit: freePlan.memberLimit,
-            memoryLimitPerProject: null,
-            memoryLimitOrg: null,
-            apiRatePerMinute: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(organizations.stripeSubscriptionId, subscription.id));
+      if (!existingOrg) {
+        break;
       }
+
+      const freePlan = PLANS.free;
+      const updateValues: Record<string, unknown> = {
+        planId: "free",
+        stripeSubscriptionId: null,
+        updatedAt: new Date(),
+      };
+      if (isEntitlementManaged(subscription) || !existingOrg.customLimits) {
+        updateValues.planOverride = null;
+        updateValues.customLimits = false;
+        updateValues.projectLimit = freePlan.projectLimit;
+        updateValues.memberLimit = freePlan.memberLimit;
+        updateValues.memoryLimitPerProject = null;
+        updateValues.memoryLimitOrg = null;
+        updateValues.apiRatePerMinute = null;
+        updateValues.planTemplateId = null;
+        updateValues.trialEndsAt = null;
+        updateValues.planExpiresAt = null;
+      }
+
+      await db
+        .update(organizations)
+        .set(updateValues)
+        .where(eq(organizations.id, existingOrg.id));
+      await enforceSeatComplianceStatus(existingOrg.id);
       break;
     }
 
@@ -259,17 +359,210 @@ export async function POST(req: NextRequest) {
       console.error("Payment failed:", event.data.object.id);
       break;
     }
+
+    case "customer.updated": {
+      const customer = event.data.object;
+      const customerId = getCustomerId(customer);
+      if (customerId) {
+        await syncOrgBillingProfile(customerId);
+      }
+      break;
+    }
+
+    case "customer.tax_id.created":
+    case "customer.tax_id.deleted": {
+      const taxId = event.data.object;
+      const customerId = getCustomerId(taxId.customer);
+      if (customerId) {
+        await syncOrgBillingProfile(customerId);
+      }
+      break;
+    }
   }
 
   return NextResponse.json({ received: true });
 }
 
 function getPlanFromPriceId(priceId: string): PlanId | null {
-  const priceMap: Record<string, PlanId> = {
-    [process.env.STRIPE_LITE_PRICE_ID ?? ""]: "lite",
-    [process.env.STRIPE_PRO_PRICE_ID ?? ""]: "pro",
-    [process.env.STRIPE_BUSINESS_PRICE_ID ?? ""]: "business",
-    [process.env.STRIPE_SCALE_PRICE_ID ?? ""]: "scale",
-  };
-  return priceMap[priceId] ?? null;
+  if (priceId === (process.env.STRIPE_LITE_PRICE_ID ?? "__missing__")) {
+    return "lite";
+  }
+  if (priceId === (process.env.STRIPE_PRO_PRICE_ID ?? "__missing__")) {
+    return "pro";
+  }
+  if (priceId === (process.env.STRIPE_BUSINESS_PRICE_ID ?? "__missing__")) {
+    return "business";
+  }
+  if (priceId === (process.env.STRIPE_SCALE_PRICE_ID ?? "__missing__")) {
+    return "scale";
+  }
+  return null;
+}
+
+function getPlanFromSubscription(subscription: {
+  items: { data: Array<{ price: { id: string } }> };
+  metadata?: Record<string, string | undefined> | null;
+}): PlanId | null {
+  for (const item of subscription.items.data) {
+    const planId = getPlanFromPriceId(item.price.id);
+    if (planId) return planId;
+  }
+  const metadataPlanId = getPlanFromMetadata(subscription.metadata);
+  if (metadataPlanId) return metadataPlanId;
+  if (subscription.metadata?.adminCreated === "true") return "enterprise";
+  return null;
+}
+
+function getPlanFromMetadata(
+  metadata: Record<string, string | undefined> | null | undefined,
+): PlanId | null {
+  const entitlementPlanId = metadata?.entitlementPlanId;
+  if (
+    entitlementPlanId &&
+    (PLAN_IDS as readonly string[]).includes(entitlementPlanId)
+  ) {
+    return entitlementPlanId as PlanId;
+  }
+  return null;
+}
+
+function getOrgSlugFromMetadata(
+  metadata: Record<string, string | undefined> | null | undefined,
+): string | null {
+  const orgSlug = metadata?.orgSlug;
+  if (!orgSlug) return null;
+  return orgSlug;
+}
+
+function isEntitlementManaged(subscription: {
+  metadata?: Record<string, string | undefined> | null;
+}): boolean {
+  if (subscription.metadata?.entitlementManaged === "true") return true;
+  if (subscription.metadata?.adminCreated === "true") return true;
+  return false;
+}
+
+function getExtraSeatQuantityFromSubscription(subscription: {
+  items: { data: Array<{ price: { id: string }; quantity: number | null }> };
+}): number {
+  if (!STRIPE_EXTRA_SEAT_PRICE_ID) return 0;
+
+  const extraSeatItem = subscription.items.data.find(
+    (item) => item.price.id === STRIPE_EXTRA_SEAT_PRICE_ID,
+  );
+  return extraSeatItem?.quantity ?? 0;
+}
+
+function getCustomerId(
+  customer: string | { id: string } | null | undefined,
+): string | null {
+  if (!customer) return null;
+  if (typeof customer === "string") return customer;
+  return customer.id;
+}
+
+function formatBillingAddress(address: {
+  line1?: string | null;
+  line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+} | null): string | null {
+  if (!address) return null;
+
+  const parts = [
+    address.line1,
+    address.line2,
+    address.city,
+    address.state,
+    address.postal_code,
+    address.country,
+  ].filter((value): value is string => Boolean(value && value.trim().length));
+
+  if (parts.length === 0) return null;
+  return parts.join(", ");
+}
+
+async function syncOrgBillingProfile(customerId: string): Promise<void> {
+  const [org] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.stripeCustomerId, customerId))
+    .limit(1);
+
+  if (!org) return;
+
+  try {
+    const customer = await stripe.customers.retrieve(customerId);
+    if ("deleted" in customer && customer.deleted) return;
+
+    const taxIds = await stripe.customers.listTaxIds(customerId, { limit: 10 });
+    const firstTaxId = taxIds.data[0]?.value ?? null;
+    const billingAddress = formatBillingAddress(customer.address);
+
+    await db
+      .update(organizations)
+      .set({
+        companyName: customer.name ?? null,
+        taxId: firstTaxId,
+        billingAddress,
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, org.id));
+  } catch (err) {
+    console.error("Failed to sync org billing profile:", err);
+  }
+}
+
+async function enforceSeatComplianceStatus(orgId: string): Promise<void> {
+  const [org] = await db
+    .select({
+      id: organizations.id,
+      memberLimit: organizations.memberLimit,
+      status: organizations.status,
+      statusReason: organizations.statusReason,
+    })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1);
+
+  if (!org) return;
+
+  const [memberCount] = await db
+    .select({ value: count() })
+    .from(organizationMembers)
+    .where(eq(organizationMembers.orgId, org.id));
+
+  const isOverLimit = (memberCount?.value ?? 0) > org.memberLimit;
+  const overLimitReason = "seat_limit_exceeded_unpaid";
+
+  if (isOverLimit && org.status !== "suspended") {
+    await db
+      .update(organizations)
+      .set({
+        status: "suspended",
+        statusReason: overLimitReason,
+        statusChangedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, org.id));
+    return;
+  }
+
+  if (
+    !isOverLimit &&
+    org.status === "suspended" &&
+    org.statusReason === overLimitReason
+  ) {
+    await db
+      .update(organizations)
+      .set({
+        status: "active",
+        statusReason: null,
+        statusChangedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, org.id));
+  }
 }

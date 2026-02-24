@@ -28,6 +28,7 @@ interface Org {
   name: string;
   slug: string;
   planId: string;
+  effectivePlanId: string;
   status: string;
   createdAt: string;
   ownerName: string;
@@ -240,13 +241,30 @@ export function OrganizationsList() {
                       {org.ownerName}
                     </TableCell>
                     <TableCell>
+                      {org.planId !== org.effectivePlanId ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span
+                            className={`inline-flex w-fit rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${
+                              planBadgeStyles[org.effectivePlanId] ??
+                              planBadgeStyles.free
+                            }`}
+                          >
+                            {org.effectivePlanId}
+                          </span>
+                          <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                            Stripe: {org.planId}
+                          </span>
+                        </div>
+                      ) : (
                       <span
                         className={`inline-flex rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium capitalize ${
-                          planBadgeStyles[org.planId] ?? planBadgeStyles.free
+                          planBadgeStyles[org.effectivePlanId] ??
+                          planBadgeStyles.free
                         }`}
                       >
-                        {org.planId}
+                        {org.effectivePlanId}
                       </span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <span

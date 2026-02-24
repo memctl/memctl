@@ -130,6 +130,7 @@ docker run -p 3000:3000 \
   -e STRIPE_SECRET_KEY=sk_live_... \
   -e STRIPE_PUBLISHABLE_KEY=pk_live_... \
   -e STRIPE_WEBHOOK_SECRET=whsec_... \
+  -e STRIPE_EXTRA_SEAT_PRICE_ID=price_live_... \
   memctl-web
 ```
 

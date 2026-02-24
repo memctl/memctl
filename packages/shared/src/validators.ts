@@ -151,6 +151,8 @@ export const adminOrgActionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("apply_template"),
     templateId: z.string().min(1),
+    createSubscription: z.boolean().optional(),
+    subscriptionInterval: z.enum(["month", "year"]).optional(),
   }),
 ]);
 

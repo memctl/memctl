@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -56,7 +57,7 @@ interface OrgActionsPanelProps {
     planTemplateId: string | null;
   };
   members: { userId: string; name: string; email: string; role: string }[];
-  templates: { id: string; name: string }[];
+  templates: { id: string; name: string; stripePriceInCents: number | null }[];
 }
 
 const statusBadgeStyles: Record<string, string> = {
@@ -132,6 +133,10 @@ export function OrgActionsPanel({
   const [subPriceDollars, setSubPriceDollars] = useState("200");
   const [subInterval, setSubInterval] = useState<"month" | "year">("month");
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [applyTemplateSubscription, setApplyTemplateSubscription] =
+    useState(false);
+  const [templateSubscriptionInterval, setTemplateSubscriptionInterval] =
+    useState<"month" | "year">("month");
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(
     org.planExpiresAt ? new Date(org.planExpiresAt) : undefined,
   );
@@ -145,6 +150,7 @@ export function OrgActionsPanel({
   const [contractEnd, setContractEnd] = useState<Date | undefined>(
     org.contractEndDate ? new Date(org.contractEndDate) : undefined,
   );
+  const selectedTemplateConfig = templates.find((t) => t.id === selectedTemplate);
 
   async function doAction(body: Record<string, unknown>) {
     setLoading(true);
@@ -532,7 +538,10 @@ export function OrgActionsPanel({
             <div className="flex gap-2">
               <Select
                 value={selectedTemplate}
-                onValueChange={setSelectedTemplate}
+                onValueChange={(value) => {
+                  setSelectedTemplate(value);
+                  setApplyTemplateSubscription(false);
+                }}
               >
                 <SelectTrigger className="flex-1 font-mono">
                   <SelectValue placeholder="Select template" />
@@ -556,6 +565,10 @@ export function OrgActionsPanel({
                   doAction({
                     action: "apply_template",
                     templateId: selectedTemplate,
+                    createSubscription:
+                      applyTemplateSubscription &&
+                      !!selectedTemplateConfig?.stripePriceInCents,
+                    subscriptionInterval: templateSubscriptionInterval,
                   })
                 }
                 disabled={loading || !selectedTemplate}
@@ -567,6 +580,48 @@ export function OrgActionsPanel({
                 )}
               </Button>
             </div>
+            {selectedTemplateConfig?.stripePriceInCents ? (
+              <div className="mt-3 rounded-md border border-[var(--landing-border)] bg-[var(--landing-code-bg)] p-2.5">
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="flex items-center gap-2 font-mono text-[11px] text-[var(--landing-text-secondary)]">
+                    <Checkbox
+                      checked={applyTemplateSubscription}
+                      onCheckedChange={(checked) =>
+                        setApplyTemplateSubscription(checked === true)
+                      }
+                    />
+                    Create Stripe subscription
+                  </label>
+                  <span className="font-mono text-[10px] text-[var(--landing-text-tertiary)]">
+                    $
+                    {(
+                      selectedTemplateConfig.stripePriceInCents / 100
+                    ).toLocaleString()}
+                  </span>
+                </div>
+                <div className="w-40">
+                  <FieldLabel>Interval</FieldLabel>
+                  <Select
+                    value={templateSubscriptionInterval}
+                    onValueChange={(v) =>
+                      setTemplateSubscriptionInterval(v as "month" | "year")
+                    }
+                  >
+                    <SelectTrigger className="font-mono">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={selectPopoverCls}>
+                      <SelectItem value="month" className={selectItemCls}>
+                        Monthly
+                      </SelectItem>
+                      <SelectItem value="year" className={selectItemCls}>
+                        Yearly
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* Expiry */}

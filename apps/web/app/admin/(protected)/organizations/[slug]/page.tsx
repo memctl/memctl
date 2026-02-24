@@ -95,7 +95,11 @@ export default async function AdminOrgDetailPage({
   }
 
   const templatesList = await db
-    .select({ id: planTemplates.id, name: planTemplates.name })
+    .select({
+      id: planTemplates.id,
+      name: planTemplates.name,
+      stripePriceInCents: planTemplates.stripePriceInCents,
+    })
     .from(planTemplates)
     .where(eq(planTemplates.isArchived, false));
 

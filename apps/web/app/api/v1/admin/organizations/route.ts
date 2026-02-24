@@ -8,6 +8,78 @@ import {
   organizationMembers,
 } from "@memctl/db/schema";
 import { desc, asc, eq, like, or, and, count, type SQL } from "drizzle-orm";
+import { getEffectivePlanId } from "@/lib/plans";
+
+interface BaseOrgRow {
+  id: string;
+  name: string;
+  slug: string;
+  ownerId: string;
+  planId: string;
+  status: string;
+  createdAt: Date;
+  planOverride: string | null;
+  trialEndsAt: Date | null;
+  planExpiresAt: Date | null;
+}
+
+interface EnrichedOrg {
+  id: string;
+  name: string;
+  slug: string;
+  ownerId: string;
+  planId: string;
+  effectivePlanId: string;
+  status: string;
+  createdAt: Date;
+  ownerName: string;
+  projectCount: number;
+  memberCount: number;
+}
+
+function sortByRequestedField(
+  orgs: EnrichedOrg[] | Array<BaseOrgRow & { effectivePlanId: string }>,
+  sort: string,
+  order: "asc" | "desc",
+) {
+  orgs.sort((a, b) => {
+    if (sort === "name") {
+      const diff = a.name.localeCompare(b.name);
+      return order === "asc" ? diff : -diff;
+    }
+    if (sort === "projects" && "projectCount" in a && "projectCount" in b) {
+      const diff = a.projectCount - b.projectCount;
+      return order === "asc" ? diff : -diff;
+    }
+    if (sort === "members" && "memberCount" in a && "memberCount" in b) {
+      const diff = a.memberCount - b.memberCount;
+      return order === "asc" ? diff : -diff;
+    }
+    const diff = a.createdAt.getTime() - b.createdAt.getTime();
+    return order === "asc" ? diff : -diff;
+  });
+}
+
+async function enrichOrg(org: BaseOrgRow & { effectivePlanId: string }) {
+  const [[owner], [projectCount], [memberCount]] = await Promise.all([
+    db.select({ name: users.name }).from(users).where(eq(users.id, org.ownerId)).limit(1),
+    db
+      .select({ value: count() })
+      .from(projects)
+      .where(eq(projects.orgId, org.id)),
+    db
+      .select({ value: count() })
+      .from(organizationMembers)
+      .where(eq(organizationMembers.orgId, org.id)),
+  ]);
+
+  return {
+    ...org,
+    ownerName: owner?.name ?? "Unknown",
+    projectCount: projectCount?.value ?? 0,
+    memberCount: memberCount?.value ?? 0,
+  };
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,75 +108,83 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (plan && plan !== "all") {
-    conditions.push(eq(organizations.planId, plan));
-  }
-
   if (status && status !== "all") {
     conditions.push(eq(organizations.status, status));
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
-
+  const requestedPlan = plan && plan !== "all" ? plan : null;
   const isJsSort = sort === "projects" || sort === "members";
+  const needsDerivedFiltering = Boolean(requestedPlan) || isJsSort;
 
-  if (isJsSort) {
-    const [allOrgs, totalResult] = await Promise.all([
-      db
-        .select({
-          id: organizations.id,
-          name: organizations.name,
-          slug: organizations.slug,
-          ownerId: organizations.ownerId,
-          planId: organizations.planId,
-          status: organizations.status,
-          createdAt: organizations.createdAt,
-        })
-        .from(organizations)
-        .where(where),
-      db.select({ value: count() }).from(organizations).where(where),
-    ]);
+  if (needsDerivedFiltering) {
+    const allOrgs = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        ownerId: organizations.ownerId,
+        planId: organizations.planId,
+        status: organizations.status,
+        createdAt: organizations.createdAt,
+        planOverride: organizations.planOverride,
+        trialEndsAt: organizations.trialEndsAt,
+        planExpiresAt: organizations.planExpiresAt,
+      })
+      .from(organizations)
+      .where(where);
 
-    const enriched = await Promise.all(
-      allOrgs.map(async (org) => {
-        const [[owner], [projectCount], [memberCount]] = await Promise.all([
-          db
-            .select({ name: users.name })
-            .from(users)
-            .where(eq(users.id, org.ownerId))
-            .limit(1),
-          db
-            .select({ value: count() })
-            .from(projects)
-            .where(eq(projects.orgId, org.id)),
-          db
-            .select({ value: count() })
-            .from(organizationMembers)
-            .where(eq(organizationMembers.orgId, org.id)),
-        ]);
-        return {
-          ...org,
-          ownerName: owner?.name ?? "Unknown",
-          projectCount: projectCount?.value ?? 0,
-          memberCount: memberCount?.value ?? 0,
-        };
-      }),
-    );
+    const withEffective = allOrgs
+      .map((org) => ({
+        ...org,
+        effectivePlanId: getEffectivePlanId(org),
+      }))
+      .filter((org) =>
+        requestedPlan ? org.effectivePlanId === requestedPlan : true,
+      );
 
-    enriched.sort((a, b) => {
-      const key = sort === "projects" ? "projectCount" : "memberCount";
-      const diff = a[key] - b[key];
-      return order === "asc" ? diff : -diff;
-    });
+    if (isJsSort) {
+      const enriched = await Promise.all(withEffective.map(enrichOrg));
+      sortByRequestedField(enriched, sort, order);
 
-    const sliced = enriched.slice(offset, offset + limit);
+      const paged = enriched.slice(offset, offset + limit);
+      return NextResponse.json({
+        organizations: paged.map((o) => ({
+          id: o.id,
+          name: o.name,
+          slug: o.slug,
+          ownerId: o.ownerId,
+          planId: o.planId,
+          effectivePlanId: o.effectivePlanId,
+          status: o.status,
+          createdAt: o.createdAt.toISOString(),
+          ownerName: o.ownerName,
+          projectCount: o.projectCount,
+          memberCount: o.memberCount,
+        })),
+        total: withEffective.length,
+      });
+    }
+
+    sortByRequestedField(withEffective, sort, order);
+    const paged = withEffective.slice(offset, offset + limit);
+    const enriched = await Promise.all(paged.map(enrichOrg));
 
     return NextResponse.json({
-      organizations: sliced.map((o) => ({
-        ...o,
+      organizations: enriched.map((o) => ({
+        id: o.id,
+        name: o.name,
+        slug: o.slug,
+        ownerId: o.ownerId,
+        planId: o.planId,
+        effectivePlanId: o.effectivePlanId,
+        status: o.status,
         createdAt: o.createdAt.toISOString(),
+        ownerName: o.ownerName,
+        projectCount: o.projectCount,
+        memberCount: o.memberCount,
       })),
-      total: totalResult[0]?.value ?? 0,
+      total: withEffective.length,
     });
   }
 
@@ -122,6 +202,9 @@ export async function GET(req: NextRequest) {
         planId: organizations.planId,
         status: organizations.status,
         createdAt: organizations.createdAt,
+        planOverride: organizations.planOverride,
+        trialEndsAt: organizations.trialEndsAt,
+        planExpiresAt: organizations.planExpiresAt,
       })
       .from(organizations)
       .where(where)
@@ -132,35 +215,27 @@ export async function GET(req: NextRequest) {
   ]);
 
   const enriched = await Promise.all(
-    orgs.map(async (org) => {
-      const [[owner], [projectCount], [memberCount]] = await Promise.all([
-        db
-          .select({ name: users.name })
-          .from(users)
-          .where(eq(users.id, org.ownerId))
-          .limit(1),
-        db
-          .select({ value: count() })
-          .from(projects)
-          .where(eq(projects.orgId, org.id)),
-        db
-          .select({ value: count() })
-          .from(organizationMembers)
-          .where(eq(organizationMembers.orgId, org.id)),
-      ]);
-      return {
+    orgs.map((org) =>
+      enrichOrg({
         ...org,
-        ownerName: owner?.name ?? "Unknown",
-        projectCount: projectCount?.value ?? 0,
-        memberCount: memberCount?.value ?? 0,
-      };
-    }),
+        effectivePlanId: getEffectivePlanId(org),
+      }),
+    ),
   );
 
   return NextResponse.json({
     organizations: enriched.map((o) => ({
-      ...o,
+      id: o.id,
+      name: o.name,
+      slug: o.slug,
+      ownerId: o.ownerId,
+      planId: o.planId,
+      effectivePlanId: o.effectivePlanId,
+      status: o.status,
       createdAt: o.createdAt.toISOString(),
+      ownerName: o.ownerName,
+      projectCount: o.projectCount,
+      memberCount: o.memberCount,
     })),
     total: totalResult[0]?.value ?? 0,
   });

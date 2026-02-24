@@ -13,6 +13,10 @@ import {
 } from "@memctl/db/schema";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { getOrgCreationLimits, isSelfHosted } from "@/lib/plans";
+import {
+  ensureSeatForAdditionalMember,
+  syncSeatQuantityToMemberCount,
+} from "@/lib/seat-billing";
 
 type AuthInstance = ReturnType<typeof betterAuth>;
 type GetSessionArgs = Parameters<AuthInstance["api"]["getSession"]>[0];
@@ -293,6 +297,12 @@ function createAuth() {
 
             for (const invite of pendingInvites) {
               try {
+                const seatResult =
+                  await ensureSeatForAdditionalMember(invite.orgId);
+                if (!seatResult.ok) {
+                  continue;
+                }
+
                 await db.insert(organizationMembers).values({
                   id: crypto.randomUUID().replace(/-/g, "").slice(0, 24),
                   orgId: invite.orgId,
@@ -305,6 +315,9 @@ function createAuth() {
                   .set({ acceptedAt: new Date() })
                   .where(eq(orgInvitations.id, invite.id));
               } catch {
+                try {
+                  await syncSeatQuantityToMemberCount(invite.orgId);
+                } catch {}
                 // Ignore duplicate membership races
               }
             }

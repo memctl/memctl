@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import type { PlanId } from "@memctl/shared/constants";
 
 let _stripe: Stripe | null = null;
 
@@ -43,21 +44,54 @@ export const STRIPE_PLANS: Record<
   },
 };
 
+export const STRIPE_EXTRA_SEAT_PRICE_ID =
+  process.env.STRIPE_EXTRA_SEAT_PRICE_ID ?? "";
+
 export async function createCheckoutSession(params: {
   customerId: string;
   priceId: string;
+  planId: PlanId;
   orgSlug: string;
   successUrl: string;
   cancelUrl: string;
   stripePromoCodeId?: string;
+  extraSeatQuantity?: number;
 }) {
+  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+    { price: params.priceId, quantity: 1 },
+  ];
+
+  if (
+    params.extraSeatQuantity &&
+    params.extraSeatQuantity > 0 &&
+    STRIPE_EXTRA_SEAT_PRICE_ID
+  ) {
+    lineItems.push({
+      price: STRIPE_EXTRA_SEAT_PRICE_ID,
+      quantity: params.extraSeatQuantity,
+    });
+  }
+
   return getStripe().checkout.sessions.create({
     customer: params.customerId,
     mode: "subscription",
-    line_items: [{ price: params.priceId, quantity: 1 }],
+    line_items: lineItems,
+    automatic_tax: { enabled: true },
+    tax_id_collection: { enabled: true },
+    billing_address_collection: "required",
+    customer_update: {
+      name: "auto",
+      address: "auto",
+    },
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
-    metadata: { orgSlug: params.orgSlug },
+    metadata: { orgSlug: params.orgSlug, entitlementPlanId: params.planId },
+    subscription_data: {
+      metadata: {
+        orgSlug: params.orgSlug,
+        entitlementPlanId: params.planId,
+      },
+    },
     ...(params.stripePromoCodeId
       ? { discounts: [{ promotion_code: params.stripePromoCodeId }] }
       : { allow_promotion_codes: true }),
@@ -130,7 +164,7 @@ export async function createCustomPrice(params: {
   unitAmountCents: number;
   productName: string;
   interval: "month" | "year";
-}): Promise<{ priceId: string }> {
+}): Promise<{ productId: string; priceId: string }> {
   const s = getStripe();
   const product = await s.products.create({ name: params.productName });
   const price = await s.prices.create({
@@ -139,19 +173,25 @@ export async function createCustomPrice(params: {
     currency: "usd",
     recurring: { interval: params.interval },
   });
-  return { priceId: price.id };
+  return { productId: product.id, priceId: price.id };
 }
 
 export async function createAdminSubscription(params: {
   customerId: string;
   priceId: string;
   orgSlug: string;
+  entitlementPlanId?: PlanId;
 }): Promise<{ subscriptionId: string }> {
   const s = getStripe();
   const subscription = await s.subscriptions.create({
     customer: params.customerId,
     items: [{ price: params.priceId }],
-    metadata: { orgSlug: params.orgSlug, adminCreated: "true" },
+    metadata: {
+      orgSlug: params.orgSlug,
+      adminCreated: "true",
+      entitlementManaged: "true",
+      entitlementPlanId: params.entitlementPlanId ?? "enterprise",
+    },
   });
 
   return { subscriptionId: subscription.id };

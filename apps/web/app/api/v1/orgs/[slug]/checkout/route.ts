@@ -6,10 +6,11 @@ import {
   organizationMembers,
   promoCodes,
 } from "@memctl/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { headers } from "next/headers";
 import { createCheckoutSession, STRIPE_PLANS } from "@/lib/stripe";
 import { isBillingEnabled } from "@/lib/plans";
+import { PLANS, type PlanId } from "@memctl/shared/constants";
 
 export async function POST(
   req: NextRequest,
@@ -94,14 +95,30 @@ export async function POST(
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const [memberCount] = await db
+    .select({ value: count() })
+    .from(organizationMembers)
+    .where(eq(organizationMembers.orgId, org.id));
+
+  const selectedPlan = PLANS[planId as PlanId];
+  const includedSeats =
+    selectedPlan && selectedPlan.memberLimit !== Infinity
+      ? selectedPlan.memberLimit
+      : 0;
+  const extraSeatQuantity = Math.max(
+    0,
+    (memberCount?.value ?? 0) - includedSeats,
+  );
 
   const checkoutSession = await createCheckoutSession({
     customerId: org.stripeCustomerId,
     priceId: STRIPE_PLANS[planId].priceId,
+    planId: planId as PlanId,
     orgSlug: slug,
     successUrl: `${appUrl}/org/${slug}/billing?success=true`,
     cancelUrl: `${appUrl}/org/${slug}/billing?canceled=true`,
     stripePromoCodeId,
+    extraSeatQuantity,
   });
 
   return NextResponse.json({ url: checkoutSession.url });
