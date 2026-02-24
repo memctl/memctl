@@ -14,7 +14,7 @@ import {
   sessionLogs,
   activityLogs,
 } from "@memctl/db/schema";
-import { eq, and, count, isNull } from "drizzle-orm";
+import { eq, and, count, isNull, inArray, gte } from "drizzle-orm";
 import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { getOrgLimits, isUnlimited as isUnlimitedValue } from "@/lib/plans";
@@ -62,10 +62,70 @@ export default async function UsagePage({
     .select({ value: count() })
     .from(organizationMembers)
     .where(eq(organizationMembers.orgId, org.id));
-  await db
+  const [activeTokenCount] = await db
     .select({ value: count() })
     .from(apiTokens)
     .where(and(eq(apiTokens.orgId, org.id), isNull(apiTokens.revokedAt)));
+
+  const trendStart = new Date();
+  trendStart.setHours(0, 0, 0, 0);
+  trendStart.setDate(trendStart.getDate() - 29);
+
+  const toDateKey = (date: Date) => {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${date.getFullYear()}-${month}-${day}`;
+  };
+
+  const trendBuckets = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date(trendStart);
+    date.setDate(date.getDate() + index);
+    return {
+      key: toDateKey(date),
+      date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      writes: 0,
+      deletes: 0,
+      other: 0,
+    };
+  });
+
+  const trendByDay = new Map(trendBuckets.map((bucket) => [bucket.key, bucket]));
+
+  if (projectList.length > 0) {
+    const recentActivity = await db
+      .select({ action: activityLogs.action, createdAt: activityLogs.createdAt })
+      .from(activityLogs)
+      .where(
+        and(
+          inArray(
+            activityLogs.projectId,
+            projectList.map((project) => project.id),
+          ),
+          gte(activityLogs.createdAt, trendStart),
+        ),
+      );
+
+    for (const log of recentActivity) {
+      const key = toDateKey(log.createdAt);
+      const bucket = trendByDay.get(key);
+      if (!bucket) continue;
+
+      if (log.action === "memory_write") {
+        bucket.writes += 1;
+      } else if (log.action === "memory_delete") {
+        bucket.deletes += 1;
+      } else {
+        bucket.other += 1;
+      }
+    }
+  }
+
+  const activityTrendData = trendBuckets.map(({ date, writes, deletes, other }) => ({
+    date,
+    writes,
+    deletes,
+    other,
+  }));
 
   let totalMemories = 0;
   let totalSessions = 0;
@@ -137,7 +197,7 @@ export default async function UsagePage({
       limit: limits.memberLimit,
     },
     { label: "Memories", current: totalMemories, limit: limits.memoryLimitOrg },
-    { label: "API Calls", current: 0, limit: currentPlan.apiCallLimit },
+    { label: "API Tokens", current: activeTokenCount?.value ?? 0, limit: 999999 },
     { label: "Sessions", current: totalSessions, limit: 999999 },
     { label: "Activity Logs", current: totalActivities, limit: 999999 },
   ];
@@ -189,6 +249,7 @@ export default async function UsagePage({
       {/* Charts */}
       <UsageCharts
         memoryByProject={memoryByProject}
+        activityTrendData={activityTrendData}
         priorityDistribution={priorityDistribution}
         tagBreakdown={tagBreakdown}
       />

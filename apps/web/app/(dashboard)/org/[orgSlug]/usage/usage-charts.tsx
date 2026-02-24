@@ -23,6 +23,7 @@ import {
 
 interface UsageChartsProps {
   memoryByProject: { name: string; count: number }[];
+  activityTrendData: { date: string; writes: number; deletes: number; other: number }[];
   priorityDistribution?: {
     high: number;
     medium: number;
@@ -32,32 +33,10 @@ interface UsageChartsProps {
   tagBreakdown?: { tag: string; count: number }[];
 }
 
-// Mock API call data for the last 30 days
-function generateMockApiData() {
-  const data = [];
-  const now = new Date();
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      reads: Math.floor(Math.random() * 300) + 30,
-      writes: Math.floor(Math.random() * 100) + 10,
-      searches: Math.floor(Math.random() * 200) + 20,
-    });
-  }
-  return data;
-}
-
-const apiCallData = generateMockApiData();
-
 const areaChartConfig = {
-  reads: { label: "Reads", color: "#3B82F6" },
   writes: { label: "Writes", color: "#F97316" },
-  searches: { label: "Searches", color: "#8B5CF6" },
+  deletes: { label: "Deletes", color: "#EF4444" },
+  other: { label: "Other", color: "#3B82F6" },
 } satisfies ChartConfig;
 
 const barChartConfig = {
@@ -77,6 +56,7 @@ const COLORS = [
 
 export function UsageCharts({
   memoryByProject,
+  activityTrendData,
   priorityDistribution,
   tagBreakdown,
 }: UsageChartsProps) {
@@ -103,29 +83,29 @@ export function UsageCharts({
 
   return (
     <div className="space-y-4">
-      {/* Top row: API calls + memories by project */}
+      {/* Top row: activity trends + memories by project */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* API Call Trends - stacked area chart */}
+        {/* Activity Trends - stacked area chart */}
         <div>
-          <SectionLabel>API Call Trends (30d)</SectionLabel>
+          <SectionLabel>Activity Trends (30d)</SectionLabel>
           <div className="dash-card mt-2 p-4">
             <ChartContainer
               config={areaChartConfig}
               className="h-[220px] w-full"
             >
-              <AreaChart data={apiCallData}>
+              <AreaChart data={activityTrendData}>
                 <defs>
-                  <linearGradient id="readGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
-                  </linearGradient>
                   <linearGradient id="writeGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#F97316" stopOpacity={0.3} />
                     <stop offset="100%" stopColor="#F97316" stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="searchGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0} />
+                  <linearGradient id="deleteGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#EF4444" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#EF4444" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="otherGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -147,14 +127,6 @@ export function UsageCharts({
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Area
                   type="monotone"
-                  dataKey="reads"
-                  stroke="#3B82F6"
-                  strokeWidth={1.5}
-                  fill="url(#readGrad)"
-                  stackId="1"
-                />
-                <Area
-                  type="monotone"
                   dataKey="writes"
                   stroke="#F97316"
                   strokeWidth={1.5}
@@ -163,10 +135,18 @@ export function UsageCharts({
                 />
                 <Area
                   type="monotone"
-                  dataKey="searches"
-                  stroke="#8B5CF6"
+                  dataKey="deletes"
+                  stroke="#EF4444"
                   strokeWidth={1.5}
-                  fill="url(#searchGrad)"
+                  fill="url(#deleteGrad)"
+                  stackId="1"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="other"
+                  stroke="#3B82F6"
+                  strokeWidth={1.5}
+                  fill="url(#otherGrad)"
                   stackId="1"
                 />
               </AreaChart>
