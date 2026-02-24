@@ -206,7 +206,11 @@ export default async function UsagePage({
       current: memberCount?.value ?? 0,
       limit: limits.memberLimit,
     },
-    { label: "Memories", current: totalMemories, limit: limits.memoryLimitOrg },
+    {
+      label: "Memories/project",
+      current: totalMemories,
+      limit: limits.memoryLimitPerProject,
+    },
     {
       label: "API Tokens",
       current: activeTokenCount?.value ?? 0,

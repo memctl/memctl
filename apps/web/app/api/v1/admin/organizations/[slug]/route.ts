@@ -180,13 +180,11 @@ export async function PATCH(
         previousProjectLimit: org.projectLimit,
         previousMemberLimit: org.memberLimit,
         previousMemoryLimitPerProject: org.memoryLimitPerProject,
-        previousMemoryLimitOrg: org.memoryLimitOrg,
         previousApiRatePerMinute: org.apiRatePerMinute,
         newProjectLimit: action.projectLimit ?? org.projectLimit,
         newMemberLimit: action.memberLimit ?? org.memberLimit,
         newMemoryLimitPerProject:
           action.memoryLimitPerProject ?? org.memoryLimitPerProject,
-        newMemoryLimitOrg: action.memoryLimitOrg ?? org.memoryLimitOrg,
         newApiRatePerMinute: action.apiRatePerMinute ?? org.apiRatePerMinute,
       };
       const updates: Record<string, unknown> = {
@@ -199,8 +197,6 @@ export async function PATCH(
         updates.memberLimit = action.memberLimit;
       if (action.memoryLimitPerProject !== undefined)
         updates.memoryLimitPerProject = action.memoryLimitPerProject;
-      if (action.memoryLimitOrg !== undefined)
-        updates.memoryLimitOrg = action.memoryLimitOrg;
       if (action.apiRatePerMinute !== undefined)
         updates.apiRatePerMinute = action.apiRatePerMinute;
       await db
@@ -216,7 +212,6 @@ export async function PATCH(
       details = {
         previousCustomLimits: org.customLimits,
         previousMemoryLimitPerProject: org.memoryLimitPerProject,
-        previousMemoryLimitOrg: org.memoryLimitOrg,
         previousApiRatePerMinute: org.apiRatePerMinute,
         resetToPlan: effectivePlanId,
       };
@@ -228,7 +223,6 @@ export async function PATCH(
           memberLimit:
             plan.memberLimit === Infinity ? 999999 : plan.memberLimit,
           memoryLimitPerProject: null,
-          memoryLimitOrg: null,
           apiRatePerMinute: null,
           customLimits: false,
           updatedAt: now,
@@ -318,17 +312,12 @@ export async function PATCH(
         customLimits: true,
         updatedAt: now,
       };
-      if (
-        !org.memoryLimitPerProject &&
-        !org.memoryLimitOrg &&
-        !org.apiRatePerMinute
-      ) {
+      if (!org.memoryLimitPerProject && !org.apiRatePerMinute) {
         updates.projectLimit = clampLimit(enterprisePlan.projectLimit);
         updates.memberLimit = clampLimit(enterprisePlan.memberLimit);
         updates.memoryLimitPerProject = clampLimit(
           enterprisePlan.memoryLimitPerProject,
         );
-        updates.memoryLimitOrg = clampLimit(enterprisePlan.memoryLimitOrg);
         updates.apiRatePerMinute = clampLimit(enterprisePlan.apiRatePerMinute);
       }
       await db
@@ -350,7 +339,6 @@ export async function PATCH(
           projectLimit: freePlan.projectLimit,
           memberLimit: freePlan.memberLimit,
           memoryLimitPerProject: null,
-          memoryLimitOrg: null,
           apiRatePerMinute: null,
           updatedAt: now,
         })
@@ -471,7 +459,6 @@ export async function PATCH(
           projectLimit: freePlan.projectLimit,
           memberLimit: freePlan.memberLimit,
           memoryLimitPerProject: null,
-          memoryLimitOrg: null,
           apiRatePerMinute: null,
           planTemplateId: null,
           trialEndsAt: null,
@@ -536,7 +523,6 @@ export async function PATCH(
         projectLimit: template.projectLimit,
         memberLimit: template.memberLimit,
         memoryLimitPerProject: template.memoryLimitPerProject,
-        memoryLimitOrg: template.memoryLimitOrg,
         apiRatePerMinute: template.apiRatePerMinute,
         planTemplateId: template.id,
         trialEndsAt: null,
@@ -644,7 +630,6 @@ function getPlanBaseLimitUpdates(planId: PlanId) {
     projectLimit: clampLimit(plan.projectLimit),
     memberLimit: clampLimit(plan.memberLimit),
     memoryLimitPerProject: null,
-    memoryLimitOrg: null,
     apiRatePerMinute: null,
     customLimits: false,
   };

@@ -16,10 +16,8 @@ export const PLANS: Record<
     price: number;
     projectLimit: number;
     memberLimit: number;
-    /** Soft limit per project — agents get a warning when approaching, not a hard block */
+    /** Hard per-project limit — blocks writes when reached */
     memoryLimitPerProject: number;
-    /** Hard org-wide ceiling (generous, acts as abuse prevention) */
-    memoryLimitOrg: number;
     apiCallLimit: number;
     /** Per-minute API rate limit (sliding window) */
     apiRatePerMinute: number;
@@ -31,7 +29,6 @@ export const PLANS: Record<
     projectLimit: 3,
     memberLimit: 1,
     memoryLimitPerProject: 200,
-    memoryLimitOrg: 500,
     apiCallLimit: Infinity,
     apiRatePerMinute: 60,
   },
@@ -41,7 +38,6 @@ export const PLANS: Record<
     projectLimit: 10,
     memberLimit: 3,
     memoryLimitPerProject: 1_000,
-    memoryLimitOrg: 10_000,
     apiCallLimit: Infinity,
     apiRatePerMinute: 100,
   },
@@ -51,7 +47,6 @@ export const PLANS: Record<
     projectLimit: 25,
     memberLimit: 10,
     memoryLimitPerProject: 5_000,
-    memoryLimitOrg: 100_000,
     apiCallLimit: Infinity,
     apiRatePerMinute: 150,
   },
@@ -61,7 +56,6 @@ export const PLANS: Record<
     projectLimit: 100,
     memberLimit: 30,
     memoryLimitPerProject: 10_000,
-    memoryLimitOrg: 500_000,
     apiCallLimit: Infinity,
     apiRatePerMinute: 150,
   },
@@ -71,7 +65,6 @@ export const PLANS: Record<
     projectLimit: 500,
     memberLimit: 100,
     memoryLimitPerProject: 25_000,
-    memoryLimitOrg: 2_000_000,
     apiCallLimit: Infinity,
     apiRatePerMinute: 150,
   },
@@ -81,7 +74,6 @@ export const PLANS: Record<
     projectLimit: Infinity,
     memberLimit: Infinity,
     memoryLimitPerProject: Infinity,
-    memoryLimitOrg: Infinity,
     apiCallLimit: Infinity,
     apiRatePerMinute: 150,
   },

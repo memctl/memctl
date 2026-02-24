@@ -210,7 +210,7 @@ export default async function HygienePage({
     };
   }
 
-  const memoryLimit = limits.memoryLimitOrg;
+  const memoryLimit = limits.memoryLimitPerProject;
   const usagePercent = isUnlimited(memoryLimit)
     ? 0
     : Math.round((totalMemories / memoryLimit) * 100);

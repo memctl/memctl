@@ -351,7 +351,6 @@ export default async function AdminOrgDetailPage({
             projectLimit: org.projectLimit,
             memberLimit: org.memberLimit,
             memoryLimitPerProject: org.memoryLimitPerProject,
-            memoryLimitOrg: org.memoryLimitOrg,
             apiRatePerMinute: org.apiRatePerMinute,
             customLimits: org.customLimits,
             ownerId: org.ownerId,
@@ -367,7 +366,6 @@ export default async function AdminOrgDetailPage({
             planDefaultMemoryPerProject: clampLimit(
               currentPlan.memoryLimitPerProject,
             ),
-            planDefaultMemoryOrg: clampLimit(currentPlan.memoryLimitOrg),
             planDefaultApiRate: clampLimit(currentPlan.apiRatePerMinute),
             trialEndsAt: org.trialEndsAt?.toISOString() ?? null,
             planExpiresAt: org.planExpiresAt?.toISOString() ?? null,

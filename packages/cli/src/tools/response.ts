@@ -45,22 +45,16 @@ export function toFiniteLimitText(limit: number) {
 export function formatCapacityGuidance(capacity: {
   used: number;
   limit: number;
-  orgUsed: number;
-  orgLimit: number;
   isFull: boolean;
-  isSoftFull: boolean;
   isApproaching: boolean;
 }) {
   if (capacity.isFull) {
-    return `Organization memory limit reached (${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}). Delete or archive unused memories before storing new ones.`;
-  }
-  if (capacity.isSoftFull) {
-    return `Project soft limit reached (${capacity.used}/${toFiniteLimitText(capacity.limit)}). Consider archiving old memories. Org: ${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}.`;
+    return `Project memory limit reached (${capacity.used}/${toFiniteLimitText(capacity.limit)}). Delete or archive unused memories before storing new ones.`;
   }
   if (capacity.isApproaching) {
-    return `Approaching project limit (${capacity.used}/${toFiniteLimitText(capacity.limit)}). Org: ${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}.`;
+    return `Approaching project limit (${capacity.used}/${toFiniteLimitText(capacity.limit)}). Consider archiving old memories.`;
   }
-  return `Memory available. Project: ${capacity.used}/${toFiniteLimitText(capacity.limit)}, Org: ${capacity.orgUsed}/${toFiniteLimitText(capacity.orgLimit)}.`;
+  return `Memory available. Project: ${capacity.used}/${toFiniteLimitText(capacity.limit)}.`;
 }
 
 export function matchGlob(filepath: string, pattern: string): boolean {

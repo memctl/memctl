@@ -91,7 +91,6 @@ export async function POST(req: NextRequest) {
               plan.memberLimit + extraSeatQuantity,
             );
             updateValues.memoryLimitPerProject = null;
-            updateValues.memoryLimitOrg = null;
             updateValues.apiRatePerMinute = null;
             updateValues.customLimits = false;
           }
@@ -203,7 +202,6 @@ export async function POST(req: NextRequest) {
               plan.memberLimit + extraSeatQuantity,
             );
             updateValues.memoryLimitPerProject = null;
-            updateValues.memoryLimitOrg = null;
             updateValues.apiRatePerMinute = null;
             updateValues.customLimits = false;
           }
@@ -288,7 +286,6 @@ export async function POST(req: NextRequest) {
               plan.memberLimit + extraSeatQuantity,
             );
             updateValues.memoryLimitPerProject = null;
-            updateValues.memoryLimitOrg = null;
             updateValues.apiRatePerMinute = null;
             updateValues.customLimits = false;
           }
@@ -336,7 +333,6 @@ export async function POST(req: NextRequest) {
         updateValues.projectLimit = freePlan.projectLimit;
         updateValues.memberLimit = freePlan.memberLimit;
         updateValues.memoryLimitPerProject = null;
-        updateValues.memoryLimitOrg = null;
         updateValues.apiRatePerMinute = null;
         updateValues.planTemplateId = null;
         updateValues.trialEndsAt = null;

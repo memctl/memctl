@@ -33,7 +33,6 @@ export function getOrgCreationLimits(planId?: PlanId): {
   projectLimit: number;
   memberLimit: number;
   memoryLimitPerProject: null;
-  memoryLimitOrg: null;
   apiRatePerMinute: null;
   customLimits: false;
 } {
@@ -44,7 +43,6 @@ export function getOrgCreationLimits(planId?: PlanId): {
     projectLimit: clampLimit(plan.projectLimit),
     memberLimit: clampLimit(plan.memberLimit),
     memoryLimitPerProject: null,
-    memoryLimitOrg: null,
     apiRatePerMinute: null,
     customLimits: false,
   };
@@ -54,7 +52,6 @@ export interface OrgLimits {
   projectLimit: number;
   memberLimit: number;
   memoryLimitPerProject: number;
-  memoryLimitOrg: number;
   apiRatePerMinute: number;
 }
 
@@ -64,7 +61,6 @@ export function getOrgLimits(org: {
   projectLimit: number;
   memberLimit: number;
   memoryLimitPerProject: number | null;
-  memoryLimitOrg: number | null;
   apiRatePerMinute: number | null;
 }): OrgLimits {
   const planId = getEffectivePlanId(org);
@@ -74,7 +70,6 @@ export function getOrgLimits(org: {
     memberLimit: org.memberLimit,
     memoryLimitPerProject:
       org.memoryLimitPerProject ?? clampLimit(plan.memoryLimitPerProject),
-    memoryLimitOrg: org.memoryLimitOrg ?? clampLimit(plan.memoryLimitOrg),
     apiRatePerMinute: org.apiRatePerMinute ?? clampLimit(plan.apiRatePerMinute),
   };
 }

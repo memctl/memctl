@@ -169,7 +169,9 @@ export function HealthDashboard({
           </div>
           <div className="mt-2 flex items-center gap-4 font-mono text-[10px] text-[var(--landing-text-tertiary)]">
             <span>{stats.totalMemories.toLocaleString()} memories</span>
-            <span>Limit: {stats.memoryLimit?.toLocaleString() ?? "∞"}</span>
+            <span>
+              Per-project limit: {stats.memoryLimit?.toLocaleString() ?? "∞"}
+            </span>
             <span>{stats.totalVersions.toLocaleString()} versions</span>
           </div>
         </div>

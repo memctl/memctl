@@ -281,10 +281,7 @@ export class ApiClient {
     return this.request<{
       used: number;
       limit: number;
-      orgUsed: number;
-      orgLimit: number;
       isFull: boolean;
-      isSoftFull: boolean;
       isApproaching: boolean;
       usageRatio: number | null;
     }>("GET", "/memories/capacity");

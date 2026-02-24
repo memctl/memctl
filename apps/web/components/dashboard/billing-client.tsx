@@ -21,7 +21,6 @@ interface PlanInfo {
   projectLimit: number;
   memberLimit: number;
   memoryLimitPerProject: number;
-  memoryLimitOrg: number;
   apiCallLimit: number;
 }
 

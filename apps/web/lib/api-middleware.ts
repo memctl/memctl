@@ -239,7 +239,6 @@ export async function checkRateLimit(
       projectLimit: organizations.projectLimit,
       memberLimit: organizations.memberLimit,
       memoryLimitPerProject: organizations.memoryLimitPerProject,
-      memoryLimitOrg: organizations.memoryLimitOrg,
       apiRatePerMinute: organizations.apiRatePerMinute,
     })
     .from(organizations)

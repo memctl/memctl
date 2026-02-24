@@ -116,7 +116,6 @@ export const adminOrgActionSchema = z.discriminatedUnion("action", [
     projectLimit: z.number().int().min(1).optional(),
     memberLimit: z.number().int().min(1).optional(),
     memoryLimitPerProject: z.number().int().min(1).optional(),
-    memoryLimitOrg: z.number().int().min(1).optional(),
     apiRatePerMinute: z.number().int().min(1).optional(),
   }),
   z.object({ action: z.literal("reset_limits") }),
@@ -163,7 +162,6 @@ export const planTemplateCreateSchema = z.object({
   projectLimit: z.number().int().min(1),
   memberLimit: z.number().int().min(1),
   memoryLimitPerProject: z.number().int().min(1),
-  memoryLimitOrg: z.number().int().min(1),
   apiRatePerMinute: z.number().int().min(1),
   stripePriceInCents: z.number().int().min(100).nullable().optional(),
 });

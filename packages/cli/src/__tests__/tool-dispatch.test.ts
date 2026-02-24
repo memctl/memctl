@@ -71,10 +71,7 @@ function createMockClient() {
     getMemoryCapacity: vi.fn().mockResolvedValue({
       used: 10,
       limit: 100,
-      orgUsed: 20,
-      orgLimit: 1000,
       isFull: false,
-      isSoftFull: false,
       isApproaching: false,
     }),
     findSimilar: vi.fn().mockResolvedValue({ similar: [] }),

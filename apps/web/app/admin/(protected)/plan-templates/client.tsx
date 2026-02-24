@@ -24,7 +24,6 @@ interface Template {
   projectLimit: number;
   memberLimit: number;
   memoryLimitPerProject: number;
-  memoryLimitOrg: number;
   apiRatePerMinute: number;
   stripePriceInCents: number | null;
   isArchived: boolean | null;

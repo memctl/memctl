@@ -382,7 +382,6 @@ export async function runCli(args: string[]): Promise<void> {
       const result = await client.getMemoryCapacity();
       if (!json) {
         console.log(`Project: ${result.used}/${result.limit} memories`);
-        console.log(`Org:     ${result.orgUsed}/${result.orgLimit} memories`);
         if (result.usageRatio != null) {
           console.log(`Usage:   ${(result.usageRatio * 100).toFixed(1)}%`);
         }

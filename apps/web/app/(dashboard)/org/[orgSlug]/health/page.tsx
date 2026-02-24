@@ -180,22 +180,31 @@ export default async function HealthPage({
     .slice(0, 20)
     .map(([tag, count]) => ({ tag, count }));
 
-  const memoryLimit = limits.memoryLimitOrg;
-  const usagePercent = isUnlimited(memoryLimit)
-    ? 0
-    : Math.round((totalMemories / memoryLimit) * 100);
+  const memoryLimitPerProject = limits.memoryLimitPerProject;
+
+  // Find the fullest project ratio for health check
+  let maxProjectRatio = 0;
+  if (!isUnlimited(memoryLimitPerProject)) {
+    for (const ps of projectStats) {
+      const ratio = ps.memoryCount / memoryLimitPerProject;
+      if (ratio > maxProjectRatio) maxProjectRatio = ratio;
+    }
+  }
+  const maxProjectPercent = Math.round(maxProjectRatio * 100);
 
   const checks = [
     { name: "Database", status: "pass" as const, detail: "Connected" },
     {
       name: "Memory Usage",
       status:
-        usagePercent >= 95
+        maxProjectPercent >= 95
           ? ("fail" as const)
-          : usagePercent >= 80
+          : maxProjectPercent >= 80
             ? ("warn" as const)
             : ("pass" as const),
-      detail: `${usagePercent}% (${totalMemories}/${isUnlimited(memoryLimit) ? "∞" : memoryLimit})`,
+      detail: isUnlimited(memoryLimitPerProject)
+        ? `${totalMemories} total (unlimited)`
+        : `Fullest project: ${maxProjectPercent}% of ${memoryLimitPerProject}/project`,
     },
     {
       name: "Active Locks",
@@ -228,8 +237,10 @@ export default async function HealthPage({
           totalSessions,
           totalActivities,
           totalActiveLocks,
-          memoryLimit: isUnlimited(memoryLimit) ? null : memoryLimit,
-          usagePercent,
+          memoryLimit: isUnlimited(memoryLimitPerProject)
+            ? null
+            : memoryLimitPerProject,
+          usagePercent: maxProjectPercent,
         }}
         priorityBuckets={priorityBuckets}
         topTags={topTags}

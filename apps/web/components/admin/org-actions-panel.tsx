@@ -36,7 +36,6 @@ interface OrgActionsPanelProps {
     projectLimit: number;
     memberLimit: number;
     memoryLimitPerProject: number | null;
-    memoryLimitOrg: number | null;
     apiRatePerMinute: number | null;
     customLimits: boolean | null;
     ownerId: string;
@@ -44,7 +43,6 @@ interface OrgActionsPanelProps {
     planDefaultProjectLimit: number;
     planDefaultMemberLimit: number;
     planDefaultMemoryPerProject: number;
-    planDefaultMemoryOrg: number;
     planDefaultApiRate: number;
     trialEndsAt: string | null;
     planExpiresAt: string | null;
@@ -118,9 +116,6 @@ export function OrgActionsPanel({
   const [memberLimit, setMemberLimit] = useState(org.memberLimit);
   const [memoryLimitPerProject, setMemoryLimitPerProject] = useState<string>(
     org.memoryLimitPerProject != null ? String(org.memoryLimitPerProject) : "",
-  );
-  const [memoryLimitOrg, setMemoryLimitOrg] = useState<string>(
-    org.memoryLimitOrg != null ? String(org.memoryLimitOrg) : "",
   );
   const [apiRatePerMinute, setApiRatePerMinute] = useState<string>(
     org.apiRatePerMinute != null ? String(org.apiRatePerMinute) : "",
@@ -332,14 +327,6 @@ export function OrgActionsPanel({
               onClear={() => setMemoryLimitPerProject("")}
             />
             <LimitField
-              label="Memory org-wide"
-              value={memoryLimitOrg}
-              onChange={setMemoryLimitOrg}
-              planDefault={org.planDefaultMemoryOrg}
-              isOverridden={memoryLimitOrg !== ""}
-              onClear={() => setMemoryLimitOrg("")}
-            />
-            <LimitField
               label="API rate / min"
               value={apiRatePerMinute}
               onChange={setApiRatePerMinute}
@@ -361,9 +348,6 @@ export function OrgActionsPanel({
                 if (memoryLimitPerProject)
                   body.memoryLimitPerProject = Number(memoryLimitPerProject);
                 else body.memoryLimitPerProject = null;
-                if (memoryLimitOrg)
-                  body.memoryLimitOrg = Number(memoryLimitOrg);
-                else body.memoryLimitOrg = null;
                 if (apiRatePerMinute)
                   body.apiRatePerMinute = Number(apiRatePerMinute);
                 else body.apiRatePerMinute = null;
@@ -385,7 +369,6 @@ export function OrgActionsPanel({
                   setProjectLimit(org.planDefaultProjectLimit);
                   setMemberLimit(org.planDefaultMemberLimit);
                   setMemoryLimitPerProject("");
-                  setMemoryLimitOrg("");
                   setApiRatePerMinute("");
                   doAction({ action: "reset_limits" });
                 }}
