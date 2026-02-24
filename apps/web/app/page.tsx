@@ -220,11 +220,6 @@ export default async function HomePage() {
           className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_6px,var(--landing-border)_6px,var(--landing-border)_7px)] opacity-[0.25] [mask-image:radial-gradient(ellipse_60%_55%_at_40%_45%,black_50%,transparent_100%)]"
           aria-hidden="true"
         />
-        {/* ── Layer 0b: Large indigo glow orb behind headline ── */}
-        <div
-          className="pointer-events-none absolute -left-[5%] top-[10%] h-[600px] w-[600px] rounded-full bg-indigo-500/[0.01] blur-[120px]"
-          aria-hidden="true"
-        />
         {/* ── Layer 0c: Thin vertical accent line from hero ── */}
         <div
           className="pointer-events-none absolute bottom-0 left-1/2 z-[12] h-24 w-px bg-gradient-to-b from-transparent via-[var(--landing-border)] to-[var(--landing-border)]"
@@ -248,14 +243,31 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* ── Layer 1: Diagonal wash from left ── */}
+        {/* ── Layer 1: Mesh gradient blobs ── */}
         <div
-          className="pointer-events-none absolute -left-[15%] top-[15%] h-[100%] w-[70%]"
+          className="pointer-events-none absolute -left-[10%] top-[5%] h-[500px] w-[500px] rounded-full"
           style={{
             background:
-              "linear-gradient(125deg, rgba(249,115,22,0.2) 0%, rgba(249,115,22,0.15) 40%, transparent 75%)",
+              "radial-gradient(circle, rgba(249,115,22,0.18) 0%, transparent 70%)",
+            filter: "blur(90px)",
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute left-[15%] top-[45%] h-[400px] w-[450px] rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)",
+            filter: "blur(100px)",
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute left-[35%] top-[10%] h-[350px] w-[400px] rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(168,162,158,0.06) 0%, transparent 70%)",
             filter: "blur(80px)",
-            transform: "skewX(-14deg)",
           }}
           aria-hidden="true"
         />
@@ -267,8 +279,10 @@ export default async function HomePage() {
         <div
           className="pointer-events-none absolute inset-0 z-[2]"
           style={{
-            background:
-              "radial-gradient(ellipse 80% 70% at 35% 45%, transparent 40%, var(--landing-bg) 100%)",
+            background: [
+              "linear-gradient(to right, var(--landing-bg) 0%, transparent 15%, transparent 85%, var(--landing-bg) 100%)",
+              "linear-gradient(to bottom, var(--landing-bg) 0%, transparent 12%)",
+            ].join(", "),
           }}
           aria-hidden="true"
         />
