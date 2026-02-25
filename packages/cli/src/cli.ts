@@ -21,40 +21,124 @@ async function getClient(): Promise<ApiClient> {
 }
 
 function printFriendlyError(error: unknown): never {
+  const friendly = getFriendlyError(error);
+  console.error(red(friendly.primary));
+  if (friendly.hint) {
+    console.error(yellow(friendly.hint));
+  }
+  process.exit(1);
+}
+
+function isAuthMessage(message: string): boolean {
+  return (
+    message.includes("invalid token") ||
+    message.includes("session expired") ||
+    message.includes("request failed (401)") ||
+    message.includes("status 401") ||
+    message.includes("unauthorized")
+  );
+}
+
+function isNetworkMessage(message: string): boolean {
+  return (
+    message.includes("fetch failed") ||
+    message.includes("enotfound") ||
+    message.includes("econnrefused") ||
+    message.includes("etimedout")
+  );
+}
+
+function getFriendlyError(error: unknown): {
+  primary: string;
+  hint?: string;
+  code: "auth" | "access" | "network" | "server" | "rate_limit" | "other";
+} {
   if (error instanceof ApiError) {
     if (error.status === 401) {
-      console.error(red("Invalid token."));
-      console.error(yellow("Run `memctl auth` or `memctl config`."));
-    } else if (error.status === 403) {
-      console.error(
-        red(
-          "Access denied for this org/project. Check MEMCTL_ORG and MEMCTL_PROJECT.",
-        ),
-      );
-    } else if (error.status >= 500) {
-      console.error(red("memctl API is currently unavailable. Try again shortly."));
-    } else {
-      console.error(red(error.message || `Request failed (${error.status}).`));
+      return {
+        primary: "Invalid token.",
+        hint: "Run `memctl auth` or `memctl config`.",
+        code: "auth",
+      };
     }
-    process.exit(1);
+    if (error.status === 403) {
+      return {
+        primary:
+          "Access denied for this org/project. Check MEMCTL_ORG and MEMCTL_PROJECT.",
+        code: "access",
+      };
+    }
+    if (error.status === 429) {
+      return {
+        primary: "Rate limit exceeded. Wait and retry.",
+        code: "rate_limit",
+      };
+    }
+    if (error.status >= 500) {
+      return {
+        primary: "memctl API is currently unavailable. Try again shortly.",
+        code: "server",
+      };
+    }
+    if (error.status === 400) {
+      return {
+        primary: "Invalid request. Check command arguments and try again.",
+        code: "other",
+      };
+    }
+    if (error.status === 404) {
+      return {
+        primary: "Requested resource was not found.",
+        code: "other",
+      };
+    }
+    return {
+      primary: error.message || `Request failed (${error.status}).`,
+      code: "other",
+    };
   }
 
   if (error instanceof Error) {
-    const msg = error.message.toLowerCase();
-    if (
-      msg.includes("fetch failed") ||
-      msg.includes("enotfound") ||
-      msg.includes("econnrefused")
-    ) {
-      console.error(red("Could not reach API. Check MEMCTL_API_URL."));
-    } else {
-      console.error(red(error.message));
+    const message = error.message.trim();
+    const lower = message.toLowerCase();
+    if (isAuthMessage(lower)) {
+      return {
+        primary: "Invalid token.",
+        hint: "Run `memctl auth` or `memctl config`.",
+        code: "auth",
+      };
     }
-    process.exit(1);
+    if (isNetworkMessage(lower)) {
+      return {
+        primary: "Could not reach API. Check MEMCTL_API_URL.",
+        code: "network",
+      };
+    }
+    return {
+      primary: message || "Unexpected error.",
+      code: "other",
+    };
   }
 
-  console.error(red("Unexpected error."));
-  process.exit(1);
+  const message = String(error ?? "").trim();
+  const lower = message.toLowerCase();
+  if (isAuthMessage(lower)) {
+    return {
+      primary: "Invalid token.",
+      hint: "Run `memctl auth` or `memctl config`.",
+      code: "auth",
+    };
+  }
+  if (isNetworkMessage(lower)) {
+    return {
+      primary: "Could not reach API. Check MEMCTL_API_URL.",
+      code: "network",
+    };
+  }
+  return {
+    primary: message || "Unexpected error.",
+    code: "other",
+  };
 }
 
 function printUsage() {
@@ -630,10 +714,16 @@ export async function runCli(args: string[]): Promise<void> {
         const cleaned = await client.cleanupExpired();
         if (!json) console.log(`  cleanup_expired: ${cleaned.cleaned} removed`);
       } catch (err) {
+        const friendly = getFriendlyError(err);
+        if (
+          friendly.code === "auth" ||
+          friendly.code === "access" ||
+          friendly.code === "network"
+        ) {
+          printFriendlyError(err);
+        }
         if (!json)
-          console.log(
-            `  cleanup_expired: error - ${err instanceof Error ? err.message : String(err)}`,
-          );
+          console.log(`  cleanup_expired: error - ${friendly.primary}`);
       }
 
       // Step 2: run all lifecycle policies
@@ -668,10 +758,16 @@ export async function runCli(args: string[]): Promise<void> {
           }
         }
       } catch (err) {
+        const friendly = getFriendlyError(err);
+        if (
+          friendly.code === "auth" ||
+          friendly.code === "access" ||
+          friendly.code === "network"
+        ) {
+          printFriendlyError(err);
+        }
         if (!json)
-          console.log(
-            `  lifecycle: error - ${err instanceof Error ? err.message : String(err)}`,
-          );
+          console.log(`  lifecycle: error - ${friendly.primary}`);
       }
 
       // Step 3: show final capacity
