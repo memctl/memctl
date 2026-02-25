@@ -3,6 +3,7 @@ import { verifyJwt, getCachedSession, setCachedSession } from "./jwt";
 import { auth } from "./auth";
 import { db } from "./db";
 import {
+  apiTokens,
   sessions,
   organizations,
   organizationMembers,
@@ -13,11 +14,38 @@ import { eq, and, inArray } from "drizzle-orm";
 import { logger, generateRequestId } from "./logger";
 import { rateLimit } from "./rate-limit";
 import { getOrgLimits } from "./plans";
+import { LRUCache } from "lru-cache";
 
 export interface AuthContext {
   userId: string;
   orgId: string;
   sessionId: string;
+}
+
+type CachedApiTokenAuth =
+  | {
+      valid: false;
+    }
+  | {
+      valid: true;
+      userId: string;
+      orgId: string;
+      tokenId: string;
+      expiresAt: number | null;
+    };
+
+const apiTokenCache = new LRUCache<string, CachedApiTokenAuth>({
+  max: 1000,
+  ttl: 60_000,
+});
+
+async function hashApiToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export async function authenticateRequest(
@@ -27,49 +55,111 @@ export async function authenticateRequest(
 
   // Bearer token auth (CLI / API clients)
   if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    const payload = await verifyJwt(token);
-    if (!payload) {
+    const token = authHeader.slice(7).trim();
+    if (!token) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
-
-    const cached = getCachedSession(payload.jti);
-    if (cached) {
-      if (!cached.valid) {
-        return NextResponse.json({ error: "Session revoked" }, { status: 401 });
+    const payload = await verifyJwt(token);
+    if (payload) {
+      const cached = getCachedSession(payload.jti);
+      if (cached) {
+        if (!cached.valid) {
+          return NextResponse.json({ error: "Session revoked" }, { status: 401 });
+        }
+        return {
+          userId: cached.userId,
+          orgId: cached.orgId,
+          sessionId: payload.sessionId,
+        };
       }
+
+      const [session] = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, payload.sessionId))
+        .limit(1);
+
+      if (!session || session.expiresAt < new Date()) {
+        setCachedSession(payload.jti, {
+          valid: false,
+          userId: payload.userId,
+          orgId: payload.orgId,
+        });
+        return NextResponse.json({ error: "Session expired" }, { status: 401 });
+      }
+
+      setCachedSession(payload.jti, {
+        valid: true,
+        userId: payload.userId,
+        orgId: payload.orgId,
+      });
+
       return {
-        userId: cached.userId,
-        orgId: cached.orgId,
+        userId: payload.userId,
+        orgId: payload.orgId,
         sessionId: payload.sessionId,
       };
     }
 
-    const [session] = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, payload.sessionId))
-      .limit(1);
-
-    if (!session || session.expiresAt < new Date()) {
-      setCachedSession(payload.jti, {
-        valid: false,
-        userId: payload.userId,
-        orgId: payload.orgId,
-      });
-      return NextResponse.json({ error: "Session expired" }, { status: 401 });
+    const tokenHash = await hashApiToken(token);
+    const now = Date.now();
+    const cachedToken = apiTokenCache.get(tokenHash);
+    if (cachedToken) {
+      if (!cachedToken.valid) {
+        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      }
+      if (cachedToken.expiresAt && cachedToken.expiresAt < now) {
+        apiTokenCache.delete(tokenHash);
+        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      }
+      return {
+        userId: cachedToken.userId,
+        orgId: cachedToken.orgId,
+        sessionId: `api-token:${cachedToken.tokenId}`,
+      };
     }
 
-    setCachedSession(payload.jti, {
+    const [apiToken] = await db
+      .select({
+        id: apiTokens.id,
+        userId: apiTokens.userId,
+        orgId: apiTokens.orgId,
+        expiresAt: apiTokens.expiresAt,
+        revokedAt: apiTokens.revokedAt,
+      })
+      .from(apiTokens)
+      .where(eq(apiTokens.tokenHash, tokenHash))
+      .limit(1);
+
+    const isInvalid =
+      !apiToken ||
+      !!apiToken.revokedAt ||
+      (apiToken.expiresAt ? apiToken.expiresAt.getTime() < now : false);
+
+    if (isInvalid) {
+      apiTokenCache.set(tokenHash, { valid: false });
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    apiTokenCache.set(tokenHash, {
       valid: true,
-      userId: payload.userId,
-      orgId: payload.orgId,
+      userId: apiToken.userId,
+      orgId: apiToken.orgId,
+      tokenId: apiToken.id,
+      expiresAt: apiToken.expiresAt ? apiToken.expiresAt.getTime() : null,
     });
 
+    const usedAt = new Date();
+    void db
+      .update(apiTokens)
+      .set({ lastUsedAt: usedAt })
+      .where(eq(apiTokens.id, apiToken.id))
+      .catch(() => null);
+
     return {
-      userId: payload.userId,
-      orgId: payload.orgId,
-      sessionId: payload.sessionId,
+      userId: apiToken.userId,
+      orgId: apiToken.orgId,
+      sessionId: `api-token:${apiToken.id}`,
     };
   }
 
