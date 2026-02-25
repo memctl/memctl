@@ -222,6 +222,16 @@ function parseArgs(args: string[]): {
 
   while (i < args.length) {
     const arg = args[i]!;
+    if (arg === "-h" || arg === "--help") {
+      flags.help = true;
+      i++;
+      continue;
+    }
+    if (arg === "--version") {
+      flags.version = true;
+      i++;
+      continue;
+    }
     if (arg.startsWith("--")) {
       const key = arg.slice(2);
       const next = args[i + 1];
@@ -280,7 +290,12 @@ export async function runCli(args: string[]): Promise<void> {
   const json = Boolean(flags.json);
   const limit = flags.limit ? Number(flags.limit) : 50;
 
-  if (command === "help" || command === "--help" || command === "-h") {
+  if (
+    command === "help" ||
+    command === "--help" ||
+    command === "-h" ||
+    flags.help
+  ) {
     printUsage();
     return;
   }

@@ -29,17 +29,17 @@ const STEPS = [
   },
   {
     icon: Users,
-    title: "Invite your team",
+    title: "Check your setup",
     description:
-      "Everyone on the team - and every AI agent they use - gets access to the same shared context.",
-    code: "memctl team add --org acme-corp",
+      "Verify your config, check connectivity, and see what your agents have access to.",
+    code: "npx memctl doctor && npx memctl status",
   },
   {
     icon: Sparkles,
     title: "Agents just know",
     description:
       "Claude Code, Cursor, Copilot - any agent with MCP support reads and writes to memctl automatically.",
-    code: "memctl serve --mcp",
+    code: "npx memctl serve --mcp",
   },
 ];
 
@@ -141,28 +141,27 @@ const FOOTER_COLS = [
       { label: "Features", href: "/#features" },
       { label: "Pricing", href: "/#pricing" },
       { label: "Changelog", href: "/changelog" },
-      { label: "Roadmap", href: "/roadmap" },
-      { label: "Status", href: "/status" },
+      { label: "Status", href: "https://status.memctl.com" },
     ],
   },
   {
     title: "Developers",
     links: [
       { label: "Documentation", href: "/docs" },
+      { label: "Quickstart", href: "/docs/quickstart" },
       { label: "API Reference", href: "/docs/api" },
-      { label: "SDKs", href: "/docs/sdks" },
-      { label: "MCP Protocol", href: "/docs/mcp" },
-      { label: "Examples", href: "/docs/examples" },
+      { label: "MCP Server", href: "/docs/mcp-server" },
+      { label: "CLI", href: "/docs/cli" },
     ],
   },
   {
-    title: "Company",
+    title: "Resources",
     links: [
-      { label: "About", href: "/about" },
       { label: "Blog", href: "/blog" },
-      { label: "Careers", href: "/careers" },
-      { label: "Contact", href: "/contact" },
-      { label: "Press Kit", href: "/press" },
+      { label: "Self-Hosting", href: "/docs/self-hosting" },
+      { label: "Deployment", href: "/docs/deployment" },
+      { label: "Troubleshooting", href: "/docs/troubleshooting" },
+      { label: "GitHub", href: "https://github.com/memctl/memctl" },
     ],
   },
   {
@@ -304,9 +303,9 @@ export default async function HomePage() {
               </h1>
 
               <p className="animate-fade-in-up mt-5 max-w-[520px] text-[clamp(1rem,2vw,1.2rem)] leading-[1.65] text-[var(--landing-text-secondary)] [animation-delay:200ms]">
-                Give your AI coding agents shared, branch-aware memory.
-                Synced across every IDE, machine, and tool via MCP. Every
-                session picks up where the last one left off.
+                Give your AI coding agents shared, branch-aware memory. Synced
+                across every IDE, machine, and tool via MCP. Every session picks
+                up where the last one left off.
               </p>
 
               <div className="animate-fade-in-up mt-7 flex flex-col gap-3.5 [animation-delay:300ms] sm:flex-row">
@@ -1869,16 +1868,30 @@ export default async function HomePage() {
                     {col.title}
                   </h4>
                   <ul className="space-y-3">
-                    {col.links.map((link) => (
-                      <li key={link.label}>
-                        <Link
-                          href={link.href}
-                          className="text-sm text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text-secondary)]"
-                        >
-                          {link.label}
-                        </Link>
-                      </li>
-                    ))}
+                    {col.links.map((link) => {
+                      const isExternal = link.href.startsWith("http");
+                      return (
+                        <li key={link.label}>
+                          {isExternal ? (
+                            <a
+                              href={link.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text-secondary)]"
+                            >
+                              {link.label}
+                            </a>
+                          ) : (
+                            <Link
+                              href={link.href}
+                              className="text-sm text-[var(--landing-text-tertiary)] transition-colors hover:text-[var(--landing-text-secondary)]"
+                            >
+                              {link.label}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}
