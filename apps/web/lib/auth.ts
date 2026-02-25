@@ -7,6 +7,9 @@ import { AdminMagicLinkEmail } from "@/emails/admin-magic-link";
 import { WelcomeEmail } from "@/emails/welcome";
 import {
   users,
+  sessions,
+  accounts,
+  verifications,
   organizations,
   organizationMembers,
   orgInvitations,
@@ -245,6 +248,13 @@ function createAuth() {
     ...(trustedOrigins ? { trustedOrigins } : {}),
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
+      usePlural: true,
+      schema: {
+        users,
+        sessions,
+        accounts,
+        verifications,
+      },
     }),
     socialProviders,
     session: {
