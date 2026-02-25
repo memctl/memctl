@@ -117,7 +117,7 @@ describe("doctor", () => {
       const output = joinedOutput();
       // Should show the credentials failure
       expect(output).toContain("Credentials");
-      expect(output).toContain("Neither env vars nor config file");
+      expect(output).toContain("No valid token/org/project from env or MCP config");
       // Should show a summary with at least 1 failure
       expect(output).toContain("failed");
       // Should NOT have attempted API connectivity

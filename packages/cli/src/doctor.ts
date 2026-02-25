@@ -64,7 +64,7 @@ export async function runDoctor(): Promise<void> {
     line(
       "fail",
       "Credentials",
-      "Neither env vars nor config file provide token/org/project",
+      "No valid token/org/project from env or MCP config (with token from env or profile)",
     );
     track("fail");
     // Can't continue without credentials

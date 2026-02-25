@@ -1,15 +1,16 @@
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { loadConfig, saveConfig, type MemctlConfig } from "./config.js";
+import { bold, cyan, green, red, yellow } from "./ui.js";
 
 export async function runAuth(): Promise<void> {
   const rl = createInterface({ input: stdin, output: stdout });
 
   try {
-    console.log("\n  memctl auth\n");
+    console.log(`\n  ${bold(cyan("memctl auth"))}\n`);
     console.log("  Authenticate with memctl to store your API token locally.");
     console.log(
-      "  After this, MCP configs only need org and project — no token.\n",
+      "  After this, MCP configs only need org and project, no token.\n",
     );
 
     // 1. API URL
@@ -23,7 +24,7 @@ export async function runAuth(): Promise<void> {
     );
     const token = await rl.question("  API token: ");
     if (!token.trim()) {
-      console.error("\n  Token is required. Aborting.\n");
+      console.error(`\n  ${red("Token is required. Aborting.")}\n`);
       process.exit(1);
     }
 
@@ -35,25 +36,29 @@ export async function runAuth(): Promise<void> {
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
-        console.log("  Token valid.\n");
+        console.log(`  ${green("Token valid.")}\n`);
       } else {
         console.warn(
-          `  Warning: API returned ${res.status}. Token may be invalid.\n`,
+          `  ${yellow(`Warning: API returned ${res.status}. Token may be invalid.`)}\n`,
         );
       }
     } catch {
-      console.warn("  Warning: Could not reach API. Saving token anyway.\n");
+      console.warn(
+        `  ${yellow("Warning: Could not reach API. Saving token anyway.")}\n`,
+      );
     }
 
     // 4. Save to config file
     const config: MemctlConfig = (await loadConfig()) ?? {
       profiles: {},
-      projects: {},
     };
     config.profiles.default = { token: token.trim(), apiUrl };
+    config.projects = {};
     await saveConfig(config);
 
-    console.log("  Authenticated! Token saved to ~/.memctl/config.json");
+    console.log(
+      `  ${green("Authenticated!")} Token saved to ~/.memctl/config.json`,
+    );
     console.log("");
     console.log(
       "  You can now use simplified MCP configs with just org and project:",

@@ -24,6 +24,16 @@ mem/ctl is a cloud MCP server that gives AI coding agents (Claude Code, Cursor, 
 }
 ```
 
+CLI onboarding (recommended):
+
+```bash
+memctl auth
+memctl init
+
+# Update only global API URL and token
+memctl config --global
+```
+
 ## MCP Tools
 
 | Tool                    | Description                                                                        |

@@ -1,29 +1,60 @@
 import { createRequire } from "node:module";
-import { ApiClient } from "./api-client.js";
+import { ApiClient, ApiError } from "./api-client.js";
+import { getConfigPath, loadConfigForCwd } from "./config.js";
+import { bold, cyan, green, red, yellow, isInteractiveTty } from "./ui.js";
 
-function getClient(): ApiClient {
-  const baseUrl = process.env.MEMCTL_API_URL ?? "https://memctl.com/api/v1";
-  const token = process.env.MEMCTL_TOKEN;
-  const org = process.env.MEMCTL_ORG;
-  const project = process.env.MEMCTL_PROJECT;
-
-  if (!token) {
-    console.error("Error: MEMCTL_TOKEN is required");
-    console.error("Set it via: export MEMCTL_TOKEN=your-token");
+async function getClient(): Promise<ApiClient> {
+  const resolved = await loadConfigForCwd();
+  if (!resolved) {
+    console.error(red("Authentication or MCP org/project config is missing."));
+    console.error(yellow(
+      'Run "memctl auth" and "memctl init", or use "memctl config".',
+    ));
     process.exit(1);
   }
-  if (!org) {
-    console.error("Error: MEMCTL_ORG is required");
-    console.error("Set it via: export MEMCTL_ORG=your-org-slug");
-    process.exit(1);
-  }
-  if (!project) {
-    console.error("Error: MEMCTL_PROJECT is required");
-    console.error("Set it via: export MEMCTL_PROJECT=your-project-slug");
+  return new ApiClient({
+    baseUrl: resolved.baseUrl,
+    token: resolved.token,
+    org: resolved.org,
+    project: resolved.project,
+  });
+}
+
+function printFriendlyError(error: unknown): never {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      console.error(red("Invalid token."));
+      console.error(yellow("Run `memctl auth` or `memctl config`."));
+    } else if (error.status === 403) {
+      console.error(
+        red(
+          "Access denied for this org/project. Check MEMCTL_ORG and MEMCTL_PROJECT.",
+        ),
+      );
+    } else if (error.status >= 500) {
+      console.error(red("memctl API is currently unavailable. Try again shortly."));
+    } else {
+      console.error(red(error.message || `Request failed (${error.status}).`));
+    }
     process.exit(1);
   }
 
-  return new ApiClient({ baseUrl, token, org, project });
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (
+      msg.includes("fetch failed") ||
+      msg.includes("enotfound") ||
+      msg.includes("econnrefused")
+    ) {
+      console.error(red("Could not reach API. Check MEMCTL_API_URL."));
+    } else {
+      console.error(red(error.message));
+    }
+    process.exit(1);
+  }
+
+  console.error(red("Unexpected error."));
+  process.exit(1);
 }
 
 function printUsage() {
@@ -37,6 +68,9 @@ Usage:
   memctl init --cursor      Write Cursor MCP config only
   memctl init --windsurf    Write Windsurf MCP config only
   memctl init --all         Write all IDE configs
+  memctl config             Update API URL/token
+  memctl config --show      Show resolved configuration
+  memctl config --global    Update global API URL/token only
   memctl doctor             Run diagnostics
   memctl whoami             Show current config and identity
   memctl status             Show connection status and capacity
@@ -74,14 +108,15 @@ Options:
   --copilot                 Include .github/copilot-instructions.md
   --all                     Include all agent config files
   --link                    Symlink to AGENTS.md instead of copying
+  --global                  For memctl config, update global profile only
   --json                    Output raw JSON
   --force                   Skip confirmation prompts
   --version                 Show CLI version
 
 Environment:
-  MEMCTL_TOKEN              API token (required, or use memctl init)
-  MEMCTL_ORG                Organization slug (required, or use memctl init)
-  MEMCTL_PROJECT            Project slug (required, or use memctl init)
+  MEMCTL_TOKEN              API token (optional if stored via memctl auth)
+  MEMCTL_ORG                Organization slug (or set in MCP config env)
+  MEMCTL_PROJECT            Project slug (or set in MCP config env)
   MEMCTL_API_URL            API base URL (default: https://memctl.com/api/v1)
 `);
 }
@@ -130,6 +165,32 @@ function out(data: unknown, json: boolean) {
   }
 }
 
+async function promptForValue(label: string): Promise<string> {
+  const rl = await import("node:readline/promises");
+  const iface = rl.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  const value = (await iface.question(`${cyan(`${label}: `)}`)).trim();
+  iface.close();
+  return value;
+}
+
+async function requireArg(
+  value: string | undefined,
+  promptLabel: string,
+  usage: string,
+): Promise<string> {
+  if (value && value.trim()) return value.trim();
+  if (isInteractiveTty()) {
+    const prompted = await promptForValue(promptLabel);
+    if (prompted) return prompted;
+  }
+  console.error(red(`Missing required value: ${promptLabel.toLowerCase()}`));
+  console.error(`Usage: ${usage}`);
+  process.exit(1);
+}
+
 export async function runCli(args: string[]): Promise<void> {
   const { command, positional, flags } = parseArgs(args);
   const json = Boolean(flags.json);
@@ -169,6 +230,12 @@ export async function runCli(args: string[]): Promise<void> {
     return;
   }
 
+  if (command === "config") {
+    const { runConfig } = await import("./config-command.js");
+    await runConfig(flags);
+    return;
+  }
+
   if (command === "doctor") {
     const { runDoctor } = await import("./doctor.js");
     await runDoctor();
@@ -176,40 +243,41 @@ export async function runCli(args: string[]): Promise<void> {
   }
 
   if (command === "whoami") {
-    const { loadConfigForCwd, getConfigPath } = await import("./config.js");
     const configPath = getConfigPath();
     const resolved = await loadConfigForCwd();
+    console.log(`${bold(cyan("Configuration"))}`);
     console.log(`Config:   ${configPath}`);
     if (resolved) {
       const masked =
         resolved.token.length > 8 ? resolved.token.slice(0, 8) + "..." : "***";
-      const source = process.env.MEMCTL_TOKEN ? "env" : "file";
       console.log(`API URL:  ${resolved.baseUrl}`);
       console.log(`Org:      ${resolved.org}`);
       console.log(`Project:  ${resolved.project}`);
-      console.log(`Token:    ${masked} (${source})`);
+      console.log(`Token:    ${masked} (${resolved.source})`);
     } else {
-      console.log(`Status:   Not configured`);
-      console.log(`Run "memctl auth" and "memctl init" to get started.`);
+      console.log(`Status:   ${yellow("Not configured")}`);
+      console.log(
+        yellow(`Run "memctl auth" and "memctl init" to get started.`),
+      );
     }
     return;
   }
 
   if (command === "status") {
-    const { loadConfigForCwd } = await import("./config.js");
     const resolved = await loadConfigForCwd();
     if (!resolved) {
       console.log(
-        'Not configured. Run "memctl auth" and "memctl init" to get started.',
+        'Not configured. Run "memctl auth" and "memctl init", or use "memctl config".',
       );
       return;
     }
+    console.log(`${bold(cyan("Status"))}`);
     console.log(`Org:      ${resolved.org}`);
     console.log(`Project:  ${resolved.project}`);
     console.log(`API URL:  ${resolved.baseUrl}`);
     const statusClient = new ApiClient(resolved);
     const online = await statusClient.ping();
-    console.log(`Status:   ${online ? "online" : "offline"}`);
+    console.log(`Status:   ${online ? green("online") : yellow("offline")}`);
     if (online) {
       try {
         const cap = await statusClient.getMemoryCapacity();
@@ -235,9 +303,10 @@ export async function runCli(args: string[]): Promise<void> {
     return;
   }
 
-  const client = getClient();
+  const client = await getClient();
 
-  switch (command) {
+  try {
+    switch (command) {
     case "list": {
       const result = await client.listMemories(limit, 0, {
         sort: flags.sort as string | undefined,
@@ -259,22 +328,17 @@ export async function runCli(args: string[]): Promise<void> {
     }
 
     case "get": {
-      const key = positional[0];
-      if (!key) {
-        console.error("Usage: memctl get <key>");
-        process.exit(1);
-      }
+      const key = await requireArg(positional[0], "Memory key", "memctl get <key>");
       const result = await client.getMemory(key);
       out(result, true);
       break;
     }
 
     case "search": {
-      const query = positional.join(" ");
-      if (!query) {
-        console.error("Usage: memctl search <query>");
-        process.exit(1);
-      }
+      const providedQuery = positional.join(" ").trim();
+      const query = providedQuery
+        ? providedQuery
+        : await requireArg(undefined, "Search query", "memctl search <query>");
       const result = await client.searchMemories(query, limit);
       const data = result as { memories?: Array<Record<string, unknown>> };
       if (!json && data.memories) {
@@ -391,11 +455,7 @@ export async function runCli(args: string[]): Promise<void> {
     }
 
     case "import": {
-      const file = positional[0];
-      if (!file) {
-        console.error("Usage: memctl import <file>");
-        process.exit(1);
-      }
+      const file = await requireArg(positional[0], "File path", "memctl import <file>");
       const fs = await import("node:fs/promises");
       const content = await fs.readFile(file, "utf-8");
       const basename = file.split("/").pop() ?? file;
@@ -447,11 +507,11 @@ export async function runCli(args: string[]): Promise<void> {
     }
 
     case "snapshot": {
-      const name = positional[0];
-      if (!name) {
-        console.error("Usage: memctl snapshot <name> [--description <desc>]");
-        process.exit(1);
-      }
+      const name = await requireArg(
+        positional[0],
+        "Snapshot name",
+        "memctl snapshot <name> [--description <desc>]",
+      );
       const desc = flags.description as string | undefined;
       const result = await client.createSnapshot(name, desc);
       out(result, true);
@@ -521,13 +581,27 @@ export async function runCli(args: string[]): Promise<void> {
     }
 
     case "lifecycle": {
-      const policies = positional;
+      const policies = positional.filter((item) => item.trim().length > 0);
       if (policies.length === 0) {
-        console.error("Usage: memctl lifecycle <policy1> [policy2] ...");
-        console.error(
-          "Policies: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy, cleanup_old_versions, cleanup_activity_logs, cleanup_expired_locks, purge_archived",
-        );
-        process.exit(1);
+        if (isInteractiveTty()) {
+          const raw = await promptForValue(
+            "Policies (comma-separated, e.g. cleanup_expired,auto_prune)",
+          );
+          const prompted = raw
+            .split(",")
+            .map((entry) => entry.trim())
+            .filter((entry) => entry.length > 0);
+          if (prompted.length > 0) {
+            policies.push(...prompted);
+          }
+        }
+        if (policies.length === 0) {
+          console.error("Usage: memctl lifecycle <policy1> [policy2] ...");
+          console.error(
+            "Policies: archive_merged_branches, cleanup_expired, cleanup_session_logs, auto_promote, auto_demote, auto_prune, auto_archive_unhealthy, cleanup_old_versions, cleanup_activity_logs, cleanup_expired_locks, purge_archived",
+          );
+          process.exit(1);
+        }
       }
       const result = await client.runLifecycle(policies, {
         healthThreshold: flags["health-threshold"]
@@ -618,11 +692,7 @@ export async function runCli(args: string[]): Promise<void> {
     }
 
     case "delete": {
-      const key = positional[0];
-      if (!key) {
-        console.error("Usage: memctl delete <key>");
-        process.exit(1);
-      }
+      const key = await requireArg(positional[0], "Memory key", "memctl delete <key>");
       if (!flags.force) {
         const rl = await import("node:readline/promises");
         const iface = rl.createInterface({
@@ -632,52 +702,55 @@ export async function runCli(args: string[]): Promise<void> {
         const answer = await iface.question(`Delete "${key}"? [y/N] `);
         iface.close();
         if (answer.toLowerCase() !== "y") {
-          console.log("Aborted.");
+          console.log(yellow("Aborted."));
           return;
         }
       }
       await client.deleteMemory(key);
-      console.log(`Deleted: ${key}`);
+      console.log(green(`Deleted: ${key}`));
       break;
     }
 
     case "pin":
     case "unpin": {
-      const key = positional[0];
-      if (!key) {
-        console.error(`Usage: memctl ${command} <key>`);
-        process.exit(1);
-      }
+      const key = await requireArg(
+        positional[0],
+        "Memory key",
+        `memctl ${command} <key>`,
+      );
       const pin = command === "pin";
       const result = await client.pinMemory(key, pin);
       if (json) {
         out(result, true);
       } else {
-        console.log(`${pin ? "Pinned" : "Unpinned"}: ${key}`);
+        console.log(green(`${pin ? "Pinned" : "Unpinned"}: ${key}`));
       }
       break;
     }
 
     case "archive":
     case "unarchive": {
-      const key = positional[0];
-      if (!key) {
-        console.error(`Usage: memctl ${command} <key>`);
-        process.exit(1);
-      }
+      const key = await requireArg(
+        positional[0],
+        "Memory key",
+        `memctl ${command} <key>`,
+      );
       const archive = command === "archive";
       const result = await client.archiveMemory(key, archive);
       if (json) {
         out(result, true);
       } else {
-        console.log(`${archive ? "Archived" : "Unarchived"}: ${key}`);
+        console.log(green(`${archive ? "Archived" : "Unarchived"}: ${key}`));
       }
       break;
     }
 
-    default:
-      console.error(`Unknown command: ${command}`);
-      printUsage();
-      process.exit(1);
+      default:
+        console.error(red(`Unknown command: ${command}`));
+        printUsage();
+        process.exit(1);
+    }
+  } catch (error) {
+    printFriendlyError(error);
   }
 }
