@@ -246,6 +246,11 @@ function createAuth() {
   return betterAuth({
     ...(baseURL ? { baseURL } : {}),
     ...(trustedOrigins ? { trustedOrigins } : {}),
+    user: {
+      fields: {
+        image: "avatarUrl",
+      },
+    },
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
       usePlural: true,
