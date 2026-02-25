@@ -218,6 +218,15 @@ async function getSessionWithDevBypass(
 }
 
 function createAuth() {
+  const configuredBaseUrl = (
+    process.env.BETTER_AUTH_URL?.trim() ||
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    ""
+  ).replace(/\/+$/, "");
+
+  const baseURL = configuredBaseUrl || undefined;
+  const trustedOrigins = baseURL ? [baseURL] : undefined;
+
   const githubClientId = process.env.GITHUB_CLIENT_ID?.trim();
   const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
   const socialProviders =
@@ -232,6 +241,8 @@ function createAuth() {
       : {};
 
   return betterAuth({
+    ...(baseURL ? { baseURL } : {}),
+    ...(trustedOrigins ? { trustedOrigins } : {}),
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
     }),
