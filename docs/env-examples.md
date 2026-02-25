@@ -100,6 +100,15 @@ MEMCTL_PROJECT=your-project-slug
 
 That's it. No database, auth, or Stripe vars needed.
 
+CLI setup shortcuts:
+
+```bash
+# Global auth + API URL
+memctl auth
+memctl config --global --api-url https://memctl.com/api/v1 --token your-api-token
+# Org/project are configured in MCP env (MEMCTL_ORG and MEMCTL_PROJECT)
+```
+
 ## Example 6: Production deployment
 
 ```env

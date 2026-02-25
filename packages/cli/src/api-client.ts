@@ -1,6 +1,18 @@
 import { MemoryCache } from "./cache.js";
 import { LocalCache } from "./local-cache.js";
 
+export class ApiError extends Error {
+  status: number;
+  details?: string;
+
+  constructor(status: number, message: string, details?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.details = details;
+  }
+}
+
 export class ApiClient {
   private baseUrl: string;
   private token: string;
@@ -132,7 +144,7 @@ export class ApiClient {
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (err) {
-      // Network error — try offline fallback for GET requests
+      // Network error, try offline fallback for GET requests
       this.isOffline = true;
       if (method === "GET") {
         const offline = this.localCache.getByPath(path);
@@ -146,7 +158,7 @@ export class ApiClient {
 
     this.isOffline = false;
 
-    // Handle 304 Not Modified — return cached data
+    // Handle 304 Not Modified, return cached data
     if (res.status === 304) {
       this.lastFreshness = "cached";
       this.cache.touch(cacheKey);
@@ -157,7 +169,16 @@ export class ApiClient {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`API error ${res.status}: ${text}`);
+      let message = `Request failed (${res.status})`;
+      try {
+        const parsed = JSON.parse(text) as { error?: string; message?: string };
+        message = parsed.error || parsed.message || message;
+      } catch {
+        if (text.trim()) {
+          message = text.trim();
+        }
+      }
+      throw new ApiError(res.status, message, text);
     }
 
     const data = (await res.json()) as T;
@@ -185,7 +206,7 @@ export class ApiClient {
   /** Background revalidation for stale cache entries. */
   private revalidate(cacheKey: string, path: string): void {
     this.doFetch("GET", path, undefined, cacheKey).catch(() => {
-      // Revalidation failed silently — stale data continues to be served
+      // Revalidation failed silently, stale data continues to be served
     });
   }
 
@@ -200,7 +221,7 @@ export class ApiClient {
         }
       }
     } catch {
-      // Non-critical — don't fail the request
+      // Non-critical, do not fail the request
     }
   }
 

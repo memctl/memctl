@@ -25,10 +25,12 @@ vi.mock("node:util", () => ({
 }));
 
 const mockLoadConfig = vi.fn();
+const mockLoadMcpEnvForCwd = vi.fn();
 const mockSaveConfig = vi.fn();
 
 vi.mock("../config", () => ({
   loadConfig: (...args: unknown[]) => mockLoadConfig(...args),
+  loadMcpEnvForCwd: (...args: unknown[]) => mockLoadMcpEnvForCwd(...args),
   saveConfig: (...args: unknown[]) => mockSaveConfig(...args),
 }));
 
@@ -46,6 +48,7 @@ describe("init – writeIdeConfigs", () => {
     mockWriteFile.mockResolvedValue(undefined);
     // By default, readFile rejects (no existing file)
     mockReadFile.mockRejectedValue(new Error("ENOENT"));
+    mockLoadMcpEnvForCwd.mockResolvedValue(null);
     mockSaveConfig.mockResolvedValue(undefined);
   });
 

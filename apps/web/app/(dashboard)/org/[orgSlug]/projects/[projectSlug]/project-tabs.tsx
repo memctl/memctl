@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useRef, useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Brain,
@@ -21,6 +21,34 @@ import type { ProjectSettingsProps } from "./project-settings";
 import { ProjectSettings } from "./project-settings";
 import type { ProjectMembersProps } from "./project-members";
 import { ProjectMembers } from "./project-members";
+import { ActivitySkeleton } from "@/components/activity/activity-skeleton";
+import {
+  MemoriesSkeleton,
+  GraphSkeleton,
+  MembersSkeleton,
+  CleanupSkeleton,
+} from "@/components/dashboard/tab-skeletons";
+
+export interface ProjectTabsProps {
+  orgSlug: string;
+  projectSlug: string;
+  projectId: string;
+  isAdmin: boolean;
+  currentUserId: string;
+  mcpConfig: string;
+  activeCount: number;
+  archivedCount: number;
+  settingsData: ProjectSettingsProps["project"];
+}
+
+type TabDataMap = {
+  memories: SerializedMemory[];
+  graph: SerializedMemory[];
+  members: ProjectMembersProps["members"];
+  activity: ActivityTabData;
+  cleanup: HygieneTabData;
+  settings: null;
+};
 
 interface SerializedMemory {
   id: string;
@@ -66,14 +94,30 @@ interface SessionItem {
   projectName: string;
 }
 
-interface ActivityStats {
-  totalActions: number;
-  actionBreakdown: Record<string, number>;
-  activeSessions: number;
-  totalSessions: number;
+interface AuditLogItem {
+  id: string;
+  action: string;
+  actorName: string;
+  targetUserName: string | null;
+  details: string | null;
+  createdAt: string;
 }
 
-interface HygieneData {
+interface ActivityTabData {
+  activities: ActivityItem[];
+  auditLogs: AuditLogItem[];
+  sessions: SessionItem[];
+  stats: {
+    totalActions: number;
+    actionBreakdown: Record<string, number>;
+    activeSessions: number;
+    totalSessions: number;
+  };
+  initialCursor: string | null;
+  initialSessionsCursor: string | null;
+}
+
+interface HygieneTabData {
   healthBuckets: {
     critical: number;
     low: number;
@@ -92,36 +136,6 @@ interface HygieneData {
   tableSizes?: { versions: number; activityLogs: number; expiredLocks: number };
 }
 
-interface AuditLogItem {
-  id: string;
-  action: string;
-  actorName: string;
-  targetUserName: string | null;
-  details: string | null;
-  createdAt: string;
-}
-
-export interface ProjectTabsProps {
-  orgSlug: string;
-  projectSlug: string;
-  projectId: string;
-  isAdmin: boolean;
-  currentUserId: string;
-  memories: SerializedMemory[];
-  mcpConfig: string;
-  activities: ActivityItem[];
-  auditLogs: AuditLogItem[];
-  sessions: SessionItem[];
-  activityStats: ActivityStats;
-  hygieneData: HygieneData;
-  settingsData: ProjectSettingsProps["project"];
-  membersData: ProjectMembersProps["members"];
-  activityApiPath?: string;
-  sessionsApiPath?: string;
-  initialActivityCursor?: string | null;
-  initialSessionsCursor?: string | null;
-}
-
 const TAB_DEFS: Array<{
   id: string;
   label: string;
@@ -136,29 +150,145 @@ const TAB_DEFS: Array<{
   { id: "settings", label: "Settings", icon: Settings, adminOnly: true },
 ];
 
+function useTabData<T extends keyof TabDataMap>(
+  tab: T,
+  currentTab: string,
+  orgSlug: string,
+  projectSlug: string,
+  cache: React.RefObject<Map<string, unknown>>,
+): { data: TabDataMap[T] | null; isLoading: boolean } {
+  const [data, setData] = useState<TabDataMap[T] | null>(() => {
+    const cached = cache.current?.get(tab);
+    return cached ? (cached as TabDataMap[T]) : null;
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentTab !== tab && currentTab !== "graph" && tab !== "memories")
+      return;
+    // Graph reuses memories data
+    const cacheKey = tab === "graph" ? "memories" : tab;
+    if (tab === "settings") return;
+
+    const cached = cache.current?.get(cacheKey);
+    if (cached) {
+      setData(cached as TabDataMap[T]);
+      return;
+    }
+
+    // Only fetch when this tab is active
+    if (currentTab !== tab) return;
+
+    let cancelled = false;
+    setIsLoading(true);
+
+    const basePath = `/api/v1/orgs/${orgSlug}/projects/${projectSlug}`;
+
+    async function fetchData() {
+      try {
+        if (cacheKey === "memories") {
+          const res = await fetch(`${basePath}/memories`);
+          if (!res.ok) throw new Error("Failed to fetch memories");
+          const json = await res.json();
+          if (!cancelled) {
+            cache.current?.set("memories", json.result);
+            setData(json.result as TabDataMap[T]);
+          }
+        } else if (cacheKey === "members") {
+          const res = await fetch(`${basePath}/members`);
+          if (!res.ok) throw new Error("Failed to fetch members");
+          const json = await res.json();
+          if (!cancelled) {
+            cache.current?.set("members", json.result);
+            setData(json.result as TabDataMap[T]);
+          }
+        } else if (cacheKey === "activity") {
+          const [actRes, sessRes] = await Promise.all([
+            fetch(`${basePath}/activity`),
+            fetch(`${basePath}/activity/sessions`),
+          ]);
+          if (!actRes.ok || !sessRes.ok)
+            throw new Error("Failed to fetch activity");
+          const [actJson, sessJson] = await Promise.all([
+            actRes.json(),
+            sessRes.json(),
+          ]);
+
+          const activities: ActivityItem[] = actJson.activities ?? [];
+          const auditLogs: AuditLogItem[] = actJson.auditLogs ?? [];
+          const sessions: SessionItem[] = sessJson.sessions ?? [];
+
+          const actionBreakdown: Record<string, number> = {};
+          for (const a of activities) {
+            actionBreakdown[a.action] = (actionBreakdown[a.action] ?? 0) + 1;
+          }
+
+          const allDates = [
+            ...activities.map((a) => a.createdAt),
+            ...auditLogs.map((a) => a.createdAt),
+          ]
+            .filter(Boolean)
+            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+          const result: ActivityTabData = {
+            activities,
+            auditLogs,
+            sessions,
+            stats: {
+              totalActions: activities.length,
+              actionBreakdown,
+              activeSessions: sessions.filter((s) => !s.endedAt).length,
+              totalSessions: sessions.length,
+            },
+            initialCursor:
+              allDates.length > 0 ? allDates[allDates.length - 1] : null,
+            initialSessionsCursor:
+              sessions.length > 0
+                ? sessions[sessions.length - 1].startedAt
+                : null,
+          };
+
+          if (!cancelled) {
+            cache.current?.set("activity", result);
+            setData(result as TabDataMap[T]);
+          }
+        } else if (cacheKey === "cleanup") {
+          const res = await fetch(`${basePath}/hygiene`);
+          if (!res.ok) throw new Error("Failed to fetch hygiene data");
+          const json = await res.json();
+          if (!cancelled) {
+            cache.current?.set("cleanup", json.result);
+            setData(json.result as TabDataMap[T]);
+          }
+        }
+      } catch {
+        // Silently fail, user can switch tabs again to retry
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    fetchData();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTab, tab, orgSlug, projectSlug, cache]);
+
+  return { data, isLoading };
+}
+
 function ProjectTabsInner({
   orgSlug,
   projectSlug,
   projectId,
   isAdmin,
   currentUserId,
-  memories,
   mcpConfig,
-  activities,
-  auditLogs,
-  sessions,
-  activityStats,
-  hygieneData,
   settingsData,
-  membersData,
-  activityApiPath,
-  sessionsApiPath,
-  initialActivityCursor,
-  initialSessionsCursor,
 }: ProjectTabsProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const currentTab = searchParams.get("tab") ?? "memories";
+  const initialTab = searchParams.get("tab") ?? "memories";
+  const [currentTab, setCurrentTab] = useState(initialTab);
 
   const tabs = TAB_DEFS.filter((t) => !t.adminOnly || isAdmin);
   const currentIndex = tabs.findIndex((t) => t.id === currentTab);
@@ -177,6 +307,9 @@ function ProjectTabsInner({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Shared tab data cache
+  const tabCache = useRef<Map<string, unknown>>(new Map());
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -227,6 +360,7 @@ function ProjectTabsInner({
   }, [currentTab]);
 
   const handleTabChange = (id: string) => {
+    setCurrentTab(id);
     const params = new URLSearchParams(searchParams.toString());
     if (id === "memories") {
       params.delete("tab");
@@ -234,11 +368,59 @@ function ProjectTabsInner({
       params.set("tab", id);
     }
     const qs = params.toString();
-    router.push(
-      `/org/${orgSlug}/projects/${projectSlug}${qs ? `?${qs}` : ""}`,
-      { scroll: false },
-    );
+    const newUrl = `/org/${orgSlug}/projects/${projectSlug}${qs ? `?${qs}` : ""}`;
+    window.history.replaceState(null, "", newUrl);
   };
+
+  // Per-tab data hooks
+  const memoriesTab = useTabData(
+    "memories",
+    currentTab,
+    orgSlug,
+    projectSlug,
+    tabCache,
+  );
+  const membersTab = useTabData(
+    "members",
+    currentTab,
+    orgSlug,
+    projectSlug,
+    tabCache,
+  );
+  const activityTab = useTabData(
+    "activity",
+    currentTab,
+    orgSlug,
+    projectSlug,
+    tabCache,
+  );
+  const cleanupTab = useTabData(
+    "cleanup",
+    currentTab,
+    orgSlug,
+    projectSlug,
+    tabCache,
+  );
+
+  // Graph reuses memories data
+  const graphData = memoriesTab.data;
+
+  // Pre-fetch memories when on graph tab
+  const graphTab = useTabData(
+    "graph",
+    currentTab,
+    orgSlug,
+    projectSlug,
+    tabCache,
+  );
+  const effectiveGraphData = graphTab.data ?? graphData;
+  const effectiveGraphLoading =
+    currentTab === "graph" &&
+    !effectiveGraphData &&
+    (graphTab.isLoading || memoriesTab.isLoading);
+
+  const activityApiPath = `/api/v1/orgs/${orgSlug}/projects/${projectSlug}/activity`;
+  const sessionsApiPath = `/api/v1/orgs/${orgSlug}/projects/${projectSlug}/activity/sessions`;
 
   return (
     <div>
@@ -331,7 +513,9 @@ function ProjectTabsInner({
         >
           {currentTab === "memories" && (
             <>
-              {memories.length === 0 ? (
+              {memoriesTab.isLoading || !memoriesTab.data ? (
+                <MemoriesSkeleton />
+              ) : memoriesTab.data.length === 0 ? (
                 <div className="dash-card flex flex-col items-center justify-center py-12 text-center">
                   <Brain className="mb-3 h-8 w-8 text-[var(--landing-text-tertiary)]" />
                   <p className="mb-1 font-mono text-sm font-medium text-[var(--landing-text)]">
@@ -344,7 +528,7 @@ function ProjectTabsInner({
                 </div>
               ) : (
                 <MemoryBrowser
-                  memories={memories}
+                  memories={memoriesTab.data}
                   orgSlug={orgSlug}
                   projectSlug={projectSlug}
                 />
@@ -352,42 +536,68 @@ function ProjectTabsInner({
             </>
           )}
 
-          {currentTab === "graph" && <MemoryGraph memories={memories} />}
+          {currentTab === "graph" && (
+            <>
+              {effectiveGraphLoading || !effectiveGraphData ? (
+                <GraphSkeleton />
+              ) : (
+                <MemoryGraph memories={effectiveGraphData} />
+              )}
+            </>
+          )}
 
           {currentTab === "members" && isAdmin && (
-            <ProjectMembers
-              orgSlug={orgSlug}
-              projectSlug={projectSlug}
-              projectId={projectId}
-              members={membersData}
-              currentUserId={currentUserId}
-            />
+            <>
+              {membersTab.isLoading || !membersTab.data ? (
+                <MembersSkeleton />
+              ) : (
+                <ProjectMembers
+                  orgSlug={orgSlug}
+                  projectSlug={projectSlug}
+                  projectId={projectId}
+                  members={membersTab.data}
+                  currentUserId={currentUserId}
+                />
+              )}
+            </>
           )}
 
           {currentTab === "activity" && isAdmin && (
-            <ActivityFeed
-              activities={activities}
-              auditLogs={auditLogs}
-              sessions={sessions}
-              stats={activityStats}
-              apiPath={activityApiPath}
-              sessionsApiPath={sessionsApiPath}
-              initialCursor={initialActivityCursor}
-              initialSessionsCursor={initialSessionsCursor}
-            />
+            <>
+              {activityTab.isLoading || !activityTab.data ? (
+                <ActivitySkeleton />
+              ) : (
+                <ActivityFeed
+                  activities={activityTab.data.activities}
+                  auditLogs={activityTab.data.auditLogs}
+                  sessions={activityTab.data.sessions}
+                  stats={activityTab.data.stats}
+                  apiPath={activityApiPath}
+                  sessionsApiPath={sessionsApiPath}
+                  initialCursor={activityTab.data.initialCursor}
+                  initialSessionsCursor={activityTab.data.initialSessionsCursor}
+                />
+              )}
+            </>
           )}
 
           {currentTab === "cleanup" && (
-            <HygieneDashboard
-              healthBuckets={hygieneData.healthBuckets}
-              staleMemories={hygieneData.staleMemories}
-              expiringMemories={hygieneData.expiringMemories}
-              growth={hygieneData.growth}
-              capacity={hygieneData.capacity}
-              orgSlug={orgSlug}
-              projectSlug={projectSlug}
-              tableSizes={hygieneData.tableSizes}
-            />
+            <>
+              {cleanupTab.isLoading || !cleanupTab.data ? (
+                <CleanupSkeleton />
+              ) : (
+                <HygieneDashboard
+                  healthBuckets={cleanupTab.data.healthBuckets}
+                  staleMemories={cleanupTab.data.staleMemories}
+                  expiringMemories={cleanupTab.data.expiringMemories}
+                  growth={cleanupTab.data.growth}
+                  capacity={cleanupTab.data.capacity}
+                  orgSlug={orgSlug}
+                  projectSlug={projectSlug}
+                  tableSizes={cleanupTab.data.tableSizes}
+                />
+              )}
+            </>
           )}
 
           {currentTab === "settings" && isAdmin && (
