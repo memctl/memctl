@@ -13,8 +13,7 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/cli/package.json ./packages/cli/
 
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # ── Stage 3: builder ──────────────────────────────────────────
 FROM base AS builder
