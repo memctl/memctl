@@ -1,17 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 
+function normalizeHost(input: string): string {
+  const trimmed = input.trim().toLowerCase();
+  if (!trimmed) return "";
+
+  if (trimmed.includes("://")) {
+    try {
+      return new URL(trimmed).hostname.toLowerCase();
+    } catch {
+      return "";
+    }
+  }
+
+  return trimmed.split("/")[0]?.split(":")[0] ?? "";
+}
+
 function isHostProtected(requestHost: string): boolean {
   const enabled = process.env.BETA_GATE_ENABLED === "true";
   if (!enabled) return false;
 
   const configuredHosts = (process.env.BETA_GATE_HOSTS ?? "")
     .split(",")
-    .map((host) => host.trim().toLowerCase())
+    .map(normalizeHost)
     .filter(Boolean);
   if (configuredHosts.length === 0 || configuredHosts.includes("*"))
     return true;
 
-  const normalizedHost = requestHost.split(":")[0]?.toLowerCase() ?? "";
+  const normalizedHost = normalizeHost(requestHost);
   return configuredHosts.includes(normalizedHost);
 }
 
