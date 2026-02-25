@@ -9,6 +9,7 @@ Every agent below connects to mem/ctl the same way - run `npx memctl auth` once,
 
 ```bash
 npx memctl auth
+npx memctl hook-adapter --agent all --write
 ```
 
 ## Quick reference
@@ -17,15 +18,18 @@ npx memctl auth
 | ----------------- | ------------------------------------- | ----------------- | ------------------------ |
 | Claude Code       | `.mcp.json`                           | `mcpServers`      | `memctl init --claude`   |
 | Cursor            | `.cursor/mcp.json`                    | `mcpServers`      | `memctl init --cursor`   |
-| VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | -                        |
+| VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | `memctl init --vscode`   |
 | Windsurf          | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`      | `memctl init --windsurf` |
+| Codex             | `.codex/config.toml`                  | `mcp_servers`     | `memctl init --codex`    |
 | Cline             | Extension UI                          | `mcpServers`      | -                        |
-| Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | -                        |
+| Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | `memctl init --roo`      |
 | Continue          | `.continue/config.yaml`               | `mcpServers`      | -                        |
 | Zed               | Zed settings                          | `context_servers` | -                        |
 | JetBrains         | Settings UI                           | -                 | -                        |
-| Amazon Q          | `.amazonq/mcp.json`                   | `mcpServers`      | -                        |
+| Amazon Q          | `.amazonq/mcp.json`                   | `mcpServers`      | `memctl init --amazonq`  |
 | Aider             | N/A                                   | -                 | -                        |
+
+For automatic per-turn memory capture, use [CLI Hooks](/docs/cli/hooks).
 
 ## Configuration
 
@@ -53,6 +57,13 @@ Create `.mcp.json` in your project root (can be committed to git):
 Or use the init wizard: `npx memctl init --claude`
 
 Claude Code also supports `~/.claude/mcp.json` for global configuration.
+
+For Claude plugin marketplace setup:
+
+```bash
+/plugin marketplace add memctl/memctl
+/plugin install memctl@memctl
+```
 
 </Accordion>
 
@@ -129,6 +140,30 @@ Add to `~/.codeium/windsurf/mcp_config.json` (global config):
 Or use the init wizard: `npx memctl init --windsurf`
 
 Windsurf uses a single global config file, not per-project.
+
+</Accordion>
+
+<Accordion title="Codex" id="codex">
+
+Create `.codex/config.toml` in your project root:
+
+```toml
+[mcp_servers.memctl]
+command = "npx"
+args = ["-y", "memctl@latest"]
+
+[mcp_servers.memctl.env]
+MEMCTL_ORG = "your-org"
+MEMCTL_PROJECT = "your-project"
+```
+
+Or use the init wizard: `npx memctl init --codex`
+
+Codex reads `AGENTS.md` files from the repo root down into subdirectories (merged in order, 32 KiB limit). Add an `AGENTS.md` with memctl usage instructions so Codex uses memory tools on every turn:
+
+```bash
+npx memctl generate
+```
 
 </Accordion>
 
@@ -242,13 +277,11 @@ Open Zed settings (`Cmd+,`) and add:
 {
   "context_servers": {
     "memctl": {
-      "command": {
-        "path": "npx",
-        "args": ["-y", "memctl@latest"],
-        "env": {
-          "MEMCTL_ORG": "your-org",
-          "MEMCTL_PROJECT": "your-project"
-        }
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
       }
     }
   }
@@ -258,8 +291,7 @@ Open Zed settings (`Cmd+,`) and add:
 Zed's format differs from other agents:
 
 - Top-level key is `"context_servers"` (not `"mcpServers"`)
-- Command is nested: `"command": { "path": "...", "args": [...] }`
-- Uses `"path"` instead of `"command"` for the executable
+- Uses `"command"` + `"args"` directly inside each server entry
 
 Zed picks up settings changes automatically.
 

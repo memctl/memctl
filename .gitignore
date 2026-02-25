@@ -27,6 +27,11 @@ Thumbs.db
 # AI tools
 .claude/
 .cursor/
+.codex/
+.roo/
+.amazonq/
+.windsurf/
+.memctl/
 .aider*
 .copilot/
 

@@ -253,13 +253,26 @@ describe("Tool Dispatch: memory", () => {
       const result = await handler({
         action: "store",
         key: "my-key",
-        content: "hello world",
+        content:
+          "Auth middleware runs before project access checks in the API route.",
       });
       expect(isErrorResponse(result)).toBe(false);
       expect(getResponseText(result)).toContain(
         "Memory stored with key: my-key",
       );
       expect((client as any).storeMemory).toHaveBeenCalled();
+    });
+
+    it("skips low-signal generic capability notes", async () => {
+      const handler = server.tools["memory"]!.handler;
+      const result = await handler({
+        action: "store",
+        key: "note-key",
+        content: "Use rg to search for patterns in files.",
+      });
+      expect(isErrorResponse(result)).toBe(false);
+      expect(getResponseText(result)).toContain("Skipped low-signal memory");
+      expect((client as any).storeMemory).not.toHaveBeenCalled();
     });
 
     it("checks rate limit before storing", async () => {
@@ -546,11 +559,13 @@ describe("Tool Dispatch: session", () => {
   });
 
   describe("action: start", () => {
-    it("returns error when sessionId is missing", async () => {
+    it("auto-generates sessionId when missing", async () => {
       const handler = server.tools["session"]!.handler;
       const result = await handler({ action: "start" });
-      expect(isErrorResponse(result)).toBe(true);
-      expect(getResponseText(result)).toContain("sessionId required");
+      expect(isErrorResponse(result)).toBe(false);
+      const parsed = JSON.parse(getResponseText(result));
+      expect(typeof parsed.sessionId).toBe("string");
+      expect(parsed.generatedSessionId).toBe(true);
     });
 
     it("starts session with valid sessionId", async () => {
@@ -568,13 +583,25 @@ describe("Tool Dispatch: session", () => {
   });
 
   describe("action: end", () => {
-    it("returns error when sessionId or summary is missing", async () => {
+    it("uses fallback summary when summary is missing", async () => {
       const handler = server.tools["session"]!.handler;
       const result = await handler({ action: "end", sessionId: "sess-1" });
-      expect(isErrorResponse(result)).toBe(true);
-      expect(getResponseText(result)).toContain(
-        "sessionId and summary required",
-      );
+      expect(isErrorResponse(result)).toBe(false);
+      expect(getResponseText(result)).toContain("Session sess-1 ended");
+    });
+
+    it("uses active session when sessionId is missing", async () => {
+      const handler = server.tools["session"]!.handler;
+      const started = await handler({
+        action: "start",
+        sessionId: "sess-2",
+        autoExtractGit: false,
+      });
+      expect(isErrorResponse(started)).toBe(false);
+
+      const ended = await handler({ action: "end", summary: "Done" });
+      expect(isErrorResponse(ended)).toBe(false);
+      expect(getResponseText(ended)).toContain("Session sess-2 ended");
     });
 
     it("ends session with valid params", async () => {
@@ -614,11 +641,11 @@ describe("Tool Dispatch: session", () => {
   });
 
   describe("action: claim", () => {
-    it("returns error when sessionId or keys are missing", async () => {
+    it("returns error when keys are missing", async () => {
       const handler = server.tools["session"]!.handler;
       const result = await handler({ action: "claim", sessionId: "s1" });
       expect(isErrorResponse(result)).toBe(true);
-      expect(getResponseText(result)).toContain("sessionId and keys required");
+      expect(getResponseText(result)).toContain("keys required");
     });
 
     it("claims keys with valid params", async () => {

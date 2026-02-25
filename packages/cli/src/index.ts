@@ -11,6 +11,8 @@ const cliCommands = [
   "search",
   "export",
   "generate",
+  "hook",
+  "hook-adapter",
   "import",
   "snapshot",
   "snapshots",

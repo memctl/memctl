@@ -1,0 +1,191 @@
+---
+title: Agent Instructions
+description: Make any AI coding agent reliably use memctl on every turn
+---
+
+# Agent Instructions
+
+MCP config alone tells the agent that memctl exists. Agent instruction files tell it _how_ and _when_ to use it. Without instructions, agents may ignore memctl after the first prompt or use it inconsistently.
+
+## How it works
+
+Most coding agents load instruction files at the start of every conversation. These files persist across sessions and get merged into the agent's system context automatically.
+
+| Agent       | Instruction file                      | Loaded on every turn | Notes                                      |
+| ----------- | ------------------------------------- | -------------------- | ------------------------------------------ |
+| Claude Code | `CLAUDE.md`                           | Yes                  | Also reads `AGENTS.md`                     |
+| Codex       | `AGENTS.md`                           | Yes                  | Merges root down into subdirs, 32 KiB max  |
+| Cursor      | `.cursorrules`                        | Yes                  | Also reads `.cursor/rules/` directory      |
+| Gemini      | `GEMINI.md`                           | Yes                  | Also reads `AGENTS.md`                     |
+| Copilot     | `.github/copilot-instructions.md`     | Yes                  | Per-repo instructions                      |
+| Windsurf    | `.windsurfrules`                      | Yes                  | Global or per-project                      |
+| Roo Code    | `.roo/rules/`                         | Yes                  | Mode-specific rule files                   |
+| Cline       | `.clinerules`                         | Yes                  | Per-project rules                          |
+| Aider       | N/A                                   | No                   | Pass `--read AGENTS.md` manually           |
+
+## Quick setup
+
+The fastest way to set up both MCP config and agent instructions:
+
+```bash
+npx memctl auth
+npx memctl init --all
+```
+
+The init wizard writes MCP configs for all supported agents and creates `AGENTS.md` with memctl usage instructions.
+
+To also generate agent-specific instruction files from your stored context:
+
+```bash
+npx memctl generate --all
+```
+
+This writes `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, and `.github/copilot-instructions.md`.
+
+Use `--link` to symlink compatible files to `AGENTS.md` so they stay in sync:
+
+```bash
+npx memctl generate --all --link
+```
+
+## What goes in the instruction file
+
+The default `AGENTS.md` template covers the full memctl workflow:
+
+1. **Session start** - bootstrap context, start session, read memos
+2. **Before coding** - load coding style, architecture, constraints for relevant files
+3. **While coding** - store decisions, update branch plans
+4. **Session end** - leave memos, end session with summary
+5. **Maintenance** - periodic cleanup of stale memories
+
+See the full template at [AGENTS.md template](/docs/agents-md).
+
+## Per-agent setup
+
+### Claude Code
+
+Claude Code reads both `CLAUDE.md` and `AGENTS.md` from the project root. MCP config goes in `.mcp.json`.
+
+```bash
+npx memctl init --claude
+npx memctl generate --claude --link
+```
+
+This creates `.mcp.json` (MCP config) and symlinks `CLAUDE.md` to `AGENTS.md`.
+
+For automatic turn-level capture, use [Claude hooks](/docs/cli/hooks):
+
+```bash
+npx memctl hook-adapter --agent claude --write
+```
+
+### Codex
+
+Codex reads `AGENTS.md` from the repo root and merges files from parent directories down. MCP config goes in `.codex/config.toml`.
+
+```bash
+npx memctl init --codex
+npx memctl generate
+```
+
+This creates `.codex/config.toml` (MCP config in TOML format) and `AGENTS.md` (instructions).
+
+The `.codex/config.toml` format:
+
+```toml
+[mcp_servers.memctl]
+command = "npx"
+args = ["-y", "memctl@latest"]
+
+[mcp_servers.memctl.env]
+MEMCTL_ORG = "your-org"
+MEMCTL_PROJECT = "your-project"
+```
+
+### Cursor
+
+Cursor reads `.cursorrules` from the project root. MCP config goes in `.cursor/mcp.json`.
+
+```bash
+npx memctl init --cursor
+npx memctl generate --cursor
+```
+
+The `.cursorrules` format differs from `AGENTS.md` (plain rules, no markdown headings). The `generate` command handles the conversion automatically.
+
+### VS Code + GitHub Copilot
+
+Copilot reads `.github/copilot-instructions.md`. MCP config goes in `.vscode/mcp.json`.
+
+```bash
+npx memctl init --vscode
+npx memctl generate --copilot --link
+```
+
+### Windsurf
+
+Windsurf reads `.windsurfrules`. MCP config is global at `~/.codeium/windsurf/mcp_config.json`.
+
+```bash
+npx memctl init --windsurf
+```
+
+Copy the `AGENTS.md` content into `.windsurfrules` manually, or create a symlink:
+
+```bash
+ln -s AGENTS.md .windsurfrules
+```
+
+### Roo Code
+
+Roo reads rules from `.roo/rules/`. MCP config goes in `.roo/mcp.json`.
+
+```bash
+npx memctl init --roo
+npx memctl generate
+```
+
+Copy relevant sections from `AGENTS.md` into `.roo/rules/` files for mode-specific behavior.
+
+### Amazon Q
+
+Amazon Q reads MCP config from `.amazonq/mcp.json`.
+
+```bash
+npx memctl init --amazonq
+```
+
+### Aider
+
+Aider has no MCP support. Export context as a file and pass it on each run:
+
+```bash
+npx memctl export agents_md > AGENTS.md
+aider --read AGENTS.md
+```
+
+After a session, import changes back:
+
+```bash
+npx memctl import AGENTS.md
+```
+
+## Hooks for automatic capture
+
+For agents that support lifecycle hooks, use `memctl hook-adapter` to generate templates that automatically capture session context:
+
+```bash
+npx memctl hook-adapter --agent all --write
+```
+
+This writes a shared dispatcher script and agent-specific config examples to `.memctl/hooks/`. See [Hooks](/docs/cli/hooks) for details.
+
+## Keeping instructions fresh
+
+As your project context evolves, regenerate instruction files from stored memories:
+
+```bash
+npx memctl generate --all --link
+```
+
+With `--link`, `CLAUDE.md`, `GEMINI.md`, and `.github/copilot-instructions.md` are symlinked to `AGENTS.md`. Edit one, and all stay in sync. `.cursorrules` is always a separate file because it uses a different format.

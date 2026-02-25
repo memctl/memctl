@@ -3,6 +3,112 @@ import { ApiClient, ApiError } from "./api-client.js";
 import { getConfigPath, loadConfigForCwd } from "./config.js";
 import { bold, cyan, green, red, yellow, isInteractiveTty } from "./ui.js";
 
+const DEFAULT_AGENTS_MD_TEMPLATE = `# AGENTS.md
+
+## memctl MCP Rules
+
+MCP server name is \`memctl\`.
+Use \`memctl\` for all project memory: session history, coding conventions, architecture decisions, testing rules, branch plans.
+Store decisions and lessons learned in memctl so they persist across sessions.
+
+## Session Start
+
+1. \`context\` with \`{"action":"bootstrap"}\` - load all project context
+2. \`session\` with \`{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}\` - register this session
+3. \`activity\` with \`{"action":"memo_read"}\` - check handoff notes from previous sessions
+4. \`branch\` with \`{"action":"get","includeRelatedContext":true}\` - load branch plan and related context
+
+If the file map is stale, run \`repo\` with \`{"action":"scan_check"}\`, then run \`repo\` with \`{"action":"scan","saveAsContext":true}\`.
+
+## Before Coding
+
+- \`context\` with \`{"action":"functionality_get","type":"coding_style"}\`, and repeat for: \`architecture\`, \`testing\`, \`constraints\`, \`workflow\`
+- \`context\` with \`{"action":"context_for","filePaths":[...]}\` for files you are about to touch
+- \`branch\` with \`{"action":"get","includeRelatedContext":true}\` for current plan and checklist
+
+## While Coding
+
+- \`context\` with \`{"action":"functionality_set","type":"...","id":"...","title":"...","content":"..."}\` for structured rules
+- \`memory\` with \`{"action":"search","query":"..."}\` before \`{"action":"store","key":"...","content":"..."}\` for one-off decisions
+- \`branch\` with \`{"action":"set","content":"...","status":"in_progress"}\` after each meaningful task
+
+## End Of Session
+
+1. \`branch\` with \`{"action":"set","content":"...","status":"review"}\` with final progress
+2. \`activity\` with \`{"action":"memo_leave","message":"...","urgency":"info"}\` if anything is pending
+3. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..."}\`
+
+## Maintenance
+
+Run every few sessions:
+
+- \`memory_lifecycle\` with \`{"action":"suggest_cleanup","staleDays":30}\` - review stale candidates
+- \`memory_lifecycle\` with \`{"action":"lifecycle_run","policies":["cleanup_expired","cleanup_session_logs","archive_merged_branches"]}\` - run periodic cleanup
+- \`memory_advanced\` with \`{"action":"check_duplicates","content":"..."}\` - find duplicate candidates
+
+## Rules
+
+- Do not store secrets, tokens, or API keys
+- Do not store large file contents or binary data
+- Do not store generic agent capabilities (file scanning, pattern search, grep usage)
+- Do not skip \`context\` with \`{"action":"bootstrap"}\` at session start
+- Search before storing to avoid duplicates
+- Do not let memory grow unchecked
+`;
+
+const AGENTS_MD_EMPTY_SCAFFOLD =
+  "# AGENTS.md\n\n> Auto-generated from memctl structured agent context";
+
+function resolveExportResultContent(result: unknown): string {
+  if (typeof result === "string") {
+    return result;
+  }
+
+  if (result && typeof result === "object") {
+    const data = result as Record<string, unknown>;
+    if (typeof data.content === "string") {
+      return data.content;
+    }
+  }
+
+  return JSON.stringify(result, null, 2);
+}
+
+function shouldUseAgentsTemplateFallback(content: string): boolean {
+  const normalized = content.replace(/\r\n/g, "\n").trim();
+  if (!normalized) {
+    return true;
+  }
+
+  if (!normalized.includes("## ")) {
+    return true;
+  }
+
+  return normalized === AGENTS_MD_EMPTY_SCAFFOLD;
+}
+
+function normalizeExportContent(
+  content: string,
+  format: "agents_md" | "cursorrules" | "json",
+): string {
+  if (format !== "agents_md") {
+    return content;
+  }
+
+  if (shouldUseAgentsTemplateFallback(content)) {
+    return DEFAULT_AGENTS_MD_TEMPLATE;
+  }
+
+  return content;
+}
+
+export const cliInternals = {
+  DEFAULT_AGENTS_MD_TEMPLATE,
+  resolveExportResultContent,
+  shouldUseAgentsTemplateFallback,
+  normalizeExportContent,
+};
+
 async function getClient(): Promise<ApiClient> {
   const resolved = await loadConfigForCwd();
   if (!resolved) {
@@ -151,7 +257,11 @@ Usage:
   memctl init --claude      Write Claude Code MCP config only
   memctl init --cursor      Write Cursor MCP config only
   memctl init --windsurf    Write Windsurf MCP config only
-  memctl init --all         Write all IDE configs
+  memctl init --vscode      Write VS Code MCP config only
+  memctl init --codex       Write Codex MCP config only
+  memctl init --roo         Write Roo Code MCP config only
+  memctl init --amazonq     Write Amazon Q MCP config only
+  memctl init --all         Write all IDE/agent configs
   memctl config             Update API URL/token
   memctl config --show      Show resolved configuration
   memctl config --global    Update global API URL/token only
@@ -175,6 +285,8 @@ Usage:
   memctl generate --copilot Also write .github/copilot-instructions.md
   memctl generate --all     Write all agent config files
   memctl generate --link    Symlink agent files to AGENTS.md instead of copying
+  memctl hook <action>      Hook API for cross-agent memory capture (start|turn|end)
+  memctl hook-adapter       Print or write hook adapter templates for agents
   memctl import <file>      Import from .cursorrules / copilot-instructions
   memctl snapshot <name>    Create a snapshot
   memctl snapshots          List snapshots
@@ -196,6 +308,11 @@ Options:
   --json                    Output raw JSON
   --force                   Skip confirmation prompts
   --version                 Show CLI version
+  --payload <json>          For hook command: JSON payload
+  --stdin                   For hook command: read JSON payload from stdin
+  --agent <name>            For hook-adapter: claude, cursor, windsurf, vscode, continue, zed, codex, cline, roo, amazonq, generic, all
+  --dir <path>              For hook-adapter: target directory (default: .memctl/hooks)
+  --write                   For hook-adapter: write files instead of printing
 
 Environment:
   MEMCTL_TOKEN              API token (optional if stored via memctl auth)
@@ -318,6 +435,10 @@ export async function runCli(args: string[]): Promise<void> {
       claude: Boolean(flags.claude),
       cursor: Boolean(flags.cursor),
       windsurf: Boolean(flags.windsurf),
+      vscode: Boolean(flags.vscode),
+      codex: Boolean(flags.codex),
+      roo: Boolean(flags.roo),
+      amazonq: Boolean(flags.amazonq),
       all: Boolean(flags.all),
     });
     return;
@@ -402,6 +523,13 @@ export async function runCli(args: string[]): Promise<void> {
     return;
   }
 
+  if (command === "hook-adapter") {
+    const { runHookAdapterCommand } = await import("./hook-adapter.js");
+    const result = await runHookAdapterCommand({ positional, flags });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
   const client = await getClient();
 
   try {
@@ -457,16 +585,11 @@ export async function runCli(args: string[]): Promise<void> {
         | "cursorrules"
         | "json";
       const result = await client.exportMemories(format);
-      if (typeof result === "string") {
-        console.log(result);
-      } else {
-        const data = result as Record<string, unknown>;
-        if (typeof data.content === "string") {
-          console.log(data.content);
-        } else {
-          out(result, true);
-        }
-      }
+      const content = normalizeExportContent(
+        resolveExportResultContent(result),
+        format,
+      );
+      console.log(content);
       break;
     }
 
@@ -526,15 +649,10 @@ export async function runCli(args: string[]): Promise<void> {
         let content = cache.get(target.format);
         if (content == null) {
           const result = await client.exportMemories(target.format);
-          if (typeof result === "string") {
-            content = result;
-          } else {
-            const data = result as Record<string, unknown>;
-            content =
-              typeof data.content === "string"
-                ? data.content
-                : JSON.stringify(result, null, 2);
-          }
+          content = normalizeExportContent(
+            resolveExportResultContent(result),
+            target.format,
+          );
           cache.set(target.format, content);
         }
 
@@ -550,6 +668,13 @@ export async function runCli(args: string[]): Promise<void> {
         parts.push(`Linked ${linked.length} file(s): ${linked.map((f) => `${f} -> AGENTS.md`).join(", ")}`);
       }
       console.log(parts.join("\n"));
+      break;
+    }
+
+    case "hook": {
+      const { runHookCommand } = await import("./hooks.js");
+      const result = await runHookCommand({ client, positional, flags });
+      console.log(JSON.stringify(result, null, 2));
       break;
     }
 

@@ -1,0 +1,13 @@
+{
+  "name": "memctl",
+  "owner": {
+    "name": "memctl"
+  },
+  "plugins": [
+    {
+      "name": "memctl",
+      "source": "./plugins/memctl",
+      "description": "Auto-capture high-signal coding context into memctl memory"
+    }
+  ]
+}

@@ -8,6 +8,7 @@
     "doctor",
     "memories",
     "import-export",
+    "hooks",
     "snapshots",
     "lifecycle"
   ]
