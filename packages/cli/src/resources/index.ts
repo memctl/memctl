@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ApiClient } from "../api-client.js";
+import type { SessionTracker } from "../session-tracker.js";
 import {
   buildBranchPlanKey,
   extractAgentContextEntries,
@@ -24,7 +25,11 @@ function getPathSegments(uri: URL) {
   return uri.pathname.split("/").filter(Boolean);
 }
 
-export function registerResources(server: McpServer, client: ApiClient) {
+export function registerResources(
+  server: McpServer,
+  client: ApiClient,
+  tracker: SessionTracker,
+) {
   server.resource(
     "project-memories",
     "memory://project/{slug}",
@@ -299,5 +304,21 @@ export function registerResources(server: McpServer, client: ApiClient) {
         `Error: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  });
+
+  server.resource("session-handoff", "session://handoff", async (uri) => {
+    return textContent(
+      uri,
+      "application/json",
+      JSON.stringify(
+        {
+          sessionId: tracker.sessionId,
+          branch: tracker.branch,
+          handoff: tracker.handoff,
+        },
+        null,
+        2,
+      ),
+    );
   });
 }

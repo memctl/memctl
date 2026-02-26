@@ -4,8 +4,18 @@ import { getBranchInfo } from "./agent-context.js";
 const AUTO_SESSION_PREFIX = "auto";
 const FLUSH_INTERVAL_MS = 30_000;
 
+export type SessionHandoff = {
+  previousSessionId: string;
+  summary: string | null;
+  branch: string | null;
+  keysWritten: string[];
+  endedAt: unknown;
+};
+
 export type SessionTracker = {
   sessionId: string;
+  branch: string | null;
+  handoff: SessionHandoff | null;
   readKeys: Set<string>;
   writtenKeys: Set<string>;
   toolActions: Set<string>;
@@ -23,6 +33,8 @@ export function createSessionTracker(): SessionTracker {
   const rand = Math.random().toString(36).slice(2, 8);
   return {
     sessionId: `${AUTO_SESSION_PREFIX}-${now.toString(36)}-${rand}`,
+    branch: null,
+    handoff: null,
     readKeys: new Set<string>(),
     writtenKeys: new Set<string>(),
     toolActions: new Set<string>(),
@@ -237,20 +249,71 @@ export function startSessionLifecycle(
   client: ApiClient,
   tracker: SessionTracker,
 ): { cleanup: () => void } {
-  void getBranchInfo()
-    .then(async (branchInfo) => {
+  void (async () => {
+    try {
+      const branchInfo = await getBranchInfo().catch(() => null);
+      const branch = branchInfo?.branch ?? null;
+      tracker.branch = branch;
+
       await client.upsertSessionLog({
         sessionId: tracker.sessionId,
-        branch: branchInfo?.branch,
+        branch: branch ?? undefined,
       });
-    })
-    .catch(async () => {
+
+      const recentSessions = await client
+        .getSessionLogs(5)
+        .catch(() => ({ sessionLogs: [] }));
+
+      // Auto-close stale sessions (open > 2 hours)
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+      const now = Date.now();
+      for (const log of recentSessions.sessionLogs) {
+        if (log.endedAt) continue;
+        if (log.sessionId === tracker.sessionId) continue;
+        const startedAt =
+          typeof log.startedAt === "number"
+            ? log.startedAt
+            : typeof log.startedAt === "string"
+              ? new Date(log.startedAt).getTime()
+              : 0;
+        if (!startedAt || now - startedAt < TWO_HOURS_MS) continue;
+        try {
+          await client.upsertSessionLog({
+            sessionId: log.sessionId,
+            summary:
+              log.summary ||
+              "Auto-closed: session exceeded 2-hour inactivity limit.",
+            endedAt: now,
+          });
+        } catch {
+          // Best effort
+        }
+      }
+
+      // Build handoff from most recent session
+      const lastSession = recentSessions.sessionLogs.find(
+        (s) => s.sessionId !== tracker.sessionId,
+      );
+      if (lastSession) {
+        tracker.handoff = {
+          previousSessionId: lastSession.sessionId,
+          summary: lastSession.summary,
+          branch: lastSession.branch,
+          keysWritten: lastSession.keysWritten
+            ? JSON.parse(lastSession.keysWritten)
+            : [],
+          endedAt: lastSession.endedAt,
+        };
+      }
+    } catch {
+      // Best effort, ensure session log exists
       try {
         await client.upsertSessionLog({ sessionId: tracker.sessionId });
       } catch {
         // Best effort only.
       }
-    });
+    }
+  })();
 
   const interval = setInterval(() => {
     void flushSession(client, tracker, false);

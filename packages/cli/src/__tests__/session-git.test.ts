@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createSessionTracker } from "../session-tracker";
+import {
+  createSessionTracker,
+  startSessionLifecycle,
+} from "../session-tracker";
 import type { SessionTracker } from "../session-tracker";
 
 // ── Mocks ────────────────────────────────────────────────────────
@@ -51,7 +54,7 @@ function createMockRateLimit() {
 
 // ── Tests ────────────────────────────────────────────────────────
 
-describe("session tool – start and auto-close", () => {
+describe("session tool – start (simplified)", () => {
   let server: ReturnType<typeof createMockServer>;
   let client: ReturnType<typeof createMockClient>;
   let rl: ReturnType<typeof createMockRateLimit>;
@@ -74,7 +77,15 @@ describe("session tool – start and auto-close", () => {
     vi.useRealTimers();
   });
 
-  it("starts a session without git context", async () => {
+  it("starts a session and returns handoff from tracker", async () => {
+    tracker.handoff = {
+      previousSessionId: "prev-sess",
+      summary: "Did stuff",
+      branch: "main",
+      keysWritten: ["key1"],
+      endedAt: "2026-02-21T11:00:00Z",
+    };
+
     const handler = server.tools["session"].handler;
     const result = await handler({
       action: "start",
@@ -83,7 +94,8 @@ describe("session tool – start and auto-close", () => {
 
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.sessionId).toBe("test-session-1");
-    expect(parsed.gitContext).toBeUndefined();
+    expect(parsed.handoff).toBeDefined();
+    expect(parsed.handoff.previousSessionId).toBe("prev-sess");
     expect(parsed.currentBranch).toBeDefined();
   });
 
@@ -100,20 +112,32 @@ describe("session tool – start and auto-close", () => {
     expect(autoCalls).toHaveLength(0);
   });
 
-  it("ignores autoExtractGit parameter", async () => {
+  it("does not fetch session logs or close stale sessions", async () => {
     const handler = server.tools["session"].handler;
-    const result = await handler({
+    await handler({
       action: "start",
       sessionId: "test-session-3",
-      autoExtractGit: true,
     });
 
-    const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.sessionId).toBe("test-session-3");
-    expect(parsed.gitContext).toBeUndefined();
+    // start no longer calls getSessionLogs directly
+    expect(client.getSessionLogs).not.toHaveBeenCalled();
+  });
+});
+
+describe("startSessionLifecycle – auto-close stale sessions", () => {
+  let client: ReturnType<typeof createMockClient>;
+  let tracker: SessionTracker;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ now: new Date("2026-02-21T12:00:00Z") });
+    client = createMockClient();
+    tracker = createSessionTracker();
   });
 
-  // ── Stale session auto-close tests ──
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("auto-closes stale sessions older than 2 hours", async () => {
     const now = new Date("2026-02-21T12:00:00Z").getTime();
@@ -135,14 +159,10 @@ describe("session tool – start and auto-close", () => {
       ],
     });
 
-    const handler = server.tools["session"].handler;
-    const result = await handler({
-      action: "start",
-      sessionId: "new-session",
-    });
+    const { cleanup } = startSessionLifecycle(client as any, tracker);
 
-    const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.staleSessionsClosed).toBe(1);
+    // Wait for the async lifecycle to complete
+    await vi.advanceTimersByTimeAsync(100);
 
     const closeCalls = client.upsertSessionLog.mock.calls.filter(
       (call: unknown[]) => {
@@ -151,6 +171,8 @@ describe("session tool – start and auto-close", () => {
       },
     );
     expect(closeCalls).toHaveLength(1);
+
+    cleanup();
   });
 
   it("does not close recent open sessions", async () => {
@@ -173,14 +195,9 @@ describe("session tool – start and auto-close", () => {
       ],
     });
 
-    const handler = server.tools["session"].handler;
-    const result = await handler({
-      action: "start",
-      sessionId: "new-session-2",
-    });
+    const { cleanup } = startSessionLifecycle(client as any, tracker);
 
-    const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.staleSessionsClosed).toBe(0);
+    await vi.advanceTimersByTimeAsync(100);
 
     const closeCalls = client.upsertSessionLog.mock.calls.filter(
       (call: unknown[]) => {
@@ -189,5 +206,48 @@ describe("session tool – start and auto-close", () => {
       },
     );
     expect(closeCalls).toHaveLength(0);
+
+    cleanup();
+  });
+
+  it("builds handoff from most recent session", async () => {
+    client.getSessionLogs.mockResolvedValue({
+      sessionLogs: [
+        {
+          id: "prev-id",
+          sessionId: "prev-session",
+          branch: "feature/x",
+          summary: "Worked on X",
+          keysRead: null,
+          keysWritten: '["key1","key2"]',
+          toolsUsed: null,
+          startedAt: Date.now() - 60_000,
+          endedAt: "2026-02-21T11:59:00Z",
+        },
+      ],
+    });
+
+    const { cleanup } = startSessionLifecycle(client as any, tracker);
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(tracker.handoff).not.toBeNull();
+    expect(tracker.handoff!.previousSessionId).toBe("prev-session");
+    expect(tracker.handoff!.summary).toBe("Worked on X");
+    expect(tracker.handoff!.keysWritten).toEqual(["key1", "key2"]);
+
+    cleanup();
+  });
+
+  it("sets tracker branch from git info", async () => {
+    client.getSessionLogs.mockResolvedValue({ sessionLogs: [] });
+
+    const { cleanup } = startSessionLifecycle(client as any, tracker);
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(tracker.branch).toBe("feature/test");
+
+    cleanup();
   });
 });

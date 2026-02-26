@@ -13,7 +13,7 @@ import {
 function registerPrompts(server: McpServer) {
   server.prompt(
     "agent-startup",
-    "Auto-injected startup context for AI coding agents. Call context bootstrap, then session start.",
+    "Auto-injected startup context for AI coding agents. Call context bootstrap to begin.",
     {},
     () => ({
       messages: [
@@ -23,7 +23,7 @@ function registerPrompts(server: McpServer) {
             type: "text" as const,
             text: `Use memctl MCP tools for ALL persistent memory. Do NOT use built-in auto memory or MEMORY.md files. Do NOT store code, git output, file contents, or command results in memory.
 
-Session start: context action=bootstrap, session action=start, activity action=memo_read, branch action=get.
+Session start: context action=bootstrap, activity action=memo_read, branch action=get.
 Before editing: context action=context_for filePaths=[files], context action=smart_retrieve intent=<what you need>.
 Store decisions/lessons/issues: context action=functionality_set type=<type> id=<id> content=<content>.
 Search before storing: memory action=search query=<query>.
@@ -115,7 +115,7 @@ export function createServer(config: {
   startSessionLifecycle(client, tracker);
 
   registerTools(server, client, tracker);
-  registerResources(server, client);
+  registerResources(server, client, tracker);
   registerPrompts(server);
 
   // MCP disconnect detection

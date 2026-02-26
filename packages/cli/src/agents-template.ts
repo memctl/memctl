@@ -5,9 +5,8 @@ MCP server: \`memctl\`. Use it for all persistent project memory.
 ## Session Start
 
 1. \`context\` action=\`bootstrap\` -- load project context
-2. \`session\` action=\`start\` sessionId=\`<id>\`
-3. \`activity\` action=\`memo_read\` -- check handoff notes
-4. \`branch\` action=\`get\` includeRelatedContext=\`true\`
+2. \`activity\` action=\`memo_read\` -- check handoff notes
+3. \`branch\` action=\`get\` includeRelatedContext=\`true\`
 
 ## Before Editing
 

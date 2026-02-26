@@ -460,7 +460,9 @@ export class ApiClient {
 
   // ── Session Logs ────────────────────────────────────────────────
 
-  async getSessionLogs(limit = 20) {
+  async getSessionLogs(limit = 20, branch?: string) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (branch) params.set("branch", branch);
     return this.request<{
       sessionLogs: Array<{
         id: string;
@@ -474,7 +476,7 @@ export class ApiClient {
         startedAt: unknown;
         endedAt: unknown;
       }>;
-    }>("GET", `/session-logs?limit=${limit}`);
+    }>("GET", `/session-logs?${params}`);
   }
 
   async upsertSessionLog(data: {

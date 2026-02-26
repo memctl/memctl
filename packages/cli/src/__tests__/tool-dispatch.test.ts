@@ -584,6 +584,25 @@ describe("Tool Dispatch: session", () => {
       expect(parsed.sessionId).toBe("sess-1");
       expect((client as any).upsertSessionLog).toHaveBeenCalled();
     });
+
+    it("returns tracker handoff in start response", async () => {
+      tracker.handoff = {
+        previousSessionId: "old-sess",
+        summary: "Previous work",
+        branch: "main",
+        keysWritten: ["k1"],
+        endedAt: "2026-02-21T10:00:00Z",
+      };
+      const handler = server.tools["session"]!.handler;
+      const result = await handler({
+        action: "start",
+        sessionId: "sess-2",
+      });
+      expect(isErrorResponse(result)).toBe(false);
+      const parsed = JSON.parse(getResponseText(result));
+      expect(parsed.handoff).toBeDefined();
+      expect(parsed.handoff.previousSessionId).toBe("old-sess");
+    });
   });
 
   describe("action: end", () => {
@@ -631,7 +650,25 @@ describe("Tool Dispatch: session", () => {
     it("passes custom limit", async () => {
       const handler = server.tools["session"]!.handler;
       await handler({ action: "history", limit: 5 });
-      expect((client as any).getSessionLogs).toHaveBeenCalledWith(5);
+      expect((client as any).getSessionLogs).toHaveBeenCalledWith(
+        5,
+        undefined,
+      );
+    });
+
+    it("passes branch filter", async () => {
+      const handler = server.tools["session"]!.handler;
+      await handler({ action: "history", branch: "feature/x" });
+      expect((client as any).getSessionLogs).toHaveBeenCalledWith(
+        10,
+        "feature/x",
+      );
+    });
+
+    it("passes both limit and branch", async () => {
+      const handler = server.tools["session"]!.handler;
+      await handler({ action: "history", limit: 3, branch: "main" });
+      expect((client as any).getSessionLogs).toHaveBeenCalledWith(3, "main");
     });
   });
 

@@ -62,7 +62,7 @@ export function registerContextTool(
       branch: z
         .string()
         .optional()
-        .describe("[bootstrap,rules_evaluate] Branch filter"),
+        .describe("[bootstrap,rules_evaluate,thread] Branch filter"),
       since: z
         .number()
         .optional()
@@ -1133,7 +1133,8 @@ async function handleThread(
   params: Record<string, unknown>,
 ) {
   const sessionCount = (params.sessionCount as number) ?? 3;
-  const sessions = await client.getSessionLogs(sessionCount);
+  const branch = params.branch as string | undefined;
+  const sessions = await client.getSessionLogs(sessionCount, branch);
   const logs = sessions.sessionLogs ?? [];
 
   const hotKeys: Record<

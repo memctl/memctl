@@ -49,6 +49,10 @@ export function registerSessionTool(
         .max(50)
         .optional()
         .describe("[history] Max results"),
+      branch: z
+        .string()
+        .optional()
+        .describe("[history] Filter by branch name"),
       keys: z
         .array(z.string())
         .optional()
@@ -73,54 +77,11 @@ export function registerSessionTool(
           case "start": {
             const sessionId = params.sessionId ?? generateSessionId();
             const branchInfo = await getBranchInfo();
-            const recentSessions = await client
-              .getSessionLogs(5)
-              .catch(() => ({ sessionLogs: [] }));
             await client.upsertSessionLog({
               sessionId,
               branch: branchInfo?.branch,
             });
             adoptSessionId(tracker, sessionId);
-
-            // Auto-close stale sessions (open > 2 hours)
-            const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-            const now = Date.now();
-            let staleSessionsClosed = 0;
-            for (const log of recentSessions.sessionLogs) {
-              if (log.endedAt) continue;
-              const startedAt =
-                typeof log.startedAt === "number"
-                  ? log.startedAt
-                  : typeof log.startedAt === "string"
-                    ? new Date(log.startedAt).getTime()
-                    : 0;
-              if (!startedAt || now - startedAt < TWO_HOURS_MS) continue;
-              try {
-                await client.upsertSessionLog({
-                  sessionId: log.sessionId,
-                  summary:
-                    log.summary ||
-                    "Auto-closed: session exceeded 2-hour inactivity limit.",
-                  endedAt: now,
-                });
-                staleSessionsClosed++;
-              } catch {
-                // Best effort
-              }
-            }
-
-            const lastSession = recentSessions.sessionLogs[0];
-            const handoff = lastSession
-              ? {
-                  previousSessionId: lastSession.sessionId,
-                  summary: lastSession.summary,
-                  branch: lastSession.branch,
-                  keysWritten: lastSession.keysWritten
-                    ? JSON.parse(lastSession.keysWritten)
-                    : [],
-                  endedAt: lastSession.endedAt,
-                }
-              : null;
 
             return textResponse(
               JSON.stringify(
@@ -128,9 +89,7 @@ export function registerSessionTool(
                   sessionId,
                   generatedSessionId: !params.sessionId,
                   currentBranch: branchInfo,
-                  handoff,
-                  recentSessionCount: recentSessions.sessionLogs.length,
-                  staleSessionsClosed,
+                  handoff: tracker.handoff,
                 },
                 null,
                 2,
@@ -181,7 +140,10 @@ export function registerSessionTool(
             );
           }
           case "history": {
-            const result = await client.getSessionLogs(params.limit ?? 10);
+            const result = await client.getSessionLogs(
+              params.limit ?? 10,
+              params.branch,
+            );
             return textResponse(JSON.stringify(result, null, 2));
           }
           case "claims_check": {
