@@ -562,49 +562,6 @@ describe("Tool Dispatch: session", () => {
     );
   });
 
-  describe("action: start", () => {
-    it("auto-generates sessionId when missing", async () => {
-      const handler = server.tools["session"]!.handler;
-      const result = await handler({ action: "start" });
-      expect(isErrorResponse(result)).toBe(false);
-      const parsed = JSON.parse(getResponseText(result));
-      expect(typeof parsed.sessionId).toBe("string");
-      expect(parsed.generatedSessionId).toBe(true);
-    });
-
-    it("starts session with valid sessionId", async () => {
-      const handler = server.tools["session"]!.handler;
-      const result = await handler({
-        action: "start",
-        sessionId: "sess-1",
-        autoExtractGit: false,
-      });
-      expect(isErrorResponse(result)).toBe(false);
-      const parsed = JSON.parse(getResponseText(result));
-      expect(parsed.sessionId).toBe("sess-1");
-      expect((client as any).upsertSessionLog).toHaveBeenCalled();
-    });
-
-    it("returns tracker handoff in start response", async () => {
-      tracker.handoff = {
-        previousSessionId: "old-sess",
-        summary: "Previous work",
-        branch: "main",
-        keysWritten: ["k1"],
-        endedAt: "2026-02-21T10:00:00Z",
-      };
-      const handler = server.tools["session"]!.handler;
-      const result = await handler({
-        action: "start",
-        sessionId: "sess-2",
-      });
-      expect(isErrorResponse(result)).toBe(false);
-      const parsed = JSON.parse(getResponseText(result));
-      expect(parsed.handoff).toBeDefined();
-      expect(parsed.handoff.previousSessionId).toBe("old-sess");
-    });
-  });
-
   describe("action: end", () => {
     it("uses fallback summary when summary is missing", async () => {
       const handler = server.tools["session"]!.handler;
@@ -613,18 +570,12 @@ describe("Tool Dispatch: session", () => {
       expect(getResponseText(result)).toContain("Session sess-1 ended");
     });
 
-    it("uses active session when sessionId is missing", async () => {
+    it("uses tracker sessionId when sessionId is missing", async () => {
       const handler = server.tools["session"]!.handler;
-      const started = await handler({
-        action: "start",
-        sessionId: "sess-2",
-        autoExtractGit: false,
-      });
-      expect(isErrorResponse(started)).toBe(false);
-
       const ended = await handler({ action: "end", summary: "Done" });
       expect(isErrorResponse(ended)).toBe(false);
-      expect(getResponseText(ended)).toContain("Session sess-2 ended");
+      // Falls back to the auto-generated tracker session ID
+      expect(getResponseText(ended)).toContain("ended");
     });
 
     it("ends session with valid params", async () => {

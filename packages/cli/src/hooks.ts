@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { getBranchInfo } from "./agent-context.js";
 import type { ApiClient } from "./api-client.js";
 
@@ -243,7 +245,20 @@ async function readStdinAll(): Promise<string> {
   return Buffer.concat(chunks).toString("utf-8");
 }
 
-function generateSessionId(): string {
+async function readSessionFile(): Promise<string | null> {
+  try {
+    const content = await readFile(
+      join(".memctl", "hooks", "session_id"),
+      "utf-8",
+    );
+    const id = content.trim();
+    return id || null;
+  } catch {
+    return null;
+  }
+}
+
+function generateFallbackSessionId(): string {
   const now = Date.now().toString(36);
   const rand = Math.random().toString(36).slice(2, 8);
   return `hook-${now}-${rand}`;
@@ -340,58 +355,56 @@ async function getSessionSnapshot(client: ApiClient, sessionId: string): Promise
   }
 }
 
-async function handleHookStart(client: ApiClient, payload: HookPayload) {
-  const sessionId = payload.sessionId ?? generateSessionId();
-  const branchInfo = await getBranchInfo().catch(() => null);
-  await client.upsertSessionLog({
-    sessionId,
-    branch: branchInfo?.branch,
-  });
+type ResolvedSession = {
+  sessionId: string;
+  source: "explicit" | "file" | "fallback";
+};
 
-  // Auto-close stale sessions (open > 2 hours)
-  let staleSessionsClosed = 0;
-  try {
-    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-    const now = Date.now();
-    const recentSessions = await client.getSessionLogs(10);
-    for (const log of recentSessions.sessionLogs) {
-      if (log.endedAt) continue;
-      if (log.sessionId === sessionId) continue;
-      const startedAt =
-        typeof log.startedAt === "number"
-          ? log.startedAt
-          : typeof log.startedAt === "string"
-            ? new Date(log.startedAt).getTime()
-            : 0;
-      if (!startedAt || now - startedAt < TWO_HOURS_MS) continue;
-      try {
-        await client.upsertSessionLog({
-          sessionId: log.sessionId,
-          summary:
-            log.summary ||
-            "Auto-closed: session exceeded 2-hour inactivity limit.",
-          endedAt: now,
-        });
-        staleSessionsClosed++;
-      } catch {
-        // Best effort
-      }
-    }
-  } catch {
-    // Best effort
+async function resolveSessionId(explicit?: string): Promise<ResolvedSession> {
+  if (explicit) {
+    // Check if the explicit ID matches the file (MCP-managed)
+    const fromFile = await readSessionFile();
+    const source = fromFile === explicit ? "file" : "explicit";
+    return { sessionId: explicit, source };
+  }
+  const fromFile = await readSessionFile();
+  if (fromFile) return { sessionId: fromFile, source: "file" };
+  return { sessionId: generateFallbackSessionId(), source: "fallback" };
+}
+
+function isMcpManaged(source: ResolvedSession["source"]): boolean {
+  return source === "file";
+}
+
+async function handleHookStart(client: ApiClient, payload: HookPayload) {
+  const resolved = await resolveSessionId(payload.sessionId);
+  const managed = isMcpManaged(resolved.source);
+
+  // MCP server already upserted this session, skip redundant work
+  if (!managed) {
+    const branchInfo = await getBranchInfo().catch(() => null);
+    await client.upsertSessionLog({
+      sessionId: resolved.sessionId,
+      branch: branchInfo?.branch,
+    });
+    return {
+      action: "start",
+      sessionId: resolved.sessionId,
+      branch: branchInfo?.branch ?? null,
+      mcpManaged: false,
+    };
   }
 
   return {
     action: "start",
-    sessionId,
-    branch: branchInfo?.branch ?? null,
-    generatedSessionId: !payload.sessionId,
-    staleSessionsClosed,
+    sessionId: resolved.sessionId,
+    branch: null,
+    mcpManaged: true,
   };
 }
 
 async function handleHookTurn(client: ApiClient, payload: HookPayload) {
-  const sessionId = payload.sessionId ?? generateSessionId();
+  const resolved = await resolveSessionId(payload.sessionId);
   const candidates = extractHookCandidates({
     userMessage: payload.userMessage,
     assistantMessage: payload.assistantMessage,
@@ -435,24 +448,27 @@ async function handleHookTurn(client: ApiClient, payload: HookPayload) {
     storedKeys.push(key);
   }
 
-  const current = await getSessionSnapshot(client, sessionId);
-  await client.upsertSessionLog({
-    sessionId,
-    keysRead: mergeUnique(current.keysRead, payload.keysRead ?? []),
-    keysWritten: mergeUnique(current.keysWritten, [
-      ...(payload.keysWritten ?? []),
-      ...storedKeys,
-    ]),
-    toolsUsed: mergeUnique(current.toolsUsed, [
-      ...(payload.toolsUsed ?? []),
-      "hook.turn",
-    ]),
-  });
+  // Only update session log with hook data if there are keys to track
+  if (storedKeys.length > 0 || (payload.keysRead?.length ?? 0) > 0 || (payload.keysWritten?.length ?? 0) > 0) {
+    const current = await getSessionSnapshot(client, resolved.sessionId);
+    await client.upsertSessionLog({
+      sessionId: resolved.sessionId,
+      keysRead: mergeUnique(current.keysRead, payload.keysRead ?? []),
+      keysWritten: mergeUnique(current.keysWritten, [
+        ...(payload.keysWritten ?? []),
+        ...storedKeys,
+      ]),
+      toolsUsed: mergeUnique(current.toolsUsed, [
+        ...(payload.toolsUsed ?? []),
+        "hook.turn",
+      ]),
+    });
+  }
 
   return {
     action: "turn",
-    sessionId,
-    generatedSessionId: !payload.sessionId,
+    sessionId: resolved.sessionId,
+    mcpManaged: isMcpManaged(resolved.source),
     extracted: candidates.length,
     stored: storedKeys.length,
     storedKeys,
@@ -462,26 +478,26 @@ async function handleHookTurn(client: ApiClient, payload: HookPayload) {
 }
 
 async function handleHookEnd(client: ApiClient, payload: HookPayload) {
-  let sessionId = payload.sessionId;
-  if (!sessionId) {
-    try {
-      const logs = await client.getSessionLogs(1);
-      sessionId = logs.sessionLogs[0]?.sessionId;
-    } catch {
-      sessionId = undefined;
-    }
-  }
-  if (!sessionId) {
-    sessionId = generateSessionId();
+  const resolved = await resolveSessionId(payload.sessionId);
+  const managed = isMcpManaged(resolved.source);
+
+  // MCP server handles session finalization, skip closing here
+  if (managed) {
+    return {
+      action: "end",
+      sessionId: resolved.sessionId,
+      summary: null,
+      mcpManaged: true,
+    };
   }
 
-  const snapshot = await getSessionSnapshot(client, sessionId);
+  const snapshot = await getSessionSnapshot(client, resolved.sessionId);
   const summary =
     payload.summary?.trim() ??
     `Hook session ended. ${snapshot.keysWritten.length} key(s) written, ${snapshot.keysRead.length} key(s) read.`;
 
   await client.upsertSessionLog({
-    sessionId,
+    sessionId: resolved.sessionId,
     summary,
     keysRead: mergeUnique(snapshot.keysRead, payload.keysRead ?? []),
     keysWritten: mergeUnique(snapshot.keysWritten, payload.keysWritten ?? []),
@@ -491,9 +507,9 @@ async function handleHookEnd(client: ApiClient, payload: HookPayload) {
 
   return {
     action: "end",
-    sessionId,
+    sessionId: resolved.sessionId,
     summary,
-    generatedSessionId: !payload.sessionId,
+    mcpManaged: false,
   };
 }
 

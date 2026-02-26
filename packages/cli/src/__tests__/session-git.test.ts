@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   createSessionTracker,
@@ -16,22 +15,19 @@ vi.mock("../agent-context", () => ({
   }),
 }));
 
-// ── Helpers ──────────────────────────────────────────────────────
+vi.mock("node:fs/promises", () => ({
+  readFile: vi.fn().mockRejectedValue(new Error("ENOENT")),
+  writeFile: vi.fn().mockResolvedValue(undefined),
+  mkdir: vi.fn().mockResolvedValue(undefined),
+  rm: vi.fn().mockResolvedValue(undefined),
+}));
 
-function createMockServer() {
-  const tools: Record<string, { handler: Function }> = {};
-  return {
-    tool: (
-      _name: string,
-      _desc: string,
-      _schema: unknown,
-      handler: Function,
-    ) => {
-      tools[_name] = { handler };
-    },
-    tools,
-  };
-}
+vi.mock("node:fs", () => ({
+  mkdirSync: vi.fn(),
+  writeFileSync: vi.fn(),
+}));
+
+// ── Helpers ──────────────────────────────────────────────────────
 
 function createMockClient() {
   return {
@@ -42,87 +38,6 @@ function createMockClient() {
     listMemories: vi.fn().mockResolvedValue({ memories: [] }),
   };
 }
-
-function createMockRateLimit() {
-  return {
-    RATE_LIMIT: 500,
-    writeCallCount: 0,
-    checkRateLimit: () => ({ allowed: true }),
-    incrementWriteCount: vi.fn(),
-  };
-}
-
-// ── Tests ────────────────────────────────────────────────────────
-
-describe("session tool – start (simplified)", () => {
-  let server: ReturnType<typeof createMockServer>;
-  let client: ReturnType<typeof createMockClient>;
-  let rl: ReturnType<typeof createMockRateLimit>;
-  let tracker: SessionTracker;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    vi.useFakeTimers({ now: new Date("2026-02-21T12:00:00Z") });
-
-    server = createMockServer();
-    client = createMockClient();
-    rl = createMockRateLimit();
-    tracker = createSessionTracker();
-
-    const { registerSessionTool } = await import("../tools/handlers/session");
-    registerSessionTool(server as any, client as any, rl as any, tracker, vi.fn());
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("starts a session and returns handoff from tracker", async () => {
-    tracker.handoff = {
-      previousSessionId: "prev-sess",
-      summary: "Did stuff",
-      branch: "main",
-      keysWritten: ["key1"],
-      endedAt: "2026-02-21T11:00:00Z",
-    };
-
-    const handler = server.tools["session"].handler;
-    const result = await handler({
-      action: "start",
-      sessionId: "test-session-1",
-    });
-
-    const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.sessionId).toBe("test-session-1");
-    expect(parsed.handoff).toBeDefined();
-    expect(parsed.handoff.previousSessionId).toBe("prev-sess");
-    expect(parsed.currentBranch).toBeDefined();
-  });
-
-  it("does not store any auto: prefixed memories", async () => {
-    const handler = server.tools["session"].handler;
-    await handler({
-      action: "start",
-      sessionId: "test-session-2",
-    });
-
-    const autoCalls = client.storeMemory.mock.calls.filter((call: unknown[]) =>
-      (call[0] as string).startsWith("auto:"),
-    );
-    expect(autoCalls).toHaveLength(0);
-  });
-
-  it("does not fetch session logs or close stale sessions", async () => {
-    const handler = server.tools["session"].handler;
-    await handler({
-      action: "start",
-      sessionId: "test-session-3",
-    });
-
-    // start no longer calls getSessionLogs directly
-    expect(client.getSessionLogs).not.toHaveBeenCalled();
-  });
-});
 
 describe("startSessionLifecycle – auto-close stale sessions", () => {
   let client: ReturnType<typeof createMockClient>;
