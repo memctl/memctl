@@ -1,0 +1,254 @@
+---
+title: Agent Instructions
+description: Make any AI coding agent reliably use memctl on every turn
+---
+
+# Agent Instructions
+
+MCP config alone tells the agent that memctl exists. Agent instruction files tell it _how_ and _when_ to use it. Without instructions, agents may ignore memctl after the first prompt or use it inconsistently.
+
+There are three layers of reinforcement, from weakest to strongest:
+
+1. **Instruction files** (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`) - loaded at session start, can get lost during context compaction
+2. **Per-turn hooks** (`UserPromptSubmit`) - inject a short reminder into every single turn, survives compaction
+3. **Compaction hooks** (`SessionStart` with `compact` matcher) - re-inject full instructions after context window fills up
+
+For Claude Code, use all three. For agents without hooks (Codex, Cursor, Windsurf), instruction files are your only option, so make them explicit and imperative.
+
+## How it works
+
+| Agent       | Instruction file                      | Loaded at           | Hooks | Auto-generate              | Notes                                      |
+| ----------- | ------------------------------------- | ------------------- | ----- | -------------------------- | ------------------------------------------ |
+| Claude Code | `CLAUDE.md`                           | Session start       | Yes   | `generate --claude --link` | Also reads `AGENTS.md`, has full hook system |
+| Codex       | `AGENTS.md`                           | Once per run        | No    | `generate`                 | Merges root down into subdirs, 32 KiB max  |
+| Cursor      | `.cursorrules`                        | Every turn          | No    | `generate --cursor`        | Different format, always a real file        |
+| Gemini      | `GEMINI.md`                           | Session start       | No    | `generate --gemini --link` | Also reads `AGENTS.md`                     |
+| Copilot     | `.github/copilot-instructions.md`     | Every turn          | No    | `generate --copilot --link`| Per-repo instructions                      |
+| Windsurf    | `.windsurfrules`                      | Every turn          | No    | `generate --windsurf --link`| Global or per-project                     |
+| Roo Code    | `.roo/rules/memctl.md`                | Every turn          | No    | `generate --roo --link`    | Mode-specific rule files                   |
+| Cline       | `.clinerules`                         | Every turn          | No    | `generate --cline --link`  | Per-project rules                          |
+| Continue    | `.continue/rules/`                    | Every turn          | No    | -                          | Manual setup, YAML config                  |
+| Zed         | N/A                                   | N/A                 | No    | -                          | Uses MCP tools directly, no instruction file|
+| JetBrains   | N/A                                   | N/A                 | No    | -                          | Uses MCP tools via AI Assistant plugin     |
+| Amazon Q    | `AGENTS.md`                           | Session start       | No    | `generate`                 | Reads AGENTS.md from project root          |
+| Aider       | N/A                                   | N/A                 | No    | -                          | Pass `--read AGENTS.md` manually           |
+
+## Quick setup
+
+The fastest way to set up both MCP config and agent instructions:
+
+```bash
+npx memctl auth
+npx memctl init --all
+```
+
+The init wizard writes MCP configs for all supported agents and creates `AGENTS.md` with memctl usage instructions.
+
+To also generate agent-specific instruction files from your stored context:
+
+```bash
+npx memctl generate --all
+```
+
+This writes `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`, and `.roo/rules/memctl.md`.
+
+Use `--link` to symlink compatible files to `AGENTS.md` so they stay in sync:
+
+```bash
+npx memctl generate --all --link
+```
+
+## What goes in the instruction file
+
+The default `AGENTS.md` template covers the full memctl workflow:
+
+1. **Session start** - bootstrap context, start session, read memos
+2. **Before coding** - load coding style, architecture, constraints for relevant files
+3. **While coding** - store decisions, update branch plans
+4. **Session end** - leave memos, end session with summary
+5. **Maintenance** - periodic cleanup of stale memories
+
+See the full template at [AGENTS.md template](/docs/agents-md).
+
+## Per-agent setup
+
+### Claude Code
+
+Claude Code loads `CLAUDE.md` and `AGENTS.md` at session start, but these instructions can get lost during long sessions when context compaction kicks in. The solution is hooks.
+
+**Recommended setup (MCP + instructions + hooks):**
+
+```bash
+npx memctl init --claude
+npx memctl generate --claude --link
+```
+
+Then install the memctl plugin for automatic per-turn reminders:
+
+```bash
+/plugin marketplace add memctl/memctl
+/plugin install memctl@memctl
+```
+
+The plugin adds three hooks:
+- **`SessionStart`** - bootstraps memctl context, re-injects after compaction
+- **`UserPromptSubmit`** - injects a short memctl reminder into every turn via `additionalContext`
+- **`Stop`** - captures assistant responses for session history
+
+Without the plugin, you can set up hooks manually:
+
+```bash
+npx memctl hook-adapter --agent claude --write
+```
+
+Then copy `.memctl/hooks/claude.settings.local.json.example` into `.claude/settings.local.json`.
+
+**Why hooks matter:** `CLAUDE.md` loads once at session start. During long sessions, context compaction summarizes the conversation and can lose early instructions. The `UserPromptSubmit` hook injects a short reminder on every turn, so Claude never forgets about memctl. The `SessionStart` hook with `compact` matcher re-injects full instructions after every compaction.
+
+### Codex
+
+Codex reads `AGENTS.md` once per run (not every turn) and has no hook system. This means your only chance to tell Codex about memctl is the instruction file. Make it explicit and imperative.
+
+```bash
+npx memctl init --codex
+npx memctl generate
+```
+
+This creates `.codex/config.toml` (MCP config in TOML format) and `AGENTS.md` (instructions).
+
+The `.codex/config.toml` format:
+
+```toml
+[mcp_servers.memctl]
+command = "npx"
+args = ["-y", "memctl@latest"]
+
+[mcp_servers.memctl.env]
+MEMCTL_ORG = "your-org"
+MEMCTL_PROJECT = "your-project"
+```
+
+**Limitations:** Since Codex loads instructions once and has no hooks, it may stop using memctl during long sessions. The default `AGENTS.md` template uses strong imperative language ("You MUST", "ALWAYS", "NEVER skip") to maximize compliance. If Codex still drops off, add a manual reminder in your prompt: "Use the memctl tools to check context before making changes."
+
+**Tip:** If your `AGENTS.md` exceeds 32 KiB, Codex truncates it. Increase the limit in `.codex/config.toml`:
+
+```toml
+project_doc_max_bytes = 65536
+```
+
+### Cursor
+
+Cursor reads `.cursorrules` from the project root. MCP config goes in `.cursor/mcp.json`.
+
+```bash
+npx memctl init --cursor
+npx memctl generate --cursor
+```
+
+The `.cursorrules` format differs from `AGENTS.md` (plain rules, no markdown headings). The `generate` command handles the conversion automatically.
+
+### VS Code + GitHub Copilot
+
+Copilot reads `.github/copilot-instructions.md`. MCP config goes in `.vscode/mcp.json`.
+
+```bash
+npx memctl init --vscode
+npx memctl generate --copilot --link
+```
+
+### Windsurf
+
+Windsurf reads `.windsurfrules` from the project root. MCP config is global at `~/.codeium/windsurf/mcp_config.json`.
+
+```bash
+npx memctl init --windsurf
+npx memctl generate --windsurf --link
+```
+
+With `--link`, `.windsurfrules` is symlinked to `AGENTS.md` so they stay in sync.
+
+### Cline
+
+Cline reads `.clinerules` from the project root. MCP config is set through the extension UI (see [Agent Setup](/docs/agents#cline)).
+
+```bash
+npx memctl generate --cline --link
+```
+
+There is no `memctl init --cline` because Cline's MCP config lives in VS Code extension storage, which varies by OS. Configure it manually through the Cline sidebar.
+
+### Roo Code
+
+Roo reads rules from `.roo/rules/`. MCP config goes in `.roo/mcp.json`.
+
+```bash
+npx memctl init --roo
+npx memctl generate --roo --link
+```
+
+With `--link`, `.roo/rules/memctl.md` is symlinked to `AGENTS.md`.
+
+### Continue
+
+Continue reads rules from `.continue/rules/`. MCP config uses YAML format in `.continue/config.yaml`.
+
+There is no `memctl init --continue` because Continue uses YAML config. Set it up manually (see [Agent Setup](/docs/agents#continue)).
+
+After configuring MCP, generate `AGENTS.md` and copy it into `.continue/rules/`:
+
+```bash
+npx memctl generate
+cp AGENTS.md .continue/rules/memctl.md
+```
+
+### Amazon Q
+
+Amazon Q reads MCP config from `.amazonq/mcp.json` and `AGENTS.md` from the project root.
+
+```bash
+npx memctl init --amazonq
+npx memctl generate
+```
+
+### Zed
+
+Zed uses MCP tools directly through `context_servers` in Zed settings. There is no instruction file, so Zed relies on the MCP tool descriptions to guide usage. Configure manually (see [Agent Setup](/docs/agents#zed)).
+
+### JetBrains IDEs
+
+JetBrains IDEs (IntelliJ, WebStorm, PyCharm, GoLand) support MCP via the AI Assistant plugin. Configure through Settings UI (see [Agent Setup](/docs/agents#jetbrains)). There is no instruction file format.
+
+### Aider
+
+Aider has no MCP support. Export context as a file and pass it on each run:
+
+```bash
+npx memctl export agents_md > AGENTS.md
+aider --read AGENTS.md
+```
+
+After a session, import changes back:
+
+```bash
+npx memctl import AGENTS.md
+```
+
+## Hooks for automatic capture
+
+For agents that support lifecycle hooks, use `memctl hook-adapter` to generate templates that automatically capture session context:
+
+```bash
+npx memctl hook-adapter --agent all --write
+```
+
+This writes a shared dispatcher script and agent-specific config examples to `.memctl/hooks/`. See [Hooks](/docs/cli/hooks) for details.
+
+## Keeping instructions fresh
+
+As your project context evolves, regenerate instruction files from stored memories:
+
+```bash
+npx memctl generate --all --link
+```
+
+With `--link`, all `agents_md`-format files (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`, `.roo/rules/memctl.md`) are symlinked to `AGENTS.md`. Edit one, and all stay in sync. `.cursorrules` is always a separate file because it uses a different format.

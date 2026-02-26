@@ -9,23 +9,27 @@ Every agent below connects to mem/ctl the same way - run `npx memctl auth` once,
 
 ```bash
 npx memctl auth
+npx memctl hook-adapter --agent all --write
 ```
 
 ## Quick reference
 
-| Agent             | Config location                       | Config key        | Auto-setup               |
-| ----------------- | ------------------------------------- | ----------------- | ------------------------ |
-| Claude Code       | `.mcp.json`                           | `mcpServers`      | `memctl init --claude`   |
-| Cursor            | `.cursor/mcp.json`                    | `mcpServers`      | `memctl init --cursor`   |
-| VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | -                        |
-| Windsurf          | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`      | `memctl init --windsurf` |
-| Cline             | Extension UI                          | `mcpServers`      | -                        |
-| Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | -                        |
-| Continue          | `.continue/config.yaml`               | `mcpServers`      | -                        |
-| Zed               | Zed settings                          | `context_servers` | -                        |
-| JetBrains         | Settings UI                           | -                 | -                        |
-| Amazon Q          | `.amazonq/mcp.json`                   | `mcpServers`      | -                        |
-| Aider             | N/A                                   | -                 | -                        |
+| Agent             | Config location                       | Config key        | Auto-setup               | Instruction file          |
+| ----------------- | ------------------------------------- | ----------------- | ------------------------ | ------------------------- |
+| Claude Code       | `.mcp.json`                           | `mcpServers`      | `memctl init --claude`   | `generate --claude`       |
+| Cursor            | `.cursor/mcp.json`                    | `mcpServers`      | `memctl init --cursor`   | `generate --cursor`       |
+| VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | `memctl init --vscode`   | `generate --copilot`      |
+| Windsurf          | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`      | `memctl init --windsurf` | `generate --windsurf`     |
+| Codex             | `.codex/config.toml`                  | `mcp_servers`     | `memctl init --codex`    | `generate` (AGENTS.md)    |
+| Cline             | Extension UI                          | `mcpServers`      | Manual                   | `generate --cline`        |
+| Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | `memctl init --roo`      | `generate --roo`          |
+| Continue          | `.continue/config.yaml`               | `mcpServers`      | Manual                   | Manual (copy AGENTS.md)   |
+| Zed               | Zed settings                          | `context_servers` | Manual                   | N/A                       |
+| JetBrains         | Settings UI                           | -                 | Manual                   | N/A                       |
+| Amazon Q          | `.amazonq/mcp.json`                   | `mcpServers`      | `memctl init --amazonq`  | `generate` (AGENTS.md)    |
+| Aider             | N/A                                   | -                 | -                        | `export agents_md`        |
+
+For automatic per-turn memory capture, use [CLI Hooks](/docs/cli/hooks).
 
 ## Configuration
 
@@ -53,6 +57,13 @@ Create `.mcp.json` in your project root (can be committed to git):
 Or use the init wizard: `npx memctl init --claude`
 
 Claude Code also supports `~/.claude/mcp.json` for global configuration.
+
+For Claude plugin marketplace setup:
+
+```bash
+/plugin marketplace add memctl/memctl
+/plugin install memctl@memctl
+```
 
 </Accordion>
 
@@ -129,6 +140,30 @@ Add to `~/.codeium/windsurf/mcp_config.json` (global config):
 Or use the init wizard: `npx memctl init --windsurf`
 
 Windsurf uses a single global config file, not per-project.
+
+</Accordion>
+
+<Accordion title="Codex" id="codex">
+
+Create `.codex/config.toml` in your project root:
+
+```toml
+[mcp_servers.memctl]
+command = "npx"
+args = ["-y", "memctl@latest"]
+
+[mcp_servers.memctl.env]
+MEMCTL_ORG = "your-org"
+MEMCTL_PROJECT = "your-project"
+```
+
+Or use the init wizard: `npx memctl init --codex`
+
+Codex reads `AGENTS.md` files from the repo root down into subdirectories (merged in order, 32 KiB limit). Add an `AGENTS.md` with memctl usage instructions so Codex uses memory tools on every turn:
+
+```bash
+npx memctl generate
+```
 
 </Accordion>
 
@@ -242,13 +277,11 @@ Open Zed settings (`Cmd+,`) and add:
 {
   "context_servers": {
     "memctl": {
-      "command": {
-        "path": "npx",
-        "args": ["-y", "memctl@latest"],
-        "env": {
-          "MEMCTL_ORG": "your-org",
-          "MEMCTL_PROJECT": "your-project"
-        }
+      "command": "npx",
+      "args": ["-y", "memctl@latest"],
+      "env": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
       }
     }
   }
@@ -258,8 +291,7 @@ Open Zed settings (`Cmd+,`) and add:
 Zed's format differs from other agents:
 
 - Top-level key is `"context_servers"` (not `"mcpServers"`)
-- Command is nested: `"command": { "path": "...", "args": [...] }`
-- Uses `"path"` instead of `"command"` for the executable
+- Uses `"command"` + `"args"` directly inside each server entry
 
 Zed picks up settings changes automatically.
 

@@ -9,11 +9,40 @@ import { getBranchInfo } from "../../agent-context.js";
 
 const execFileAsync = promisify(execFile);
 
+function generateSessionId(): string {
+  const now = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `sess-${now}-${rand}`;
+}
+
+function buildFallbackSummary(params: {
+  keysRead?: string[];
+  keysWritten?: string[];
+  toolsUsed?: string[];
+}): string {
+  const parts: string[] = [];
+  if (params.keysWritten?.length) {
+    parts.push(`${params.keysWritten.length} key(s) written`);
+  }
+  if (params.keysRead?.length) {
+    parts.push(`${params.keysRead.length} key(s) read`);
+  }
+  if (params.toolsUsed?.length) {
+    parts.push(`tools: ${params.toolsUsed.join(", ")}`);
+  }
+  if (parts.length === 0) {
+    return "Session ended without explicit summary.";
+  }
+  return `Session ended, ${parts.join(", ")}.`;
+}
+
 export function registerSessionTool(
   server: McpServer,
   client: ApiClient,
   rl: RateLimitState,
 ) {
+  let activeSessionId: string | null = null;
+
   server.tool(
     "session",
     "Session management. Actions: start, end, history, claims_check, claim, rate_status",
@@ -66,16 +95,16 @@ export function registerSessionTool(
       try {
         switch (params.action) {
           case "start": {
-            if (!params.sessionId)
-              return errorResponse("Missing param", "sessionId required");
+            const sessionId = params.sessionId ?? generateSessionId();
             const branchInfo = await getBranchInfo();
             const recentSessions = await client
               .getSessionLogs(5)
               .catch(() => ({ sessionLogs: [] }));
             await client.upsertSessionLog({
-              sessionId: params.sessionId,
+              sessionId,
               branch: branchInfo?.branch,
             });
+            activeSessionId = sessionId;
 
             const lastSession = recentSessions.sessionLogs[0];
             const handoff = lastSession
@@ -106,7 +135,8 @@ export function registerSessionTool(
             return textResponse(
               JSON.stringify(
                 {
-                  sessionId: params.sessionId,
+                  sessionId,
+                  generatedSessionId: !params.sessionId,
                   currentBranch: branchInfo,
                   handoff,
                   recentSessionCount: recentSessions.sessionLogs.length,
@@ -118,21 +148,26 @@ export function registerSessionTool(
             );
           }
           case "end": {
-            if (!params.sessionId || !params.summary)
-              return errorResponse(
-                "Missing params",
-                "sessionId and summary required",
-              );
+            const sessionId =
+              params.sessionId ?? activeSessionId ?? generateSessionId();
+            const summary =
+              params.summary?.trim() ||
+              buildFallbackSummary({
+                keysRead: params.keysRead,
+                keysWritten: params.keysWritten,
+                toolsUsed: params.toolsUsed,
+              });
             await client.upsertSessionLog({
-              sessionId: params.sessionId,
-              summary: params.summary,
+              sessionId,
+              summary,
               keysRead: params.keysRead,
               keysWritten: params.keysWritten,
               toolsUsed: params.toolsUsed,
               endedAt: Date.now(),
             });
+            activeSessionId = null;
             return textResponse(
-              `Session ${params.sessionId} ended. Handoff summary saved.`,
+              `Session ${sessionId} ended. Handoff summary saved.`,
             );
           }
           case "history": {
@@ -208,30 +243,34 @@ export function registerSessionTool(
             );
           }
           case "claim": {
-            if (!params.sessionId || !params.keys?.length)
+            if (!params.keys?.length)
               return errorResponse(
                 "Missing params",
-                "sessionId and keys required",
+                "keys required",
               );
+            const sessionId =
+              params.sessionId ?? activeSessionId ?? generateSessionId();
             const rateCheck = rl.checkRateLimit();
             if (!rateCheck.allowed)
               return errorResponse("Rate limit exceeded", rateCheck.warning!);
             rl.incrementWriteCount();
 
-            const claimKey = `agent/claims/${params.sessionId}`;
+            const claimKey = `agent/claims/${sessionId}`;
             const ttlMinutes = params.ttlMinutes ?? 30;
             const expiresAt = Date.now() + ttlMinutes * 60 * 1000;
             await client.storeMemory(
               claimKey,
               JSON.stringify(params.keys),
-              { sessionId: params.sessionId, claimedAt: Date.now() },
+              { sessionId, claimedAt: Date.now() },
               { tags: ["session-claim"], expiresAt, priority: 0 },
             );
+            activeSessionId = sessionId;
             const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
             return textResponse(
               JSON.stringify(
                 {
-                  sessionId: params.sessionId,
+                  sessionId,
+                  generatedSessionId: !params.sessionId,
                   claimKey,
                   keys: params.keys,
                   expiresAt: new Date(expiresAt).toISOString(),

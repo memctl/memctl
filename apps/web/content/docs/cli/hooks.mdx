@@ -1,0 +1,125 @@
+---
+title: Hooks
+description: Cross-agent hook adapters for automatic memory capture
+---
+
+# Hooks
+
+Use `memctl hook` for turn-level capture and `memctl hook-adapter` to generate setup templates for major coding agents.
+
+## Hook API
+
+`hook` stores high-signal context from chat turns into mem/ctl and updates session logs.
+
+```bash
+# Start
+npx memctl hook start --session-id my-session
+
+# Turn capture
+npx memctl hook turn --session-id my-session --user "..." --assistant "..."
+
+# End
+npx memctl hook end --session-id my-session --summary "..."
+```
+
+JSON payload mode:
+
+```bash
+echo '{"action":"turn","sessionId":"my-session","userMessage":"...","assistantMessage":"..."}' | npx memctl hook --stdin
+```
+
+## Generate adapters
+
+Print templates for one agent:
+
+```bash
+npx memctl hook-adapter --agent claude
+```
+
+Write templates to disk:
+
+```bash
+npx memctl hook-adapter --agent claude --write
+npx memctl hook-adapter --agent cursor --write
+npx memctl hook-adapter --agent codex --write
+npx memctl hook-adapter --agent all --write
+```
+
+Default output directory: `.memctl/hooks`.
+
+Supported agent presets:
+
+- `claude`
+- `cursor`
+- `windsurf`
+- `vscode` (GitHub Copilot)
+- `continue`
+- `zed`
+- `codex`
+- `cline`
+- `roo`
+- `amazonq`
+- `generic`
+- `all`
+
+Generated files include:
+
+- `memctl-hook-dispatch.sh` (shared dispatcher script)
+- Agent MCP config examples where supported
+- Hook config or hook fallback notes per agent
+
+## Claude Code
+
+Preferred, install from repository marketplace:
+
+```bash
+/plugin marketplace add memctl/memctl
+/plugin install memctl@memctl
+```
+
+If you prefer direct hook config without plugin marketplace, generate:
+
+```bash
+npx memctl hook-adapter --agent claude --write
+```
+
+## Cursor
+
+1. Run:
+
+```bash
+npx memctl hook-adapter --agent cursor --write
+```
+
+2. Copy `.memctl/hooks/cursor.mcp.json.example` into `.cursor/mcp.json`.
+3. Read `.memctl/hooks/cursor.hooks.md.example` for hook fallback flow.
+
+## Other agents
+
+- Windsurf: `windsurf.mcp_config.json.example`
+- VS Code/Copilot: `vscode.mcp.json.example`
+- Continue: `continue.config.yaml.example`
+- Zed: `zed.settings.json.example`
+- Cline: `cline.mcp.json.example`
+- Roo: `roo.mcp.json.example`
+- Amazon Q: `amazonq.mcp.json.example`
+- Codex: `codex.config.toml.example` + `codex.hooks.md.example`
+
+For all of these, generate with:
+
+```bash
+npx memctl hook-adapter --agent <agent> --write
+```
+
+Agents without stable prompt/response hook APIs include a generated `*.hooks.md.example` fallback file. Use that flow with any command runner around your sessions.
+
+## What gets stored
+
+`hook turn` stores only high-signal project memory:
+
+- decisions
+- constraints
+- implementation outcomes
+- failures and regressions
+
+Low-signal generic capability notes (file scanning tips, grep reminders, pattern-search basics) are skipped by default.

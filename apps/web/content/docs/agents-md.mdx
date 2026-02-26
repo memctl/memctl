@@ -23,52 +23,46 @@ ln -s AGENTS.md GEMINI.md
 
 ## memctl MCP Rules
 
-MCP server name is `memctl`.
-Use `memctl` for all project memory: session history, coding conventions, architecture decisions, testing rules, branch plans.
-Store decisions and lessons learned in memctl so they persist across sessions.
+MCP server name is `memctl`. You MUST use it for persistent project memory.
 
-## Session Start
+ALWAYS use memctl tools. Do not skip them. They provide coding conventions, architecture decisions, testing rules, and context from previous sessions that you need to do your job correctly.
 
-1. `context.bootstrap` - load all project context
-2. `session.start` with `autoExtractGit=true` - register this session
-3. `activity.memo_read` - check for handoff notes from the last session
-4. `branch.get` - load current branch plan if one exists
+## Session Start (REQUIRED)
 
-If the file map is stale, run `repo.scan` with `saveAsContext=true`.
+Run these at the start of EVERY session, before doing anything else:
 
-## Before Coding
+1. `context` with `{"action":"bootstrap"}` - load all project context
+2. `session` with `{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}` - register this session
+3. `activity` with `{"action":"memo_read"}` - check handoff notes from previous sessions
+4. `branch` with `{"action":"get","includeRelatedContext":true}` - load branch plan
 
-- `context.functionality_get` for: `coding_style`, `architecture`, `testing`, `constraints`, `workflow`
-- `context.context_for` for files you are about to touch
-- `branch.get` for current branch plan and checklist
+## Before Editing Files (REQUIRED)
+
+ALWAYS load context before touching code:
+
+- `context` with `{"action":"context_for","filePaths":[...]}` for files you are about to edit
+- `context` with `{"action":"functionality_get","type":"coding_style"}` if not already loaded
 
 ## While Coding
 
-- `context.functionality_set` for structured project rules
-- `memory.store` for one-off decisions or notes (search first with `memory.search` to avoid duplicates)
-- `branch.set` after each meaningful task to save progress
+- Store decisions: `memory` with `{"action":"store","key":"...","content":"..."}`
+- Search before storing: `memory` with `{"action":"search","query":"..."}`
+- Update branch plan: `branch` with `{"action":"set","content":"...","status":"in_progress"}`
 
-## End Of Session
+## Session End (REQUIRED)
 
-1. `branch.set` with final progress
-2. `activity.memo_leave` if anything is pending
-3. `session.end` with a summary of what was done
+Before ending your session:
 
-## Maintenance
-
-Run every few sessions:
-
-- `memory_lifecycle.suggest_cleanup` - review stale candidates
-- `memory_lifecycle.lifecycle_run` - clean expired, session logs, merged branches
-- `memory_advanced.check_duplicates` - find and merge duplicates
+1. `activity` with `{"action":"memo_leave","message":"...","urgency":"info"}` if anything is pending
+2. `session` with `{"action":"end","sessionId":"<same-id>","summary":"..."}`
 
 ## Rules
 
+- NEVER skip bootstrap at session start
+- NEVER skip context_for before editing files
 - Do not store secrets, tokens, or API keys
 - Do not store large file contents or binary data
-- Do not skip `context.bootstrap` at session start
 - Search before storing to avoid duplicates
-- Do not let memory grow unchecked
 ```
 
 ## Importing and exporting
@@ -84,6 +78,9 @@ npx memctl generate --claude           # + CLAUDE.md
 npx memctl generate --gemini           # + GEMINI.md
 npx memctl generate --cursor           # + .cursorrules
 npx memctl generate --copilot          # + .github/copilot-instructions.md
+npx memctl generate --windsurf         # + .windsurfrules
+npx memctl generate --cline            # + .clinerules
+npx memctl generate --roo              # + .roo/rules/memctl.md
 npx memctl generate --all              # all of the above
 
 # Symlink instead of copying (avoids content drift)
@@ -93,7 +90,7 @@ npx memctl generate --all --link
 npx memctl import AGENTS.md
 ```
 
-With `--link`, files that share the same format as `AGENTS.md` (CLAUDE.md, GEMINI.md, copilot-instructions.md) become symlinks. `.cursorrules` is always a real file because it uses a different format. See [generate docs](/docs/cli/import-export#generate) for details.
+With `--link`, files that share the same format as `AGENTS.md` (CLAUDE.md, GEMINI.md, copilot-instructions.md, .windsurfrules, .clinerules, .roo/rules/memctl.md) become symlinks. `.cursorrules` is always a real file because it uses a different format. See [generate docs](/docs/cli/import-export#generate) for details.
 
 For pipe-friendly output, use `export` instead:
 

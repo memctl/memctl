@@ -18,7 +18,11 @@ npx memctl init [options]
 | `--claude`   | Write Claude Code config only (`.mcp.json`)                        |
 | `--cursor`   | Write Cursor config only (`.cursor/mcp.json`)                      |
 | `--windsurf` | Write Windsurf config only (`~/.codeium/windsurf/mcp_config.json`) |
-| `--all`      | Write configs for all supported IDEs                               |
+| `--vscode`   | Write VS Code config only (`.vscode/mcp.json`)                     |
+| `--codex`    | Write Codex config only (`.codex/config.toml`)                     |
+| `--roo`      | Write Roo Code config only (`.roo/mcp.json`)                       |
+| `--amazonq`  | Write Amazon Q config only (`.amazonq/mcp.json`)                   |
+| `--all`      | Write configs for all supported agents                             |
 
 ## Interactive mode
 
@@ -41,13 +45,31 @@ With a flag, skips the interactive prompts and writes only the specified IDE con
 # After running memctl auth
 npx memctl init --claude
 npx memctl init --cursor
+npx memctl init --codex
 npx memctl init --all
 ```
 
 ## Config files written
 
-| IDE         | File                                  | Format              |
-| ----------- | ------------------------------------- | ------------------- |
-| Claude Code | `.mcp.json`                           | `mcpServers` object |
-| Cursor      | `.cursor/mcp.json`                    | `mcpServers` object |
-| Windsurf    | `~/.codeium/windsurf/mcp_config.json` | `mcpServers` object |
+| Agent       | File                                  | Format               |
+| ----------- | ------------------------------------- | -------------------- |
+| Claude Code | `.mcp.json`                           | `mcpServers` object  |
+| Cursor      | `.cursor/mcp.json`                    | `mcpServers` object  |
+| Windsurf    | `~/.codeium/windsurf/mcp_config.json` | `mcpServers` object  |
+| VS Code     | `.vscode/mcp.json`                    | `servers` object     |
+| Codex       | `.codex/config.toml`                  | TOML `mcp_servers`   |
+| Roo Code    | `.roo/mcp.json`                       | `mcpServers` object  |
+| Amazon Q    | `.amazonq/mcp.json`                   | `mcpServers` object  |
+
+The wizard also offers to write `AGENTS.md` with memctl usage instructions. Agents like Codex, Claude Code, and Gemini read this file for persistent tool usage guidance.
+
+**Not automated by init** (configure manually via their UIs):
+
+| Agent      | Config location            | Notes                                    |
+| ---------- | -------------------------- | ---------------------------------------- |
+| Cline      | Extension UI / cline_mcp_settings.json | OS-dependent path, see [Agent Setup](/docs/agents#cline) |
+| Continue   | `.continue/config.yaml`    | YAML format, see [Agent Setup](/docs/agents#continue) |
+| Zed        | Zed settings UI            | Uses `context_servers` key, see [Agent Setup](/docs/agents#zed) |
+| JetBrains  | Settings UI                | AI Assistant plugin, see [Agent Setup](/docs/agents#jetbrains) |
+
+Use `memctl generate --all` to create instruction files for agents that read them. See [Agent Instructions](/docs/agent-instructions) for the full list.

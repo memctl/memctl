@@ -1,13 +1,183 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ApiClient } from "./api-client.js";
+import { getBranchInfo } from "./agent-context.js";
 import { registerTools } from "./tools/index.js";
 import { registerResources } from "./resources/index.js";
+
+const AUTO_SESSION_PREFIX = "auto";
+const AUTO_SESSION_FLUSH_INTERVAL_MS = 30_000;
+
+type AutoSessionTracker = {
+  sessionId: string;
+  readKeys: Set<string>;
+  writtenKeys: Set<string>;
+  areas: Set<string>;
+  apiCallCount: number;
+  dirty: boolean;
+  closed: boolean;
+  startedAt: number;
+};
+
+function createAutoSessionTracker(): AutoSessionTracker {
+  const now = Date.now();
+  const rand = Math.random().toString(36).slice(2, 8);
+  return {
+    sessionId: `${AUTO_SESSION_PREFIX}-${now.toString(36)}-${rand}`,
+    readKeys: new Set<string>(),
+    writtenKeys: new Set<string>(),
+    areas: new Set<string>(),
+    apiCallCount: 0,
+    dirty: false,
+    closed: false,
+    startedAt: now,
+  };
+}
+
+function getPathWithoutQuery(path: string): string {
+  const idx = path.indexOf("?");
+  return idx >= 0 ? path.slice(0, idx) : path;
+}
+
+function getAreaFromPath(path: string): string | null {
+  const clean = getPathWithoutQuery(path).replace(/^\/+/, "");
+  if (!clean) return null;
+  const area = clean.split("/")[0];
+  return area || null;
+}
+
+function shouldTrackMemoryKey(key: string): boolean {
+  if (!key) return false;
+  if (key.startsWith("agent/claims/")) return false;
+  if (key.startsWith("auto:")) return false;
+  return true;
+}
+
+function extractKeyFromPath(method: string, path: string): {
+  readKey?: string;
+  writtenKey?: string;
+} {
+  const cleanPath = getPathWithoutQuery(path);
+  const match = cleanPath.match(/^\/memories\/([^/]+)$/);
+  if (!match) return {};
+
+  const raw = match[1];
+  if (!raw) return {};
+  const key = decodeURIComponent(raw);
+  if (!shouldTrackMemoryKey(key)) return {};
+
+  const upperMethod = method.toUpperCase();
+  if (upperMethod === "GET") return { readKey: key };
+  if (
+    upperMethod === "POST" ||
+    upperMethod === "PATCH" ||
+    upperMethod === "DELETE"
+  ) {
+    return { writtenKey: key };
+  }
+  return {};
+}
+
+function extractKeyFromBody(method: string, path: string, body?: unknown): {
+  readKey?: string;
+  writtenKey?: string;
+} {
+  if (!body || typeof body !== "object") return {};
+  const cleanPath = getPathWithoutQuery(path);
+  const upperMethod = method.toUpperCase();
+  const payload = body as Record<string, unknown>;
+
+  if (upperMethod === "POST" && cleanPath === "/memories") {
+    const key = typeof payload.key === "string" ? payload.key : "";
+    if (shouldTrackMemoryKey(key)) {
+      return { writtenKey: key };
+    }
+  }
+
+  if (upperMethod === "POST" && cleanPath === "/memories/bulk") {
+    const keys = Array.isArray(payload.keys) ? payload.keys : [];
+    const first = keys.find((k) => typeof k === "string") as string | undefined;
+    if (first && shouldTrackMemoryKey(first)) {
+      return { readKey: first };
+    }
+  }
+
+  return {};
+}
+
+function buildAutoSummary(tracker: AutoSessionTracker): string {
+  const durationMs = Math.max(0, Date.now() - tracker.startedAt);
+  const minutes = Math.max(1, Math.round(durationMs / 60_000));
+  const areas = [...tracker.areas].sort();
+  const parts = [
+    `Auto-captured session activity for ${minutes} min`,
+    `${tracker.apiCallCount} API call(s)`,
+    `${tracker.writtenKeys.size} key(s) written`,
+    `${tracker.readKeys.size} key(s) read`,
+  ];
+  if (areas.length > 0) {
+    parts.push(`areas: ${areas.join(", ")}`);
+  }
+  return `${parts.join(", ")}.`;
+}
+
+async function flushAutoSession(
+  client: ApiClient,
+  tracker: AutoSessionTracker,
+  final: boolean,
+): Promise<void> {
+  if (tracker.closed) return;
+  if (!tracker.dirty && !final) return;
+
+  try {
+    await client.upsertSessionLog({
+      sessionId: tracker.sessionId,
+      summary: buildAutoSummary(tracker),
+      keysRead: [...tracker.readKeys],
+      keysWritten: [...tracker.writtenKeys],
+      toolsUsed: [...tracker.areas],
+      endedAt: final ? Date.now() : undefined,
+    });
+    tracker.dirty = false;
+    if (final) {
+      tracker.closed = true;
+    }
+  } catch {
+    // Best effort only, do not fail MCP server startup/shutdown.
+  }
+}
+
+function startAutoSessionLifecycle(client: ApiClient, tracker: AutoSessionTracker) {
+  void getBranchInfo()
+    .then(async (branchInfo) => {
+      await client.upsertSessionLog({
+        sessionId: tracker.sessionId,
+        branch: branchInfo?.branch,
+      });
+    })
+    .catch(async () => {
+      await client.upsertSessionLog({ sessionId: tracker.sessionId });
+    });
+
+  const interval = setInterval(() => {
+    void flushAutoSession(client, tracker, false);
+  }, AUTO_SESSION_FLUSH_INTERVAL_MS);
+  interval.unref();
+
+  const finalize = () => {
+    clearInterval(interval);
+    void flushAutoSession(client, tracker, true);
+  };
+
+  process.once("beforeExit", finalize);
+  process.once("SIGINT", finalize);
+  process.once("SIGTERM", finalize);
+}
 
 function registerPrompts(server: McpServer) {
   server.prompt(
     "agent-startup",
-    "Auto-injected startup context for AI coding agents. Call agent_bootstrap to load all project context, then session_start to register this session.",
+    "Auto-injected startup context for AI coding agents. Call context bootstrap, then session start.",
     {},
     () => ({
       messages: [
@@ -15,26 +185,27 @@ function registerPrompts(server: McpServer) {
           role: "user" as const,
           content: {
             type: "text" as const,
-            text: `You have access to memctl — a persistent memory system for coding agents.
+            text: `You have access to memctl, a persistent memory system for coding agents.
 
 **On session start:**
-1. Call \`agent_bootstrap\` to load all project context (architecture, coding style, constraints, file map, etc.)
-2. Call \`session_start\` with a unique session ID to register this session and get the previous session's handoff summary
-3. Check \`memory_watch\` for any keys you're interested in to detect concurrent changes
+1. Call \`context\` with \`{"action":"bootstrap"}\` to load project context (architecture, coding style, constraints, file map, etc.)
+2. Call \`session\` with \`{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}\` to register this session and get the previous session handoff summary
+3. Call \`memory_advanced\` with \`{"action":"watch","keys":[...],"since":<timestamp>}\` to detect concurrent changes
 
 **During work:**
-- Use \`agent_context_for\` before modifying files to get relevant constraints and patterns
-- Store new knowledge with \`agent_functionality_set\` (coding_style, architecture, lessons_learned, etc.)
-- Use \`memory_check_duplicates\` before creating new memories to avoid redundancy
-- Use \`context_budget\` to retrieve context that fits within your token limit
+- Use \`context\` with \`{"action":"context_for","filePaths":[...]}\` before modifying files
+- Store project rules with \`context\` and \`{"action":"functionality_set",...}\`
+- Use \`memory_advanced\` with \`{"action":"check_duplicates","content":"..."}\` before creating new memories
+- Use \`context\` with \`{"action":"budget","task":"...","maxTokens":4000}\` for token-limited retrieval
 
 **On session end:**
-- Call \`session_end\` with a summary of what you accomplished, decisions made, and open questions
+- Call \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..." }\`
 - This ensures the next agent session has continuity
 
 **Negative knowledge:**
 - When you discover something that failed or should be avoided, store it as type \`lessons_learned\`
-- These entries help prevent future agents from repeating mistakes`,
+- These entries help prevent future agents from repeating mistakes
+- Do not store generic capabilities (file scanning, pattern search, grep usage), store project-specific decisions instead`,
           },
         },
       ],
@@ -59,7 +230,7 @@ function registerPrompts(server: McpServer) {
 
 Files: ${files}
 
-Call \`agent_context_for\` with these file paths to get matching architecture, coding style, testing, and constraint entries. Follow any constraints and patterns found.`,
+Call \`context\` with \`{"action":"context_for","filePaths":[...]} \` using these file paths to get matching architecture, coding style, testing, and constraint entries. Follow any constraints and patterns found.`,
           },
         },
       ],
@@ -84,7 +255,7 @@ Call \`agent_context_for\` with these file paths to get matching architecture, c
 4. **Modified files** — list of files changed
 5. **Memory keys written** — any new context entries stored
 
-Then call \`session_end\` with this summary to save it for the next session.`,
+Then call \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..."}\` to save it for the next session.`,
           },
         },
       ],
@@ -98,12 +269,31 @@ export function createServer(config: {
   org: string;
   project: string;
 }) {
+  const autoTracker = createAutoSessionTracker();
   const server = new McpServer({
     name: "memctl",
     version: "0.1.0",
   });
 
-  const client = new ApiClient(config);
+  const client = new ApiClient({
+    ...config,
+    onRequest: ({ method, path, body }) => {
+      const area = getAreaFromPath(path);
+      if (area === "health" || area === "session-logs") return;
+
+      autoTracker.apiCallCount += 1;
+      if (area) autoTracker.areas.add(area);
+
+      const fromPath = extractKeyFromPath(method, path);
+      const fromBody = extractKeyFromBody(method, path, body);
+      const readKey = fromPath.readKey ?? fromBody.readKey;
+      const writtenKey = fromPath.writtenKey ?? fromBody.writtenKey;
+      if (readKey) autoTracker.readKeys.add(readKey);
+      if (writtenKey) autoTracker.writtenKeys.add(writtenKey);
+      autoTracker.dirty = true;
+    },
+  });
+  startAutoSessionLifecycle(client, autoTracker);
 
   registerTools(server, client);
   registerResources(server, client);

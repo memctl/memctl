@@ -1,0 +1,6 @@
+{
+  "name": "memctl",
+  "version": "0.1.0",
+  "description": "Auto-capture high-signal coding context into memctl memory",
+  "hooks": "./hooks/hooks.json"
+}

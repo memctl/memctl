@@ -119,6 +119,10 @@ export function registerMemoryTool(
         .enum(["reject", "last_write_wins", "append", "return_both"])
         .optional()
         .describe("[store_safe] Conflict resolution"),
+      forceStore: z
+        .boolean()
+        .optional()
+        .describe("[store,update,store_safe] Bypass low-signal quality filter"),
     },
     async (params) => {
       switch (params.action) {
@@ -151,6 +155,29 @@ export function registerMemoryTool(
   );
 }
 
+function isGenericCapabilityNoise(content: string): boolean {
+  const normalized = content.trim().toLowerCase();
+  if (!normalized) return true;
+
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+  const hasGenericCapabilityPhrase =
+    /(scan(ning)? files?|search(ing)? (for )?patterns?|use (rg|ripgrep|grep)|read files?|find files?)/.test(
+      normalized,
+    );
+
+  const hasProjectSpecificSignal =
+    /[/_-]/.test(normalized) ||
+    /\b[a-z0-9_-]+\.[a-z0-9_-]+\b/.test(normalized) ||
+    /(api|schema|migration|component|endpoint|workflow|billing|auth|branch|test|typescript|next\.js|drizzle|turso)/.test(
+      normalized,
+    );
+
+  if (hasGenericCapabilityPhrase && wordCount <= 40 && !hasProjectSpecificSignal)
+    return true;
+
+  return false;
+}
+
 async function handleStore(
   client: ApiClient,
   rl: RateLimitState,
@@ -172,12 +199,19 @@ async function handleStore(
     const ttl = params.ttl as string | undefined;
     const dedupAction = (params.dedupAction as string) ?? "warn";
     const autoBranch = params.autoBranch !== false;
+    const forceStore = params.forceStore === true;
 
     if (!key || !content)
       return errorResponse(
         "Missing required params",
         "key and content are required for store",
       );
+
+    if (!forceStore && isGenericCapabilityNoise(content)) {
+      return textResponse(
+        `Skipped low-signal memory for key: ${key}. Store only project-specific decisions, constraints, and outcomes.`,
+      );
+    }
 
     let resolvedTags = tags ?? [];
     if (autoBranch) {
@@ -460,15 +494,23 @@ async function handleUpdate(
     rl.incrementWriteCount();
 
     const key = params.key as string;
+    const content = params.content as string | undefined;
+    const forceStore = params.forceStore === true;
     if (!key)
       return errorResponse(
         "Missing required param",
         "key is required for update",
       );
 
+    if (content && !forceStore && isGenericCapabilityNoise(content)) {
+      return textResponse(
+        `Skipped low-signal update for key: ${key}. Store only project-specific decisions, constraints, and outcomes.`,
+      );
+    }
+
     await client.updateMemory(
       key,
-      params.content as string | undefined,
+      content,
       params.metadata as Record<string, unknown> | undefined,
       {
         priority: params.priority as number | undefined,
@@ -579,6 +621,7 @@ async function handleStoreSafe(
     const key = params.key as string;
     const content = params.content as string;
     const ifUnmodifiedSince = params.ifUnmodifiedSince as number;
+    const forceStore = params.forceStore === true;
     if (!key || !content)
       return errorResponse(
         "Missing required params",
@@ -589,6 +632,12 @@ async function handleStoreSafe(
         "Missing required param",
         "ifUnmodifiedSince is required for store_safe",
       );
+
+    if (!forceStore && isGenericCapabilityNoise(content)) {
+      return textResponse(
+        `Skipped low-signal memory for key: ${key}. Store only project-specific decisions, constraints, and outcomes.`,
+      );
+    }
 
     const onConflict = (params.onConflict as string) ?? "reject";
     const metadata = params.metadata as Record<string, unknown> | undefined;

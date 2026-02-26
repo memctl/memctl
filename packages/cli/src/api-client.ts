@@ -20,6 +20,9 @@ export class ApiClient {
   private project: string;
   private cache: MemoryCache;
   private localCache: LocalCache;
+  private onRequest?:
+    | ((event: { method: string; path: string; body?: unknown }) => void)
+    | undefined;
   private isOffline = false;
   private inflight = new Map<string, Promise<unknown>>();
   private lastFreshness: "fresh" | "cached" | "stale" | "offline" = "fresh";
@@ -29,11 +32,17 @@ export class ApiClient {
     token: string;
     org: string;
     project: string;
+    onRequest?: (event: {
+      method: string;
+      path: string;
+      body?: unknown;
+    }) => void;
   }) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
     this.token = config.token;
     this.org = config.org;
     this.project = config.project;
+    this.onRequest = config.onRequest;
     this.cache = new MemoryCache(30_000);
     this.localCache = new LocalCache(config.org, config.project);
   }
@@ -111,6 +120,7 @@ export class ApiClient {
     body: unknown,
     cacheKey: string,
   ): Promise<T> {
+    this.onRequest?.({ method, path, body });
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.token}`,
@@ -181,7 +191,45 @@ export class ApiClient {
       throw new ApiError(res.status, message, text);
     }
 
-    const data = (await res.json()) as T;
+    const contentType = res.headers.get("content-type")?.toLowerCase() ?? "";
+    const isJsonResponse =
+      !contentType ||
+      contentType.includes("application/json") ||
+      contentType.includes("+json");
+
+    let data: T;
+    if (res.status === 204 || res.status === 205) {
+      data = undefined as T;
+    } else if (isJsonResponse) {
+      const resClone =
+        typeof res.clone === "function" ? res.clone() : null;
+      try {
+        data = (await res.json()) as T;
+      } catch {
+        const text =
+          resClone != null
+            ? await resClone.text()
+            : typeof (
+                  res as {
+                    text?: () => Promise<string>;
+                  }
+                ).text === "function"
+              ? await (
+                  res as {
+                    text: () => Promise<string>;
+                  }
+                ).text()
+              : "";
+        data = text.trim() ? (text as T) : (undefined as T);
+      }
+    } else {
+      const text = await res.text();
+      if (!text.trim()) {
+        data = undefined as T;
+      } else {
+        data = text as T;
+      }
+    }
     this.lastFreshness = "fresh";
 
     // Cache GET responses with ETag
@@ -530,7 +578,10 @@ export class ApiClient {
   async exportMemories(
     format: "agents_md" | "cursorrules" | "json" = "agents_md",
   ) {
-    return this.request<string>("GET", `/memories/export?format=${format}`);
+    return this.request<string | Record<string, unknown>>(
+      "GET",
+      `/memories/export?format=${format}`,
+    );
   }
 
   // ── Activity Logs ──────────────────────────────────────────────

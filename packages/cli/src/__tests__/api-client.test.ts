@@ -180,4 +180,100 @@ describe("ApiClient", () => {
 
     expect(client.getConnectionStatus()).toEqual({ online: true });
   });
+
+  it("returns markdown export responses as text", async () => {
+    const { ApiClient } = await import("../api-client");
+    const client = new ApiClient({
+      baseUrl: "http://localhost:3000/api/v1",
+      token: "test-token",
+      org: "test-org",
+      project: "test-project",
+    });
+
+    const markdown = "# AGENTS.md\n\n## Rules\n\n- Keep responses short.";
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "text/markdown; charset=utf-8" }),
+      text: () => Promise.resolve(markdown),
+      json: () => Promise.reject(new Error("json() should not be called")),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await client.exportMemories("agents_md");
+    expect(result).toBe(markdown);
+  });
+
+  it("returns cursorrules export responses as text", async () => {
+    const { ApiClient } = await import("../api-client");
+    const client = new ApiClient({
+      baseUrl: "http://localhost:3000/api/v1",
+      token: "test-token",
+      org: "test-org",
+      project: "test-project",
+    });
+
+    const rules = "# Rules\n\nNo force pushes.";
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "text/plain; charset=utf-8" }),
+      text: () => Promise.resolve(rules),
+      json: () => Promise.reject(new Error("json() should not be called")),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await client.exportMemories("cursorrules");
+    expect(result).toBe(rules);
+  });
+
+  it("returns json export responses as objects", async () => {
+    const { ApiClient } = await import("../api-client");
+    const client = new ApiClient({
+      baseUrl: "http://localhost:3000/api/v1",
+      token: "test-token",
+      org: "test-org",
+      project: "test-project",
+    });
+
+    const payload = { types: { architecture: [] } };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json; charset=utf-8" }),
+      json: () => Promise.resolve(payload),
+      text: () => Promise.resolve(""),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await client.exportMemories("json");
+    expect(result).toEqual(payload);
+  });
+
+  it("falls back to text when json parsing fails on success response", async () => {
+    const { ApiClient } = await import("../api-client");
+    const client = new ApiClient({
+      baseUrl: "http://localhost:3000/api/v1",
+      token: "test-token",
+      org: "test-org",
+      project: "test-project",
+    });
+
+    const markdown = "# AGENTS.md\n\n## Rules";
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: () =>
+        Promise.reject(new SyntaxError("Unexpected token '#' in JSON at position 0")),
+      clone: () => ({
+        text: () => Promise.resolve(markdown),
+      }),
+      text: () => Promise.resolve(markdown),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const result = await client.exportMemories("agents_md");
+    expect(result).toBe(markdown);
+  });
 });

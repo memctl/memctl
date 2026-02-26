@@ -3,6 +3,105 @@ import { ApiClient, ApiError } from "./api-client.js";
 import { getConfigPath, loadConfigForCwd } from "./config.js";
 import { bold, cyan, green, red, yellow, isInteractiveTty } from "./ui.js";
 
+const DEFAULT_AGENTS_MD_TEMPLATE = `# AGENTS.md
+
+## memctl MCP Rules
+
+MCP server name is \`memctl\`. You MUST use it for persistent project memory.
+
+ALWAYS use memctl tools. Do not skip them. They provide coding conventions, architecture decisions, testing rules, and context from previous sessions that you need to do your job correctly.
+
+## Session Start (REQUIRED)
+
+Run these at the start of EVERY session, before doing anything else:
+
+1. \`context\` with \`{"action":"bootstrap"}\` - load all project context
+2. \`session\` with \`{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}\` - register this session
+3. \`activity\` with \`{"action":"memo_read"}\` - check handoff notes from previous sessions
+4. \`branch\` with \`{"action":"get","includeRelatedContext":true}\` - load branch plan
+
+## Before Editing Files (REQUIRED)
+
+ALWAYS load context before touching code:
+
+- \`context\` with \`{"action":"context_for","filePaths":[...]}\` for files you are about to edit
+- \`context\` with \`{"action":"functionality_get","type":"coding_style"}\` if not already loaded
+
+## While Coding
+
+- Store decisions: \`memory\` with \`{"action":"store","key":"...","content":"..."}\`
+- Search before storing: \`memory\` with \`{"action":"search","query":"..."}\`
+- Update branch plan: \`branch\` with \`{"action":"set","content":"...","status":"in_progress"}\`
+
+## Session End (REQUIRED)
+
+Before ending your session:
+
+1. \`activity\` with \`{"action":"memo_leave","message":"...","urgency":"info"}\` if anything is pending
+2. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..."}\`
+
+## Rules
+
+- NEVER skip bootstrap at session start
+- NEVER skip context_for before editing files
+- Do not store secrets, tokens, or API keys
+- Do not store large file contents or binary data
+- Search before storing to avoid duplicates
+`;
+
+const AGENTS_MD_EMPTY_SCAFFOLD =
+  "# AGENTS.md\n\n> Auto-generated from memctl structured agent context";
+
+function resolveExportResultContent(result: unknown): string {
+  if (typeof result === "string") {
+    return result;
+  }
+
+  if (result && typeof result === "object") {
+    const data = result as Record<string, unknown>;
+    if (typeof data.content === "string") {
+      return data.content;
+    }
+  }
+
+  return JSON.stringify(result, null, 2);
+}
+
+function shouldUseAgentsTemplateFallback(content: string): boolean {
+  const normalized = content.replace(/\r\n/g, "\n").trim();
+  if (!normalized) {
+    return true;
+  }
+
+  if (!normalized.includes("## ")) {
+    return true;
+  }
+
+  return normalized === AGENTS_MD_EMPTY_SCAFFOLD;
+}
+
+function normalizeExportContent(
+  content: string,
+  format: "agents_md" | "cursorrules" | "json",
+): string {
+  if (format !== "agents_md") {
+    return content;
+  }
+
+  if (shouldUseAgentsTemplateFallback(content)) {
+    return DEFAULT_AGENTS_MD_TEMPLATE;
+  }
+
+  return content;
+}
+
+export const cliInternals = {
+  DEFAULT_AGENTS_MD_TEMPLATE,
+  resolveExportResultContent,
+  shouldUseAgentsTemplateFallback,
+  normalizeExportContent,
+};
+
 async function getClient(): Promise<ApiClient> {
   const resolved = await loadConfigForCwd();
   if (!resolved) {
@@ -151,7 +250,11 @@ Usage:
   memctl init --claude      Write Claude Code MCP config only
   memctl init --cursor      Write Cursor MCP config only
   memctl init --windsurf    Write Windsurf MCP config only
-  memctl init --all         Write all IDE configs
+  memctl init --vscode      Write VS Code MCP config only
+  memctl init --codex       Write Codex MCP config only
+  memctl init --roo         Write Roo Code MCP config only
+  memctl init --amazonq     Write Amazon Q MCP config only
+  memctl init --all         Write all IDE/agent configs
   memctl config             Update API URL/token
   memctl config --show      Show resolved configuration
   memctl config --global    Update global API URL/token only
@@ -173,8 +276,13 @@ Usage:
   memctl generate --gemini  Also write GEMINI.md
   memctl generate --cursor  Also write .cursorrules
   memctl generate --copilot Also write .github/copilot-instructions.md
+  memctl generate --windsurf Also write .windsurfrules
+  memctl generate --cline   Also write .clinerules
+  memctl generate --roo     Also write .roo/rules/memctl.md
   memctl generate --all     Write all agent config files
   memctl generate --link    Symlink agent files to AGENTS.md instead of copying
+  memctl hook <action>      Hook API for cross-agent memory capture (start|turn|end)
+  memctl hook-adapter       Print or write hook adapter templates for agents
   memctl import <file>      Import from .cursorrules / copilot-instructions
   memctl snapshot <name>    Create a snapshot
   memctl snapshots          List snapshots
@@ -190,12 +298,20 @@ Options:
   --gemini                  Include GEMINI.md
   --cursor                  Include .cursorrules
   --copilot                 Include .github/copilot-instructions.md
+  --windsurf                Include .windsurfrules
+  --cline                   Include .clinerules
+  --roo                     Include .roo/rules/memctl.md
   --all                     Include all agent config files
   --link                    Symlink to AGENTS.md instead of copying
   --global                  For memctl config, update global profile only
   --json                    Output raw JSON
   --force                   Skip confirmation prompts
   --version                 Show CLI version
+  --payload <json>          For hook command: JSON payload
+  --stdin                   For hook command: read JSON payload from stdin
+  --agent <name>            For hook-adapter: claude, cursor, windsurf, vscode, continue, zed, codex, cline, roo, amazonq, generic, all
+  --dir <path>              For hook-adapter: target directory (default: .memctl/hooks)
+  --write                   For hook-adapter: write files instead of printing
 
 Environment:
   MEMCTL_TOKEN              API token (optional if stored via memctl auth)
@@ -318,6 +434,10 @@ export async function runCli(args: string[]): Promise<void> {
       claude: Boolean(flags.claude),
       cursor: Boolean(flags.cursor),
       windsurf: Boolean(flags.windsurf),
+      vscode: Boolean(flags.vscode),
+      codex: Boolean(flags.codex),
+      roo: Boolean(flags.roo),
+      amazonq: Boolean(flags.amazonq),
       all: Boolean(flags.all),
     });
     return;
@@ -402,6 +522,13 @@ export async function runCli(args: string[]): Promise<void> {
     return;
   }
 
+  if (command === "hook-adapter") {
+    const { runHookAdapterCommand } = await import("./hook-adapter.js");
+    const result = await runHookAdapterCommand({ positional, flags });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
   const client = await getClient();
 
   try {
@@ -457,16 +584,11 @@ export async function runCli(args: string[]): Promise<void> {
         | "cursorrules"
         | "json";
       const result = await client.exportMemories(format);
-      if (typeof result === "string") {
-        console.log(result);
-      } else {
-        const data = result as Record<string, unknown>;
-        if (typeof data.content === "string") {
-          console.log(data.content);
-        } else {
-          out(result, true);
-        }
-      }
+      const content = normalizeExportContent(
+        resolveExportResultContent(result),
+        format,
+      );
+      console.log(content);
       break;
     }
 
@@ -489,6 +611,9 @@ export async function runCli(args: string[]): Promise<void> {
           file: ".github/copilot-instructions.md",
           format: "agents_md",
         },
+        { flag: "windsurf", file: ".windsurfrules", format: "agents_md" },
+        { flag: "cline", file: ".clinerules", format: "agents_md" },
+        { flag: "roo", file: ".roo/rules/memctl.md", format: "agents_md" },
       ];
 
       const targets: Array<{
@@ -526,15 +651,10 @@ export async function runCli(args: string[]): Promise<void> {
         let content = cache.get(target.format);
         if (content == null) {
           const result = await client.exportMemories(target.format);
-          if (typeof result === "string") {
-            content = result;
-          } else {
-            const data = result as Record<string, unknown>;
-            content =
-              typeof data.content === "string"
-                ? data.content
-                : JSON.stringify(result, null, 2);
-          }
+          content = normalizeExportContent(
+            resolveExportResultContent(result),
+            target.format,
+          );
           cache.set(target.format, content);
         }
 
@@ -550,6 +670,13 @@ export async function runCli(args: string[]): Promise<void> {
         parts.push(`Linked ${linked.length} file(s): ${linked.map((f) => `${f} -> AGENTS.md`).join(", ")}`);
       }
       console.log(parts.join("\n"));
+      break;
+    }
+
+    case "hook": {
+      const { runHookCommand } = await import("./hooks.js");
+      const result = await runHookCommand({ client, positional, flags });
+      console.log(JSON.stringify(result, null, 2));
       break;
     }
 
