@@ -7,53 +7,46 @@ const DEFAULT_AGENTS_MD_TEMPLATE = `# AGENTS.md
 
 ## memctl MCP Rules
 
-MCP server name is \`memctl\`.
-Use \`memctl\` for all project memory: session history, coding conventions, architecture decisions, testing rules, branch plans.
-Store decisions and lessons learned in memctl so they persist across sessions.
+MCP server name is \`memctl\`. You MUST use it for persistent project memory.
 
-## Session Start
+ALWAYS use memctl tools. Do not skip them. They provide coding conventions, architecture decisions, testing rules, and context from previous sessions that you need to do your job correctly.
+
+## Session Start (REQUIRED)
+
+Run these at the start of EVERY session, before doing anything else:
 
 1. \`context\` with \`{"action":"bootstrap"}\` - load all project context
 2. \`session\` with \`{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}\` - register this session
 3. \`activity\` with \`{"action":"memo_read"}\` - check handoff notes from previous sessions
-4. \`branch\` with \`{"action":"get","includeRelatedContext":true}\` - load branch plan and related context
+4. \`branch\` with \`{"action":"get","includeRelatedContext":true}\` - load branch plan
 
-If the file map is stale, run \`repo\` with \`{"action":"scan_check"}\`, then run \`repo\` with \`{"action":"scan","saveAsContext":true}\`.
+## Before Editing Files (REQUIRED)
 
-## Before Coding
+ALWAYS load context before touching code:
 
-- \`context\` with \`{"action":"functionality_get","type":"coding_style"}\`, and repeat for: \`architecture\`, \`testing\`, \`constraints\`, \`workflow\`
-- \`context\` with \`{"action":"context_for","filePaths":[...]}\` for files you are about to touch
-- \`branch\` with \`{"action":"get","includeRelatedContext":true}\` for current plan and checklist
+- \`context\` with \`{"action":"context_for","filePaths":[...]}\` for files you are about to edit
+- \`context\` with \`{"action":"functionality_get","type":"coding_style"}\` if not already loaded
 
 ## While Coding
 
-- \`context\` with \`{"action":"functionality_set","type":"...","id":"...","title":"...","content":"..."}\` for structured rules
-- \`memory\` with \`{"action":"search","query":"..."}\` before \`{"action":"store","key":"...","content":"..."}\` for one-off decisions
-- \`branch\` with \`{"action":"set","content":"...","status":"in_progress"}\` after each meaningful task
+- Store decisions: \`memory\` with \`{"action":"store","key":"...","content":"..."}\`
+- Search before storing: \`memory\` with \`{"action":"search","query":"..."}\`
+- Update branch plan: \`branch\` with \`{"action":"set","content":"...","status":"in_progress"}\`
 
-## End Of Session
+## Session End (REQUIRED)
 
-1. \`branch\` with \`{"action":"set","content":"...","status":"review"}\` with final progress
-2. \`activity\` with \`{"action":"memo_leave","message":"...","urgency":"info"}\` if anything is pending
-3. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..."}\`
+Before ending your session:
 
-## Maintenance
-
-Run every few sessions:
-
-- \`memory_lifecycle\` with \`{"action":"suggest_cleanup","staleDays":30}\` - review stale candidates
-- \`memory_lifecycle\` with \`{"action":"lifecycle_run","policies":["cleanup_expired","cleanup_session_logs","archive_merged_branches"]}\` - run periodic cleanup
-- \`memory_advanced\` with \`{"action":"check_duplicates","content":"..."}\` - find duplicate candidates
+1. \`activity\` with \`{"action":"memo_leave","message":"...","urgency":"info"}\` if anything is pending
+2. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..."}\`
 
 ## Rules
 
+- NEVER skip bootstrap at session start
+- NEVER skip context_for before editing files
 - Do not store secrets, tokens, or API keys
 - Do not store large file contents or binary data
-- Do not store generic agent capabilities (file scanning, pattern search, grep usage)
-- Do not skip \`context\` with \`{"action":"bootstrap"}\` at session start
 - Search before storing to avoid duplicates
-- Do not let memory grow unchecked
 `;
 
 const AGENTS_MD_EMPTY_SCAFFOLD =

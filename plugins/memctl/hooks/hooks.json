@@ -8,6 +8,15 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/memctl-hook-dispatch.sh start"
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/memctl-hook-dispatch.sh compact"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [

@@ -44,6 +44,8 @@ const SUPPORTED_AGENTS: Agent[] = [
   "generic",
 ];
 
+const MEMCTL_REMINDER = 'Use the memctl MCP tools for persistent memory. If you have not bootstrapped context yet this session, call the context tool with {"action":"bootstrap"} and the session tool with {"action":"start","sessionId":"<unique-id>","autoExtractGit":true}. Before editing files, call context with {"action":"context_for","filePaths":[...]}. Store important decisions with the memory tool. At session end, call session with {"action":"end"}.';
+
 const DISPATCHER_SCRIPT = `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -53,7 +55,7 @@ SESSION_FILE="\${ROOT_DIR}/session_id"
 mkdir -p "\${ROOT_DIR}"
 
 if [[ -z "\${PHASE}" ]]; then
-  echo "Usage: memctl-hook-dispatch.sh <start|user|assistant|end>" >&2
+  echo "Usage: memctl-hook-dispatch.sh <start|user|assistant|end|compact>" >&2
   exit 1
 fi
 
@@ -142,14 +144,27 @@ send_hook_payload() {
   printf '%s' "\${json_payload}" | memctl hook --stdin >/dev/null 2>&1 || true
 }
 
+# Context reminder injected into Claude's context on every user prompt.
+# This is what makes Claude reliably use memctl across turns.
+MEMCTL_REMINDER='${MEMCTL_REMINDER}'
+
 payload="$(read_payload)"
-session_id="$(ensure_session_id)"
 
 case "\${PHASE}" in
   start)
+    session_id="$(ensure_session_id)"
     memctl hook start --session-id "\${session_id}" >/dev/null 2>&1 || true
+    # Inject full instructions into context at session start
+    printf '%s' "\${MEMCTL_REMINDER}"
     ;;
   user)
+    session_id="$(ensure_session_id)"
+    # Inject reminder into Claude's context via additionalContext (stdout)
+    node -e '
+      const reminder = process.env.MEMCTL_REMINDER || "";
+      process.stdout.write(JSON.stringify({ additionalContext: reminder }));
+    '
+    # Send turn data to API in background
     user_message="$(extract_json_field "\${payload}" "user")"
     if [[ -n "\${user_message}" ]]; then
       json="$(HOOK_MESSAGE="\${user_message}" HOOK_SESSION_ID="\${session_id}" node -e '
@@ -157,10 +172,11 @@ case "\${PHASE}" in
         const sessionId = process.env.HOOK_SESSION_ID || "";
         process.stdout.write(JSON.stringify({ action: "turn", sessionId, userMessage: message }));
       ')"
-      send_hook_payload "\${json}"
+      send_hook_payload "\${json}" &
     fi
     ;;
   assistant)
+    session_id="$(ensure_session_id)"
     assistant_message="$(extract_json_field "\${payload}" "assistant")"
     if [[ -n "\${assistant_message}" ]]; then
       json="$(HOOK_MESSAGE="\${assistant_message}" HOOK_SESSION_ID="\${session_id}" node -e '
@@ -168,10 +184,15 @@ case "\${PHASE}" in
         const sessionId = process.env.HOOK_SESSION_ID || "";
         process.stdout.write(JSON.stringify({ action: "turn", sessionId, assistantMessage: message }));
       ')"
-      send_hook_payload "\${json}"
+      send_hook_payload "\${json}" &
     fi
     ;;
+  compact)
+    # Re-inject full instructions after context compaction
+    printf '%s' "\${MEMCTL_REMINDER}"
+    ;;
   end)
+    session_id="$(ensure_session_id)"
     summary="$(extract_json_field "\${payload}" "summary")"
     json="$(HOOK_SUMMARY="\${summary}" HOOK_SESSION_ID="\${session_id}" node -e '
       const summary = process.env.HOOK_SUMMARY || "";
@@ -196,6 +217,15 @@ const CLAUDE_HOOKS_EXAMPLE = `{
           {
             "type": "command",
             "command": "./.memctl/hooks/memctl-hook-dispatch.sh start"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.memctl/hooks/memctl-hook-dispatch.sh compact"
           }
         ]
       }

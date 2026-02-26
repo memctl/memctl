@@ -7,21 +7,27 @@ description: Make any AI coding agent reliably use memctl on every turn
 
 MCP config alone tells the agent that memctl exists. Agent instruction files tell it _how_ and _when_ to use it. Without instructions, agents may ignore memctl after the first prompt or use it inconsistently.
 
+There are three layers of reinforcement, from weakest to strongest:
+
+1. **Instruction files** (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`) - loaded at session start, can get lost during context compaction
+2. **Per-turn hooks** (`UserPromptSubmit`) - inject a short reminder into every single turn, survives compaction
+3. **Compaction hooks** (`SessionStart` with `compact` matcher) - re-inject full instructions after context window fills up
+
+For Claude Code, use all three. For agents without hooks (Codex, Cursor, Windsurf), instruction files are your only option, so make them explicit and imperative.
+
 ## How it works
 
-Most coding agents load instruction files at the start of every conversation. These files persist across sessions and get merged into the agent's system context automatically.
-
-| Agent       | Instruction file                      | Loaded on every turn | Notes                                      |
-| ----------- | ------------------------------------- | -------------------- | ------------------------------------------ |
-| Claude Code | `CLAUDE.md`                           | Yes                  | Also reads `AGENTS.md`                     |
-| Codex       | `AGENTS.md`                           | Yes                  | Merges root down into subdirs, 32 KiB max  |
-| Cursor      | `.cursorrules`                        | Yes                  | Also reads `.cursor/rules/` directory      |
-| Gemini      | `GEMINI.md`                           | Yes                  | Also reads `AGENTS.md`                     |
-| Copilot     | `.github/copilot-instructions.md`     | Yes                  | Per-repo instructions                      |
-| Windsurf    | `.windsurfrules`                      | Yes                  | Global or per-project                      |
-| Roo Code    | `.roo/rules/`                         | Yes                  | Mode-specific rule files                   |
-| Cline       | `.clinerules`                         | Yes                  | Per-project rules                          |
-| Aider       | N/A                                   | No                   | Pass `--read AGENTS.md` manually           |
+| Agent       | Instruction file                      | Loaded at           | Hooks available | Notes                                      |
+| ----------- | ------------------------------------- | ------------------- | --------------- | ------------------------------------------ |
+| Claude Code | `CLAUDE.md`                           | Session start       | Yes             | Also reads `AGENTS.md`, has full hook system |
+| Codex       | `AGENTS.md`                           | Once per run        | No              | Merges root down into subdirs, 32 KiB max  |
+| Cursor      | `.cursorrules`                        | Every turn          | No              | Also reads `.cursor/rules/` directory      |
+| Gemini      | `GEMINI.md`                           | Session start       | No              | Also reads `AGENTS.md`                     |
+| Copilot     | `.github/copilot-instructions.md`     | Every turn          | No              | Per-repo instructions                      |
+| Windsurf    | `.windsurfrules`                      | Every turn          | No              | Global or per-project                      |
+| Roo Code    | `.roo/rules/`                         | Every turn          | No              | Mode-specific rule files                   |
+| Cline       | `.clinerules`                         | Every turn          | No              | Per-project rules                          |
+| Aider       | N/A                                   | N/A                 | No              | Pass `--read AGENTS.md` manually           |
 
 ## Quick setup
 
@@ -64,24 +70,40 @@ See the full template at [AGENTS.md template](/docs/agents-md).
 
 ### Claude Code
 
-Claude Code reads both `CLAUDE.md` and `AGENTS.md` from the project root. MCP config goes in `.mcp.json`.
+Claude Code loads `CLAUDE.md` and `AGENTS.md` at session start, but these instructions can get lost during long sessions when context compaction kicks in. The solution is hooks.
+
+**Recommended setup (MCP + instructions + hooks):**
 
 ```bash
 npx memctl init --claude
 npx memctl generate --claude --link
 ```
 
-This creates `.mcp.json` (MCP config) and symlinks `CLAUDE.md` to `AGENTS.md`.
+Then install the memctl plugin for automatic per-turn reminders:
 
-For automatic turn-level capture, use [Claude hooks](/docs/cli/hooks):
+```bash
+/plugin marketplace add memctl/memctl
+/plugin install memctl@memctl
+```
+
+The plugin adds three hooks:
+- **`SessionStart`** - bootstraps memctl context, re-injects after compaction
+- **`UserPromptSubmit`** - injects a short memctl reminder into every turn via `additionalContext`
+- **`Stop`** - captures assistant responses for session history
+
+Without the plugin, you can set up hooks manually:
 
 ```bash
 npx memctl hook-adapter --agent claude --write
 ```
 
+Then copy `.memctl/hooks/claude.settings.local.json.example` into `.claude/settings.local.json`.
+
+**Why hooks matter:** `CLAUDE.md` loads once at session start. During long sessions, context compaction summarizes the conversation and can lose early instructions. The `UserPromptSubmit` hook injects a short reminder on every turn, so Claude never forgets about memctl. The `SessionStart` hook with `compact` matcher re-injects full instructions after every compaction.
+
 ### Codex
 
-Codex reads `AGENTS.md` from the repo root and merges files from parent directories down. MCP config goes in `.codex/config.toml`.
+Codex reads `AGENTS.md` once per run (not every turn) and has no hook system. This means your only chance to tell Codex about memctl is the instruction file. Make it explicit and imperative.
 
 ```bash
 npx memctl init --codex
@@ -100,6 +122,14 @@ args = ["-y", "memctl@latest"]
 [mcp_servers.memctl.env]
 MEMCTL_ORG = "your-org"
 MEMCTL_PROJECT = "your-project"
+```
+
+**Limitations:** Since Codex loads instructions once and has no hooks, it may stop using memctl during long sessions. The default `AGENTS.md` template uses strong imperative language ("You MUST", "ALWAYS", "NEVER skip") to maximize compliance. If Codex still drops off, add a manual reminder in your prompt: "Use the memctl tools to check context before making changes."
+
+**Tip:** If your `AGENTS.md` exceeds 32 KiB, Codex truncates it. Increase the limit in `.codex/config.toml`:
+
+```toml
+project_doc_max_bytes = 65536
 ```
 
 ### Cursor
