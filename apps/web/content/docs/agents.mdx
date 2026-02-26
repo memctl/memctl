@@ -14,20 +14,20 @@ npx memctl hook-adapter --agent all --write
 
 ## Quick reference
 
-| Agent             | Config location                       | Config key        | Auto-setup               | Instruction file          |
-| ----------------- | ------------------------------------- | ----------------- | ------------------------ | ------------------------- |
-| Claude Code       | `.mcp.json`                           | `mcpServers`      | `memctl init --claude`   | `generate --claude`       |
-| Cursor            | `.cursor/mcp.json`                    | `mcpServers`      | `memctl init --cursor`   | `generate --cursor`       |
-| VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | `memctl init --vscode`   | `generate --copilot`      |
-| Windsurf          | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`      | `memctl init --windsurf` | `generate --windsurf`     |
-| Codex             | `.codex/config.toml`                  | `mcp_servers`     | `memctl init --codex`    | `generate` (AGENTS.md)    |
-| Cline             | Extension UI                          | `mcpServers`      | Manual                   | `generate --cline`        |
-| Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | `memctl init --roo`      | `generate --roo`          |
-| Continue          | `.continue/config.yaml`               | `mcpServers`      | Manual                   | Manual (copy AGENTS.md)   |
-| Zed               | Zed settings                          | `context_servers` | Manual                   | N/A                       |
-| JetBrains         | Settings UI                           | -                 | Manual                   | N/A                       |
-| Amazon Q          | `.amazonq/mcp.json`                   | `mcpServers`      | `memctl init --amazonq`  | `generate` (AGENTS.md)    |
-| Aider             | N/A                                   | -                 | -                        | `export agents_md`        |
+| Agent             | Config location                       | Config key        | Auto-setup               | Instruction file               |
+| ----------------- | ------------------------------------- | ----------------- | ------------------------ | ------------------------------ |
+| Claude Code       | `.mcp.json`                           | `mcpServers`      | `memctl init --claude`   | `generate --claude`            |
+| Cursor            | `.cursor/mcp.json`                    | `mcpServers`      | `memctl init --cursor`   | `generate --cursor-rule`       |
+| VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | `memctl init --vscode`   | `generate --copilot`           |
+| Windsurf          | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`      | `memctl init --windsurf` | `generate --windsurf`          |
+| Codex             | `.codex/config.toml`                  | `mcp_servers`     | `memctl init --codex`    | `generate --codex`             |
+| Cline             | Extension UI                          | `mcpServers`      | Manual                   | `generate --cline`             |
+| Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | `memctl init --roo`      | `generate --roo`               |
+| Continue          | `.continue/config.yaml`               | `mcpServers`      | Manual                   | Manual (copy AGENTS.md)        |
+| Zed               | Zed settings                          | `context_servers` | Manual                   | N/A                            |
+| JetBrains         | Settings UI                           | -                 | Manual                   | N/A                            |
+| Amazon Q          | `.amazonq/mcp.json`                   | `mcpServers`      | `memctl init --amazonq`  | `generate --amazonq`           |
+| Aider             | N/A                                   | -                 | -                        | `export agents_md`             |
 
 For automatic per-turn memory capture, use [CLI Hooks](/docs/cli/hooks).
 
@@ -159,10 +159,10 @@ MEMCTL_PROJECT = "your-project"
 
 Or use the init wizard: `npx memctl init --codex`
 
-Codex reads `AGENTS.md` files from the repo root down into subdirectories (merged in order, 32 KiB limit). Add an `AGENTS.md` with memctl usage instructions so Codex uses memory tools on every turn:
+Codex reads `AGENTS.md` and `codex.md` from the repo root (merged in order, 32 KiB limit). Generate agent instructions so Codex uses memory tools on every turn:
 
 ```bash
-npx memctl generate
+npx memctl generate --codex
 ```
 
 </Accordion>

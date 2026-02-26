@@ -280,8 +280,8 @@ describe("init – writeIdeConfigs", () => {
       const runInit = await importRunInit();
       await runInit({ all: true });
 
-      // Should write seven config files (claude, cursor, windsurf, vscode, codex, roo, amazonq)
-      expect(mockWriteFile).toHaveBeenCalledTimes(7);
+      // Should write eight files (claude, cursor, windsurf, vscode, codex config, codex.md, roo, amazonq)
+      expect(mockWriteFile).toHaveBeenCalledTimes(8);
 
       const paths = mockWriteFile.mock.calls.map(
         (c: unknown[]) => c[0] as string,
@@ -291,6 +291,7 @@ describe("init – writeIdeConfigs", () => {
       expect(paths.some((p: string) => p.includes("mcp_config.json"))).toBe(true);
       expect(paths.some((p: string) => p.includes(".vscode"))).toBe(true);
       expect(paths.some((p: string) => p.includes(".codex"))).toBe(true);
+      expect(paths.some((p: string) => p.includes("codex.md"))).toBe(true);
       expect(paths.some((p: string) => p.includes(".roo"))).toBe(true);
       expect(paths.some((p: string) => p.includes(".amazonq"))).toBe(true);
     });

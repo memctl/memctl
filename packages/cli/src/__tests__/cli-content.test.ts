@@ -4,7 +4,7 @@ import { cliInternals } from "../cli";
 describe("cli content normalization", () => {
   it("uses default template for empty agents_md content", () => {
     const result = cliInternals.normalizeExportContent("", "agents_md");
-    expect(result).toContain("## memctl MCP Rules");
+    expect(result).toContain("# memctl Rules");
   });
 
   it("uses default template for scaffold-only agents_md content", () => {

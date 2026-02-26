@@ -12,6 +12,7 @@ import {
   type MemctlConfig,
 } from "./config.js";
 import { bold, cyan, green, red, yellow } from "./ui.js";
+import { DEFAULT_AGENTS_MD_TEMPLATE } from "./agents-template.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -371,6 +372,14 @@ async function writeIdeConfigs(
       config,
       options,
     );
+    const codexMdPath = join(process.cwd(), "codex.md");
+    try {
+      await readFile(codexMdPath, "utf-8");
+      console.log(`  codex.md already exists, skipping`);
+    } catch {
+      await writeFile(codexMdPath, DEFAULT_AGENTS_MD_TEMPLATE);
+      console.log(`  Codex agents: codex.md`);
+    }
   }
 
   if (flags.roo || flags.all) {
@@ -421,64 +430,6 @@ async function writeJsonConfig(
   console.log(`  ${ideName}: ${path}`);
 }
 
-const DEFAULT_AGENTS_MD = `# AGENTS.md
-
-## memctl MCP Rules
-
-MCP server name is \`memctl\`. You MUST use it for ALL persistent memory.
-
-IMPORTANT: Do NOT use built-in auto memory or MEMORY.md files. Use memctl tools instead. They provide coding conventions, architecture decisions, testing rules, and context from previous sessions.
-
-## Session Start (REQUIRED)
-
-Run these at the start of EVERY session, before doing anything else:
-
-1. \`context\` with \`{"action":"bootstrap"}\` - load all project context
-2. \`session\` with \`{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}\` - register this session
-3. \`activity\` with \`{"action":"memo_read"}\` - check handoff notes from previous sessions
-4. \`branch\` with \`{"action":"get","includeRelatedContext":true}\` - load branch plan
-
-## Before Editing Files (REQUIRED)
-
-ALWAYS load context before touching code:
-
-- \`context\` with \`{"action":"context_for","filePaths":[...]}\` for files you are about to edit
-- \`context\` with \`{"action":"functionality_get","type":"coding_style"}\` if not already loaded
-
-## While Coding
-
-- Store decisions: \`context\` with \`{"action":"functionality_set","type":"decisions","id":"<id>","content":"## Decision\\n...\\n## Rationale\\n..."}\`
-- Store user ideas: \`context\` with \`{"action":"functionality_set","type":"user_ideas","id":"<id>","content":"## Idea\\n...\\n## Priority\\n..."}\`
-- Store known issues: \`context\` with \`{"action":"functionality_set","type":"known_issues","id":"<id>","content":"## Issue\\n...\\n## Workaround\\n..."}\`
-- Search before storing: \`memory\` with \`{"action":"search","query":"..."}\`
-- Update branch plan: \`branch\` with \`{"action":"set","content":"...","status":"in_progress"}\`
-- Store user preferences and requests with \`memory\` (e.g. "always use X", "never do Y")
-
-## After Completing Work
-
-When you finish a task, fix a bug, or reach a milestone:
-
-1. \`activity\` with \`{"action":"memo_leave","message":"<what was done and pending items>","urgency":"info"}\`
-2. Store lessons learned: \`context\` with \`{"action":"functionality_set","type":"lessons_learned","id":"<id>","content":"<what failed or should be avoided>"}\`
-3. Store any known issues discovered: \`context\` with \`{"action":"functionality_set","type":"known_issues","id":"<id>","content":"## Issue\\n...\\n## Workaround\\n..."}\`
-
-## Session End (REQUIRED)
-
-Before ending your session:
-
-1. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"<detailed summary of what was accomplished>"}\`
-
-The summary should include what was done, key decisions made, files changed, and anything the next session needs to know.
-
-## Rules
-
-- NEVER use built-in auto memory, always use memctl tools
-- NEVER skip bootstrap at session start
-- NEVER skip context_for before editing files
-- Do not store secrets, tokens, or API keys
-- Do not store large file contents or binary data
-- Search before storing to avoid duplicates
-`;
 
 async function writeAgentsFile(cwd: string): Promise<void> {
   const agentsPath = join(cwd, "AGENTS.md");
@@ -492,7 +443,7 @@ async function writeAgentsFile(cwd: string): Promise<void> {
     /* file doesn't exist, write it */
   }
 
-  await writeFile(agentsPath, DEFAULT_AGENTS_MD);
+  await writeFile(agentsPath, DEFAULT_AGENTS_MD_TEMPLATE);
   console.log(`  ${green("Wrote")} AGENTS.md`);
 }
 

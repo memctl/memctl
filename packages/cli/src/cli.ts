@@ -2,52 +2,7 @@ import { createRequire } from "node:module";
 import { ApiClient, ApiError } from "./api-client.js";
 import { getConfigPath, loadConfigForCwd } from "./config.js";
 import { bold, cyan, green, red, yellow, isInteractiveTty } from "./ui.js";
-
-const DEFAULT_AGENTS_MD_TEMPLATE = `# AGENTS.md
-
-## memctl MCP Rules
-
-MCP server name is \`memctl\`. You MUST use it for persistent project memory.
-
-ALWAYS use memctl tools. Do not skip them. They provide coding conventions, architecture decisions, testing rules, and context from previous sessions that you need to do your job correctly.
-
-## Session Start (REQUIRED)
-
-Run these at the start of EVERY session, before doing anything else:
-
-1. \`context\` with \`{"action":"bootstrap"}\` - load all project context
-2. \`session\` with \`{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}\` - register this session
-3. \`activity\` with \`{"action":"memo_read"}\` - check handoff notes from previous sessions
-4. \`branch\` with \`{"action":"get","includeRelatedContext":true}\` - load branch plan
-
-## Before Editing Files (REQUIRED)
-
-ALWAYS load context before touching code:
-
-- \`context\` with \`{"action":"context_for","filePaths":[...]}\` for files you are about to edit
-- \`context\` with \`{"action":"functionality_get","type":"coding_style"}\` if not already loaded
-
-## While Coding
-
-- Store decisions: \`memory\` with \`{"action":"store","key":"...","content":"..."}\`
-- Search before storing: \`memory\` with \`{"action":"search","query":"..."}\`
-- Update branch plan: \`branch\` with \`{"action":"set","content":"...","status":"in_progress"}\`
-
-## Session End (REQUIRED)
-
-Before ending your session:
-
-1. \`activity\` with \`{"action":"memo_leave","message":"...","urgency":"info"}\` if anything is pending
-2. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..."}\`
-
-## Rules
-
-- NEVER skip bootstrap at session start
-- NEVER skip context_for before editing files
-- Do not store secrets, tokens, or API keys
-- Do not store large file contents or binary data
-- Search before storing to avoid duplicates
-`;
+import { DEFAULT_AGENTS_MD_TEMPLATE, wrapForTool } from "./agents-template.js";
 
 const AGENTS_MD_EMPTY_SCAFFOLD =
   "# AGENTS.md\n\n> Auto-generated from memctl structured agent context";
@@ -97,6 +52,7 @@ function normalizeExportContent(
 
 export const cliInternals = {
   DEFAULT_AGENTS_MD_TEMPLATE,
+  wrapForTool,
   resolveExportResultContent,
   shouldUseAgentsTemplateFallback,
   normalizeExportContent,
@@ -271,16 +227,20 @@ Usage:
   memctl archive <key>      Archive a memory
   memctl unarchive <key>    Unarchive a memory
   memctl export [format]    Export memories (agents_md | cursorrules | json)
-  memctl generate           Write AGENTS.md to current directory
-  memctl generate --claude  Also write CLAUDE.md
-  memctl generate --gemini  Also write GEMINI.md
-  memctl generate --cursor  Also write .cursorrules
-  memctl generate --copilot Also write .github/copilot-instructions.md
-  memctl generate --windsurf Also write .windsurfrules
-  memctl generate --cline   Also write .clinerules
-  memctl generate --roo     Also write .roo/rules/memctl.md
-  memctl generate --all     Write all agent config files
-  memctl generate --link    Symlink agent files to AGENTS.md instead of copying
+  memctl generate               Write AGENTS.md to current directory
+  memctl generate --claude      Also write CLAUDE.md
+  memctl generate --claude-rule Also write .claude/rules/memctl.md
+  memctl generate --gemini      Also write GEMINI.md
+  memctl generate --cursor      Also write .cursorrules
+  memctl generate --cursor-rule Also write .cursor/rules/memctl.mdc
+  memctl generate --copilot     Also write .github/copilot-instructions.md
+  memctl generate --windsurf    Also write .windsurf/rules/memctl.md
+  memctl generate --cline       Also write .clinerules/memctl.md
+  memctl generate --roo         Also write .roo/rules/memctl.md
+  memctl generate --codex       Also write codex.md
+  memctl generate --amazonq     Also write .amazonq/rules/memctl.md
+  memctl generate --all         Write all agent config files
+  memctl generate --link        Symlink agent files to AGENTS.md instead of copying
   memctl hook <action>      Hook API for cross-agent memory capture (start|turn|end)
   memctl hook-adapter       Print or write hook adapter templates for agents
   memctl import <file>      Import from .cursorrules / copilot-instructions
@@ -295,12 +255,16 @@ Options:
   --limit <n>               Limit results (default: 50)
   --format <fmt>            Export format: agents_md, cursorrules, json (default: agents_md)
   --claude                  Include CLAUDE.md
+  --claude-rule             Include .claude/rules/memctl.md
   --gemini                  Include GEMINI.md
   --cursor                  Include .cursorrules
+  --cursor-rule             Include .cursor/rules/memctl.mdc
   --copilot                 Include .github/copilot-instructions.md
-  --windsurf                Include .windsurfrules
-  --cline                   Include .clinerules
+  --windsurf                Include .windsurf/rules/memctl.md
+  --cline                   Include .clinerules/memctl.md
   --roo                     Include .roo/rules/memctl.md
+  --codex                   Include codex.md
+  --amazonq                 Include .amazonq/rules/memctl.md
   --all                     Include all agent config files
   --link                    Symlink to AGENTS.md instead of copying
   --global                  For memctl config, update global profile only
@@ -602,28 +566,30 @@ export async function runCli(args: string[]): Promise<void> {
         flag: string;
         file: string;
         format: "agents_md" | "cursorrules";
+        tool: string;
       }> = [
-        { flag: "claude", file: "CLAUDE.md", format: "agents_md" },
-        { flag: "gemini", file: "GEMINI.md", format: "agents_md" },
-        { flag: "cursor", file: ".cursorrules", format: "cursorrules" },
-        {
-          flag: "copilot",
-          file: ".github/copilot-instructions.md",
-          format: "agents_md",
-        },
-        { flag: "windsurf", file: ".windsurfrules", format: "agents_md" },
-        { flag: "cline", file: ".clinerules", format: "agents_md" },
-        { flag: "roo", file: ".roo/rules/memctl.md", format: "agents_md" },
+        { flag: "claude", file: "CLAUDE.md", format: "agents_md", tool: "agents_md" },
+        { flag: "claude-rule", file: ".claude/rules/memctl.md", format: "agents_md", tool: "claude_rule" },
+        { flag: "gemini", file: "GEMINI.md", format: "agents_md", tool: "agents_md" },
+        { flag: "cursor", file: ".cursorrules", format: "cursorrules", tool: "cursor" },
+        { flag: "cursor-rule", file: ".cursor/rules/memctl.mdc", format: "agents_md", tool: "cursor_rule" },
+        { flag: "copilot", file: ".github/copilot-instructions.md", format: "agents_md", tool: "copilot" },
+        { flag: "windsurf", file: ".windsurf/rules/memctl.md", format: "agents_md", tool: "windsurf" },
+        { flag: "cline", file: ".clinerules/memctl.md", format: "agents_md", tool: "cline" },
+        { flag: "roo", file: ".roo/rules/memctl.md", format: "agents_md", tool: "roo" },
+        { flag: "codex", file: "codex.md", format: "agents_md", tool: "agents_md" },
+        { flag: "amazonq", file: ".amazonq/rules/memctl.md", format: "agents_md", tool: "amazonq" },
       ];
 
       const targets: Array<{
         file: string;
         format: "agents_md" | "cursorrules";
-      }> = [{ file: "AGENTS.md", format: "agents_md" }];
+        tool: string;
+      }> = [{ file: "AGENTS.md", format: "agents_md", tool: "agents_md" }];
 
       for (const extra of extras) {
         if (all || flags[extra.flag]) {
-          targets.push({ file: extra.file, format: extra.format });
+          targets.push({ file: extra.file, format: extra.format, tool: extra.tool });
         }
       }
 
@@ -658,7 +624,8 @@ export async function runCli(args: string[]): Promise<void> {
           cache.set(target.format, content);
         }
 
-        await fs.writeFile(target.file, content, "utf-8");
+        const wrapped = wrapForTool(content, target.tool);
+        await fs.writeFile(target.file, wrapped, "utf-8");
         wrote.push(target.file);
       }
 
