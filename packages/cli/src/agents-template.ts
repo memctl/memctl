@@ -28,7 +28,7 @@ MCP server: \`memctl\`. Use it for all persistent project memory.
 You MUST execute these steps after fully responding to the user. Never skip this.
 
 1. \`activity\` action=\`memo_leave\` message=\`<handoff note>\`
-2. \`session\` action=\`end\` sessionId=\`<id>\` summary=\`<structured summary>\`
+2. \`session\` action=\`end\` summary=\`<structured summary>\`
 
 Summary must include: what was accomplished, key decisions made, open questions, and what files were modified. Keep it concise (1-2 paragraphs). Do NOT include code snippets, file contents, git output, or command results.
 
