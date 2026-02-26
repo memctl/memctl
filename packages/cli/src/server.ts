@@ -189,16 +189,19 @@ function registerPrompts(server: McpServer) {
           role: "user" as const,
           content: {
             type: "text" as const,
-            text: `Use memctl MCP tools for ALL persistent memory. Do NOT use built-in auto memory or MEMORY.md files. Do NOT store git logs, diffs, or file listings in memory.
+            text: `Use memctl MCP tools for ALL persistent memory. Do NOT use built-in auto memory or MEMORY.md files. Do NOT store code, git output, file contents, or command results in memory.
 
 Session start: context action=bootstrap, session action=start, activity action=memo_read, branch action=get.
 Before editing: context action=context_for filePaths=[files], context action=smart_retrieve intent=<what you need>.
 Store decisions/lessons/issues: context action=functionality_set type=<type> id=<id> content=<content>.
 Search before storing: memory action=search query=<query>.
-After work: activity action=memo_leave message=<summary>.
-Session end: session action=end sessionId=<id> summary=<what was accomplished>.
 
-Only store things that are useful across sessions: decisions, lessons, issues, user preferences, architecture notes. Never store transient data like git output, file contents, or command results.`,
+MANDATORY SESSION END: After fully responding to the user, you MUST execute these steps. Never skip this.
+1. activity action=memo_leave message=<handoff note with what was done and what is pending>
+2. session action=end sessionId=<id> summary=<what was accomplished, key decisions made, open questions, files modified>
+Keep the summary concise (1-2 paragraphs). Do NOT include code snippets, file contents, git output, or command results in the summary.
+
+Only store things useful across sessions: decisions, lessons, issues, user preferences, architecture notes.`,
           },
         },
       ],
@@ -240,15 +243,18 @@ Call \`context\` with \`{"action":"context_for","filePaths":[...]} \` using thes
           role: "user" as const,
           content: {
             type: "text" as const,
-            text: `Please generate a session handoff summary. Include:
+            text: `Generate a session handoff summary. Include:
 
-1. **What was accomplished** — key changes, features added, bugs fixed
-2. **Key decisions made** — architectural choices, trade-offs accepted
-3. **Open questions** — unresolved issues, things to investigate
-4. **Modified files** — list of files changed
-5. **Memory keys written** — any new context entries stored
+1. What was accomplished, key changes, features added, bugs fixed
+2. Key decisions made, architectural choices, trade-offs accepted
+3. Open questions, unresolved issues, things to investigate
+4. Modified files
 
-Then call \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..."}\` to save it for the next session.`,
+Do NOT include code snippets, file contents, git output, or command results. Keep it concise (1-2 paragraphs).
+
+Then call:
+1. \`activity\` with \`{"action":"memo_leave","message":"<handoff note>"}\`
+2. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"<summary>"}\``,
           },
         },
       ],

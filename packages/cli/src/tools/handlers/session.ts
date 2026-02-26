@@ -55,8 +55,9 @@ export function registerSessionTool(
   // Guard against duplicate listeners when registerSessionTool is called
   // multiple times (e.g. in tests).
   const key = "__memctl_session_exit_registered__";
-  if (!(process as Record<string, unknown>)[key]) {
-    (process as Record<string, unknown>)[key] = true;
+  const proc = process as unknown as Record<string, unknown>;
+  if (!proc[key]) {
+    proc[key] = true;
     process.once("beforeExit", autoCloseSession);
     process.once("SIGINT", autoCloseSession);
     process.once("SIGTERM", autoCloseSession);

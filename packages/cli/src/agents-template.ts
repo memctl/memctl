@@ -22,20 +22,25 @@ MCP server: \`memctl\`. Use it for all persistent project memory.
 
 ## After Completing Work
 
-1. Leave a handoff note: \`activity\` action=\`memo_leave\` message=\`<what was done, what is pending>\`
-2. Store lessons: \`context\` action=\`functionality_set\` type=\`lessons_learned\` id=\`<id>\` content=\`<lesson>\`
+- Store lessons: \`context\` action=\`functionality_set\` type=\`lessons_learned\` id=\`<id>\` content=\`<lesson>\`
 
-## Session End
+## Session End (MANDATORY)
 
-1. \`session\` action=\`end\` sessionId=\`<id>\` summary=\`<what was accomplished>\`
+You MUST execute these steps after fully responding to the user. Never skip this.
+
+1. \`activity\` action=\`memo_leave\` message=\`<handoff note>\`
+2. \`session\` action=\`end\` sessionId=\`<id>\` summary=\`<structured summary>\`
+
+Summary must include: what was accomplished, key decisions made, open questions, and what files were modified. Keep it concise (1-2 paragraphs). Do NOT include code snippets, file contents, git output, or command results.
 
 ## Rules
 
 - Always bootstrap at session start
+- Always end session before stopping, no exceptions
 - Always load context before editing files
 - Never store secrets, tokens, or API keys
 - Search before storing to avoid duplicates
-- Do not store large file contents or binary data
+- Do not store code, file contents, git output, or command results in memory
 `;
 
 const FRONTMATTER: Record<string, string> = {
