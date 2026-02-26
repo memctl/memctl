@@ -11,6 +11,7 @@ describe("hook adapter command", () => {
       flags: {},
     });
     const files = result.files as Array<{ path: string; content: string }>;
+    const dispatcher = files.find((f) => f.path.includes("memctl-hook-dispatch.sh"));
     expect(Array.isArray(files)).toBe(true);
     expect(files.some((f) => f.path.includes("memctl-hook-dispatch.sh"))).toBe(
       true,
@@ -21,6 +22,8 @@ describe("hook adapter command", () => {
     expect(
       files.some((f) => f.path.includes("claude.settings.local.json.example")),
     ).toBe(true);
+    expect(dispatcher?.content).toContain('"hookSpecificOutput"');
+    expect(dispatcher?.content).toContain('"hookEventName":"UserPromptSubmit"');
   });
 
   it("writes adapter files when --write is used", async () => {

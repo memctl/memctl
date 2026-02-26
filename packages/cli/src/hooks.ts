@@ -72,7 +72,7 @@ function splitLines(value: string): string[] {
     .split("\n")
     .flatMap((line) => line.split(/(?<=[.!?])\s+/))
     .map((line) => sanitizeLine(line))
-    .filter((line) => line.length >= 24 && line.length <= 320);
+    .filter((line) => line.length >= 20 && line.length <= 320);
 }
 
 function isGenericCapabilityNoise(content: string): boolean {
@@ -84,7 +84,7 @@ function isGenericCapabilityNoise(content: string): boolean {
   const hasProjectSpecificSignal =
     /[/_-]/.test(normalized) ||
     /\b[a-z0-9_-]+\.[a-z0-9_-]+\b/.test(normalized) ||
-    /(api|schema|migration|component|endpoint|workflow|billing|auth|branch|test|typescript|next\.js|drizzle|turso|docker|mcp)/.test(
+    /(api|schema|migration|component|endpoint|workflow|billing|auth|branch|test|typescript|next\.js|drizzle|turso|docker|mcp|file|function|module|config|page|layout|server|client|database|query|type|interface|class|method|middleware|handler|service|model|controller)/.test(
       normalized,
     );
   return hasGenericCapabilityPhrase && !hasProjectSpecificSignal;
@@ -104,7 +104,7 @@ function classifyCandidate(
       text,
     );
   const hasOutcome =
-    /\b(fixed|implemented|added|updated|refactored|migrated|resolved|shipped)\b/.test(
+    /\b(fixed|implemented|added|updated|refactored|migrated|resolved|shipped|created|removed|changed|modified|deleted|moved|renamed|replaced|configured|deployed|installed|fixing|implementing|adding|updating|creating|removing|changing|modifying|deleting|renaming|replacing|configuring|deploying)\b/.test(
       text,
     );
   const hasIssue =
@@ -116,7 +116,7 @@ function classifyCandidate(
   const hasProjectSignal =
     /[/_-]/.test(text) ||
     /\b[a-z0-9_-]+\.[a-z0-9_-]+\b/.test(text) ||
-    /\b(api|route|schema|table|component|hook|migration|branch|mcp|build|ci)\b/.test(
+    /\b(api|route|schema|table|component|hook|migration|branch|mcp|build|ci|file|function|module|config|page|layout|server|client|database|endpoint|query|type|interface|class|method|middleware|handler|service|model|controller|template|style|store|provider)\b/.test(
       text,
     );
 
@@ -165,7 +165,7 @@ function classifyCandidate(
   if (hasProjectSignal) score += 3;
   if (content.length > 90) score += 1;
 
-  if (score < 5) return null;
+  if (score < 4) return null;
   return { type, priority, tags, score };
 }
 
