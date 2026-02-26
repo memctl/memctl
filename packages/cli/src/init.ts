@@ -425,9 +425,9 @@ const DEFAULT_AGENTS_MD = `# AGENTS.md
 
 ## memctl MCP Rules
 
-MCP server name is \`memctl\`. You MUST use it for persistent project memory.
+MCP server name is \`memctl\`. You MUST use it for ALL persistent memory.
 
-ALWAYS use memctl tools. Do not skip them. They provide coding conventions, architecture decisions, testing rules, and context from previous sessions that you need to do your job correctly.
+IMPORTANT: Do NOT use built-in auto memory or MEMORY.md files. Use memctl tools instead. They provide coding conventions, architecture decisions, testing rules, and context from previous sessions.
 
 ## Session Start (REQUIRED)
 
@@ -450,16 +450,26 @@ ALWAYS load context before touching code:
 - Store decisions: \`memory\` with \`{"action":"store","key":"...","content":"..."}\`
 - Search before storing: \`memory\` with \`{"action":"search","query":"..."}\`
 - Update branch plan: \`branch\` with \`{"action":"set","content":"...","status":"in_progress"}\`
+- Store user preferences and requests with \`memory\` (e.g. "always use X", "never do Y")
+
+## After Completing Work
+
+When you finish a task, fix a bug, or reach a milestone:
+
+1. \`activity\` with \`{"action":"memo_leave","message":"<what was done and pending items>","urgency":"info"}\`
+2. Store lessons learned: \`context\` with \`{"action":"functionality_set","type":"lessons_learned","id":"<id>","content":"<what failed or should be avoided>"}\`
 
 ## Session End (REQUIRED)
 
 Before ending your session:
 
-1. \`activity\` with \`{"action":"memo_leave","message":"...","urgency":"info"}\` if anything is pending
-2. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..."}\`
+1. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"<detailed summary of what was accomplished>"}\`
+
+The summary should include what was done, key decisions made, files changed, and anything the next session needs to know.
 
 ## Rules
 
+- NEVER use built-in auto memory, always use memctl tools
 - NEVER skip bootstrap at session start
 - NEVER skip context_for before editing files
 - Do not store secrets, tokens, or API keys

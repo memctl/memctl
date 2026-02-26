@@ -44,7 +44,7 @@ const SUPPORTED_AGENTS: Agent[] = [
   "generic",
 ];
 
-const MEMCTL_REMINDER = 'Use the memctl MCP tools for persistent memory. If you have not bootstrapped context yet this session, call the context tool with {"action":"bootstrap"} and the session tool with {"action":"start","sessionId":"<unique-id>","autoExtractGit":true}. Before editing files, call context with {"action":"context_for","filePaths":[...]}. Store important decisions with the memory tool. At session end, call session with {"action":"end"}.';
+const MEMCTL_REMINDER = 'IMPORTANT: Do NOT use built-in auto memory or MEMORY.md files. Use memctl MCP tools for ALL persistent memory. If you have not bootstrapped context yet this session, call the context tool with {"action":"bootstrap"} and the session tool with {"action":"start","sessionId":"<unique-id>","autoExtractGit":true}. Before editing files, call context with {"action":"context_for","filePaths":[...]}. Store important decisions, user preferences, and learned patterns with the memory tool. When you complete a task or milestone, store a summary of what you did using the session tool with {"action":"end","sessionId":"<same-id>","summary":"<what was done>"}. Leave handoff notes with the activity tool using {"action":"memo_leave","message":"..."}. This ensures the next session knows what happened.';
 
 const DISPATCHER_SCRIPT = `#!/usr/bin/env bash
 set -euo pipefail
