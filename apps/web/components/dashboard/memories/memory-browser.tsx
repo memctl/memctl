@@ -99,6 +99,7 @@ interface MemoryBrowserProps {
   memories: MemoryItem[];
   orgSlug: string;
   projectSlug: string;
+  onMutate?: () => void;
 }
 
 interface ConfirmAction {
@@ -280,6 +281,7 @@ export function MemoryBrowser({
   memories: memoriesProp,
   orgSlug,
   projectSlug,
+  onMutate,
 }: MemoryBrowserProps) {
   const router = useRouter();
 
@@ -609,7 +611,10 @@ export function MemoryBrowser({
     "X-Project-Slug": projectSlug,
   };
 
-  const refresh = () => router.refresh();
+  const refresh = () => {
+    onMutate?.();
+    router.refresh();
+  };
 
   const openView = (m: MemoryItem) => {
     setSelectedMemory(m);

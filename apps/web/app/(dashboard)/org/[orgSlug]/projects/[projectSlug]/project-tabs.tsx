@@ -156,12 +156,19 @@ function useTabData<T extends keyof TabDataMap>(
   orgSlug: string,
   projectSlug: string,
   cache: React.RefObject<Map<string, unknown>>,
-): { data: TabDataMap[T] | null; isLoading: boolean } {
+): { data: TabDataMap[T] | null; isLoading: boolean; invalidate: () => void } {
   const [data, setData] = useState<TabDataMap[T] | null>(() => {
     const cached = cache.current?.get(tab);
     return cached ? (cached as TabDataMap[T]) : null;
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [version, setVersion] = useState(0);
+
+  const invalidate = useCallback(() => {
+    const cacheKey = tab === "graph" ? "memories" : tab;
+    cache.current?.delete(cacheKey);
+    setVersion((v) => v + 1);
+  }, [tab, cache]);
 
   useEffect(() => {
     if (currentTab !== tab && currentTab !== "graph" && tab !== "memories")
@@ -272,9 +279,9 @@ function useTabData<T extends keyof TabDataMap>(
     return () => {
       cancelled = true;
     };
-  }, [currentTab, tab, orgSlug, projectSlug, cache]);
+  }, [currentTab, tab, orgSlug, projectSlug, cache, version]);
 
-  return { data, isLoading };
+  return { data, isLoading, invalidate };
 }
 
 function ProjectTabsInner({
@@ -531,6 +538,7 @@ function ProjectTabsInner({
                   memories={memoriesTab.data}
                   orgSlug={orgSlug}
                   projectSlug={projectSlug}
+                  onMutate={memoriesTab.invalidate}
                 />
               )}
             </>
