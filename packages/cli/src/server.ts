@@ -189,27 +189,33 @@ function registerPrompts(server: McpServer) {
           role: "user" as const,
           content: {
             type: "text" as const,
-            text: `You have access to memctl, a persistent memory system for coding agents.
+            text: `IMPORTANT: Do NOT use built-in auto memory or MEMORY.md files. Use memctl MCP tools for ALL persistent memory.
 
 **On session start:**
 1. Call \`context\` with \`{"action":"bootstrap"}\` to load project context (architecture, coding style, constraints, file map, etc.)
 2. Call \`session\` with \`{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}\` to register this session and get the previous session handoff summary
-3. Call \`memory_advanced\` with \`{"action":"watch","keys":[...],"since":<timestamp>}\` to detect concurrent changes
+3. Call \`activity\` with \`{"action":"memo_read"}\` to check handoff notes from previous sessions
 
 **During work:**
 - Use \`context\` with \`{"action":"context_for","filePaths":[...]}\` before modifying files
 - Store project rules with \`context\` and \`{"action":"functionality_set",...}\`
+- Store important decisions, user preferences, and learned patterns with the \`memory\` tool
 - Use \`memory_advanced\` with \`{"action":"check_duplicates","content":"..."}\` before creating new memories
-- Use \`context\` with \`{"action":"budget","task":"...","maxTokens":4000}\` for token-limited retrieval
+
+**After completing work:**
+- When you finish a task, fix a bug, or reach a milestone, store what you did
+- Call \`activity\` with \`{"action":"memo_leave","message":"<what was done and any pending items>","urgency":"info"}\`
+- Store lessons learned: \`context\` with \`{"action":"functionality_set","type":"lessons_learned","id":"<id>","content":"<what failed or should be avoided>"}\`
 
 **On session end:**
-- Call \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..." }\`
-- This ensures the next agent session has continuity
+- Call \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"<detailed summary of what was accomplished>"}\`
+- This ensures the next agent session has full continuity of what happened
 
-**Negative knowledge:**
-- When you discover something that failed or should be avoided, store it as type \`lessons_learned\`
-- These entries help prevent future agents from repeating mistakes
-- Do not store generic capabilities (file scanning, pattern search, grep usage), store project-specific decisions instead`,
+**What to store:**
+- User preferences (tools, workflow, coding style requests)
+- Architectural decisions and trade-offs made
+- What was done, what worked, what failed
+- Do not store generic capabilities or large file contents`,
           },
         },
       ],
