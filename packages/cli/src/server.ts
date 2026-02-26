@@ -30,7 +30,7 @@ Search before storing: memory action=search query=<query>.
 
 MANDATORY SESSION END: After fully responding to the user, you MUST execute these steps. Never skip this.
 1. activity action=memo_leave message=<handoff note with what was done and what is pending>
-2. session action=end sessionId=<id> summary=<what was accomplished, key decisions made, open questions, files modified>
+2. session action=end summary=<what was accomplished, key decisions made, open questions, files modified>
 Keep the summary concise (1-2 paragraphs). Do NOT include code snippets, file contents, git output, or command results in the summary.
 
 Only store things useful across sessions: decisions, lessons, issues, user preferences, architecture notes.`,
@@ -86,7 +86,7 @@ Do NOT include code snippets, file contents, git output, or command results. Kee
 
 Then call:
 1. \`activity\` with \`{"action":"memo_leave","message":"<handoff note>"}\`
-2. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"<summary>"}\``,
+2. \`session\` with \`{"action":"end","summary":"<summary>"}\``,
           },
         },
       ],

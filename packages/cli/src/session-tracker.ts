@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { ApiClient } from "./api-client.js";
 import { getBranchInfo } from "./agent-context.js";
 
@@ -24,7 +26,6 @@ export type SessionTracker = {
   dirty: boolean;
   closed: boolean;
   startedAt: number;
-  explicitSessionActive: boolean;
   endedExplicitly: boolean;
 };
 
@@ -43,17 +44,8 @@ export function createSessionTracker(): SessionTracker {
     dirty: false,
     closed: false,
     startedAt: now,
-    explicitSessionActive: false,
     endedExplicitly: false,
   };
-}
-
-export function adoptSessionId(
-  tracker: SessionTracker,
-  sessionId: string,
-): void {
-  tracker.sessionId = sessionId;
-  tracker.explicitSessionActive = true;
 }
 
 export function recordToolAction(
@@ -200,6 +192,10 @@ export async function finalizeSession(
   if (tracker.closed) return;
   tracker.closed = true;
 
+  // Do NOT remove the session file here. The hook dispatcher reads it
+  // during SessionEnd and removes it itself. Removing early causes a race
+  // where the hook can't find the file and generates a duplicate session.
+
   if (tracker.endedExplicitly) return;
 
   try {
@@ -243,12 +239,30 @@ export async function flushSession(
   }
 }
 
+// ── Session file (shared with hook dispatcher) ──────────────────────
+
+const SESSION_FILE_DIR = join(".memctl", "hooks");
+const SESSION_FILE_PATH = join(SESSION_FILE_DIR, "session_id");
+
+function writeSessionFile(sessionId: string): void {
+  try {
+    mkdirSync(SESSION_FILE_DIR, { recursive: true });
+    writeFileSync(SESSION_FILE_PATH, sessionId, "utf-8");
+  } catch {
+    // Best effort only.
+  }
+}
+
 // ── Lifecycle ───────────────────────────────────────────────────────
 
 export function startSessionLifecycle(
   client: ApiClient,
   tracker: SessionTracker,
 ): { cleanup: () => void } {
+  // Write session file synchronously so hooks can read it immediately,
+  // even if the async lifecycle below hasn't finished yet.
+  writeSessionFile(tracker.sessionId);
+
   void (async () => {
     try {
       const branchInfo = await getBranchInfo().catch(() => null);

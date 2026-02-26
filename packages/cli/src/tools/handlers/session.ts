@@ -3,15 +3,7 @@ import { z } from "zod";
 import type { ApiClient } from "../../api-client.js";
 import type { RateLimitState } from "../rate-limit.js";
 import { textResponse, errorResponse } from "../response.js";
-import { getBranchInfo } from "../../agent-context.js";
 import type { SessionTracker } from "../../session-tracker.js";
-import { adoptSessionId } from "../../session-tracker.js";
-
-function generateSessionId(): string {
-  const now = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `sess-${now}-${rand}`;
-}
 
 export function registerSessionTool(
   server: McpServer,
@@ -22,11 +14,10 @@ export function registerSessionTool(
 ) {
   server.tool(
     "session",
-    "Session management. Actions: start, end, history, claims_check, claim, rate_status",
+    "Session management. Actions: end, history, claims_check, claim, rate_status",
     {
       action: z
         .enum([
-          "start",
           "end",
           "history",
           "claims_check",
@@ -34,7 +25,7 @@ export function registerSessionTool(
           "rate_status",
         ])
         .describe("Which operation to perform"),
-      sessionId: z.string().optional().describe("[start,end,claim] Session ID"),
+      sessionId: z.string().optional().describe("[end,claim] Session ID"),
       summary: z.string().optional().describe("[end] Session summary"),
       keysRead: z.array(z.string()).optional().describe("[end] Keys read"),
       keysWritten: z
@@ -65,40 +56,13 @@ export function registerSessionTool(
         .number()
         .optional()
         .describe("[claim] Claim TTL in minutes"),
-      autoExtractGit: z
-        .boolean()
-        .optional()
-        .describe("[start] Deprecated, ignored"),
     },
     async (params) => {
       onToolCall("session", params.action);
       try {
         switch (params.action) {
-          case "start": {
-            const sessionId = params.sessionId ?? generateSessionId();
-            const branchInfo = await getBranchInfo();
-            await client.upsertSessionLog({
-              sessionId,
-              branch: branchInfo?.branch,
-            });
-            adoptSessionId(tracker, sessionId);
-
-            return textResponse(
-              JSON.stringify(
-                {
-                  sessionId,
-                  generatedSessionId: !params.sessionId,
-                  currentBranch: branchInfo,
-                  handoff: tracker.handoff,
-                },
-                null,
-                2,
-              ),
-            );
-          }
           case "end": {
-            const sessionId =
-              params.sessionId ?? tracker.sessionId ?? generateSessionId();
+            const sessionId = params.sessionId ?? tracker.sessionId;
 
             // Enrich agent-provided summary with tracker data
             const trackerWritten = [...tracker.writtenKeys];
@@ -220,8 +184,7 @@ export function registerSessionTool(
                 "Missing params",
                 "keys required",
               );
-            const sessionId =
-              params.sessionId ?? tracker.sessionId ?? generateSessionId();
+            const sessionId = params.sessionId ?? tracker.sessionId;
             const rateCheck = rl.checkRateLimit();
             if (!rateCheck.allowed)
               return errorResponse("Rate limit exceeded", rateCheck.warning!);
@@ -236,9 +199,6 @@ export function registerSessionTool(
               { sessionId, claimedAt: Date.now() },
               { tags: ["session-claim"], expiresAt, priority: 0 },
             );
-            if (!tracker.explicitSessionActive) {
-              adoptSessionId(tracker, sessionId);
-            }
             const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
             return textResponse(
               JSON.stringify(
