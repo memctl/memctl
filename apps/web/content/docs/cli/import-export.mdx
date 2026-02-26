@@ -15,17 +15,24 @@ npx memctl generate
 
 ### Flags
 
-| Flag | File written | Format |
-| ---- | ------------ | ------ |
-| _(none)_ | `AGENTS.md` | agents_md (always written) |
-| `--claude` | `CLAUDE.md` | agents_md |
-| `--gemini` | `GEMINI.md` | agents_md |
-| `--cursor` | `.cursorrules` | cursorrules |
-| `--copilot` | `.github/copilot-instructions.md` | agents_md |
-| `--all` | All of the above | |
-| `--link` | Symlink to `AGENTS.md` instead of copying | |
+| Flag | File written | Format | Frontmatter |
+| ---- | ------------ | ------ | ----------- |
+| _(none)_ | `AGENTS.md` | agents_md (always written) | |
+| `--claude` | `CLAUDE.md` | agents_md | |
+| `--claude-rule` | `.claude/rules/memctl.md` | agents_md | |
+| `--gemini` | `GEMINI.md` | agents_md | |
+| `--cursor` | `.cursorrules` | cursorrules | |
+| `--cursor-rule` | `.cursor/rules/memctl.mdc` | agents_md | `alwaysApply: true` |
+| `--copilot` | `.github/copilot-instructions.md` | agents_md | `applyTo: "**"` |
+| `--windsurf` | `.windsurf/rules/memctl.md` | agents_md | `trigger: always_on` |
+| `--cline` | `.clinerules/memctl.md` | agents_md | |
+| `--roo` | `.roo/rules/memctl.md` | agents_md | |
+| `--codex` | `codex.md` | agents_md | |
+| `--amazonq` | `.amazonq/rules/memctl.md` | agents_md | |
+| `--all` | All of the above | | |
+| `--link` | Symlink to `AGENTS.md` instead of copying | | |
 
-Flags are combinable. `--all` is shorthand for `--claude --gemini --cursor --copilot`.
+Flags are combinable. `--all` writes all targets. Tools that support YAML frontmatter (Windsurf, Cursor rules, Copilot) get activation metadata prepended automatically.
 
 Directories are created automatically (e.g. `.github/`).
 
@@ -57,21 +64,21 @@ Wrote 1 file(s): AGENTS.md
 With `--all`:
 
 ```
-Wrote 5 file(s): AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md
+Wrote 12 file(s): AGENTS.md, CLAUDE.md, .claude/rules/memctl.md, GEMINI.md, .cursorrules, .cursor/rules/memctl.mdc, .github/copilot-instructions.md, .windsurf/rules/memctl.md, .clinerules/memctl.md, .roo/rules/memctl.md, codex.md, .amazonq/rules/memctl.md
 ```
 
 With `--all --link`:
 
 ```
-Wrote 2 file(s): AGENTS.md, .cursorrules
-Linked 3 file(s): CLAUDE.md -> AGENTS.md, GEMINI.md -> AGENTS.md, .github/copilot-instructions.md -> AGENTS.md
+Wrote 5 file(s): AGENTS.md, .cursorrules, .cursor/rules/memctl.mdc, .github/copilot-instructions.md, .windsurf/rules/memctl.md
+Linked 7 file(s): CLAUDE.md -> AGENTS.md, .claude/rules/memctl.md -> AGENTS.md, GEMINI.md -> AGENTS.md, .clinerules/memctl.md -> AGENTS.md, .roo/rules/memctl.md -> AGENTS.md, codex.md -> AGENTS.md, .amazonq/rules/memctl.md -> AGENTS.md
 ```
 
 ### --link
 
-`CLAUDE.md`, `GEMINI.md`, and `copilot-instructions.md` all use the same `agents_md` format, so their content is identical to `AGENTS.md`. With `--link`, these files become symlinks to `AGENTS.md` instead of separate copies. This avoids content drift and keeps a single source of truth.
+Files that use the plain `agents_md` format (`CLAUDE.md`, `GEMINI.md`, `.claude/rules/memctl.md`, `.clinerules/memctl.md`, `.roo/rules/memctl.md`, `codex.md`, `.amazonq/rules/memctl.md`) have content identical to `AGENTS.md`. With `--link`, these become symlinks instead of separate copies, avoiding content drift.
 
-`.cursorrules` uses a different format (`cursorrules`) so it is always written as a real file.
+Files that need tool-native YAML frontmatter (`.windsurf/rules/memctl.md`, `.cursor/rules/memctl.mdc`, `.github/copilot-instructions.md`) and `.cursorrules` (different format) are always written as real files.
 
 ### Difference from export
 

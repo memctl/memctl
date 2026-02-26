@@ -313,7 +313,12 @@ export class ApiClient {
   async searchMemories(
     query: string,
     limit = 20,
-    options?: { tags?: string; sort?: string; includeArchived?: boolean },
+    options?: {
+      tags?: string;
+      sort?: string;
+      includeArchived?: boolean;
+      intent?: string;
+    },
   ) {
     const params = new URLSearchParams({
       q: query,
@@ -322,6 +327,7 @@ export class ApiClient {
     if (options?.tags) params.set("tags", options.tags);
     if (options?.sort) params.set("sort", options.sort);
     if (options?.includeArchived) params.set("include_archived", "true");
+    if (options?.intent) params.set("intent", options.intent);
     return this.request("GET", `/memories?${params}`);
   }
 

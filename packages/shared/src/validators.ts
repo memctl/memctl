@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PLAN_IDS, ORG_ROLES } from "./constants";
+import { SEARCH_INTENTS } from "./intent";
 
 export const slugSchema = z
   .string()
@@ -47,6 +48,7 @@ export const memoryUpdateSchema = z.object({
 export const memorySearchSchema = z.object({
   query: z.string().min(1).max(256),
   limit: z.number().int().min(1).max(100).default(20),
+  intent: z.enum(SEARCH_INTENTS).optional(),
 });
 
 export const memoryBulkGetSchema = z.object({

@@ -21,7 +21,10 @@ type HookCandidate = {
     | "constraints"
     | "workflow"
     | "testing"
-    | "lessons_learned";
+    | "lessons_learned"
+    | "user_ideas"
+    | "known_issues"
+    | "decisions";
   title: string;
   content: string;
   id: string;
@@ -112,6 +115,14 @@ function classifyCandidate(
       text,
     );
   const hasTesting = /\b(test|coverage|assert|vitest|jest|e2e)\b/.test(text);
+  const hasIdea =
+    /\b(want to|should add|would be nice|idea:|feature request|enhancement|plan to add)\b/.test(
+      text,
+    );
+  const hasKnownIssue =
+    /\b(workaround|gotcha|caveat|known issue|breaks when|flaky|intermittent|hack:)\b/.test(
+      text,
+    );
 
   const hasProjectSignal =
     /[/_-]/.test(text) ||
@@ -130,7 +141,7 @@ function classifyCandidate(
   const tags = ["hook:auto"];
 
   if (hasDecision) {
-    type = "architecture";
+    type = "decisions";
     priority = 72;
     score += 4;
     tags.push("signal:decision");
@@ -154,6 +165,18 @@ function classifyCandidate(
     }
     score += 3;
     tags.push("signal:outcome");
+  }
+  if (hasIdea) {
+    type = "user_ideas";
+    priority = 64;
+    score += 3;
+    tags.push("signal:idea");
+  }
+  if (hasKnownIssue) {
+    type = "known_issues";
+    priority = 76;
+    score += 4;
+    tags.push("signal:known-issue");
   }
   if (hasIssue) {
     type = "lessons_learned";
@@ -324,11 +347,46 @@ async function handleHookStart(client: ApiClient, payload: HookPayload) {
     sessionId,
     branch: branchInfo?.branch,
   });
+
+  // Auto-close stale sessions (open > 2 hours)
+  let staleSessionsClosed = 0;
+  try {
+    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    const now = Date.now();
+    const recentSessions = await client.getSessionLogs(10);
+    for (const log of recentSessions.sessionLogs) {
+      if (log.endedAt) continue;
+      if (log.sessionId === sessionId) continue;
+      const startedAt =
+        typeof log.startedAt === "number"
+          ? log.startedAt
+          : typeof log.startedAt === "string"
+            ? new Date(log.startedAt).getTime()
+            : 0;
+      if (!startedAt || now - startedAt < TWO_HOURS_MS) continue;
+      try {
+        await client.upsertSessionLog({
+          sessionId: log.sessionId,
+          summary:
+            log.summary ||
+            "Auto-closed: session exceeded 2-hour inactivity limit.",
+          endedAt: now,
+        });
+        staleSessionsClosed++;
+      } catch {
+        // Best effort
+      }
+    }
+  } catch {
+    // Best effort
+  }
+
   return {
     action: "start",
     sessionId,
     branch: branchInfo?.branch ?? null,
     generatedSessionId: !payload.sessionId,
+    staleSessionsClosed,
   };
 }
 

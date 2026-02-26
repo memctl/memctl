@@ -18,6 +18,10 @@ import {
   listAllMemories,
   normalizeAgentContextId,
 } from "../../agent-context.js";
+import {
+  classifySearchIntent,
+  getIntentWeights,
+} from "../../intent.js";
 
 export function registerContextTool(
   server: McpServer,
@@ -909,35 +913,69 @@ async function handleSmartRetrieve(
   const maxResults = (params.maxResults as number) ?? 5;
   const followLinks = params.followLinks !== false;
 
+  const classification = classifySearchIntent(intent);
+  const weights = getIntentWeights(classification.intent);
+
   const allMemories = await listAllMemories(client);
   const now = Date.now();
-  const intentWords = intent
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((w) => w.length > 2);
+  const intentWords =
+    classification.extractedTerms.length > 0
+      ? classification.extractedTerms.map((t) => t.toLowerCase())
+      : intent
+          .toLowerCase()
+          .split(/\s+/)
+          .filter((w) => w.length > 2);
   const filePatterns = (files ?? []).map((f) => f.toLowerCase());
 
   const scored = allMemories.map((mem) => {
     const content =
       `${mem.key} ${mem.content ?? ""} ${mem.tags ?? ""}`.toLowerCase();
     let score = 0;
+
+    // Keyword matching, boosted by ftsBoost
     const matchedWords = intentWords.filter((w) => content.includes(w));
-    score += matchedWords.length * 10;
+    score += matchedWords.length * 10 * weights.ftsBoost;
+
     for (const fp of filePatterns) {
       for (const part of fp.split("/").filter(Boolean)) {
         if (content.includes(part.toLowerCase())) score += 5;
       }
       if (content.includes(fp)) score += 15;
     }
-    score += (mem.priority ?? 0) * 0.3;
+
+    // Priority, boosted by priorityBoost
+    score += (mem.priority ?? 0) * 0.3 * weights.priorityBoost;
     if (mem.pinnedAt) score += 10;
     score += Math.min(10, (mem.accessCount ?? 0) * 0.5);
+
+    // Recency, boosted by recencyBoost
     const lastAccess = mem.lastAccessedAt
       ? new Date(mem.lastAccessedAt as string).getTime()
       : 0;
     if (lastAccess)
-      score += Math.max(0, 5 - (now - lastAccess) / 86_400_000 / 7);
+      score +=
+        Math.max(0, 5 - (now - lastAccess) / 86_400_000 / 7) *
+        weights.recencyBoost;
+
     score += ((mem.helpfulCount ?? 0) - (mem.unhelpfulCount ?? 0)) * 2;
+
+    // Graph boost: memories with relatedKeys
+    if (weights.graphBoost > 0 && mem.relatedKeys) {
+      try {
+        const relKeys = JSON.parse(mem.relatedKeys as string) as string[];
+        if (relKeys.length > 0) score += relKeys.length * weights.graphBoost;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    // Boost memories whose key contains a suggested type path segment
+    if (classification.suggestedTypes) {
+      for (const st of classification.suggestedTypes) {
+        if (mem.key.includes(st)) score += 8;
+      }
+    }
+
     return { mem, score };
   });
   scored.sort((a, b) => b.score - a.score);
@@ -973,6 +1011,8 @@ async function handleSmartRetrieve(
     JSON.stringify(
       {
         intent,
+        _searchIntent: classification.intent,
+        _confidence: classification.confidence,
         resultsCount: top.length,
         linkedCount: linked.length,
         results: top.map(({ mem, score }) => ({

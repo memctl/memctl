@@ -149,6 +149,21 @@ async function handleTemplateGet(client: ApiClient, type: string) {
       template:
         "## Entry Points\n-\n\n## Configuration Files\n-\n\n## API Endpoints\n-\n\n## Database\n-",
     },
+    user_ideas: {
+      description: "Feature requests and enhancement ideas",
+      template:
+        "## Idea\n-\n\n## Context\n-\n\n## Priority\n-",
+    },
+    known_issues: {
+      description: "Known bugs, workarounds, and environment gotchas",
+      template:
+        "## Issue\n-\n\n## Workaround\n-\n\n## Affected Areas\n-",
+    },
+    decisions: {
+      description: "Design decisions with rationale",
+      template:
+        "## Decision\n-\n\n## Alternatives Considered\n-\n\n## Rationale\n-",
+    },
   };
 
   const tmpl = templates[type];

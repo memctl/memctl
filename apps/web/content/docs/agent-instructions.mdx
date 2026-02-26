@@ -20,17 +20,17 @@ For Claude Code, use all three. For agents without hooks (Codex, Cursor, Windsur
 | Agent       | Instruction file                      | Loaded at           | Hooks | Auto-generate              | Notes                                      |
 | ----------- | ------------------------------------- | ------------------- | ----- | -------------------------- | ------------------------------------------ |
 | Claude Code | `CLAUDE.md`                           | Session start       | Yes   | `generate --claude --link` | Also reads `AGENTS.md`, has full hook system |
-| Codex       | `AGENTS.md`                           | Once per run        | No    | `generate`                 | Merges root down into subdirs, 32 KiB max  |
-| Cursor      | `.cursorrules`                        | Every turn          | No    | `generate --cursor`        | Different format, always a real file        |
+| Codex       | `codex.md`                            | Once per run        | No    | `generate --codex`         | Also reads `AGENTS.md`, 32 KiB max         |
+| Cursor      | `.cursor/rules/memctl.mdc`            | Every turn          | No    | `generate --cursor-rule`   | YAML frontmatter with `alwaysApply: true`  |
 | Gemini      | `GEMINI.md`                           | Session start       | No    | `generate --gemini --link` | Also reads `AGENTS.md`                     |
-| Copilot     | `.github/copilot-instructions.md`     | Every turn          | No    | `generate --copilot --link`| Per-repo instructions                      |
-| Windsurf    | `.windsurfrules`                      | Every turn          | No    | `generate --windsurf --link`| Global or per-project                     |
+| Copilot     | `.github/copilot-instructions.md`     | Every turn          | No    | `generate --copilot --link`| YAML frontmatter with `applyTo: "**"`      |
+| Windsurf    | `.windsurf/rules/memctl.md`           | Every turn          | No    | `generate --windsurf`      | YAML frontmatter with `trigger: always_on` |
 | Roo Code    | `.roo/rules/memctl.md`                | Every turn          | No    | `generate --roo --link`    | Mode-specific rule files                   |
-| Cline       | `.clinerules`                         | Every turn          | No    | `generate --cline --link`  | Per-project rules                          |
+| Cline       | `.clinerules/memctl.md`               | Every turn          | No    | `generate --cline --link`  | Per-project rules                          |
 | Continue    | `.continue/rules/`                    | Every turn          | No    | -                          | Manual setup, YAML config                  |
 | Zed         | N/A                                   | N/A                 | No    | -                          | Uses MCP tools directly, no instruction file|
 | JetBrains   | N/A                                   | N/A                 | No    | -                          | Uses MCP tools via AI Assistant plugin     |
-| Amazon Q    | `AGENTS.md`                           | Session start       | No    | `generate`                 | Reads AGENTS.md from project root          |
+| Amazon Q    | `.amazonq/rules/memctl.md`            | Session start       | No    | `generate --amazonq`       | Per-project rules                          |
 | Aider       | N/A                                   | N/A                 | No    | -                          | Pass `--read AGENTS.md` manually           |
 
 ## Quick setup
@@ -50,7 +50,7 @@ To also generate agent-specific instruction files from your stored context:
 npx memctl generate --all
 ```
 
-This writes `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`, and `.roo/rules/memctl.md`.
+This writes `AGENTS.md`, `CLAUDE.md`, `.claude/rules/memctl.md`, `GEMINI.md`, `.cursorrules`, `.cursor/rules/memctl.mdc`, `.github/copilot-instructions.md`, `.windsurf/rules/memctl.md`, `.clinerules/memctl.md`, `.roo/rules/memctl.md`, `codex.md`, and `.amazonq/rules/memctl.md`. Files that support YAML frontmatter (Windsurf, Cursor rules, Copilot) get tool-native activation metadata prepended automatically.
 
 Use `--link` to symlink compatible files to `AGENTS.md` so they stay in sync:
 
@@ -107,14 +107,14 @@ Then copy `.memctl/hooks/claude.settings.local.json.example` into `.claude/setti
 
 ### Codex
 
-Codex reads `AGENTS.md` once per run (not every turn) and has no hook system. This means your only chance to tell Codex about memctl is the instruction file. Make it explicit and imperative.
+Codex reads `AGENTS.md` and `codex.md` once per run (not every turn) and has no hook system. This means your only chance to tell Codex about memctl is the instruction file. Make it explicit and imperative.
 
 ```bash
 npx memctl init --codex
-npx memctl generate
+npx memctl generate --codex
 ```
 
-This creates `.codex/config.toml` (MCP config in TOML format) and `AGENTS.md` (instructions).
+This creates `.codex/config.toml` (MCP config in TOML format), `AGENTS.md` (default instructions), and `codex.md` (Codex-specific instructions).
 
 The `.codex/config.toml` format:
 
@@ -138,14 +138,14 @@ project_doc_max_bytes = 65536
 
 ### Cursor
 
-Cursor reads `.cursorrules` from the project root. MCP config goes in `.cursor/mcp.json`.
+Cursor reads `.cursorrules` (legacy) and `.cursor/rules/*.mdc` (modern) from the project. MCP config goes in `.cursor/mcp.json`.
 
 ```bash
 npx memctl init --cursor
-npx memctl generate --cursor
+npx memctl generate --cursor-rule
 ```
 
-The `.cursorrules` format differs from `AGENTS.md` (plain rules, no markdown headings). The `generate` command handles the conversion automatically.
+The `--cursor-rule` flag writes `.cursor/rules/memctl.mdc` with YAML frontmatter (`alwaysApply: true`) so Cursor loads it on every turn. The legacy `--cursor` flag still writes `.cursorrules` in the old format.
 
 ### VS Code + GitHub Copilot
 
@@ -158,24 +158,24 @@ npx memctl generate --copilot --link
 
 ### Windsurf
 
-Windsurf reads `.windsurfrules` from the project root. MCP config is global at `~/.codeium/windsurf/mcp_config.json`.
+Windsurf reads `.windsurf/rules/*.md` from the project. MCP config is global at `~/.codeium/windsurf/mcp_config.json`.
 
 ```bash
 npx memctl init --windsurf
-npx memctl generate --windsurf --link
+npx memctl generate --windsurf
 ```
 
-With `--link`, `.windsurfrules` is symlinked to `AGENTS.md` so they stay in sync.
+The `--windsurf` flag writes `.windsurf/rules/memctl.md` with YAML frontmatter (`trigger: always_on`) so Windsurf loads it automatically.
 
 ### Cline
 
-Cline reads `.clinerules` from the project root. MCP config is set through the extension UI (see [Agent Setup](/docs/agents#cline)).
+Cline reads `.clinerules/` directory from the project root. MCP config is set through the extension UI (see [Agent Setup](/docs/agents#cline)).
 
 ```bash
 npx memctl generate --cline --link
 ```
 
-There is no `memctl init --cline` because Cline's MCP config lives in VS Code extension storage, which varies by OS. Configure it manually through the Cline sidebar.
+The `--cline` flag writes `.clinerules/memctl.md`. There is no `memctl init --cline` because Cline's MCP config lives in VS Code extension storage, which varies by OS. Configure it manually through the Cline sidebar.
 
 ### Roo Code
 
@@ -203,12 +203,14 @@ cp AGENTS.md .continue/rules/memctl.md
 
 ### Amazon Q
 
-Amazon Q reads MCP config from `.amazonq/mcp.json` and `AGENTS.md` from the project root.
+Amazon Q reads MCP config from `.amazonq/mcp.json` and rules from `.amazonq/rules/`.
 
 ```bash
 npx memctl init --amazonq
-npx memctl generate
+npx memctl generate --amazonq
 ```
+
+The `--amazonq` flag writes `.amazonq/rules/memctl.md`.
 
 ### Zed
 
@@ -251,4 +253,4 @@ As your project context evolves, regenerate instruction files from stored memori
 npx memctl generate --all --link
 ```
 
-With `--link`, all `agents_md`-format files (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`, `.roo/rules/memctl.md`) are symlinked to `AGENTS.md`. Edit one, and all stay in sync. `.cursorrules` is always a separate file because it uses a different format.
+With `--link`, all `agents_md`-format files (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.clinerules/memctl.md`, `.roo/rules/memctl.md`, `codex.md`) are symlinked to `AGENTS.md`. Edit one, and all stay in sync. Files with tool-native frontmatter (`.windsurf/rules/memctl.md`, `.cursor/rules/memctl.mdc`, `.github/copilot-instructions.md`) and `.cursorrules` are always written as separate files.

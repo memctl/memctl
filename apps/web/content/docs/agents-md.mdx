@@ -19,50 +19,44 @@ ln -s AGENTS.md GEMINI.md
 ```
 
 ```md
-# AGENTS.md
+# memctl Rules
 
-## memctl MCP Rules
+MCP server: `memctl`. Use it for all persistent project memory.
 
-MCP server name is `memctl`. You MUST use it for persistent project memory.
+## Session Start
 
-ALWAYS use memctl tools. Do not skip them. They provide coding conventions, architecture decisions, testing rules, and context from previous sessions that you need to do your job correctly.
+1. `context` action=`bootstrap` -- load project context
+2. `session` action=`start` sessionId=`<id>` autoExtractGit=`true`
+3. `activity` action=`memo_read` -- check handoff notes
+4. `branch` action=`get` includeRelatedContext=`true`
 
-## Session Start (REQUIRED)
+## Before Editing
 
-Run these at the start of EVERY session, before doing anything else:
-
-1. `context` with `{"action":"bootstrap"}` - load all project context
-2. `session` with `{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}` - register this session
-3. `activity` with `{"action":"memo_read"}` - check handoff notes from previous sessions
-4. `branch` with `{"action":"get","includeRelatedContext":true}` - load branch plan
-
-## Before Editing Files (REQUIRED)
-
-ALWAYS load context before touching code:
-
-- `context` with `{"action":"context_for","filePaths":[...]}` for files you are about to edit
-- `context` with `{"action":"functionality_get","type":"coding_style"}` if not already loaded
+- `context` action=`context_for` filePaths=`[<files you will edit>]`
+- `context` action=`smart_retrieve` intent=`<what you need>`
 
 ## While Coding
 
-- Store decisions: `memory` with `{"action":"store","key":"...","content":"..."}`
-- Search before storing: `memory` with `{"action":"search","query":"..."}`
-- Update branch plan: `branch` with `{"action":"set","content":"...","status":"in_progress"}`
+- Store decisions, lessons, issues: `context` action=`functionality_set` type=`<type>` id=`<id>` content=`<content>`
+- Search before storing: `memory` action=`search` query=`<query>`
+- Update branch plan: `branch` action=`set` content=`<plan>` status=`in_progress`
 
-## Session End (REQUIRED)
+## After Completing Work
 
-Before ending your session:
+1. Leave a handoff note: `activity` action=`memo_leave` message=`<what was done, what is pending>`
+2. Store lessons: `context` action=`functionality_set` type=`lessons_learned` id=`<id>` content=`<lesson>`
 
-1. `activity` with `{"action":"memo_leave","message":"...","urgency":"info"}` if anything is pending
-2. `session` with `{"action":"end","sessionId":"<same-id>","summary":"..."}`
+## Session End
+
+1. `session` action=`end` sessionId=`<id>` summary=`<what was accomplished>`
 
 ## Rules
 
-- NEVER skip bootstrap at session start
-- NEVER skip context_for before editing files
-- Do not store secrets, tokens, or API keys
-- Do not store large file contents or binary data
+- Always bootstrap at session start
+- Always load context before editing files
+- Never store secrets, tokens, or API keys
 - Search before storing to avoid duplicates
+- Do not store large file contents or binary data
 ```
 
 ## Importing and exporting
@@ -75,12 +69,16 @@ npx memctl generate
 
 # Pick specific agents
 npx memctl generate --claude           # + CLAUDE.md
+npx memctl generate --claude-rule      # + .claude/rules/memctl.md
 npx memctl generate --gemini           # + GEMINI.md
 npx memctl generate --cursor           # + .cursorrules
+npx memctl generate --cursor-rule      # + .cursor/rules/memctl.mdc
 npx memctl generate --copilot          # + .github/copilot-instructions.md
-npx memctl generate --windsurf         # + .windsurfrules
-npx memctl generate --cline            # + .clinerules
+npx memctl generate --windsurf         # + .windsurf/rules/memctl.md
+npx memctl generate --cline            # + .clinerules/memctl.md
 npx memctl generate --roo              # + .roo/rules/memctl.md
+npx memctl generate --codex            # + codex.md
+npx memctl generate --amazonq          # + .amazonq/rules/memctl.md
 npx memctl generate --all              # all of the above
 
 # Symlink instead of copying (avoids content drift)
@@ -90,7 +88,7 @@ npx memctl generate --all --link
 npx memctl import AGENTS.md
 ```
 
-With `--link`, files that share the same format as `AGENTS.md` (CLAUDE.md, GEMINI.md, copilot-instructions.md, .windsurfrules, .clinerules, .roo/rules/memctl.md) become symlinks. `.cursorrules` is always a real file because it uses a different format. See [generate docs](/docs/cli/import-export#generate) for details.
+With `--link`, files that share the `agents_md` format (CLAUDE.md, GEMINI.md, copilot-instructions.md, `.windsurf/rules/memctl.md`, `.clinerules/memctl.md`, `.roo/rules/memctl.md`, `.amazonq/rules/memctl.md`, `codex.md`) become symlinks. `.cursorrules` is always a real file because it uses a different format. Files that support YAML frontmatter (Windsurf, Cursor rules, Copilot) get tool-native activation metadata prepended automatically. See [generate docs](/docs/cli/import-export#generate) for details.
 
 For pipe-friendly output, use `export` instead:
 

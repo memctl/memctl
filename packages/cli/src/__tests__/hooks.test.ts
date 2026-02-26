@@ -26,6 +26,33 @@ describe("hook candidate extraction", () => {
     expect(candidates).toHaveLength(0);
   });
 
+  it("classifies 'should add' patterns as user_ideas", () => {
+    const candidates = extractHookCandidates({
+      userMessage:
+        "We should add a bulk export feature to the dashboard API endpoint.",
+    });
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(candidates.some((c) => c.type === "user_ideas")).toBe(true);
+  });
+
+  it("classifies 'workaround' patterns as known_issues", () => {
+    const candidates = extractHookCandidates({
+      assistantMessage:
+        "There is a workaround for the flaky test in packages/cli/src/api-client.ts by retrying the request.",
+    });
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(candidates.some((c) => c.type === "known_issues")).toBe(true);
+  });
+
+  it("classifies 'decided to use' patterns as decisions", () => {
+    const candidates = extractHookCandidates({
+      assistantMessage:
+        "We decided to use cursor-based pagination in the activity API endpoint instead of offset pagination.",
+    });
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(candidates.some((c) => c.type === "decisions")).toBe(true);
+  });
+
   it("caps extracted candidate count", () => {
     const assistantMessage = [
       "We decided to keep API auth middleware in apps/web/lib/api-middleware.ts to enforce org access.",
