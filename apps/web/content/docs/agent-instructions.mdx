@@ -17,17 +17,21 @@ For Claude Code, use all three. For agents without hooks (Codex, Cursor, Windsur
 
 ## How it works
 
-| Agent       | Instruction file                      | Loaded at           | Hooks available | Notes                                      |
-| ----------- | ------------------------------------- | ------------------- | --------------- | ------------------------------------------ |
-| Claude Code | `CLAUDE.md`                           | Session start       | Yes             | Also reads `AGENTS.md`, has full hook system |
-| Codex       | `AGENTS.md`                           | Once per run        | No              | Merges root down into subdirs, 32 KiB max  |
-| Cursor      | `.cursorrules`                        | Every turn          | No              | Also reads `.cursor/rules/` directory      |
-| Gemini      | `GEMINI.md`                           | Session start       | No              | Also reads `AGENTS.md`                     |
-| Copilot     | `.github/copilot-instructions.md`     | Every turn          | No              | Per-repo instructions                      |
-| Windsurf    | `.windsurfrules`                      | Every turn          | No              | Global or per-project                      |
-| Roo Code    | `.roo/rules/`                         | Every turn          | No              | Mode-specific rule files                   |
-| Cline       | `.clinerules`                         | Every turn          | No              | Per-project rules                          |
-| Aider       | N/A                                   | N/A                 | No              | Pass `--read AGENTS.md` manually           |
+| Agent       | Instruction file                      | Loaded at           | Hooks | Auto-generate              | Notes                                      |
+| ----------- | ------------------------------------- | ------------------- | ----- | -------------------------- | ------------------------------------------ |
+| Claude Code | `CLAUDE.md`                           | Session start       | Yes   | `generate --claude --link` | Also reads `AGENTS.md`, has full hook system |
+| Codex       | `AGENTS.md`                           | Once per run        | No    | `generate`                 | Merges root down into subdirs, 32 KiB max  |
+| Cursor      | `.cursorrules`                        | Every turn          | No    | `generate --cursor`        | Different format, always a real file        |
+| Gemini      | `GEMINI.md`                           | Session start       | No    | `generate --gemini --link` | Also reads `AGENTS.md`                     |
+| Copilot     | `.github/copilot-instructions.md`     | Every turn          | No    | `generate --copilot --link`| Per-repo instructions                      |
+| Windsurf    | `.windsurfrules`                      | Every turn          | No    | `generate --windsurf --link`| Global or per-project                     |
+| Roo Code    | `.roo/rules/memctl.md`                | Every turn          | No    | `generate --roo --link`    | Mode-specific rule files                   |
+| Cline       | `.clinerules`                         | Every turn          | No    | `generate --cline --link`  | Per-project rules                          |
+| Continue    | `.continue/rules/`                    | Every turn          | No    | -                          | Manual setup, YAML config                  |
+| Zed         | N/A                                   | N/A                 | No    | -                          | Uses MCP tools directly, no instruction file|
+| JetBrains   | N/A                                   | N/A                 | No    | -                          | Uses MCP tools via AI Assistant plugin     |
+| Amazon Q    | `AGENTS.md`                           | Session start       | No    | `generate`                 | Reads AGENTS.md from project root          |
+| Aider       | N/A                                   | N/A                 | No    | -                          | Pass `--read AGENTS.md` manually           |
 
 ## Quick setup
 
@@ -46,7 +50,7 @@ To also generate agent-specific instruction files from your stored context:
 npx memctl generate --all
 ```
 
-This writes `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, and `.github/copilot-instructions.md`.
+This writes `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`, and `.roo/rules/memctl.md`.
 
 Use `--link` to symlink compatible files to `AGENTS.md` so they stay in sync:
 
@@ -154,17 +158,24 @@ npx memctl generate --copilot --link
 
 ### Windsurf
 
-Windsurf reads `.windsurfrules`. MCP config is global at `~/.codeium/windsurf/mcp_config.json`.
+Windsurf reads `.windsurfrules` from the project root. MCP config is global at `~/.codeium/windsurf/mcp_config.json`.
 
 ```bash
 npx memctl init --windsurf
+npx memctl generate --windsurf --link
 ```
 
-Copy the `AGENTS.md` content into `.windsurfrules` manually, or create a symlink:
+With `--link`, `.windsurfrules` is symlinked to `AGENTS.md` so they stay in sync.
+
+### Cline
+
+Cline reads `.clinerules` from the project root. MCP config is set through the extension UI (see [Agent Setup](/docs/agents#cline)).
 
 ```bash
-ln -s AGENTS.md .windsurfrules
+npx memctl generate --cline --link
 ```
+
+There is no `memctl init --cline` because Cline's MCP config lives in VS Code extension storage, which varies by OS. Configure it manually through the Cline sidebar.
 
 ### Roo Code
 
@@ -172,18 +183,40 @@ Roo reads rules from `.roo/rules/`. MCP config goes in `.roo/mcp.json`.
 
 ```bash
 npx memctl init --roo
-npx memctl generate
+npx memctl generate --roo --link
 ```
 
-Copy relevant sections from `AGENTS.md` into `.roo/rules/` files for mode-specific behavior.
+With `--link`, `.roo/rules/memctl.md` is symlinked to `AGENTS.md`.
+
+### Continue
+
+Continue reads rules from `.continue/rules/`. MCP config uses YAML format in `.continue/config.yaml`.
+
+There is no `memctl init --continue` because Continue uses YAML config. Set it up manually (see [Agent Setup](/docs/agents#continue)).
+
+After configuring MCP, generate `AGENTS.md` and copy it into `.continue/rules/`:
+
+```bash
+npx memctl generate
+cp AGENTS.md .continue/rules/memctl.md
+```
 
 ### Amazon Q
 
-Amazon Q reads MCP config from `.amazonq/mcp.json`.
+Amazon Q reads MCP config from `.amazonq/mcp.json` and `AGENTS.md` from the project root.
 
 ```bash
 npx memctl init --amazonq
+npx memctl generate
 ```
+
+### Zed
+
+Zed uses MCP tools directly through `context_servers` in Zed settings. There is no instruction file, so Zed relies on the MCP tool descriptions to guide usage. Configure manually (see [Agent Setup](/docs/agents#zed)).
+
+### JetBrains IDEs
+
+JetBrains IDEs (IntelliJ, WebStorm, PyCharm, GoLand) support MCP via the AI Assistant plugin. Configure through Settings UI (see [Agent Setup](/docs/agents#jetbrains)). There is no instruction file format.
 
 ### Aider
 
@@ -218,4 +251,4 @@ As your project context evolves, regenerate instruction files from stored memori
 npx memctl generate --all --link
 ```
 
-With `--link`, `CLAUDE.md`, `GEMINI.md`, and `.github/copilot-instructions.md` are symlinked to `AGENTS.md`. Edit one, and all stay in sync. `.cursorrules` is always a separate file because it uses a different format.
+With `--link`, all `agents_md`-format files (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`, `.roo/rules/memctl.md`) are symlinked to `AGENTS.md`. Edit one, and all stay in sync. `.cursorrules` is always a separate file because it uses a different format.

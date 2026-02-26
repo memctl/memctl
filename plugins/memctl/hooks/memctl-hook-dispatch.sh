@@ -19,6 +19,18 @@ read_payload() {
   fi
 }
 
+# Escape a string for safe embedding in JSON values.
+# Handles backslash, double quote, newline, carriage return, and tab.
+json_escape() {
+  local s="${1}"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "${s}"
+}
+
 extract_json_field() {
   local payload="${1}"
   local phase="${2}"
@@ -111,32 +123,24 @@ case "${PHASE}" in
     ;;
   user)
     session_id="$(ensure_session_id)"
-    # Inject reminder into Claude's context via additionalContext (stdout)
-    node -e '
-      const reminder = process.env.MEMCTL_REMINDER || "";
-      process.stdout.write(JSON.stringify({ additionalContext: reminder }));
-    '
+    # Inject reminder into Claude's context via additionalContext (stdout).
+    # Pure bash, no node spawn, runs on every turn so latency matters.
+    printf '{"additionalContext":"%s"}' "$(json_escape "${MEMCTL_REMINDER}")"
     # Send turn data to API in background
     user_message="$(extract_json_field "${payload}" "user")"
     if [[ -n "${user_message}" ]]; then
-      json="$(HOOK_MESSAGE="${user_message}" HOOK_SESSION_ID="${session_id}" node -e '
-        const message = process.env.HOOK_MESSAGE || "";
-        const sessionId = process.env.HOOK_SESSION_ID || "";
-        process.stdout.write(JSON.stringify({ action: "turn", sessionId, userMessage: message }));
-      ')"
-      send_hook_payload "${json}" &
+      esc_msg="$(json_escape "${user_message}")"
+      esc_sid="$(json_escape "${session_id}")"
+      send_hook_payload "{\"action\":\"turn\",\"sessionId\":\"${esc_sid}\",\"userMessage\":\"${esc_msg}\"}" &
     fi
     ;;
   assistant)
     session_id="$(ensure_session_id)"
     assistant_message="$(extract_json_field "${payload}" "assistant")"
     if [[ -n "${assistant_message}" ]]; then
-      json="$(HOOK_MESSAGE="${assistant_message}" HOOK_SESSION_ID="${session_id}" node -e '
-        const message = process.env.HOOK_MESSAGE || "";
-        const sessionId = process.env.HOOK_SESSION_ID || "";
-        process.stdout.write(JSON.stringify({ action: "turn", sessionId, assistantMessage: message }));
-      ')"
-      send_hook_payload "${json}" &
+      esc_msg="$(json_escape "${assistant_message}")"
+      esc_sid="$(json_escape "${session_id}")"
+      send_hook_payload "{\"action\":\"turn\",\"sessionId\":\"${esc_sid}\",\"assistantMessage\":\"${esc_msg}\"}" &
     fi
     ;;
   compact)
@@ -146,12 +150,13 @@ case "${PHASE}" in
   end)
     session_id="$(ensure_session_id)"
     summary="$(extract_json_field "${payload}" "summary")"
-    json="$(HOOK_SUMMARY="${summary}" HOOK_SESSION_ID="${session_id}" node -e '
-      const summary = process.env.HOOK_SUMMARY || "";
-      const sessionId = process.env.HOOK_SESSION_ID || "";
-      process.stdout.write(JSON.stringify({ action: "end", sessionId, summary: summary || undefined }));
-    ')"
-    send_hook_payload "${json}"
+    esc_sid="$(json_escape "${session_id}")"
+    if [[ -n "${summary}" ]]; then
+      esc_sum="$(json_escape "${summary}")"
+      send_hook_payload "{\"action\":\"end\",\"sessionId\":\"${esc_sid}\",\"summary\":\"${esc_sum}\"}"
+    else
+      send_hook_payload "{\"action\":\"end\",\"sessionId\":\"${esc_sid}\"}"
+    fi
     rm -f "${SESSION_FILE}"
     ;;
   *)

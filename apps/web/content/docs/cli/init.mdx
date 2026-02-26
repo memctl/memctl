@@ -62,3 +62,14 @@ npx memctl init --all
 | Amazon Q    | `.amazonq/mcp.json`                   | `mcpServers` object  |
 
 The wizard also offers to write `AGENTS.md` with memctl usage instructions. Agents like Codex, Claude Code, and Gemini read this file for persistent tool usage guidance.
+
+**Not automated by init** (configure manually via their UIs):
+
+| Agent      | Config location            | Notes                                    |
+| ---------- | -------------------------- | ---------------------------------------- |
+| Cline      | Extension UI / cline_mcp_settings.json | OS-dependent path, see [Agent Setup](/docs/agents#cline) |
+| Continue   | `.continue/config.yaml`    | YAML format, see [Agent Setup](/docs/agents#continue) |
+| Zed        | Zed settings UI            | Uses `context_servers` key, see [Agent Setup](/docs/agents#zed) |
+| JetBrains  | Settings UI                | AI Assistant plugin, see [Agent Setup](/docs/agents#jetbrains) |
+
+Use `memctl generate --all` to create instruction files for agents that read them. See [Agent Instructions](/docs/agent-instructions) for the full list.

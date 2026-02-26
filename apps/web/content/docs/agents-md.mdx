@@ -78,6 +78,9 @@ npx memctl generate --claude           # + CLAUDE.md
 npx memctl generate --gemini           # + GEMINI.md
 npx memctl generate --cursor           # + .cursorrules
 npx memctl generate --copilot          # + .github/copilot-instructions.md
+npx memctl generate --windsurf         # + .windsurfrules
+npx memctl generate --cline            # + .clinerules
+npx memctl generate --roo              # + .roo/rules/memctl.md
 npx memctl generate --all              # all of the above
 
 # Symlink instead of copying (avoids content drift)
@@ -87,7 +90,7 @@ npx memctl generate --all --link
 npx memctl import AGENTS.md
 ```
 
-With `--link`, files that share the same format as `AGENTS.md` (CLAUDE.md, GEMINI.md, copilot-instructions.md) become symlinks. `.cursorrules` is always a real file because it uses a different format. See [generate docs](/docs/cli/import-export#generate) for details.
+With `--link`, files that share the same format as `AGENTS.md` (CLAUDE.md, GEMINI.md, copilot-instructions.md, .windsurfrules, .clinerules, .roo/rules/memctl.md) become symlinks. `.cursorrules` is always a real file because it uses a different format. See [generate docs](/docs/cli/import-export#generate) for details.
 
 For pipe-friendly output, use `export` instead:
 

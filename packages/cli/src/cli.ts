@@ -276,6 +276,9 @@ Usage:
   memctl generate --gemini  Also write GEMINI.md
   memctl generate --cursor  Also write .cursorrules
   memctl generate --copilot Also write .github/copilot-instructions.md
+  memctl generate --windsurf Also write .windsurfrules
+  memctl generate --cline   Also write .clinerules
+  memctl generate --roo     Also write .roo/rules/memctl.md
   memctl generate --all     Write all agent config files
   memctl generate --link    Symlink agent files to AGENTS.md instead of copying
   memctl hook <action>      Hook API for cross-agent memory capture (start|turn|end)
@@ -295,6 +298,9 @@ Options:
   --gemini                  Include GEMINI.md
   --cursor                  Include .cursorrules
   --copilot                 Include .github/copilot-instructions.md
+  --windsurf                Include .windsurfrules
+  --cline                   Include .clinerules
+  --roo                     Include .roo/rules/memctl.md
   --all                     Include all agent config files
   --link                    Symlink to AGENTS.md instead of copying
   --global                  For memctl config, update global profile only
@@ -605,6 +611,9 @@ export async function runCli(args: string[]): Promise<void> {
           file: ".github/copilot-instructions.md",
           format: "agents_md",
         },
+        { flag: "windsurf", file: ".windsurfrules", format: "agents_md" },
+        { flag: "cline", file: ".clinerules", format: "agents_md" },
+        { flag: "roo", file: ".roo/rules/memctl.md", format: "agents_md" },
       ];
 
       const targets: Array<{

@@ -14,20 +14,20 @@ npx memctl hook-adapter --agent all --write
 
 ## Quick reference
 
-| Agent             | Config location                       | Config key        | Auto-setup               |
-| ----------------- | ------------------------------------- | ----------------- | ------------------------ |
-| Claude Code       | `.mcp.json`                           | `mcpServers`      | `memctl init --claude`   |
-| Cursor            | `.cursor/mcp.json`                    | `mcpServers`      | `memctl init --cursor`   |
-| VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | `memctl init --vscode`   |
-| Windsurf          | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`      | `memctl init --windsurf` |
-| Codex             | `.codex/config.toml`                  | `mcp_servers`     | `memctl init --codex`    |
-| Cline             | Extension UI                          | `mcpServers`      | -                        |
-| Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | `memctl init --roo`      |
-| Continue          | `.continue/config.yaml`               | `mcpServers`      | -                        |
-| Zed               | Zed settings                          | `context_servers` | -                        |
-| JetBrains         | Settings UI                           | -                 | -                        |
-| Amazon Q          | `.amazonq/mcp.json`                   | `mcpServers`      | `memctl init --amazonq`  |
-| Aider             | N/A                                   | -                 | -                        |
+| Agent             | Config location                       | Config key        | Auto-setup               | Instruction file          |
+| ----------------- | ------------------------------------- | ----------------- | ------------------------ | ------------------------- |
+| Claude Code       | `.mcp.json`                           | `mcpServers`      | `memctl init --claude`   | `generate --claude`       |
+| Cursor            | `.cursor/mcp.json`                    | `mcpServers`      | `memctl init --cursor`   | `generate --cursor`       |
+| VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | `memctl init --vscode`   | `generate --copilot`      |
+| Windsurf          | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`      | `memctl init --windsurf` | `generate --windsurf`     |
+| Codex             | `.codex/config.toml`                  | `mcp_servers`     | `memctl init --codex`    | `generate` (AGENTS.md)    |
+| Cline             | Extension UI                          | `mcpServers`      | Manual                   | `generate --cline`        |
+| Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | `memctl init --roo`      | `generate --roo`          |
+| Continue          | `.continue/config.yaml`               | `mcpServers`      | Manual                   | Manual (copy AGENTS.md)   |
+| Zed               | Zed settings                          | `context_servers` | Manual                   | N/A                       |
+| JetBrains         | Settings UI                           | -                 | Manual                   | N/A                       |
+| Amazon Q          | `.amazonq/mcp.json`                   | `mcpServers`      | `memctl init --amazonq`  | `generate` (AGENTS.md)    |
+| Aider             | N/A                                   | -                 | -                        | `export agents_md`        |
 
 For automatic per-turn memory capture, use [CLI Hooks](/docs/cli/hooks).
 
