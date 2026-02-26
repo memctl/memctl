@@ -44,7 +44,7 @@ const SUPPORTED_AGENTS: Agent[] = [
   "generic",
 ];
 
-const MEMCTL_REMINDER = 'Use memctl MCP tools for ALL persistent memory. Do NOT use built-in auto memory or MEMORY.md files. Session start: context action=bootstrap, session action=start, activity action=memo_read, branch action=get. Before editing: context action=context_for filePaths=[files], context action=smart_retrieve intent=<what you need>. Store decisions/lessons/issues: context action=functionality_set type=<type> id=<id> content=<content>. Search before storing: memory action=search query=<query>. After work: activity action=memo_leave message=<summary>. Session end: session action=end sessionId=<id> summary=<what was accomplished>.';
+const MEMCTL_REMINDER = 'Use memctl MCP tools for ALL persistent memory. Do NOT use built-in auto memory or MEMORY.md files. Do NOT store git logs, diffs, or file listings in memory. Session start: context action=bootstrap, session action=start, activity action=memo_read, branch action=get. Before editing: context action=context_for filePaths=[files], context action=smart_retrieve intent=<what you need>. Store decisions/lessons/issues: context action=functionality_set type=<type> id=<id> content=<content>. Search before storing: memory action=search query=<query>. After work: activity action=memo_leave message=<summary>. Session end: session action=end sessionId=<id> summary=<what was accomplished>.';
 
 const DISPATCHER_SCRIPT = `#!/usr/bin/env bash
 set -euo pipefail

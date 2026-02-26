@@ -189,38 +189,16 @@ function registerPrompts(server: McpServer) {
           role: "user" as const,
           content: {
             type: "text" as const,
-            text: `IMPORTANT: Do NOT use built-in auto memory or MEMORY.md files. Use memctl MCP tools for ALL persistent memory.
+            text: `Use memctl MCP tools for ALL persistent memory. Do NOT use built-in auto memory or MEMORY.md files. Do NOT store git logs, diffs, or file listings in memory.
 
-**On session start:**
-1. Call \`context\` with \`{"action":"bootstrap"}\` to load project context (architecture, coding style, constraints, file map, etc.)
-2. Call \`session\` with \`{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}\` to register this session and get the previous session handoff summary
-3. Call \`activity\` with \`{"action":"memo_read"}\` to check handoff notes from previous sessions
+Session start: context action=bootstrap, session action=start, activity action=memo_read, branch action=get.
+Before editing: context action=context_for filePaths=[files], context action=smart_retrieve intent=<what you need>.
+Store decisions/lessons/issues: context action=functionality_set type=<type> id=<id> content=<content>.
+Search before storing: memory action=search query=<query>.
+After work: activity action=memo_leave message=<summary>.
+Session end: session action=end sessionId=<id> summary=<what was accomplished>.
 
-**During work:**
-- Use \`context\` with \`{"action":"context_for","filePaths":[...]}\` before modifying files
-- Store project rules with \`context\` and \`{"action":"functionality_set",...}\`
-- Store important decisions, user preferences, and learned patterns with the \`memory\` tool
-- Use \`memory_advanced\` with \`{"action":"check_duplicates","content":"..."}\` before creating new memories
-- Store user ideas when they mention features they want: \`context\` with \`{"action":"functionality_set","type":"user_ideas","id":"<id>","content":"..."}\`
-- Store known issues and workarounds when discovered: \`context\` with \`{"action":"functionality_set","type":"known_issues","id":"<id>","content":"..."}\`
-- Store design decisions with rationale: \`context\` with \`{"action":"functionality_set","type":"decisions","id":"<id>","content":"..."}\`
-
-**After completing work:**
-- When you finish a task, fix a bug, or reach a milestone, store what you did
-- Call \`activity\` with \`{"action":"memo_leave","message":"<what was done and any pending items>","urgency":"info"}\`
-- Store lessons learned: \`context\` with \`{"action":"functionality_set","type":"lessons_learned","id":"<id>","content":"<what failed or should be avoided>"}\`
-
-**On session end:**
-- Call \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"<detailed summary of what was accomplished>"}\`
-- This ensures the next agent session has full continuity of what happened
-
-**What to store:**
-- User preferences (tools, workflow, coding style requests)
-- Architectural decisions and trade-offs made
-- What was done, what worked, what failed
-- User ideas and feature requests (type: user_ideas)
-- Known issues and workarounds (type: known_issues)
-- Do not store generic capabilities or large file contents`,
+Only store things that are useful across sessions: decisions, lessons, issues, user preferences, architecture notes. Never store transient data like git output, file contents, or command results.`,
           },
         },
       ],

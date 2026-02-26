@@ -1,13 +1,9 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ApiClient } from "../../api-client.js";
 import type { RateLimitState } from "../rate-limit.js";
 import { textResponse, errorResponse } from "../response.js";
 import { getBranchInfo } from "../../agent-context.js";
-
-const execFileAsync = promisify(execFile);
 
 function generateSessionId(): string {
   const now = Date.now().toString(36);
@@ -42,6 +38,29 @@ export function registerSessionTool(
   rl: RateLimitState,
 ) {
   let activeSessionId: string | null = null;
+
+  const autoCloseSession = () => {
+    if (!activeSessionId) return;
+    const sid = activeSessionId;
+    activeSessionId = null;
+    void client
+      .upsertSessionLog({
+        sessionId: sid,
+        summary: "Auto-closed: MCP server process exited.",
+        endedAt: Date.now(),
+      })
+      .catch(() => {});
+  };
+
+  // Guard against duplicate listeners when registerSessionTool is called
+  // multiple times (e.g. in tests).
+  const key = "__memctl_session_exit_registered__";
+  if (!(process as Record<string, unknown>)[key]) {
+    (process as Record<string, unknown>)[key] = true;
+    process.once("beforeExit", autoCloseSession);
+    process.once("SIGINT", autoCloseSession);
+    process.once("SIGTERM", autoCloseSession);
+  }
 
   server.tool(
     "session",
@@ -87,9 +106,7 @@ export function registerSessionTool(
       autoExtractGit: z
         .boolean()
         .optional()
-        .describe(
-          "[start] Auto-extract git changes since last session (default: true)",
-        ),
+        .describe("[start] Deprecated, ignored"),
     },
     async (params) => {
       try {
@@ -146,19 +163,6 @@ export function registerSessionTool(
                 }
               : null;
 
-            // Auto-extract git changes since last session
-            let gitContext: {
-              commits?: string;
-              diffStat?: string;
-              todos?: string[];
-            } | null = null;
-            if (params.autoExtractGit !== false) {
-              gitContext = await extractGitContext(
-                client,
-                lastSession?.endedAt,
-              );
-            }
-
             return textResponse(
               JSON.stringify(
                 {
@@ -168,7 +172,6 @@ export function registerSessionTool(
                   handoff,
                   recentSessionCount: recentSessions.sessionLogs.length,
                   staleSessionsClosed,
-                  ...(gitContext ? { gitContext } : {}),
                 },
                 null,
                 2,
@@ -336,70 +339,3 @@ export function registerSessionTool(
   );
 }
 
-async function extractGitContext(
-  client: ApiClient,
-  lastSessionEndedAt?: unknown,
-): Promise<{ commits?: string; diffStat?: string; todos?: string[] } | null> {
-  const cwd = process.cwd();
-  const result: { commits?: string; diffStat?: string; todos?: string[] } = {};
-
-  try {
-    // Get git log since last session
-    const sinceArg = lastSessionEndedAt
-      ? [`--since=${new Date(lastSessionEndedAt as number).toISOString()}`]
-      : [];
-    const logResult = await execFileAsync(
-      "git",
-      ["log", "--oneline", ...sinceArg, "-20"],
-      { cwd, timeout: 5000 },
-    );
-    const commits = logResult.stdout.trim();
-    if (commits) result.commits = commits;
-
-    // Get diff stat for recent changes
-    const diffResult = await execFileAsync(
-      "git",
-      ["diff", "--stat", "HEAD~10..HEAD"],
-      { cwd, timeout: 5000 },
-    ).catch(() => null);
-    if (diffResult?.stdout.trim()) result.diffStat = diffResult.stdout.trim();
-
-    // Extract TODOs/FIXMEs from recently changed files
-    const changedResult = await execFileAsync(
-      "git",
-      ["diff", "--name-only", "HEAD~5..HEAD"],
-      { cwd, timeout: 5000 },
-    ).catch(() => null);
-    if (changedResult?.stdout.trim()) {
-      const changedFiles = changedResult.stdout
-        .trim()
-        .split("\n")
-        .filter(Boolean);
-      const todos: string[] = [];
-      for (const file of changedFiles.slice(0, 20)) {
-        try {
-          const grepResult = await execFileAsync(
-            "grep",
-            ["-n", "-E", "TODO|FIXME|HACK|XXX", file],
-            { cwd, timeout: 2000 },
-          );
-          if (grepResult.stdout.trim()) {
-            for (const line of grepResult.stdout
-              .trim()
-              .split("\n")
-              .slice(0, 5)) {
-              todos.push(`${file}:${line}`);
-            }
-          }
-        } catch {
-          // grep returns exit code 1 when no matches
-        }
-      }
-      if (todos.length > 0) result.todos = todos;
-    }
-
-    return Object.keys(result).length > 0 ? result : null;
-  } catch {
-    return null;
-  }
-}
