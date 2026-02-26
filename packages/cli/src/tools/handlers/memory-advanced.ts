@@ -18,6 +18,7 @@ export function registerMemoryAdvancedTool(
   server: McpServer,
   client: ApiClient,
   rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "memory_advanced",
@@ -183,6 +184,7 @@ export function registerMemoryAdvancedTool(
         .describe("[batch_ops] Array of API operations (max 20)"),
     },
     async (params) => {
+      onToolCall("memory_advanced", params.action);
       try {
         switch (params.action) {
           case "batch_mutate": {

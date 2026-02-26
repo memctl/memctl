@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { createSessionTracker } from "../session-tracker";
+import type { SessionTracker } from "../session-tracker";
 
 // ── Mocks ────────────────────────────────────────────────────────
 
@@ -53,6 +55,7 @@ describe("session tool – start and auto-close", () => {
   let server: ReturnType<typeof createMockServer>;
   let client: ReturnType<typeof createMockClient>;
   let rl: ReturnType<typeof createMockRateLimit>;
+  let tracker: SessionTracker;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -61,9 +64,10 @@ describe("session tool – start and auto-close", () => {
     server = createMockServer();
     client = createMockClient();
     rl = createMockRateLimit();
+    tracker = createSessionTracker();
 
     const { registerSessionTool } = await import("../tools/handlers/session");
-    registerSessionTool(server as any, client as any, rl as any);
+    registerSessionTool(server as any, client as any, rl as any, tracker, vi.fn());
   });
 
   afterEach(() => {

@@ -8,6 +8,7 @@ export function registerActivityTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "activity",
@@ -42,6 +43,7 @@ export function registerActivityTool(
         .describe("[memo_leave] Memory keys this memo relates to"),
     },
     async (params) => {
+      onToolCall("activity", params.action);
       try {
         switch (params.action) {
           case "log": {

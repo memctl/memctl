@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createSessionTracker } from "../session-tracker";
+import type { SessionTracker } from "../session-tracker";
 
 // ── Mock agent-context before any handler imports ──────────────────────
 vi.mock("../agent-context", () => ({
@@ -225,7 +227,7 @@ describe("Tool Dispatch: memory", () => {
     rl = createMockRateLimitState();
 
     const { registerMemoryTool } = await import("../tools/handlers/memory");
-    registerMemoryTool(server as any, client as any, rl);
+    registerMemoryTool(server as any, client as any, rl, vi.fn());
   });
 
   it("registers the 'memory' tool", () => {
@@ -540,15 +542,17 @@ describe("Tool Dispatch: session", () => {
   let server: ReturnType<typeof createMockServer>;
   let client: ReturnType<typeof createMockClient>;
   let rl: ReturnType<typeof createMockRateLimitState>;
+  let tracker: SessionTracker;
 
   beforeEach(async () => {
     vi.restoreAllMocks();
     server = createMockServer();
     client = createMockClient();
     rl = createMockRateLimitState();
+    tracker = createSessionTracker();
 
     const { registerSessionTool } = await import("../tools/handlers/session");
-    registerSessionTool(server as any, client as any, rl);
+    registerSessionTool(server as any, client as any, rl, tracker, vi.fn());
   });
 
   it("registers the 'session' tool", () => {
@@ -715,7 +719,7 @@ describe("Tool Dispatch: branch", () => {
     rl = createMockRateLimitState();
 
     const { registerBranchTool } = await import("../tools/handlers/branch");
-    registerBranchTool(server as any, client as any, rl);
+    registerBranchTool(server as any, client as any, rl, vi.fn());
   });
 
   it("registers the 'branch' tool", () => {
@@ -834,7 +838,7 @@ describe("Tool Dispatch: context_config", () => {
 
     const { registerContextConfigTool } =
       await import("../tools/handlers/context-config");
-    registerContextConfigTool(server as any, client as any, rl);
+    registerContextConfigTool(server as any, client as any, rl, vi.fn());
   });
 
   it("registers the 'context_config' tool", () => {

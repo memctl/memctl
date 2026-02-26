@@ -15,6 +15,7 @@ export function registerMemoryTool(
   server: McpServer,
   client: ApiClient,
   rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "memory",
@@ -126,6 +127,7 @@ export function registerMemoryTool(
         .describe("[store,update,store_safe] Bypass low-signal quality filter"),
     },
     async (params) => {
+      onToolCall("memory", params.action);
       switch (params.action) {
         case "store":
           return handleStore(client, rl, params);

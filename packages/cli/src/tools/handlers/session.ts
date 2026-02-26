@@ -4,6 +4,8 @@ import type { ApiClient } from "../../api-client.js";
 import type { RateLimitState } from "../rate-limit.js";
 import { textResponse, errorResponse } from "../response.js";
 import { getBranchInfo } from "../../agent-context.js";
+import type { SessionTracker } from "../../session-tracker.js";
+import { adoptSessionId } from "../../session-tracker.js";
 
 function generateSessionId(): string {
   const now = Date.now().toString(36);
@@ -11,58 +13,13 @@ function generateSessionId(): string {
   return `sess-${now}-${rand}`;
 }
 
-function buildFallbackSummary(params: {
-  keysRead?: string[];
-  keysWritten?: string[];
-  toolsUsed?: string[];
-}): string {
-  const parts: string[] = [];
-  if (params.keysWritten?.length) {
-    parts.push(`${params.keysWritten.length} key(s) written`);
-  }
-  if (params.keysRead?.length) {
-    parts.push(`${params.keysRead.length} key(s) read`);
-  }
-  if (params.toolsUsed?.length) {
-    parts.push(`tools: ${params.toolsUsed.join(", ")}`);
-  }
-  if (parts.length === 0) {
-    return "Session ended without explicit summary.";
-  }
-  return `Session ended, ${parts.join(", ")}.`;
-}
-
 export function registerSessionTool(
   server: McpServer,
   client: ApiClient,
   rl: RateLimitState,
+  tracker: SessionTracker,
+  onToolCall: (tool: string, action: string) => void,
 ) {
-  let activeSessionId: string | null = null;
-
-  const autoCloseSession = () => {
-    if (!activeSessionId) return;
-    const sid = activeSessionId;
-    activeSessionId = null;
-    void client
-      .upsertSessionLog({
-        sessionId: sid,
-        summary: "Auto-closed: MCP server process exited.",
-        endedAt: Date.now(),
-      })
-      .catch(() => {});
-  };
-
-  // Guard against duplicate listeners when registerSessionTool is called
-  // multiple times (e.g. in tests).
-  const key = "__memctl_session_exit_registered__";
-  const proc = process as unknown as Record<string, unknown>;
-  if (!proc[key]) {
-    proc[key] = true;
-    process.once("beforeExit", autoCloseSession);
-    process.once("SIGINT", autoCloseSession);
-    process.once("SIGTERM", autoCloseSession);
-  }
-
   server.tool(
     "session",
     "Session management. Actions: start, end, history, claims_check, claim, rate_status",
@@ -110,6 +67,7 @@ export function registerSessionTool(
         .describe("[start] Deprecated, ignored"),
     },
     async (params) => {
+      onToolCall("session", params.action);
       try {
         switch (params.action) {
           case "start": {
@@ -122,7 +80,7 @@ export function registerSessionTool(
               sessionId,
               branch: branchInfo?.branch,
             });
-            activeSessionId = sessionId;
+            adoptSessionId(tracker, sessionId);
 
             // Auto-close stale sessions (open > 2 hours)
             const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -181,23 +139,43 @@ export function registerSessionTool(
           }
           case "end": {
             const sessionId =
-              params.sessionId ?? activeSessionId ?? generateSessionId();
+              params.sessionId ?? tracker.sessionId ?? generateSessionId();
+
+            // Enrich agent-provided summary with tracker data
+            const trackerWritten = [...tracker.writtenKeys];
+            const trackerRead = [...tracker.readKeys];
+            const trackerTools = [...tracker.toolActions];
+
+            const mergedKeysWritten = [
+              ...new Set([
+                ...(params.keysWritten ?? []),
+                ...trackerWritten,
+              ]),
+            ];
+            const mergedKeysRead = [
+              ...new Set([
+                ...(params.keysRead ?? []),
+                ...trackerRead,
+              ]),
+            ];
+            const mergedToolsUsed = [
+              ...new Set([
+                ...(params.toolsUsed ?? []),
+                ...trackerTools,
+              ]),
+            ];
+
             const summary =
-              params.summary?.trim() ||
-              buildFallbackSummary({
-                keysRead: params.keysRead,
-                keysWritten: params.keysWritten,
-                toolsUsed: params.toolsUsed,
-              });
+              params.summary?.trim() || "Session ended without explicit summary.";
             await client.upsertSessionLog({
               sessionId,
               summary,
-              keysRead: params.keysRead,
-              keysWritten: params.keysWritten,
-              toolsUsed: params.toolsUsed,
+              keysRead: mergedKeysRead,
+              keysWritten: mergedKeysWritten,
+              toolsUsed: mergedToolsUsed,
               endedAt: Date.now(),
             });
-            activeSessionId = null;
+            tracker.endedExplicitly = true;
             return textResponse(
               `Session ${sessionId} ended. Handoff summary saved.`,
             );
@@ -234,8 +212,8 @@ export function registerSessionTool(
                 ? new Date(claim.expiresAt as string).getTime()
                 : 0;
               if (expiresAt && expiresAt < now) continue;
-              const sessionId = claim.key.replace("agent/claims/", "");
-              if (params.excludeSession && sessionId === params.excludeSession)
+              const claimSessionId = claim.key.replace("agent/claims/", "");
+              if (params.excludeSession && claimSessionId === params.excludeSession)
                 continue;
               let claimedKeys: string[] = [];
               try {
@@ -245,7 +223,7 @@ export function registerSessionTool(
               }
               const conflicts = claimedKeys.filter((k) => keysToCheck.has(k));
               activeClaims.push({
-                sessionId,
+                sessionId: claimSessionId,
                 claimedKeys,
                 expiresAt: expiresAt
                   ? new Date(expiresAt).toISOString()
@@ -281,7 +259,7 @@ export function registerSessionTool(
                 "keys required",
               );
             const sessionId =
-              params.sessionId ?? activeSessionId ?? generateSessionId();
+              params.sessionId ?? tracker.sessionId ?? generateSessionId();
             const rateCheck = rl.checkRateLimit();
             if (!rateCheck.allowed)
               return errorResponse("Rate limit exceeded", rateCheck.warning!);
@@ -296,7 +274,9 @@ export function registerSessionTool(
               { sessionId, claimedAt: Date.now() },
               { tags: ["session-claim"], expiresAt, priority: 0 },
             );
-            activeSessionId = sessionId;
+            if (!tracker.explicitSessionActive) {
+              adoptSessionId(tracker, sessionId);
+            }
             const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
             return textResponse(
               JSON.stringify(
@@ -339,4 +319,3 @@ export function registerSessionTool(
     },
   );
 }
-

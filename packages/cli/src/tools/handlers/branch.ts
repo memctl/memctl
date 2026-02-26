@@ -18,6 +18,7 @@ export function registerBranchTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "branch",
@@ -46,6 +47,7 @@ export function registerBranchTool(
         .describe("[set] Checklist items"),
     },
     async (params) => {
+      onToolCall("branch", params.action);
       try {
         switch (params.action) {
           case "get": {

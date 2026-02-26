@@ -27,6 +27,7 @@ export function registerContextTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "context",
@@ -161,6 +162,7 @@ export function registerContextTool(
         .describe("[thread] Sessions to analyze"),
     },
     async (params) => {
+      onToolCall("context", params.action);
       try {
         switch (params.action) {
           case "bootstrap":

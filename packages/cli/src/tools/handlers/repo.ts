@@ -13,6 +13,7 @@ export function registerRepoTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "repo",
@@ -46,6 +47,7 @@ export function registerRepoTool(
         .describe("[onboard] Store generated memories"),
     },
     async (params) => {
+      onToolCall("repo", params.action);
       try {
         switch (params.action) {
           case "scan": {
