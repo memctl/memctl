@@ -106,6 +106,33 @@ export function registerSessionTool(
             });
             activeSessionId = sessionId;
 
+            // Auto-close stale sessions (open > 2 hours)
+            const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+            const now = Date.now();
+            let staleSessionsClosed = 0;
+            for (const log of recentSessions.sessionLogs) {
+              if (log.endedAt) continue;
+              const startedAt =
+                typeof log.startedAt === "number"
+                  ? log.startedAt
+                  : typeof log.startedAt === "string"
+                    ? new Date(log.startedAt).getTime()
+                    : 0;
+              if (!startedAt || now - startedAt < TWO_HOURS_MS) continue;
+              try {
+                await client.upsertSessionLog({
+                  sessionId: log.sessionId,
+                  summary:
+                    log.summary ||
+                    "Auto-closed: session exceeded 2-hour inactivity limit.",
+                  endedAt: now,
+                });
+                staleSessionsClosed++;
+              } catch {
+                // Best effort
+              }
+            }
+
             const lastSession = recentSessions.sessionLogs[0];
             const handoff = lastSession
               ? {
@@ -140,6 +167,7 @@ export function registerSessionTool(
                   currentBranch: branchInfo,
                   handoff,
                   recentSessionCount: recentSessions.sessionLogs.length,
+                  staleSessionsClosed,
                   ...(gitContext ? { gitContext } : {}),
                 },
                 null,
@@ -368,46 +396,6 @@ async function extractGitContext(
         }
       }
       if (todos.length > 0) result.todos = todos;
-    }
-
-    // Store git changes as auto-memory if we have meaningful content
-    if (result.commits) {
-      const timestamp = Date.now();
-      const content = [
-        result.commits ? `## Recent Commits\n${result.commits}` : "",
-        result.diffStat ? `## Change Summary\n${result.diffStat}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n\n");
-
-      await client
-        .storeMemory(
-          `auto:git-changes:${timestamp}`,
-          content,
-          { extractedAt: new Date().toISOString() },
-          {
-            tags: ["auto:git", "session-context"],
-            priority: 20,
-            expiresAt: Date.now() + 7 * 86_400_000,
-          },
-        )
-        .catch(() => {});
-
-      // Store TODOs separately if any
-      if (result.todos?.length) {
-        await client
-          .storeMemory(
-            `auto:todos:${timestamp}`,
-            result.todos.join("\n"),
-            { extractedAt: new Date().toISOString() },
-            {
-              tags: ["auto:git", "todos"],
-              priority: 30,
-              expiresAt: Date.now() + 14 * 86_400_000,
-            },
-          )
-          .catch(() => {});
-      }
     }
 
     return Object.keys(result).length > 0 ? result : null;

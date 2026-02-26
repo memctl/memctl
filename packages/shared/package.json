@@ -8,7 +8,8 @@
     "./types": "./src/types.ts",
     "./constants": "./src/constants.ts",
     "./validators": "./src/validators.ts",
-    "./relevance": "./src/relevance.ts"
+    "./relevance": "./src/relevance.ts",
+    "./intent": "./src/intent.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

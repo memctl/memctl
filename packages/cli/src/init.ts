@@ -447,7 +447,9 @@ ALWAYS load context before touching code:
 
 ## While Coding
 
-- Store decisions: \`memory\` with \`{"action":"store","key":"...","content":"..."}\`
+- Store decisions: \`context\` with \`{"action":"functionality_set","type":"decisions","id":"<id>","content":"## Decision\\n...\\n## Rationale\\n..."}\`
+- Store user ideas: \`context\` with \`{"action":"functionality_set","type":"user_ideas","id":"<id>","content":"## Idea\\n...\\n## Priority\\n..."}\`
+- Store known issues: \`context\` with \`{"action":"functionality_set","type":"known_issues","id":"<id>","content":"## Issue\\n...\\n## Workaround\\n..."}\`
 - Search before storing: \`memory\` with \`{"action":"search","query":"..."}\`
 - Update branch plan: \`branch\` with \`{"action":"set","content":"...","status":"in_progress"}\`
 - Store user preferences and requests with \`memory\` (e.g. "always use X", "never do Y")
@@ -458,6 +460,7 @@ When you finish a task, fix a bug, or reach a milestone:
 
 1. \`activity\` with \`{"action":"memo_leave","message":"<what was done and pending items>","urgency":"info"}\`
 2. Store lessons learned: \`context\` with \`{"action":"functionality_set","type":"lessons_learned","id":"<id>","content":"<what failed or should be avoided>"}\`
+3. Store any known issues discovered: \`context\` with \`{"action":"functionality_set","type":"known_issues","id":"<id>","content":"## Issue\\n...\\n## Workaround\\n..."}\`
 
 ## Session End (REQUIRED)
 

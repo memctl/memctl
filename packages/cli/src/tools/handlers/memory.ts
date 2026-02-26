@@ -9,6 +9,7 @@ import {
   formatCapacityGuidance,
 } from "../response.js";
 import { getBranchInfo, listAllMemories } from "../../agent-context.js";
+import { classifySearchIntent } from "../../intent.js";
 
 export function registerMemoryTool(
   server: McpServer,
@@ -424,16 +425,33 @@ async function handleSearch(
         "query is required for search",
       );
 
-    const results = await client.searchMemories(
+    const classification = classifySearchIntent(query);
+    let sort = params.sort as string | undefined;
+    if (!sort && classification.intent === "temporal") {
+      sort = "updated";
+    }
+
+    const results = (await client.searchMemories(
       query,
       (params.limit as number) ?? 20,
       {
         tags: params.tags as string | undefined,
-        sort: params.sort as string | undefined,
+        sort,
         includeArchived: (params.includeArchived as boolean) ?? false,
+        intent: classification.intent,
       },
+    )) as Record<string, unknown>;
+    return textResponse(
+      JSON.stringify(
+        {
+          ...results,
+          _searchIntent: classification.intent,
+          _confidence: classification.confidence,
+        },
+        null,
+        2,
+      ),
     );
-    return textResponse(JSON.stringify(results, null, 2));
   } catch (error) {
     return errorResponse("Error searching memories", error);
   }

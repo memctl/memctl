@@ -26,6 +26,12 @@ import { generateEmbedding, serializeEmbedding } from "@/lib/embeddings";
 import { validateContent } from "@/lib/schema-validator";
 import { contextTypes } from "@memctl/db/schema";
 import { computeRelevanceScore } from "@memctl/shared/relevance";
+import {
+  classifySearchIntent,
+  getIntentWeights,
+  SEARCH_INTENTS,
+} from "@memctl/shared/intent";
+import type { SearchIntent } from "@memctl/shared/intent";
 
 export async function GET(req: NextRequest) {
   const authResult = await authenticateRequest(req);
@@ -55,8 +61,28 @@ export async function GET(req: NextRequest) {
   const tagsFilter = url.searchParams.get("tags"); // comma-separated
   const includeArchived = url.searchParams.get("include_archived") === "true";
   const includeShared = url.searchParams.get("include_shared") !== "false"; // opt-in by default
-  const sortBy = url.searchParams.get("sort") ?? "updated"; // "updated" | "priority" | "created" | "relevance"
+  let sortBy = url.searchParams.get("sort") ?? "updated"; // "updated" | "priority" | "created" | "relevance"
   const afterCursor = url.searchParams.get("after"); // cursor-based pagination (memory ID)
+
+  // Intent classification for search ranking
+  const intentParam = url.searchParams.get("intent");
+  let resolvedIntent: SearchIntent | null = null;
+  if (
+    intentParam &&
+    (SEARCH_INTENTS as readonly string[]).includes(intentParam)
+  ) {
+    resolvedIntent = intentParam as SearchIntent;
+  } else if (query) {
+    resolvedIntent = classifySearchIntent(query).intent;
+  }
+  const intentWeights = resolvedIntent
+    ? getIntentWeights(resolvedIntent)
+    : null;
+
+  // Temporal intent forces recency sort
+  if (resolvedIntent === "temporal" && sortBy === "updated") {
+    sortBy = "updated";
+  }
 
   // Get org project IDs for shared memory inclusion
   let sharedProjectIds: string[] = [];
@@ -195,6 +221,10 @@ export async function GET(req: NextRequest) {
   // Weighted ranking: compute composite relevance score when searching
   if (query && results.length > 1) {
     const now = Date.now();
+    const pBoost = intentWeights?.priorityBoost ?? 1;
+    const rBoost = intentWeights?.recencyBoost ?? 1;
+    const gBoost = intentWeights?.graphBoost ?? 0;
+
     const scored = results.map((m) => {
       const priority = m.priority ?? 0;
       const accessCount = m.accessCount ?? 0;
@@ -208,12 +238,23 @@ export async function GET(req: NextRequest) {
         : 999;
       const isPinned = m.pinnedAt ? 1 : 0;
 
-      // Composite score (higher = more relevant)
-      const priorityScore = priority * 0.3;
+      // Composite score (higher = more relevant), weighted by intent
+      const priorityScore = priority * 0.3 * pBoost;
       const accessScore = Math.min(25, accessCount * 2) * 0.2;
       const feedbackScore = Math.max(0, (helpful - unhelpful) * 3) * 0.15;
-      const recencyScore = Math.max(0, 25 - daysSinceAccess / 3) * 0.2;
+      const recencyScore = Math.max(0, 25 - daysSinceAccess / 3) * 0.2 * rBoost;
       const pinBoost = isPinned * 15;
+
+      // Graph boost for relationship intent
+      let graphScore = 0;
+      if (gBoost > 0 && m.relatedKeys) {
+        try {
+          const relKeys = JSON.parse(m.relatedKeys) as string[];
+          graphScore = relKeys.length * gBoost;
+        } catch {
+          /* ignore */
+        }
+      }
 
       return {
         memory: m,
@@ -223,13 +264,65 @@ export async function GET(req: NextRequest) {
               accessScore +
               feedbackScore +
               recencyScore +
-              pinBoost) *
+              pinBoost +
+              graphScore) *
               100,
           ) / 100,
       };
     });
     scored.sort((a, b) => b._relevanceScore - a._relevanceScore);
+
+    // Temporal intent: force sort by updatedAt desc after scoring
+    if (resolvedIntent === "temporal") {
+      scored.sort((a, b) => {
+        const aTime = a.memory.updatedAt
+          ? new Date(a.memory.updatedAt).getTime()
+          : 0;
+        const bTime = b.memory.updatedAt
+          ? new Date(b.memory.updatedAt).getTime()
+          : 0;
+        return bTime - aTime;
+      });
+    }
+
     results = scored.map((s) => s.memory);
+  }
+
+  // Relationship intent: inject memories linked to top results
+  if (resolvedIntent === "relationship" && query && results.length > 0) {
+    const existingIds = new Set(results.map((r) => r.id));
+    const relatedKeysToFetch: string[] = [];
+    for (const m of results.slice(0, 5)) {
+      if (m.relatedKeys) {
+        try {
+          const relKeys = JSON.parse(m.relatedKeys) as string[];
+          for (const rk of relKeys) {
+            if (!relatedKeysToFetch.includes(rk)) relatedKeysToFetch.push(rk);
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    if (relatedKeysToFetch.length > 0) {
+      const relatedResults = await db
+        .select()
+        .from(memories)
+        .where(
+          and(
+            eq(memories.projectId, project.id),
+            inArray(memories.key, relatedKeysToFetch),
+            includeArchived ? undefined : isNull(memories.archivedAt),
+          ),
+        )
+        .limit(10);
+      for (const rm of relatedResults) {
+        if (!existingIds.has(rm.id)) {
+          results.push(rm);
+          existingIds.add(rm.id);
+        }
+      }
+    }
   }
 
   // Hybrid search: run vector search in parallel when query is provided

@@ -24,6 +24,8 @@ describe("hook adapter command", () => {
     ).toBe(true);
     expect(dispatcher?.content).toContain('"hookSpecificOutput"');
     expect(dispatcher?.content).toContain('"hookEventName":"UserPromptSubmit"');
+    expect(dispatcher?.content).toContain("user_ideas");
+    expect(dispatcher?.content).toContain("known_issues");
   });
 
   it("writes adapter files when --write is used", async () => {

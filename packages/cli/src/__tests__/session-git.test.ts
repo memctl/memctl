@@ -126,9 +126,9 @@ describe("session tool – git auto-extraction", () => {
     vi.useRealTimers();
   });
 
-  // ── 1. Git commits are extracted and stored as auto:git-changes memory ──
+  // ── 1. Git commits are returned in response but not stored ──
 
-  it("extracts git commits and stores them as auto:git-changes memory", async () => {
+  it("extracts git commits and returns them without storing as memory", async () => {
     setupExecFile({
       "git log --oneline": {
         stdout: "abc1234 feat: add feature\ndef5678 fix: bug fix\n",
@@ -140,33 +140,26 @@ describe("session tool – git auto-extraction", () => {
     });
 
     const handler = server.tools["session"].handler;
-    await handler({
+    const result = await handler({
       action: "start",
       sessionId: "test-session-1",
     });
 
-    // Verify storeMemory was called with auto:git-changes key
-    expect(client.storeMemory).toHaveBeenCalledWith(
-      expect.stringMatching(/^auto:git-changes:\d+$/),
-      expect.stringContaining("abc1234 feat: add feature"),
-      expect.objectContaining({ extractedAt: expect.any(String) }),
-      expect.objectContaining({
-        tags: ["auto:git", "session-context"],
-        priority: 20,
-        expiresAt: expect.any(Number),
-      }),
+    // Git data should NOT be stored as memory (available via git commands)
+    const autoCalls = client.storeMemory.mock.calls.filter((call: unknown[]) =>
+      (call[0] as string).startsWith("auto:"),
     );
+    expect(autoCalls).toHaveLength(0);
 
-    // The stored content should include the diff stat section too
-    const storeCall = client.storeMemory.mock.calls[0];
-    expect(storeCall[1]).toContain("## Recent Commits");
-    expect(storeCall[1]).toContain("## Change Summary");
-    expect(storeCall[1]).toContain("src/index.ts");
+    // But should still be in the response for the agent to see
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.gitContext.commits).toContain("abc1234 feat: add feature");
+    expect(parsed.gitContext.diffStat).toContain("src/index.ts");
   });
 
-  // ── 2. TODOs are extracted and stored as auto:todos memory ──
+  // ── 2. TODOs are returned in response but not stored ──
 
-  it("extracts TODOs from changed files and stores them as auto:todos memory", async () => {
+  it("extracts TODOs from changed files and returns them without storing", async () => {
     setupExecFile({
       "git log --oneline": { stdout: "abc1234 feat: add feature\n" },
       "git diff --stat": { stdout: "" },
@@ -181,30 +174,21 @@ describe("session tool – git auto-extraction", () => {
     });
 
     const handler = server.tools["session"].handler;
-    await handler({ action: "start", sessionId: "test-session-2" });
+    const result = await handler({ action: "start", sessionId: "test-session-2" });
 
-    // Should have two storeMemory calls: one for git-changes, one for todos
-    expect(client.storeMemory).toHaveBeenCalledTimes(2);
+    // No auto-memories should be stored
+    const autoCalls = client.storeMemory.mock.calls.filter((call: unknown[]) =>
+      (call[0] as string).startsWith("auto:"),
+    );
+    expect(autoCalls).toHaveLength(0);
 
-    // Verify the todos memory
-    const todosCall = client.storeMemory.mock.calls.find((call: unknown[]) =>
-      (call[0] as string).startsWith("auto:todos:"),
-    );
-    expect(todosCall).toBeDefined();
-    expect(todosCall![1]).toContain(
-      "src/app.ts:12:  // TODO: refactor this function",
-    );
-    expect(todosCall![1]).toContain(
-      "src/utils.ts:3:  // HACK: temporary workaround",
-    );
-    expect(todosCall![2]).toEqual(
-      expect.objectContaining({ extractedAt: expect.any(String) }),
-    );
-    expect(todosCall![3]).toEqual(
-      expect.objectContaining({
-        tags: ["auto:git", "todos"],
-        priority: 30,
-      }),
+    // TODOs should be in the response
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.gitContext.todos).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("src/app.ts:12:"),
+        expect.stringContaining("src/utils.ts:3:"),
+      ]),
     );
   });
 
@@ -361,15 +345,92 @@ describe("session tool – git auto-extraction", () => {
     );
   });
 
-  it("handles storeMemory failure gracefully without breaking session", async () => {
+  // ── Stale session auto-close tests ──
+
+  it("auto-closes stale sessions older than 2 hours", async () => {
+    const now = new Date("2026-02-21T12:00:00Z").getTime();
+    const threeHoursAgo = now - 3 * 60 * 60 * 1000;
+
+    client.getSessionLogs.mockResolvedValue({
+      sessionLogs: [
+        {
+          id: "stale-id",
+          sessionId: "stale-session",
+          branch: "main",
+          summary: null,
+          keysRead: null,
+          keysWritten: null,
+          toolsUsed: null,
+          startedAt: threeHoursAgo,
+          endedAt: null,
+        },
+      ],
+    });
+
+    const handler = server.tools["session"].handler;
+    const result = await handler({
+      action: "start",
+      sessionId: "new-session",
+    });
+
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.staleSessionsClosed).toBe(1);
+
+    // Verify upsertSessionLog was called to close stale session
+    const closeCalls = client.upsertSessionLog.mock.calls.filter(
+      (call: unknown[]) => {
+        const arg = call[0] as Record<string, unknown>;
+        return arg.sessionId === "stale-session" && arg.endedAt;
+      },
+    );
+    expect(closeCalls).toHaveLength(1);
+  });
+
+  it("does not close recent open sessions", async () => {
+    const now = new Date("2026-02-21T12:00:00Z").getTime();
+    const thirtyMinAgo = now - 30 * 60 * 1000;
+
+    client.getSessionLogs.mockResolvedValue({
+      sessionLogs: [
+        {
+          id: "recent-id",
+          sessionId: "recent-session",
+          branch: "main",
+          summary: null,
+          keysRead: null,
+          keysWritten: null,
+          toolsUsed: null,
+          startedAt: thirtyMinAgo,
+          endedAt: null,
+        },
+      ],
+    });
+
+    const handler = server.tools["session"].handler;
+    const result = await handler({
+      action: "start",
+      sessionId: "new-session-2",
+    });
+
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.staleSessionsClosed).toBe(0);
+
+    // Verify upsertSessionLog was NOT called with endedAt for the recent session
+    const closeCalls = client.upsertSessionLog.mock.calls.filter(
+      (call: unknown[]) => {
+        const arg = call[0] as Record<string, unknown>;
+        return arg.sessionId === "recent-session" && arg.endedAt;
+      },
+    );
+    expect(closeCalls).toHaveLength(0);
+  });
+
+  it("returns gitContext even when storeMemory would fail", async () => {
     setupExecFile({
       "git log --oneline": { stdout: "ddd4444 some commit\n" },
       "git diff --stat": { stdout: "" },
       "git diff --name-only": { stdout: "" },
     });
-
-    // Make storeMemory reject
-    client.storeMemory.mockRejectedValue(new Error("storage unavailable"));
 
     const handler = server.tools["session"].handler;
     const result = await handler({
@@ -377,11 +438,9 @@ describe("session tool – git auto-extraction", () => {
       sessionId: "test-session-8",
     });
 
-    // Session start should still succeed despite storeMemory failure
     expect(result.isError).toBeUndefined();
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.sessionId).toBe("test-session-8");
-    // gitContext should still be present since extraction succeeded
     expect(parsed.gitContext).toBeDefined();
     expect(parsed.gitContext.commits).toContain("ddd4444 some commit");
   });

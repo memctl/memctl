@@ -16,6 +16,9 @@ export const BUILTIN_AGENT_CONTEXT_TYPES = [
   "branch_plan",
   "constraints",
   "lessons_learned",
+  "user_ideas",
+  "known_issues",
+  "decisions",
 ] as const;
 
 export type BuiltinAgentContextType =
@@ -70,6 +73,21 @@ export const AGENT_CONTEXT_TYPE_INFO: Record<
     label: "Lessons Learned",
     description:
       "Pitfalls, gotchas, and negative knowledge — things that failed or should be avoided.",
+  },
+  user_ideas: {
+    label: "User Ideas",
+    description:
+      "Feature requests, enhancement ideas, and things the user mentions wanting.",
+  },
+  known_issues: {
+    label: "Known Issues",
+    description:
+      "Known bugs, workarounds, environment gotchas, and flaky behavior.",
+  },
+  decisions: {
+    label: "Decisions",
+    description:
+      "Explicit design decisions with rationale and alternatives considered.",
   },
 };
 
@@ -405,6 +423,18 @@ export function parseAgentsMd(content: string): ParsedAgentsMdSection[] {
     "what not to do": "lessons_learned",
     failed: "lessons_learned",
     avoid: "lessons_learned",
+    "user ideas": "user_ideas",
+    "feature ideas": "user_ideas",
+    ideas: "user_ideas",
+    "feature requests": "user_ideas",
+    enhancements: "user_ideas",
+    "known issues": "known_issues",
+    "known bugs": "known_issues",
+    workarounds: "known_issues",
+    decisions: "decisions",
+    "design decisions": "decisions",
+    "architectural decisions": "decisions",
+    adrs: "decisions",
   };
 
   let currentSection: ParsedAgentsMdSection | null = null;
