@@ -98,7 +98,12 @@ ensure_session_id() {
 
 send_hook_payload() {
   local json_payload="${1}"
-  printf '%s' "${json_payload}" | memctl hook --stdin >/dev/null 2>&1 || true
+  local log_file="${ROOT_DIR}/hook.log"
+  local result
+  result="$(printf '%s' "${json_payload}" | memctl hook --stdin 2>&1)" || true
+  if [[ -n "${MEMCTL_HOOK_DEBUG:-}" ]]; then
+    printf '[%s] payload=%s result=%s\n' "$(date +%H:%M:%S)" "${json_payload}" "${result}" >> "${log_file}"
+  fi
 }
 
 # Context reminder injected into Claude's context on every user prompt.
@@ -116,9 +121,9 @@ case "${PHASE}" in
     ;;
   user)
     session_id="$(ensure_session_id)"
-    # Inject reminder into Claude's context via additionalContext (stdout).
+    # Inject reminder into Claude's context using hookSpecificOutput.
     # Pure bash, no node spawn, runs on every turn so latency matters.
-    printf '{"additionalContext":"%s"}' "$(json_escape "${MEMCTL_REMINDER}")"
+    printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"%s"}}' "$(json_escape "${MEMCTL_REMINDER}")"
     # Send turn data to API in background
     user_message="$(extract_json_field "${payload}" "user")"
     if [[ -n "${user_message}" ]]; then
