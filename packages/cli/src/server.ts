@@ -156,7 +156,11 @@ function startAutoSessionLifecycle(client: ApiClient, tracker: AutoSessionTracke
       });
     })
     .catch(async () => {
-      await client.upsertSessionLog({ sessionId: tracker.sessionId });
+      try {
+        await client.upsertSessionLog({ sessionId: tracker.sessionId });
+      } catch {
+        // Best effort only, do not crash MCP server.
+      }
     });
 
   const interval = setInterval(() => {

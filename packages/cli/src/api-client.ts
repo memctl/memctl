@@ -108,7 +108,10 @@ export class ApiClient {
     // Track in-flight GET requests for deduplication
     if (method === "GET") {
       this.inflight.set(cacheKey, promise);
-      promise.finally(() => this.inflight.delete(cacheKey));
+      promise.then(
+        () => this.inflight.delete(cacheKey),
+        () => this.inflight.delete(cacheKey),
+      );
     }
 
     return promise;
