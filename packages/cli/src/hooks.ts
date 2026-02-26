@@ -346,7 +346,7 @@ async function handleHookTurn(client: ApiClient, payload: HookPayload) {
 
   for (const candidate of candidates) {
     const key = `agent/context/${candidate.type}/hook_${candidate.id}`;
-    let similarExists = false;
+    let similarExists: boolean;
     try {
       const similar = await client.findSimilar(candidate.content, key, 0.88);
       similarExists = similar.similar.some((s) => s.similarity >= 0.9);

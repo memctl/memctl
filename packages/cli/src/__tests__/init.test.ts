@@ -274,23 +274,25 @@ describe("init – writeIdeConfigs", () => {
       expect(path).toContain(".claude");
     });
 
-    it("--all writes configs for claude, cursor, and windsurf", async () => {
+    it("--all writes configs for all supported agents", async () => {
       mockLoadConfig.mockResolvedValue(fakeConfig);
 
       const runInit = await importRunInit();
       await runInit({ all: true });
 
-      // Should write three config files
-      expect(mockWriteFile).toHaveBeenCalledTimes(3);
+      // Should write seven config files (claude, cursor, windsurf, vscode, codex, roo, amazonq)
+      expect(mockWriteFile).toHaveBeenCalledTimes(7);
 
       const paths = mockWriteFile.mock.calls.map(
         (c: unknown[]) => c[0] as string,
       );
       expect(paths.some((p: string) => p.includes(".claude"))).toBe(true);
       expect(paths.some((p: string) => p.includes(".cursor"))).toBe(true);
-      expect(paths.some((p: string) => p.includes("mcp_config.json"))).toBe(
-        true,
-      );
+      expect(paths.some((p: string) => p.includes("mcp_config.json"))).toBe(true);
+      expect(paths.some((p: string) => p.includes(".vscode"))).toBe(true);
+      expect(paths.some((p: string) => p.includes(".codex"))).toBe(true);
+      expect(paths.some((p: string) => p.includes(".roo"))).toBe(true);
+      expect(paths.some((p: string) => p.includes(".amazonq"))).toBe(true);
     });
 
     it("--cursor writes only .cursor config", async () => {
