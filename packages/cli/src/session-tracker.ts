@@ -1,4 +1,3 @@
-import { readFile, rm } from "node:fs/promises";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ApiClient } from "./api-client.js";
@@ -193,7 +192,9 @@ export async function finalizeSession(
   if (tracker.closed) return;
   tracker.closed = true;
 
-  await removeSessionFile(tracker.sessionId);
+  // Do NOT remove the session file here. The hook dispatcher reads it
+  // during SessionEnd and removes it itself. Removing early causes a race
+  // where the hook can't find the file and generates a duplicate session.
 
   if (tracker.endedExplicitly) return;
 
@@ -247,17 +248,6 @@ function writeSessionFile(sessionId: string): void {
   try {
     mkdirSync(SESSION_FILE_DIR, { recursive: true });
     writeFileSync(SESSION_FILE_PATH, sessionId, "utf-8");
-  } catch {
-    // Best effort only.
-  }
-}
-
-async function removeSessionFile(sessionId: string): Promise<void> {
-  try {
-    const current = await readFile(SESSION_FILE_PATH, "utf-8").catch(() => "");
-    if (current.trim() === sessionId) {
-      await rm(SESSION_FILE_PATH, { force: true });
-    }
   } catch {
     // Best effort only.
   }
