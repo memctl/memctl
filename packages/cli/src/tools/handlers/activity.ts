@@ -28,6 +28,10 @@ export function registerActivityTool(
         .string()
         .optional()
         .describe("[log] Filter by specific session ID"),
+      branch: z
+        .string()
+        .optional()
+        .describe("[log] Filter by branch name"),
       hooks: z
         .array(z.enum(["pre-commit", "post-checkout", "prepare-commit-msg"]))
         .optional()
@@ -50,6 +54,7 @@ export function registerActivityTool(
             const result = await client.getActivityLogs(
               params.limit ?? 50,
               params.sessionId,
+              params.branch,
             );
             return textResponse(JSON.stringify(result, null, 2));
           }

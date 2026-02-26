@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, jsonError } from "@/lib/api-middleware";
 import { db } from "@/lib/db";
-import { activityLogs } from "@memctl/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { activityLogs, sessionLogs } from "@memctl/db/schema";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 import { resolveOrgAndProject } from "../memories/capacity-utils";
 
@@ -23,24 +23,39 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50"), 200);
   const sessionId = url.searchParams.get("session_id");
+  const branch = url.searchParams.get("branch");
 
-  let query = db
+  let where = eq(activityLogs.projectId, context.project.id);
+
+  if (sessionId) {
+    where = eq(activityLogs.sessionId, sessionId);
+  } else if (branch) {
+    const branchSessions = await db
+      .select({ sessionId: sessionLogs.sessionId })
+      .from(sessionLogs)
+      .where(
+        and(
+          eq(sessionLogs.projectId, context.project.id),
+          eq(sessionLogs.branch, branch),
+        ),
+      );
+    const sessionIds = branchSessions.map((s) => s.sessionId);
+    if (sessionIds.length === 0) {
+      return NextResponse.json({ activityLogs: [] });
+    }
+    where = and(
+      eq(activityLogs.projectId, context.project.id),
+      inArray(activityLogs.sessionId, sessionIds),
+    )!;
+  }
+
+  const logs = await db
     .select()
     .from(activityLogs)
-    .where(eq(activityLogs.projectId, context.project.id))
+    .where(where)
     .orderBy(desc(activityLogs.createdAt))
     .limit(limit);
 
-  if (sessionId) {
-    query = db
-      .select()
-      .from(activityLogs)
-      .where(eq(activityLogs.sessionId, sessionId))
-      .orderBy(desc(activityLogs.createdAt))
-      .limit(limit);
-  }
-
-  const logs = await query;
   return NextResponse.json({ activityLogs: logs });
 }
 

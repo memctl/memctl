@@ -597,9 +597,10 @@ export class ApiClient {
 
   // ── Activity Logs ──────────────────────────────────────────────
 
-  async getActivityLogs(limit = 50, sessionId?: string) {
+  async getActivityLogs(limit = 50, sessionId?: string, branch?: string) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (sessionId) params.set("session_id", sessionId);
+    if (branch) params.set("branch", branch);
     return this.request<{
       activityLogs: Array<{
         id: string;
