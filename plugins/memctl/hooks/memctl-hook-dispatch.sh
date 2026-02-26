@@ -56,10 +56,7 @@ extract_json_field() {
       process.stdout.write(
         pick(payload, ["prompt", "user_message", "message", "text", "content"]),
       );
-      return;
-    }
-
-    if (phase === "assistant") {
+    } else if (phase === "assistant") {
       process.stdout.write(
         pick(payload, [
           "response",
@@ -69,14 +66,10 @@ extract_json_field() {
           "content",
         ]),
       );
-      return;
-    }
-
-    if (phase === "summary") {
+    } else if (phase === "summary") {
       process.stdout.write(
         pick(payload, ["summary", "message", "reason", "text", "content"]),
       );
-      return;
     }
   '
 }
