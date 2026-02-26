@@ -12,6 +12,7 @@ export function registerMemoryLifecycleTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "memory_lifecycle",
@@ -148,6 +149,7 @@ export function registerMemoryLifecycleTool(
         .describe("[lock] Lock TTL"),
     },
     async (params) => {
+      onToolCall("memory_lifecycle", params.action);
       try {
         switch (params.action) {
           case "cleanup": {

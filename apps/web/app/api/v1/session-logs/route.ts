@@ -22,11 +22,19 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "20"), 50);
+  const branch = url.searchParams.get("branch");
+
+  const where = branch
+    ? and(
+        eq(sessionLogs.projectId, context.project.id),
+        eq(sessionLogs.branch, branch),
+      )
+    : eq(sessionLogs.projectId, context.project.id);
 
   const logs = await db
     .select()
     .from(sessionLogs)
-    .where(eq(sessionLogs.projectId, context.project.id))
+    .where(where)
     .orderBy(desc(sessionLogs.startedAt))
     .limit(limit);
 

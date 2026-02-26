@@ -8,6 +8,7 @@ export function registerActivityTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "activity",
@@ -27,6 +28,10 @@ export function registerActivityTool(
         .string()
         .optional()
         .describe("[log] Filter by specific session ID"),
+      branch: z
+        .string()
+        .optional()
+        .describe("[log] Filter by branch name"),
       hooks: z
         .array(z.enum(["pre-commit", "post-checkout", "prepare-commit-msg"]))
         .optional()
@@ -42,12 +47,14 @@ export function registerActivityTool(
         .describe("[memo_leave] Memory keys this memo relates to"),
     },
     async (params) => {
+      onToolCall("activity", params.action);
       try {
         switch (params.action) {
           case "log": {
             const result = await client.getActivityLogs(
               params.limit ?? 50,
               params.sessionId,
+              params.branch,
             );
             return textResponse(JSON.stringify(result, null, 2));
           }

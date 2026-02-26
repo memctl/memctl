@@ -79,4 +79,9 @@ if (command && cliCommands.includes(command)) {
   const server = createServer({ baseUrl, token, org, project });
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  // Detect MCP client disconnect via stdin EOF
+  process.stdin.on("end", () => {
+    void transport.close();
+  });
 }

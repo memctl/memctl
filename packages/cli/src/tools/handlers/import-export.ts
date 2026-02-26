@@ -16,6 +16,7 @@ export function registerImportExportTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "import_export",
@@ -51,6 +52,7 @@ export function registerImportExportTool(
         .describe("[export_agents_md,export_memories] Output format"),
     },
     async (params) => {
+      onToolCall("import_export", params.action);
       try {
         switch (params.action) {
           case "agents_md_import":

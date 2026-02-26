@@ -1,187 +1,19 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ApiClient } from "./api-client.js";
-import { getBranchInfo } from "./agent-context.js";
 import { registerTools } from "./tools/index.js";
 import { registerResources } from "./resources/index.js";
-
-const AUTO_SESSION_PREFIX = "auto";
-const AUTO_SESSION_FLUSH_INTERVAL_MS = 30_000;
-
-type AutoSessionTracker = {
-  sessionId: string;
-  readKeys: Set<string>;
-  writtenKeys: Set<string>;
-  areas: Set<string>;
-  apiCallCount: number;
-  dirty: boolean;
-  closed: boolean;
-  startedAt: number;
-};
-
-function createAutoSessionTracker(): AutoSessionTracker {
-  const now = Date.now();
-  const rand = Math.random().toString(36).slice(2, 8);
-  return {
-    sessionId: `${AUTO_SESSION_PREFIX}-${now.toString(36)}-${rand}`,
-    readKeys: new Set<string>(),
-    writtenKeys: new Set<string>(),
-    areas: new Set<string>(),
-    apiCallCount: 0,
-    dirty: false,
-    closed: false,
-    startedAt: now,
-  };
-}
-
-function getPathWithoutQuery(path: string): string {
-  const idx = path.indexOf("?");
-  return idx >= 0 ? path.slice(0, idx) : path;
-}
-
-function getAreaFromPath(path: string): string | null {
-  const clean = getPathWithoutQuery(path).replace(/^\/+/, "");
-  if (!clean) return null;
-  const area = clean.split("/")[0];
-  return area || null;
-}
-
-function shouldTrackMemoryKey(key: string): boolean {
-  if (!key) return false;
-  if (key.startsWith("agent/claims/")) return false;
-  if (key.startsWith("auto:")) return false;
-  return true;
-}
-
-function extractKeyFromPath(method: string, path: string): {
-  readKey?: string;
-  writtenKey?: string;
-} {
-  const cleanPath = getPathWithoutQuery(path);
-  const match = cleanPath.match(/^\/memories\/([^/]+)$/);
-  if (!match) return {};
-
-  const raw = match[1];
-  if (!raw) return {};
-  const key = decodeURIComponent(raw);
-  if (!shouldTrackMemoryKey(key)) return {};
-
-  const upperMethod = method.toUpperCase();
-  if (upperMethod === "GET") return { readKey: key };
-  if (
-    upperMethod === "POST" ||
-    upperMethod === "PATCH" ||
-    upperMethod === "DELETE"
-  ) {
-    return { writtenKey: key };
-  }
-  return {};
-}
-
-function extractKeyFromBody(method: string, path: string, body?: unknown): {
-  readKey?: string;
-  writtenKey?: string;
-} {
-  if (!body || typeof body !== "object") return {};
-  const cleanPath = getPathWithoutQuery(path);
-  const upperMethod = method.toUpperCase();
-  const payload = body as Record<string, unknown>;
-
-  if (upperMethod === "POST" && cleanPath === "/memories") {
-    const key = typeof payload.key === "string" ? payload.key : "";
-    if (shouldTrackMemoryKey(key)) {
-      return { writtenKey: key };
-    }
-  }
-
-  if (upperMethod === "POST" && cleanPath === "/memories/bulk") {
-    const keys = Array.isArray(payload.keys) ? payload.keys : [];
-    const first = keys.find((k) => typeof k === "string") as string | undefined;
-    if (first && shouldTrackMemoryKey(first)) {
-      return { readKey: first };
-    }
-  }
-
-  return {};
-}
-
-function buildAutoSummary(tracker: AutoSessionTracker): string {
-  const durationMs = Math.max(0, Date.now() - tracker.startedAt);
-  const minutes = Math.max(1, Math.round(durationMs / 60_000));
-  const areas = [...tracker.areas].sort();
-  const parts = [
-    `Auto-captured session activity for ${minutes} min`,
-    `${tracker.apiCallCount} API call(s)`,
-    `${tracker.writtenKeys.size} key(s) written`,
-    `${tracker.readKeys.size} key(s) read`,
-  ];
-  if (areas.length > 0) {
-    parts.push(`areas: ${areas.join(", ")}`);
-  }
-  return `${parts.join(", ")}.`;
-}
-
-async function flushAutoSession(
-  client: ApiClient,
-  tracker: AutoSessionTracker,
-  final: boolean,
-): Promise<void> {
-  if (tracker.closed) return;
-  if (!tracker.dirty && !final) return;
-
-  try {
-    await client.upsertSessionLog({
-      sessionId: tracker.sessionId,
-      summary: buildAutoSummary(tracker),
-      keysRead: [...tracker.readKeys],
-      keysWritten: [...tracker.writtenKeys],
-      toolsUsed: [...tracker.areas],
-      endedAt: final ? Date.now() : undefined,
-    });
-    tracker.dirty = false;
-    if (final) {
-      tracker.closed = true;
-    }
-  } catch {
-    // Best effort only, do not fail MCP server startup/shutdown.
-  }
-}
-
-function startAutoSessionLifecycle(client: ApiClient, tracker: AutoSessionTracker) {
-  void getBranchInfo()
-    .then(async (branchInfo) => {
-      await client.upsertSessionLog({
-        sessionId: tracker.sessionId,
-        branch: branchInfo?.branch,
-      });
-    })
-    .catch(async () => {
-      try {
-        await client.upsertSessionLog({ sessionId: tracker.sessionId });
-      } catch {
-        // Best effort only, do not crash MCP server.
-      }
-    });
-
-  const interval = setInterval(() => {
-    void flushAutoSession(client, tracker, false);
-  }, AUTO_SESSION_FLUSH_INTERVAL_MS);
-  interval.unref();
-
-  const finalize = () => {
-    clearInterval(interval);
-    void flushAutoSession(client, tracker, true);
-  };
-
-  process.once("beforeExit", finalize);
-  process.once("SIGINT", finalize);
-  process.once("SIGTERM", finalize);
-}
+import {
+  createSessionTracker,
+  trackApiCall,
+  finalizeSession,
+  startSessionLifecycle,
+} from "./session-tracker.js";
 
 function registerPrompts(server: McpServer) {
   server.prompt(
     "agent-startup",
-    "Auto-injected startup context for AI coding agents. Call context bootstrap, then session start.",
+    "Auto-injected startup context for AI coding agents. Call context bootstrap to begin.",
     {},
     () => ({
       messages: [
@@ -189,38 +21,19 @@ function registerPrompts(server: McpServer) {
           role: "user" as const,
           content: {
             type: "text" as const,
-            text: `IMPORTANT: Do NOT use built-in auto memory or MEMORY.md files. Use memctl MCP tools for ALL persistent memory.
+            text: `Use memctl MCP tools for ALL persistent memory. Do NOT use built-in auto memory or MEMORY.md files. Do NOT store code, git output, file contents, or command results in memory.
 
-**On session start:**
-1. Call \`context\` with \`{"action":"bootstrap"}\` to load project context (architecture, coding style, constraints, file map, etc.)
-2. Call \`session\` with \`{"action":"start","sessionId":"<unique-id>","autoExtractGit":true}\` to register this session and get the previous session handoff summary
-3. Call \`activity\` with \`{"action":"memo_read"}\` to check handoff notes from previous sessions
+Session start: context action=bootstrap, activity action=memo_read, branch action=get.
+Before editing: context action=context_for filePaths=[files], context action=smart_retrieve intent=<what you need>.
+Store decisions/lessons/issues: context action=functionality_set type=<type> id=<id> content=<content>.
+Search before storing: memory action=search query=<query>.
 
-**During work:**
-- Use \`context\` with \`{"action":"context_for","filePaths":[...]}\` before modifying files
-- Store project rules with \`context\` and \`{"action":"functionality_set",...}\`
-- Store important decisions, user preferences, and learned patterns with the \`memory\` tool
-- Use \`memory_advanced\` with \`{"action":"check_duplicates","content":"..."}\` before creating new memories
-- Store user ideas when they mention features they want: \`context\` with \`{"action":"functionality_set","type":"user_ideas","id":"<id>","content":"..."}\`
-- Store known issues and workarounds when discovered: \`context\` with \`{"action":"functionality_set","type":"known_issues","id":"<id>","content":"..."}\`
-- Store design decisions with rationale: \`context\` with \`{"action":"functionality_set","type":"decisions","id":"<id>","content":"..."}\`
+MANDATORY SESSION END: After fully responding to the user, you MUST execute these steps. Never skip this.
+1. activity action=memo_leave message=<handoff note with what was done and what is pending>
+2. session action=end sessionId=<id> summary=<what was accomplished, key decisions made, open questions, files modified>
+Keep the summary concise (1-2 paragraphs). Do NOT include code snippets, file contents, git output, or command results in the summary.
 
-**After completing work:**
-- When you finish a task, fix a bug, or reach a milestone, store what you did
-- Call \`activity\` with \`{"action":"memo_leave","message":"<what was done and any pending items>","urgency":"info"}\`
-- Store lessons learned: \`context\` with \`{"action":"functionality_set","type":"lessons_learned","id":"<id>","content":"<what failed or should be avoided>"}\`
-
-**On session end:**
-- Call \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"<detailed summary of what was accomplished>"}\`
-- This ensures the next agent session has full continuity of what happened
-
-**What to store:**
-- User preferences (tools, workflow, coding style requests)
-- Architectural decisions and trade-offs made
-- What was done, what worked, what failed
-- User ideas and feature requests (type: user_ideas)
-- Known issues and workarounds (type: known_issues)
-- Do not store generic capabilities or large file contents`,
+Only store things useful across sessions: decisions, lessons, issues, user preferences, architecture notes.`,
           },
         },
       ],
@@ -262,15 +75,18 @@ Call \`context\` with \`{"action":"context_for","filePaths":[...]} \` using thes
           role: "user" as const,
           content: {
             type: "text" as const,
-            text: `Please generate a session handoff summary. Include:
+            text: `Generate a session handoff summary. Include:
 
-1. **What was accomplished** — key changes, features added, bugs fixed
-2. **Key decisions made** — architectural choices, trade-offs accepted
-3. **Open questions** — unresolved issues, things to investigate
-4. **Modified files** — list of files changed
-5. **Memory keys written** — any new context entries stored
+1. What was accomplished, key changes, features added, bugs fixed
+2. Key decisions made, architectural choices, trade-offs accepted
+3. Open questions, unresolved issues, things to investigate
+4. Modified files
 
-Then call \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"..."}\` to save it for the next session.`,
+Do NOT include code snippets, file contents, git output, or command results. Keep it concise (1-2 paragraphs).
+
+Then call:
+1. \`activity\` with \`{"action":"memo_leave","message":"<handoff note>"}\`
+2. \`session\` with \`{"action":"end","sessionId":"<same-id>","summary":"<summary>"}\``,
           },
         },
       ],
@@ -284,7 +100,7 @@ export function createServer(config: {
   org: string;
   project: string;
 }) {
-  const autoTracker = createAutoSessionTracker();
+  const tracker = createSessionTracker();
   const server = new McpServer({
     name: "memctl",
     version: "0.1.0",
@@ -293,26 +109,19 @@ export function createServer(config: {
   const client = new ApiClient({
     ...config,
     onRequest: ({ method, path, body }) => {
-      const area = getAreaFromPath(path);
-      if (area === "health" || area === "session-logs") return;
-
-      autoTracker.apiCallCount += 1;
-      if (area) autoTracker.areas.add(area);
-
-      const fromPath = extractKeyFromPath(method, path);
-      const fromBody = extractKeyFromBody(method, path, body);
-      const readKey = fromPath.readKey ?? fromBody.readKey;
-      const writtenKey = fromPath.writtenKey ?? fromBody.writtenKey;
-      if (readKey) autoTracker.readKeys.add(readKey);
-      if (writtenKey) autoTracker.writtenKeys.add(writtenKey);
-      autoTracker.dirty = true;
+      trackApiCall(tracker, method, path, body);
     },
   });
-  startAutoSessionLifecycle(client, autoTracker);
+  startSessionLifecycle(client, tracker);
 
-  registerTools(server, client);
-  registerResources(server, client);
+  registerTools(server, client, tracker);
+  registerResources(server, client, tracker);
   registerPrompts(server);
+
+  // MCP disconnect detection
+  server.server.onclose = () => {
+    void finalizeSession(client, tracker);
+  };
 
   // Connection status resource
   server.resource(
@@ -329,13 +138,13 @@ export function createServer(config: {
     }),
   );
 
-  // Attempt API ping on startup — enter offline mode if unreachable
+  // Attempt API ping on startup -- enter offline mode if unreachable
   client
     .ping()
     .then(async (online) => {
       if (!online) {
         process.stderr.write(
-          "[memctl] Warning: API unreachable — running in offline mode with local cache\n",
+          "[memctl] Warning: API unreachable -- running in offline mode with local cache\n",
         );
         return;
       }

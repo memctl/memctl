@@ -13,6 +13,7 @@ export function registerContextConfigTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "context_config",
@@ -36,6 +37,7 @@ export function registerContextConfigTool(
         .describe("[template_get] Context type for template"),
     },
     async (params) => {
+      onToolCall("context_config", params.action);
       try {
         switch (params.action) {
           case "type_create": {

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createSessionTracker } from "../session-tracker";
+import type { SessionTracker } from "../session-tracker";
 
 // ── Mock agent-context before any handler imports ──────────────────────
 vi.mock("../agent-context", () => ({
@@ -225,7 +227,7 @@ describe("Tool Dispatch: memory", () => {
     rl = createMockRateLimitState();
 
     const { registerMemoryTool } = await import("../tools/handlers/memory");
-    registerMemoryTool(server as any, client as any, rl);
+    registerMemoryTool(server as any, client as any, rl, vi.fn());
   });
 
   it("registers the 'memory' tool", () => {
@@ -540,15 +542,17 @@ describe("Tool Dispatch: session", () => {
   let server: ReturnType<typeof createMockServer>;
   let client: ReturnType<typeof createMockClient>;
   let rl: ReturnType<typeof createMockRateLimitState>;
+  let tracker: SessionTracker;
 
   beforeEach(async () => {
     vi.restoreAllMocks();
     server = createMockServer();
     client = createMockClient();
     rl = createMockRateLimitState();
+    tracker = createSessionTracker();
 
     const { registerSessionTool } = await import("../tools/handlers/session");
-    registerSessionTool(server as any, client as any, rl);
+    registerSessionTool(server as any, client as any, rl, tracker, vi.fn());
   });
 
   it("registers the 'session' tool", () => {
@@ -579,6 +583,25 @@ describe("Tool Dispatch: session", () => {
       const parsed = JSON.parse(getResponseText(result));
       expect(parsed.sessionId).toBe("sess-1");
       expect((client as any).upsertSessionLog).toHaveBeenCalled();
+    });
+
+    it("returns tracker handoff in start response", async () => {
+      tracker.handoff = {
+        previousSessionId: "old-sess",
+        summary: "Previous work",
+        branch: "main",
+        keysWritten: ["k1"],
+        endedAt: "2026-02-21T10:00:00Z",
+      };
+      const handler = server.tools["session"]!.handler;
+      const result = await handler({
+        action: "start",
+        sessionId: "sess-2",
+      });
+      expect(isErrorResponse(result)).toBe(false);
+      const parsed = JSON.parse(getResponseText(result));
+      expect(parsed.handoff).toBeDefined();
+      expect(parsed.handoff.previousSessionId).toBe("old-sess");
     });
   });
 
@@ -627,7 +650,25 @@ describe("Tool Dispatch: session", () => {
     it("passes custom limit", async () => {
       const handler = server.tools["session"]!.handler;
       await handler({ action: "history", limit: 5 });
-      expect((client as any).getSessionLogs).toHaveBeenCalledWith(5);
+      expect((client as any).getSessionLogs).toHaveBeenCalledWith(
+        5,
+        undefined,
+      );
+    });
+
+    it("passes branch filter", async () => {
+      const handler = server.tools["session"]!.handler;
+      await handler({ action: "history", branch: "feature/x" });
+      expect((client as any).getSessionLogs).toHaveBeenCalledWith(
+        10,
+        "feature/x",
+      );
+    });
+
+    it("passes both limit and branch", async () => {
+      const handler = server.tools["session"]!.handler;
+      await handler({ action: "history", limit: 3, branch: "main" });
+      expect((client as any).getSessionLogs).toHaveBeenCalledWith(3, "main");
     });
   });
 
@@ -715,7 +756,7 @@ describe("Tool Dispatch: branch", () => {
     rl = createMockRateLimitState();
 
     const { registerBranchTool } = await import("../tools/handlers/branch");
-    registerBranchTool(server as any, client as any, rl);
+    registerBranchTool(server as any, client as any, rl, vi.fn());
   });
 
   it("registers the 'branch' tool", () => {
@@ -834,7 +875,7 @@ describe("Tool Dispatch: context_config", () => {
 
     const { registerContextConfigTool } =
       await import("../tools/handlers/context-config");
-    registerContextConfigTool(server as any, client as any, rl);
+    registerContextConfigTool(server as any, client as any, rl, vi.fn());
   });
 
   it("registers the 'context_config' tool", () => {

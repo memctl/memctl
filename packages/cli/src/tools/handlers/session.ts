@@ -1,13 +1,11 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ApiClient } from "../../api-client.js";
 import type { RateLimitState } from "../rate-limit.js";
 import { textResponse, errorResponse } from "../response.js";
 import { getBranchInfo } from "../../agent-context.js";
-
-const execFileAsync = promisify(execFile);
+import type { SessionTracker } from "../../session-tracker.js";
+import { adoptSessionId } from "../../session-tracker.js";
 
 function generateSessionId(): string {
   const now = Date.now().toString(36);
@@ -15,34 +13,13 @@ function generateSessionId(): string {
   return `sess-${now}-${rand}`;
 }
 
-function buildFallbackSummary(params: {
-  keysRead?: string[];
-  keysWritten?: string[];
-  toolsUsed?: string[];
-}): string {
-  const parts: string[] = [];
-  if (params.keysWritten?.length) {
-    parts.push(`${params.keysWritten.length} key(s) written`);
-  }
-  if (params.keysRead?.length) {
-    parts.push(`${params.keysRead.length} key(s) read`);
-  }
-  if (params.toolsUsed?.length) {
-    parts.push(`tools: ${params.toolsUsed.join(", ")}`);
-  }
-  if (parts.length === 0) {
-    return "Session ended without explicit summary.";
-  }
-  return `Session ended, ${parts.join(", ")}.`;
-}
-
 export function registerSessionTool(
   server: McpServer,
   client: ApiClient,
   rl: RateLimitState,
+  tracker: SessionTracker,
+  onToolCall: (tool: string, action: string) => void,
 ) {
-  let activeSessionId: string | null = null;
-
   server.tool(
     "session",
     "Session management. Actions: start, end, history, claims_check, claim, rate_status",
@@ -72,6 +49,10 @@ export function registerSessionTool(
         .max(50)
         .optional()
         .describe("[history] Max results"),
+      branch: z
+        .string()
+        .optional()
+        .describe("[history] Filter by branch name"),
       keys: z
         .array(z.string())
         .optional()
@@ -87,77 +68,20 @@ export function registerSessionTool(
       autoExtractGit: z
         .boolean()
         .optional()
-        .describe(
-          "[start] Auto-extract git changes since last session (default: true)",
-        ),
+        .describe("[start] Deprecated, ignored"),
     },
     async (params) => {
+      onToolCall("session", params.action);
       try {
         switch (params.action) {
           case "start": {
             const sessionId = params.sessionId ?? generateSessionId();
             const branchInfo = await getBranchInfo();
-            const recentSessions = await client
-              .getSessionLogs(5)
-              .catch(() => ({ sessionLogs: [] }));
             await client.upsertSessionLog({
               sessionId,
               branch: branchInfo?.branch,
             });
-            activeSessionId = sessionId;
-
-            // Auto-close stale sessions (open > 2 hours)
-            const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-            const now = Date.now();
-            let staleSessionsClosed = 0;
-            for (const log of recentSessions.sessionLogs) {
-              if (log.endedAt) continue;
-              const startedAt =
-                typeof log.startedAt === "number"
-                  ? log.startedAt
-                  : typeof log.startedAt === "string"
-                    ? new Date(log.startedAt).getTime()
-                    : 0;
-              if (!startedAt || now - startedAt < TWO_HOURS_MS) continue;
-              try {
-                await client.upsertSessionLog({
-                  sessionId: log.sessionId,
-                  summary:
-                    log.summary ||
-                    "Auto-closed: session exceeded 2-hour inactivity limit.",
-                  endedAt: now,
-                });
-                staleSessionsClosed++;
-              } catch {
-                // Best effort
-              }
-            }
-
-            const lastSession = recentSessions.sessionLogs[0];
-            const handoff = lastSession
-              ? {
-                  previousSessionId: lastSession.sessionId,
-                  summary: lastSession.summary,
-                  branch: lastSession.branch,
-                  keysWritten: lastSession.keysWritten
-                    ? JSON.parse(lastSession.keysWritten)
-                    : [],
-                  endedAt: lastSession.endedAt,
-                }
-              : null;
-
-            // Auto-extract git changes since last session
-            let gitContext: {
-              commits?: string;
-              diffStat?: string;
-              todos?: string[];
-            } | null = null;
-            if (params.autoExtractGit !== false) {
-              gitContext = await extractGitContext(
-                client,
-                lastSession?.endedAt,
-              );
-            }
+            adoptSessionId(tracker, sessionId);
 
             return textResponse(
               JSON.stringify(
@@ -165,10 +89,7 @@ export function registerSessionTool(
                   sessionId,
                   generatedSessionId: !params.sessionId,
                   currentBranch: branchInfo,
-                  handoff,
-                  recentSessionCount: recentSessions.sessionLogs.length,
-                  staleSessionsClosed,
-                  ...(gitContext ? { gitContext } : {}),
+                  handoff: tracker.handoff,
                 },
                 null,
                 2,
@@ -177,29 +98,52 @@ export function registerSessionTool(
           }
           case "end": {
             const sessionId =
-              params.sessionId ?? activeSessionId ?? generateSessionId();
+              params.sessionId ?? tracker.sessionId ?? generateSessionId();
+
+            // Enrich agent-provided summary with tracker data
+            const trackerWritten = [...tracker.writtenKeys];
+            const trackerRead = [...tracker.readKeys];
+            const trackerTools = [...tracker.toolActions];
+
+            const mergedKeysWritten = [
+              ...new Set([
+                ...(params.keysWritten ?? []),
+                ...trackerWritten,
+              ]),
+            ];
+            const mergedKeysRead = [
+              ...new Set([
+                ...(params.keysRead ?? []),
+                ...trackerRead,
+              ]),
+            ];
+            const mergedToolsUsed = [
+              ...new Set([
+                ...(params.toolsUsed ?? []),
+                ...trackerTools,
+              ]),
+            ];
+
             const summary =
-              params.summary?.trim() ||
-              buildFallbackSummary({
-                keysRead: params.keysRead,
-                keysWritten: params.keysWritten,
-                toolsUsed: params.toolsUsed,
-              });
+              params.summary?.trim() || "Session ended without explicit summary.";
             await client.upsertSessionLog({
               sessionId,
               summary,
-              keysRead: params.keysRead,
-              keysWritten: params.keysWritten,
-              toolsUsed: params.toolsUsed,
+              keysRead: mergedKeysRead,
+              keysWritten: mergedKeysWritten,
+              toolsUsed: mergedToolsUsed,
               endedAt: Date.now(),
             });
-            activeSessionId = null;
+            tracker.endedExplicitly = true;
             return textResponse(
               `Session ${sessionId} ended. Handoff summary saved.`,
             );
           }
           case "history": {
-            const result = await client.getSessionLogs(params.limit ?? 10);
+            const result = await client.getSessionLogs(
+              params.limit ?? 10,
+              params.branch,
+            );
             return textResponse(JSON.stringify(result, null, 2));
           }
           case "claims_check": {
@@ -230,8 +174,8 @@ export function registerSessionTool(
                 ? new Date(claim.expiresAt as string).getTime()
                 : 0;
               if (expiresAt && expiresAt < now) continue;
-              const sessionId = claim.key.replace("agent/claims/", "");
-              if (params.excludeSession && sessionId === params.excludeSession)
+              const claimSessionId = claim.key.replace("agent/claims/", "");
+              if (params.excludeSession && claimSessionId === params.excludeSession)
                 continue;
               let claimedKeys: string[] = [];
               try {
@@ -241,7 +185,7 @@ export function registerSessionTool(
               }
               const conflicts = claimedKeys.filter((k) => keysToCheck.has(k));
               activeClaims.push({
-                sessionId,
+                sessionId: claimSessionId,
                 claimedKeys,
                 expiresAt: expiresAt
                   ? new Date(expiresAt).toISOString()
@@ -277,7 +221,7 @@ export function registerSessionTool(
                 "keys required",
               );
             const sessionId =
-              params.sessionId ?? activeSessionId ?? generateSessionId();
+              params.sessionId ?? tracker.sessionId ?? generateSessionId();
             const rateCheck = rl.checkRateLimit();
             if (!rateCheck.allowed)
               return errorResponse("Rate limit exceeded", rateCheck.warning!);
@@ -292,7 +236,9 @@ export function registerSessionTool(
               { sessionId, claimedAt: Date.now() },
               { tags: ["session-claim"], expiresAt, priority: 0 },
             );
-            activeSessionId = sessionId;
+            if (!tracker.explicitSessionActive) {
+              adoptSessionId(tracker, sessionId);
+            }
             const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
             return textResponse(
               JSON.stringify(
@@ -334,72 +280,4 @@ export function registerSessionTool(
       }
     },
   );
-}
-
-async function extractGitContext(
-  client: ApiClient,
-  lastSessionEndedAt?: unknown,
-): Promise<{ commits?: string; diffStat?: string; todos?: string[] } | null> {
-  const cwd = process.cwd();
-  const result: { commits?: string; diffStat?: string; todos?: string[] } = {};
-
-  try {
-    // Get git log since last session
-    const sinceArg = lastSessionEndedAt
-      ? [`--since=${new Date(lastSessionEndedAt as number).toISOString()}`]
-      : [];
-    const logResult = await execFileAsync(
-      "git",
-      ["log", "--oneline", ...sinceArg, "-20"],
-      { cwd, timeout: 5000 },
-    );
-    const commits = logResult.stdout.trim();
-    if (commits) result.commits = commits;
-
-    // Get diff stat for recent changes
-    const diffResult = await execFileAsync(
-      "git",
-      ["diff", "--stat", "HEAD~10..HEAD"],
-      { cwd, timeout: 5000 },
-    ).catch(() => null);
-    if (diffResult?.stdout.trim()) result.diffStat = diffResult.stdout.trim();
-
-    // Extract TODOs/FIXMEs from recently changed files
-    const changedResult = await execFileAsync(
-      "git",
-      ["diff", "--name-only", "HEAD~5..HEAD"],
-      { cwd, timeout: 5000 },
-    ).catch(() => null);
-    if (changedResult?.stdout.trim()) {
-      const changedFiles = changedResult.stdout
-        .trim()
-        .split("\n")
-        .filter(Boolean);
-      const todos: string[] = [];
-      for (const file of changedFiles.slice(0, 20)) {
-        try {
-          const grepResult = await execFileAsync(
-            "grep",
-            ["-n", "-E", "TODO|FIXME|HACK|XXX", file],
-            { cwd, timeout: 2000 },
-          );
-          if (grepResult.stdout.trim()) {
-            for (const line of grepResult.stdout
-              .trim()
-              .split("\n")
-              .slice(0, 5)) {
-              todos.push(`${file}:${line}`);
-            }
-          }
-        } catch {
-          // grep returns exit code 1 when no matches
-        }
-      }
-      if (todos.length > 0) result.todos = todos;
-    }
-
-    return Object.keys(result).length > 0 ? result : null;
-  } catch {
-    return null;
-  }
 }

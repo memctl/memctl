@@ -27,6 +27,7 @@ export function registerContextTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "context",
@@ -61,7 +62,7 @@ export function registerContextTool(
       branch: z
         .string()
         .optional()
-        .describe("[bootstrap,rules_evaluate] Branch filter"),
+        .describe("[bootstrap,rules_evaluate,thread] Branch filter"),
       since: z
         .number()
         .optional()
@@ -161,6 +162,7 @@ export function registerContextTool(
         .describe("[thread] Sessions to analyze"),
     },
     async (params) => {
+      onToolCall("context", params.action);
       try {
         switch (params.action) {
           case "bootstrap":
@@ -1131,7 +1133,8 @@ async function handleThread(
   params: Record<string, unknown>,
 ) {
   const sessionCount = (params.sessionCount as number) ?? 3;
-  const sessions = await client.getSessionLogs(sessionCount);
+  const branch = params.branch as string | undefined;
+  const sessions = await client.getSessionLogs(sessionCount, branch);
   const logs = sessions.sessionLogs ?? [];
 
   const hotKeys: Record<

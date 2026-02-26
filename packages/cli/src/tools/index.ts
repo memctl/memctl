@@ -1,5 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ApiClient } from "../api-client.js";
+import type { SessionTracker } from "../session-tracker.js";
+import { recordToolAction } from "../session-tracker.js";
 import { createRateLimitState } from "./rate-limit.js";
 import { registerMemoryTool } from "./handlers/memory.js";
 import { registerMemoryAdvancedTool } from "./handlers/memory-advanced.js";
@@ -13,18 +15,25 @@ import { registerRepoTool } from "./handlers/repo.js";
 import { registerOrgTool } from "./handlers/org.js";
 import { registerActivityTool } from "./handlers/activity.js";
 
-export function registerTools(server: McpServer, client: ApiClient) {
+export function registerTools(
+  server: McpServer,
+  client: ApiClient,
+  tracker: SessionTracker,
+) {
   const rl = createRateLimitState();
+  const onToolCall = (tool: string, action: string) => {
+    recordToolAction(tracker, tool, action);
+  };
 
-  registerMemoryTool(server, client, rl);
-  registerMemoryAdvancedTool(server, client, rl);
-  registerMemoryLifecycleTool(server, client, rl);
-  registerContextTool(server, client, rl);
-  registerContextConfigTool(server, client, rl);
-  registerBranchTool(server, client, rl);
-  registerSessionTool(server, client, rl);
-  registerImportExportTool(server, client, rl);
-  registerRepoTool(server, client, rl);
-  registerOrgTool(server, client, rl);
-  registerActivityTool(server, client, rl);
+  registerMemoryTool(server, client, rl, onToolCall);
+  registerMemoryAdvancedTool(server, client, rl, onToolCall);
+  registerMemoryLifecycleTool(server, client, rl, onToolCall);
+  registerContextTool(server, client, rl, onToolCall);
+  registerContextConfigTool(server, client, rl, onToolCall);
+  registerBranchTool(server, client, rl, onToolCall);
+  registerSessionTool(server, client, rl, tracker, onToolCall);
+  registerImportExportTool(server, client, rl, onToolCall);
+  registerRepoTool(server, client, rl, onToolCall);
+  registerOrgTool(server, client, rl, onToolCall);
+  registerActivityTool(server, client, rl, onToolCall);
 }

@@ -8,6 +8,7 @@ export function registerOrgTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
+  onToolCall: (tool: string, action: string) => void,
 ) {
   server.tool(
     "org",
@@ -75,6 +76,7 @@ export function registerOrgTool(
         .describe("[template_create] Array of memory entries for the template"),
     },
     async (params) => {
+      onToolCall("org", params.action);
       try {
         switch (params.action) {
           case "defaults_list": {
