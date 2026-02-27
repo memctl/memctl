@@ -184,7 +184,7 @@ export function isGenericCapabilityNoise(content: string): boolean {
 
   // Shell output dumps (>50% lines are shell prompts)
   if (lines.length > 3) {
-    const shellLines = lines.filter((l) => /^\s*[\$>] /.test(l)).length;
+    const shellLines = lines.filter((l) => /^\s*[$>] /.test(l)).length;
     if (shellLines / lines.length > 0.5) return true;
   }
 
@@ -202,7 +202,7 @@ export function isGenericCapabilityNoise(content: string): boolean {
 
   // Large JSON blob (starts with [ or {, ends with ] or })
   if (
-    /^\s*[\[{]/.test(normalized) &&
+    /^\s*[[{]/.test(normalized) &&
     /[\]}]\s*$/.test(normalized) &&
     wordCount > 50
   )

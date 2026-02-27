@@ -99,9 +99,9 @@ extract_json_field() {
   # Fast path: use jq if available (no process startup overhead like node)
   if command -v jq >/dev/null 2>&1; then
     local jq_filter
-    jq_filter="$(printf '%s' "\${keys}" | awk '{for(i=1;i<=NF;i++){if(i>1)printf " // "; printf ".%s",\$i}}' )"
+    jq_filter="$(printf '%s' "\${keys}" | awk '{for(i=1;i<=NF;i++){if(i>1)printf " // "; printf ".%s",$i}}' )"
     local result
-    result="\$(printf '%s' "\${payload}" | jq -r "(\${jq_filter}) // empty" 2>/dev/null)" || true
+    result="$(printf '%s' "\${payload}" | jq -r "(\${jq_filter}) // empty" 2>/dev/null)" || true
     if [[ -n "\${result}" && "\${result}" != "null" ]]; then
       printf '%s' "\${result}"
       return
@@ -112,7 +112,7 @@ extract_json_field() {
   # Fallback: scan keys with grep/sed (handles simple flat JSON)
   for k in \${keys}; do
     local val
-    val="\$(printf '%s' "\${payload}" | grep -o "\\"\${k}\\"[[:space:]]*:[[:space:]]*\\"[^\\"]*\\"" | head -1 | sed 's/.*:[[:space:]]*"\\(.*\\)"/\\1/')" || true
+    val="$(printf '%s' "\${payload}" | grep -o "\\"\${k}\\"[[:space:]]*:[[:space:]]*\\"[^\\"]*\\"" | head -1 | sed 's/.*:[[:space:]]*"\\(.*\\)"/\\1/')" || true
     if [[ -n "\${val}" ]]; then
       printf '%s' "\${val}"
       return
