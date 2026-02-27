@@ -558,7 +558,7 @@ describe("Tool Dispatch: session", () => {
   it("registers the 'session' tool", () => {
     expect(server.tools["session"]).toBeDefined();
     expect(server.tools["session"]!.description).toContain(
-      "Session management",
+      "Session lifecycle",
     );
   });
 
