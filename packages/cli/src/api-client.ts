@@ -23,6 +23,7 @@ export class ApiClient {
   private onRequest?:
     | ((event: { method: string; path: string; body?: unknown }) => void)
     | undefined;
+  private onMutation?: (() => void) | undefined;
   private isOffline = false;
   private inflight = new Map<string, Promise<unknown>>();
   private lastFreshness: "fresh" | "cached" | "stale" | "offline" = "fresh";
@@ -37,12 +38,14 @@ export class ApiClient {
       path: string;
       body?: unknown;
     }) => void;
+    onMutation?: () => void;
   }) {
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
     this.token = config.token;
     this.org = config.org;
     this.project = config.project;
     this.onRequest = config.onRequest;
+    this.onMutation = config.onMutation;
     this.cache = new MemoryCache(30_000);
     this.localCache = new LocalCache(config.org, config.project);
   }
@@ -249,6 +252,9 @@ export class ApiClient {
     // Invalidate cache on mutations
     if (method === "POST" || method === "PATCH" || method === "DELETE") {
       this.cache.invalidatePrefix("GET:/memories");
+      if (path.startsWith("/memories")) {
+        this.onMutation?.();
+      }
     }
 
     return data;

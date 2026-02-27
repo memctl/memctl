@@ -261,7 +261,30 @@ function parseTags(input: unknown): string[] {
   return [];
 }
 
+// ── listAllMemories TTL cache ────────────────────────────────
+
+let cachedAllMemories: MemoryRecord[] | null = null;
+let allMemoriesCacheTime = 0;
+const ALL_MEMORIES_CACHE_TTL = 5_000; // 5 seconds
+
+/**
+ * Invalidate the listAllMemories cache.
+ * Call after any memory mutation (store, delete, archive, update, pin).
+ */
+export function invalidateMemoriesCache() {
+  cachedAllMemories = null;
+}
+
 export async function listAllMemories(client: ApiClient, maxMemories = 2_000) {
+  const now = Date.now();
+  if (
+    cachedAllMemories &&
+    now - allMemoriesCacheTime < ALL_MEMORIES_CACHE_TTL &&
+    cachedAllMemories.length <= maxMemories
+  ) {
+    return cachedAllMemories.slice(0, maxMemories);
+  }
+
   const pageSize = 100;
   let offset = 0;
   const all: MemoryRecord[] = [];
@@ -277,7 +300,10 @@ export async function listAllMemories(client: ApiClient, maxMemories = 2_000) {
     offset += pageSize;
   }
 
-  return all.slice(0, maxMemories);
+  const result = all.slice(0, maxMemories);
+  cachedAllMemories = result;
+  allMemoriesCacheTime = Date.now();
+  return result;
 }
 
 export function extractAgentContextEntries(memories: MemoryRecord[]) {

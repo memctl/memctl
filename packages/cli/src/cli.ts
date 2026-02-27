@@ -210,6 +210,7 @@ Usage:
   memctl init --codex       Write Codex MCP config only
   memctl init --roo         Write Roo Code MCP config only
   memctl init --amazonq     Write Amazon Q MCP config only
+  memctl init --opencode    Write OpenCode MCP config only
   memctl init --all         Write all IDE/agent configs
   memctl config             Update API URL/token
   memctl config --show      Show resolved configuration
@@ -239,6 +240,7 @@ Usage:
   memctl generate --roo         Also write .roo/rules/memctl.md
   memctl generate --codex       Also write codex.md
   memctl generate --amazonq     Also write .amazonq/rules/memctl.md
+  memctl generate --opencode    Also write .opencode/instructions.md
   memctl generate --all         Write all agent config files
   memctl generate --link        Symlink agent files to AGENTS.md instead of copying
   memctl hook <action>      Hook API for cross-agent memory capture (start|turn|end)
@@ -265,6 +267,7 @@ Options:
   --roo                     Include .roo/rules/memctl.md
   --codex                   Include codex.md
   --amazonq                 Include .amazonq/rules/memctl.md
+  --opencode                Include .opencode/instructions.md
   --all                     Include all agent config files
   --link                    Symlink to AGENTS.md instead of copying
   --global                  For memctl config, update global profile only
@@ -273,7 +276,7 @@ Options:
   --version                 Show CLI version
   --payload <json>          For hook command: JSON payload
   --stdin                   For hook command: read JSON payload from stdin
-  --agent <name>            For hook-adapter: claude, cursor, windsurf, vscode, continue, zed, codex, cline, roo, amazonq, generic, all
+  --agent <name>            For hook-adapter: claude, cursor, windsurf, vscode, continue, zed, codex, cline, roo, amazonq, opencode, generic, all
   --dir <path>              For hook-adapter: target directory (default: .memctl/hooks)
   --write                   For hook-adapter: write files instead of printing
 
@@ -402,6 +405,7 @@ export async function runCli(args: string[]): Promise<void> {
       codex: Boolean(flags.codex),
       roo: Boolean(flags.roo),
       amazonq: Boolean(flags.amazonq),
+      opencode: Boolean(flags.opencode),
       all: Boolean(flags.all),
     });
     return;
@@ -579,6 +583,7 @@ export async function runCli(args: string[]): Promise<void> {
         { flag: "roo", file: ".roo/rules/memctl.md", format: "agents_md", tool: "roo" },
         { flag: "codex", file: "codex.md", format: "agents_md", tool: "agents_md" },
         { flag: "amazonq", file: ".amazonq/rules/memctl.md", format: "agents_md", tool: "amazonq" },
+        { flag: "opencode", file: ".opencode/instructions.md", format: "agents_md", tool: "agents_md" },
       ];
 
       const targets: Array<{

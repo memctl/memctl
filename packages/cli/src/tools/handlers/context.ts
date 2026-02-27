@@ -698,9 +698,11 @@ async function handleBudget(
   const types = params.types as string[] | undefined;
   const includeKeys = params.includeKeys as string[] | undefined;
 
-  const allMemories = await listAllMemories(client);
+  const [allMemories, allTypeInfo] = await Promise.all([
+    listAllMemories(client),
+    getAllContextTypeInfo(client),
+  ]);
   const entries = extractAgentContextEntries(allMemories);
-  const allTypeInfo = await getAllContextTypeInfo(client);
   const selectedTypes = types ?? Object.keys(allTypeInfo);
 
   const mustInclude = includeKeys

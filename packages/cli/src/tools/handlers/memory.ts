@@ -242,16 +242,16 @@ async function handleStore(
     }
 
     let dedupWarning = "";
-    try {
-      const similar = await client.findSimilar(content, key, 0.7);
-      if (similar.similar.length > 0) {
-        const top = similar.similar[0]!;
-        if (dedupAction === "skip") {
-          return textResponse(
-            `Skipped: similar memory "${top.key}" already exists (${Math.round(top.similarity * 100)}% match).`,
-          );
-        }
-        if (dedupAction === "merge") {
+    if (dedupAction === "skip" || dedupAction === "merge") {
+      try {
+        const similar = await client.findSimilar(content, key, 0.7);
+        if (similar.similar.length > 0) {
+          const top = similar.similar[0]!;
+          if (dedupAction === "skip") {
+            return textResponse(
+              `Skipped: similar memory "${top.key}" already exists (${Math.round(top.similarity * 100)}% match).`,
+            );
+          }
           const existing = (await client.getMemory(top.key)) as Record<
             string,
             unknown
@@ -272,10 +272,9 @@ async function handleStore(
             `Merged into existing memory "${top.key}" (${Math.round(top.similarity * 100)}% match).`,
           );
         }
-        dedupWarning = ` Warning: Similar memory: "${top.key}" (${Math.round(top.similarity * 100)}% match).`;
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
     }
 
     // Auto-eviction: if near capacity, archive lowest-health non-pinned memories
@@ -345,68 +344,31 @@ async function handleGet(client: ApiClient, params: Record<string, unknown>) {
         const daysSinceUpdate = (now - updatedAt) / 86_400_000;
         if (daysSinceUpdate > 60)
           hints.push(
-            `Stale: not updated in ${Math.round(daysSinceUpdate)} days`,
+            `Stale: not updated in ${Math.round(daysSinceUpdate)} days. Consider refreshing or archiving.`,
           );
-        else if (daysSinceUpdate > 30)
-          hints.push(
-            `Aging: last updated ${Math.round(daysSinceUpdate)} days ago`,
-          );
-      }
-
-      const lastAccessed = mem.lastAccessedAt
-        ? new Date(mem.lastAccessedAt as string).getTime()
-        : 0;
-      if (lastAccessed) {
-        const daysSinceAccess = (now - lastAccessed) / 86_400_000;
-        if (daysSinceAccess > 30)
-          hints.push(
-            `Rarely accessed: last read ${Math.round(daysSinceAccess)} days ago`,
-          );
-      } else {
-        hints.push("Never accessed before");
       }
 
       const helpful = (mem.helpfulCount as number) ?? 0;
       const unhelpful = (mem.unhelpfulCount as number) ?? 0;
-      if (helpful + unhelpful > 0) {
-        if (unhelpful > helpful)
-          hints.push(
-            `Negative feedback: ${helpful} helpful, ${unhelpful} unhelpful`,
-          );
-        else if (helpful > 0)
-          hints.push(
-            `Positive feedback: ${helpful} helpful, ${unhelpful} unhelpful`,
-          );
+      if (unhelpful > helpful && helpful + unhelpful > 0) {
+        hints.push(
+          `Negative feedback: ${helpful} helpful, ${unhelpful} unhelpful. Content may be unreliable.`,
+        );
       }
-
-      if (mem.pinnedAt) hints.push("Pinned: always included in bootstrap");
 
       if (mem.expiresAt) {
         const expiresAt = new Date(mem.expiresAt as string).getTime();
         const daysUntilExpiry = (expiresAt - now) / 86_400_000;
-        if (daysUntilExpiry < 0) hints.push("Expired");
+        if (daysUntilExpiry < 0) hints.push("Expired. Consider removing.");
         else if (daysUntilExpiry < 3)
           hints.push(
-            `Expiring soon: ${Math.round(daysUntilExpiry * 24)} hours left`,
+            `Expiring in ${Math.round(daysUntilExpiry * 24)} hours.`,
           );
       }
 
-      const contentLen =
-        typeof mem.content === "string" ? mem.content.length : 0;
-      if (contentLen > 8000)
-        hints.push(`Large memory: ~${Math.ceil(contentLen / 4)} tokens`);
-
-      if (mem.relatedKeys) {
-        try {
-          const relKeys = JSON.parse(mem.relatedKeys as string) as string[];
-          if (relKeys.length > 0)
-            hints.push(`Linked to ${relKeys.length} other memories`);
-        } catch {
-          /* ignore */
-        }
+      if (hints.length > 0) {
+        return textResponse(JSON.stringify({ ...memory, hints }, null, 2));
       }
-
-      return textResponse(JSON.stringify({ ...memory, hints }, null, 2));
     }
 
     return textResponse(JSON.stringify(memory, null, 2));

@@ -961,9 +961,11 @@ async function handleCompile(
   client: ApiClient,
   params: Record<string, unknown>,
 ) {
-  const allMemories = await listAllMemories(client);
+  const [allMemories, allTypeInfo] = await Promise.all([
+    listAllMemories(client),
+    getAllContextTypeInfo(client),
+  ]);
   const entries = extractAgentContextEntries(allMemories);
-  const allTypeInfo = await getAllContextTypeInfo(client);
   const types = params.types as string[] | undefined;
   const tags = params.compileTags as string[] | undefined;
   const branch = params.branch as string | undefined;

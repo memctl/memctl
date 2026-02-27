@@ -12,6 +12,7 @@ type Agent =
   | "cline"
   | "roo"
   | "amazonq"
+  | "opencode"
   | "generic"
   | "all";
 
@@ -41,6 +42,7 @@ const SUPPORTED_AGENTS: Agent[] = [
   "cline",
   "roo",
   "amazonq",
+  "opencode",
   "generic",
 ];
 
@@ -79,47 +81,43 @@ json_escape() {
   printf '%s' "\${s}"
 }
 
+# Extract a JSON string field value using jq when available, else grep fallback.
+# Usage: extract_json_field <json_payload> <phase>
+# Phases map to ordered key lists that mirror the original Node logic.
 extract_json_field() {
   local payload="\${1}"
   local phase="\${2}"
-  HOOK_PAYLOAD="\${payload}" HOOK_PHASE="\${phase}" node -e '
-    const payloadRaw = process.env.HOOK_PAYLOAD || "{}";
-    const phase = process.env.HOOK_PHASE || "";
-    let payload;
-    try {
-      payload = JSON.parse(payloadRaw);
-    } catch {
-      payload = {};
-    }
 
-    const pick = (obj, keys) => {
-      for (const key of keys) {
-        const value = obj?.[key];
-        if (typeof value === "string" && value.trim()) return value.trim();
-      }
-      return "";
-    };
+  local keys=""
+  case "\${phase}" in
+    user)      keys="prompt user_message message text content" ;;
+    assistant) keys="response assistant_response output text content" ;;
+    summary)   keys="summary message reason text content" ;;
+    *)         return ;;
+  esac
 
-    if (phase === "user") {
-      process.stdout.write(
-        pick(payload, ["prompt", "user_message", "message", "text", "content"]),
-      );
-    } else if (phase === "assistant") {
-      process.stdout.write(
-        pick(payload, [
-          "response",
-          "assistant_response",
-          "output",
-          "text",
-          "content",
-        ]),
-      );
-    } else if (phase === "summary") {
-      process.stdout.write(
-        pick(payload, ["summary", "message", "reason", "text", "content"]),
-      );
-    }
-  '
+  # Fast path: use jq if available (no process startup overhead like node)
+  if command -v jq >/dev/null 2>&1; then
+    local jq_filter
+    jq_filter="$(printf '%s' "\${keys}" | awk '{for(i=1;i<=NF;i++){if(i>1)printf " // "; printf ".%s",\$i}}' )"
+    local result
+    result="\$(printf '%s' "\${payload}" | jq -r "(\${jq_filter}) // empty" 2>/dev/null)" || true
+    if [[ -n "\${result}" && "\${result}" != "null" ]]; then
+      printf '%s' "\${result}"
+      return
+    fi
+    return
+  fi
+
+  # Fallback: scan keys with grep/sed (handles simple flat JSON)
+  for k in \${keys}; do
+    local val
+    val="\$(printf '%s' "\${payload}" | grep -o "\\"\${k}\\"[[:space:]]*:[[:space:]]*\\"[^\\"]*\\"" | head -1 | sed 's/.*:[[:space:]]*"\\(.*\\)"/\\1/')" || true
+    if [[ -n "\${val}" ]]; then
+      printf '%s' "\${val}"
+      return
+    fi
+  done
 }
 
 ensure_session_id() {
@@ -388,6 +386,39 @@ const AMAZONQ_MCP_EXAMPLE = `{
 }
 `;
 
+const OPENCODE_MCP_EXAMPLE = `{
+  "mcp": {
+    "memctl": {
+      "type": "local",
+      "command": ["npx", "-y", "memctl@latest"],
+      "environment": {
+        "MEMCTL_API_URL": "https://memctl.com/api/v1",
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+`;
+
+const OPENCODE_HOOKS_NOTE = `# Hook support note
+
+OpenCode uses a TypeScript plugin system instead of shell-based hooks.
+Plugins live in \`.opencode/plugins/\` and export a default function receiving a \`defineHook\` helper.
+
+For lifecycle memory capture, use the memctl MCP server directly.
+The dispatcher script is included for reference if you prefer shell-based automation:
+
+1. Start session:
+   ./.memctl/hooks/memctl-hook-dispatch.sh start
+2. On user turn:
+   echo '{"prompt":"<user message>"}' | ./.memctl/hooks/memctl-hook-dispatch.sh user
+3. On assistant turn:
+   echo '{"response":"<assistant message>"}' | ./.memctl/hooks/memctl-hook-dispatch.sh assistant
+4. End session:
+   ./.memctl/hooks/memctl-hook-dispatch.sh end
+`;
+
 const CODEX_MCP_EXAMPLE = `[mcp_servers.memctl]
 command = "npx"
 args = ["-y", "memctl@latest"]
@@ -466,6 +497,7 @@ function normalizeAgent(value: string | undefined): Agent {
   if (raw === "cline") return "cline";
   if (raw === "roo") return "roo";
   if (raw === "amazonq") return "amazonq";
+  if (raw === "opencode" || raw === "open-code") return "opencode";
   return "generic";
 }
 
@@ -559,6 +591,19 @@ function getPresetFiles(agent: Exclude<Agent, "all">, dir: string): AdapterFile[
       {
         path: join(dir, "amazonq.hooks.md.example"),
         content: NO_NATIVE_HOOKS_NOTE,
+      },
+    ];
+  }
+
+  if (agent === "opencode") {
+    return [
+      {
+        path: join(dir, "opencode.mcp.json.example"),
+        content: OPENCODE_MCP_EXAMPLE,
+      },
+      {
+        path: join(dir, "opencode.hooks.md.example"),
+        content: OPENCODE_HOOKS_NOTE,
       },
     ];
   }
