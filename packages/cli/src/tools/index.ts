@@ -21,8 +21,20 @@ export function registerTools(
   tracker: SessionTracker,
 ) {
   const rl = createRateLimitState();
-  const onToolCall = (tool: string, action: string) => {
+  const onToolCall = (tool: string, action: string): string | undefined => {
     recordToolAction(tracker, tool, action);
+    if (
+      tool === "context" &&
+      (action === "bootstrap" || action === "bootstrap_compact")
+    ) {
+      tracker.bootstrapped = true;
+      return undefined;
+    }
+    if (!tracker.bootstrapped && !tracker.bootstrapHintShown) {
+      tracker.bootstrapHintShown = true;
+      return "[Hint] Run context action=bootstrap first to load project context and run maintenance.";
+    }
+    return undefined;
   };
 
   registerMemoryTool(server, client, rl, onToolCall);

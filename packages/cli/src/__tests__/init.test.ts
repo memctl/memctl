@@ -280,8 +280,8 @@ describe("init – writeIdeConfigs", () => {
       const runInit = await importRunInit();
       await runInit({ all: true });
 
-      // Should write eight files (claude, cursor, windsurf, vscode, codex config, codex.md, roo, amazonq)
-      expect(mockWriteFile).toHaveBeenCalledTimes(8);
+      // Should write ten files (claude, cursor, windsurf, vscode, codex config, codex.md, roo, amazonq, opencode config, opencode instructions)
+      expect(mockWriteFile).toHaveBeenCalledTimes(10);
 
       const paths = mockWriteFile.mock.calls.map(
         (c: unknown[]) => c[0] as string,
@@ -294,6 +294,8 @@ describe("init – writeIdeConfigs", () => {
       expect(paths.some((p: string) => p.includes("codex.md"))).toBe(true);
       expect(paths.some((p: string) => p.includes(".roo"))).toBe(true);
       expect(paths.some((p: string) => p.includes(".amazonq"))).toBe(true);
+      expect(paths.some((p: string) => p.includes("opencode.json"))).toBe(true);
+      expect(paths.some((p: string) => p.includes("instructions.md"))).toBe(true);
     });
 
     it("--cursor writes only .cursor config", async () => {

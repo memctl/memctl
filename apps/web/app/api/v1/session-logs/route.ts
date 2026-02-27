@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
     keysWritten,
     toolsUsed,
     endedAt,
+    lastActivityAt,
   } = body as {
     sessionId?: string;
     branch?: string;
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
     keysWritten?: string[];
     toolsUsed?: string[];
     endedAt?: number;
+    lastActivityAt?: number;
   };
 
   if (!sessionId) {
@@ -102,6 +104,8 @@ export async function POST(req: NextRequest) {
       updates.keysWritten = JSON.stringify(keysWritten);
     if (toolsUsed !== undefined) updates.toolsUsed = JSON.stringify(toolsUsed);
     if (endedAt !== undefined) updates.endedAt = new Date(endedAt);
+    if (lastActivityAt !== undefined)
+      updates.lastActivityAt = new Date(lastActivityAt);
 
     await db
       .update(sessionLogs)
@@ -124,6 +128,7 @@ export async function POST(req: NextRequest) {
     toolsUsed: toolsUsed ? JSON.stringify(toolsUsed) : null,
     startedAt: now,
     endedAt: endedAt ? new Date(endedAt) : null,
+    lastActivityAt: lastActivityAt ? new Date(lastActivityAt) : now,
     createdBy: authResult.userId,
   });
 

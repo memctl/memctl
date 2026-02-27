@@ -10,7 +10,7 @@ export function registerSessionTool(
   client: ApiClient,
   rl: RateLimitState,
   tracker: SessionTracker,
-  onToolCall: (tool: string, action: string) => void,
+  onToolCall: (tool: string, action: string) => string | undefined,
 ) {
   server.tool(
     "session",
@@ -97,6 +97,7 @@ export function registerSessionTool(
               keysWritten: mergedKeysWritten,
               toolsUsed: mergedToolsUsed,
               endedAt: Date.now(),
+              lastActivityAt: tracker.lastActivityAt,
             });
             tracker.endedExplicitly = true;
             return textResponse(

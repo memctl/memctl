@@ -11,11 +11,14 @@ import {
 import { getBranchInfo, listAllMemories } from "../../agent-context.js";
 import { classifySearchIntent } from "../../intent.js";
 
+const MEMORY_CONTENT_HARD_LIMIT = 16_384;
+const MEMORY_CONTENT_SOFT_LIMIT = 4_096;
+
 export function registerMemoryTool(
   server: McpServer,
   client: ApiClient,
   rl: RateLimitState,
-  onToolCall: (tool: string, action: string) => void,
+  onToolCall: (tool: string, action: string) => string | undefined,
 ) {
   server.tool(
     "memory",
@@ -158,15 +161,12 @@ export function registerMemoryTool(
   );
 }
 
-function isGenericCapabilityNoise(content: string): boolean {
+export function isGenericCapabilityNoise(content: string): boolean {
   const normalized = content.trim().toLowerCase();
   if (!normalized) return true;
 
+  const lines = normalized.split("\n");
   const wordCount = normalized.split(/\s+/).filter(Boolean).length;
-  const hasGenericCapabilityPhrase =
-    /(scan(ning)? files?|search(ing)? (for )?patterns?|use (rg|ripgrep|grep)|read files?|find files?)/.test(
-      normalized,
-    );
 
   const hasProjectSpecificSignal =
     /[/_-]/.test(normalized) ||
@@ -175,7 +175,37 @@ function isGenericCapabilityNoise(content: string): boolean {
       normalized,
     );
 
+  const hasGenericCapabilityPhrase =
+    /(scan(ning)? files?|search(ing)? (for )?patterns?|use (rg|ripgrep|grep)|read files?|find files?)/.test(
+      normalized,
+    );
   if (hasGenericCapabilityPhrase && wordCount <= 40 && !hasProjectSpecificSignal)
+    return true;
+
+  // Shell output dumps (>50% lines are shell prompts)
+  if (lines.length > 3) {
+    const shellLines = lines.filter((l) => /^\s*[$>] /.test(l)).length;
+    if (shellLines / lines.length > 0.5) return true;
+  }
+
+  // Git diff/patch content with no surrounding insight
+  if (
+    /^diff --git /m.test(normalized) &&
+    !/(decision|reason|because|lesson|note|fix|workaround)/m.test(normalized)
+  )
+    return true;
+
+  // Mostly fenced code blocks with little explanatory text
+  const withoutCodeBlocks = normalized.replace(/```[\s\S]*?```/g, "").trim();
+  const explanatoryWords = withoutCodeBlocks.split(/\s+/).filter(Boolean).length;
+  if (wordCount > 20 && explanatoryWords < 10) return true;
+
+  // Large JSON blob (starts with [ or {, ends with ] or })
+  if (
+    /^\s*[[{]/.test(normalized) &&
+    /[\]}]\s*$/.test(normalized) &&
+    wordCount > 50
+  )
     return true;
 
   return false;
@@ -210,11 +240,23 @@ async function handleStore(
         "key and content are required for store",
       );
 
+    if (content.length > MEMORY_CONTENT_HARD_LIMIT) {
+      return errorResponse(
+        "Content too large",
+        `${content.length} chars exceeds ${MEMORY_CONTENT_HARD_LIMIT} char limit. Summarize before storing.`,
+      );
+    }
+
     if (!forceStore && isGenericCapabilityNoise(content)) {
       return textResponse(
         `Skipped low-signal memory for key: ${key}. Store only project-specific decisions, constraints, and outcomes.`,
       );
     }
+
+    const sizeWarning =
+      content.length > MEMORY_CONTENT_SOFT_LIMIT
+        ? ` Warning: content is ${content.length} chars. Consider summarizing large entries for faster bootstrap.`
+        : "";
 
     let resolvedTags = tags ?? [];
     if (autoBranch) {
@@ -242,16 +284,16 @@ async function handleStore(
     }
 
     let dedupWarning = "";
-    try {
-      const similar = await client.findSimilar(content, key, 0.7);
-      if (similar.similar.length > 0) {
-        const top = similar.similar[0]!;
-        if (dedupAction === "skip") {
-          return textResponse(
-            `Skipped: similar memory "${top.key}" already exists (${Math.round(top.similarity * 100)}% match).`,
-          );
-        }
-        if (dedupAction === "merge") {
+    if (dedupAction === "skip" || dedupAction === "merge") {
+      try {
+        const similar = await client.findSimilar(content, key, 0.7);
+        if (similar.similar.length > 0) {
+          const top = similar.similar[0]!;
+          if (dedupAction === "skip") {
+            return textResponse(
+              `Skipped: similar memory "${top.key}" already exists (${Math.round(top.similarity * 100)}% match).`,
+            );
+          }
           const existing = (await client.getMemory(top.key)) as Record<
             string,
             unknown
@@ -272,10 +314,19 @@ async function handleStore(
             `Merged into existing memory "${top.key}" (${Math.round(top.similarity * 100)}% match).`,
           );
         }
-        dedupWarning = ` Warning: Similar memory: "${top.key}" (${Math.round(top.similarity * 100)}% match).`;
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
+    } else if (dedupAction === "warn") {
+      try {
+        const similar = await client.findSimilar(content, key, 0.7);
+        if (similar.similar.length > 0) {
+          const top = similar.similar[0]!;
+          dedupWarning = ` Warning: similar memory "${top.key}" exists (${Math.round(top.similarity * 100)}% match). Consider using dedupAction=merge or updating the existing key.`;
+        }
+      } catch {
+        /* ignore */
+      }
     }
 
     // Auto-eviction: if near capacity, archive lowest-health non-pinned memories
@@ -308,7 +359,7 @@ async function handleStore(
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
     const writeWarn = rl.getSessionWriteWarning() ?? "";
     return textResponse(
-      `Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${evictionMsg}${rateWarn}${writeWarn}`,
+      `Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${sizeWarning}${evictionMsg}${rateWarn}${writeWarn}`,
     );
   } catch (error) {
     if (hasMemoryFullError(error)) {
@@ -345,68 +396,31 @@ async function handleGet(client: ApiClient, params: Record<string, unknown>) {
         const daysSinceUpdate = (now - updatedAt) / 86_400_000;
         if (daysSinceUpdate > 60)
           hints.push(
-            `Stale: not updated in ${Math.round(daysSinceUpdate)} days`,
+            `Stale: not updated in ${Math.round(daysSinceUpdate)} days. Consider refreshing or archiving.`,
           );
-        else if (daysSinceUpdate > 30)
-          hints.push(
-            `Aging: last updated ${Math.round(daysSinceUpdate)} days ago`,
-          );
-      }
-
-      const lastAccessed = mem.lastAccessedAt
-        ? new Date(mem.lastAccessedAt as string).getTime()
-        : 0;
-      if (lastAccessed) {
-        const daysSinceAccess = (now - lastAccessed) / 86_400_000;
-        if (daysSinceAccess > 30)
-          hints.push(
-            `Rarely accessed: last read ${Math.round(daysSinceAccess)} days ago`,
-          );
-      } else {
-        hints.push("Never accessed before");
       }
 
       const helpful = (mem.helpfulCount as number) ?? 0;
       const unhelpful = (mem.unhelpfulCount as number) ?? 0;
-      if (helpful + unhelpful > 0) {
-        if (unhelpful > helpful)
-          hints.push(
-            `Negative feedback: ${helpful} helpful, ${unhelpful} unhelpful`,
-          );
-        else if (helpful > 0)
-          hints.push(
-            `Positive feedback: ${helpful} helpful, ${unhelpful} unhelpful`,
-          );
+      if (unhelpful > helpful && helpful + unhelpful > 0) {
+        hints.push(
+          `Negative feedback: ${helpful} helpful, ${unhelpful} unhelpful. Content may be unreliable.`,
+        );
       }
-
-      if (mem.pinnedAt) hints.push("Pinned: always included in bootstrap");
 
       if (mem.expiresAt) {
         const expiresAt = new Date(mem.expiresAt as string).getTime();
         const daysUntilExpiry = (expiresAt - now) / 86_400_000;
-        if (daysUntilExpiry < 0) hints.push("Expired");
+        if (daysUntilExpiry < 0) hints.push("Expired. Consider removing.");
         else if (daysUntilExpiry < 3)
           hints.push(
-            `Expiring soon: ${Math.round(daysUntilExpiry * 24)} hours left`,
+            `Expiring in ${Math.round(daysUntilExpiry * 24)} hours.`,
           );
       }
 
-      const contentLen =
-        typeof mem.content === "string" ? mem.content.length : 0;
-      if (contentLen > 8000)
-        hints.push(`Large memory: ~${Math.ceil(contentLen / 4)} tokens`);
-
-      if (mem.relatedKeys) {
-        try {
-          const relKeys = JSON.parse(mem.relatedKeys as string) as string[];
-          if (relKeys.length > 0)
-            hints.push(`Linked to ${relKeys.length} other memories`);
-        } catch {
-          /* ignore */
-        }
+      if (hints.length > 0) {
+        return textResponse(JSON.stringify({ ...memory, hints }, null, 2));
       }
-
-      return textResponse(JSON.stringify({ ...memory, hints }, null, 2));
     }
 
     return textResponse(JSON.stringify(memory, null, 2));
@@ -522,11 +536,23 @@ async function handleUpdate(
         "key is required for update",
       );
 
+    if (content && content.length > MEMORY_CONTENT_HARD_LIMIT) {
+      return errorResponse(
+        "Content too large",
+        `${content.length} chars exceeds ${MEMORY_CONTENT_HARD_LIMIT} char limit. Summarize before storing.`,
+      );
+    }
+
     if (content && !forceStore && isGenericCapabilityNoise(content)) {
       return textResponse(
         `Skipped low-signal update for key: ${key}. Store only project-specific decisions, constraints, and outcomes.`,
       );
     }
+
+    const sizeWarning =
+      content && content.length > MEMORY_CONTENT_SOFT_LIMIT
+        ? ` Warning: content is ${content.length} chars. Consider summarizing large entries for faster bootstrap.`
+        : "";
 
     await client.updateMemory(
       key,
@@ -567,7 +593,7 @@ async function handleUpdate(
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
     const writeWarn = rl.getSessionWriteWarning() ?? "";
     return textResponse(
-      `Memory updated: ${key}${impactWarning}${rateWarn}${writeWarn}`,
+      `Memory updated: ${key}${impactWarning}${sizeWarning}${rateWarn}${writeWarn}`,
     );
   } catch (error) {
     return errorResponse("Error updating memory", error);
@@ -647,6 +673,12 @@ async function handleStoreSafe(
         "Missing required params",
         "key and content are required for store_safe",
       );
+    if (content.length > MEMORY_CONTENT_HARD_LIMIT) {
+      return errorResponse(
+        "Content too large",
+        `${content.length} chars exceeds ${MEMORY_CONTENT_HARD_LIMIT} char limit. Summarize before storing.`,
+      );
+    }
     if (ifUnmodifiedSince === undefined)
       return errorResponse(
         "Missing required param",

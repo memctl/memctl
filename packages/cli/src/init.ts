@@ -24,6 +24,7 @@ interface InitFlags {
   codex?: boolean;
   roo?: boolean;
   amazonq?: boolean;
+  opencode?: boolean;
   all?: boolean;
 }
 
@@ -106,7 +107,10 @@ function ideChoiceToFlags(choice: string): InitFlags {
   if (value === "8" || value === "amazonq") {
     return { amazonq: true };
   }
-  if (value === "9" || value === "all") {
+  if (value === "9" || value === "opencode") {
+    return { opencode: true };
+  }
+  if (value === "10" || value === "all") {
     return { all: true };
   }
   return {};
@@ -114,7 +118,7 @@ function ideChoiceToFlags(choice: string): InitFlags {
 
 export async function runInit(flags: InitFlags): Promise<void> {
   // If an IDE flag is given, skip the full wizard and just write IDE config
-  if (flags.claude || flags.cursor || flags.windsurf || flags.vscode || flags.codex || flags.roo || flags.amazonq || flags.all) {
+  if (flags.claude || flags.cursor || flags.windsurf || flags.vscode || flags.codex || flags.roo || flags.amazonq || flags.opencode || flags.all) {
     await writeIdeConfigs(flags);
     return;
   }
@@ -238,14 +242,15 @@ export async function runInit(flags: InitFlags): Promise<void> {
     console.log("    6) codex");
     console.log("    7) roo");
     console.log("    8) amazonq");
-    console.log("    9) all");
+    console.log("    9) opencode");
+    console.log("   10) all");
 
     const ideInput = await rl.question(
       "  Selection [1]: ",
     );
     const ideFlags = ideChoiceToFlags(ideInput || "1");
 
-    if (ideFlags.claude || ideFlags.cursor || ideFlags.windsurf || ideFlags.vscode || ideFlags.codex || ideFlags.roo || ideFlags.amazonq || ideFlags.all) {
+    if (ideFlags.claude || ideFlags.cursor || ideFlags.windsurf || ideFlags.vscode || ideFlags.codex || ideFlags.roo || ideFlags.amazonq || ideFlags.opencode || ideFlags.all) {
       const includeTokenInIdeConfig = await promptYesNo(
         rl,
         "Include API token in MCP config env",
@@ -397,6 +402,24 @@ async function writeIdeConfigs(
       "Amazon Q",
     );
   }
+
+  if (flags.opencode || flags.all) {
+    await writeOpenCodeConfig(
+      join(process.cwd(), "opencode.json"),
+      config,
+      options,
+    );
+    const instructionsDir = join(process.cwd(), ".opencode");
+    await mkdir(instructionsDir, { recursive: true });
+    const instructionsPath = join(instructionsDir, "instructions.md");
+    try {
+      await readFile(instructionsPath, "utf-8");
+      console.log(`  .opencode/instructions.md already exists, skipping`);
+    } catch {
+      await writeFile(instructionsPath, DEFAULT_AGENTS_MD_TEMPLATE);
+      console.log(`  OpenCode agents: .opencode/instructions.md`);
+    }
+  }
 }
 
 async function writeJsonConfig(
@@ -487,4 +510,43 @@ ${envLines.join("\n")}`;
   const final = cleaned ? `${cleaned}\n\n${memctlBlock}\n` : `${memctlBlock}\n`;
   await writeFile(path, final);
   console.log(`  Codex: ${path}`);
+}
+
+async function writeOpenCodeConfig(
+  path: string,
+  config: ResolvedConfig,
+  options?: IdeWriteOptions,
+): Promise<void> {
+  let existing: Record<string, unknown> = {};
+  try {
+    const raw = await readFile(path, "utf-8");
+    existing = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    /* ignore */
+  }
+
+  const env: Record<string, string> = {
+    MEMCTL_API_URL: config.apiUrl,
+    MEMCTL_ORG: config.org,
+    MEMCTL_PROJECT: config.project,
+  };
+  if (!options?.omitToken) {
+    env.MEMCTL_TOKEN = config.token;
+  }
+
+  const mcpServers = (existing.mcp as Record<string, unknown>) ?? {};
+  const merged = {
+    ...existing,
+    mcp: {
+      ...mcpServers,
+      memctl: {
+        type: "local",
+        command: ["npx", "-y", "memctl@latest"],
+        environment: env,
+      },
+    },
+  };
+
+  await writeFile(path, JSON.stringify(merged, null, 2) + "\n");
+  console.log(`  OpenCode: ${path}`);
 }

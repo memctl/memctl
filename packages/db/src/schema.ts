@@ -224,6 +224,7 @@ export const sessionLogs = sqliteTable("session_logs", {
     .notNull()
     .$defaultFn(() => new Date()),
   endedAt: integer("ended_at", { mode: "timestamp" }),
+  lastActivityAt: integer("last_activity_at", { mode: "timestamp" }),
   createdBy: text("created_by").references(() => users.id),
 });
 

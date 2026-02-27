@@ -9,6 +9,7 @@ import {
   finalizeSession,
   startSessionLifecycle,
 } from "./session-tracker.js";
+import { invalidateMemoriesCache } from "./agent-context.js";
 
 function registerPrompts(server: McpServer) {
   server.prompt(
@@ -110,6 +111,9 @@ export function createServer(config: {
     ...config,
     onRequest: ({ method, path, body }) => {
       trackApiCall(tracker, method, path, body);
+    },
+    onMutation: () => {
+      invalidateMemoriesCache();
     },
   });
   startSessionLifecycle(client, tracker);

@@ -16,7 +16,7 @@ export function registerImportExportTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
-  onToolCall: (tool: string, action: string) => void,
+  onToolCall: (tool: string, action: string) => string | undefined,
 ) {
   server.tool(
     "import_export",
@@ -136,9 +136,11 @@ export function registerImportExportTool(
           }
           case "export_agents_md": {
             const format = (params.format as string) ?? "agents_md";
-            const allMemories = await listAllMemories(client);
+            const [allMemories, allTypeInfo] = await Promise.all([
+              listAllMemories(client),
+              getAllContextTypeInfo(client),
+            ]);
             const entries = extractAgentContextEntries(allMemories);
-            const allTypeInfo = await getAllContextTypeInfo(client);
 
             const byType: Record<string, typeof entries> = {};
             for (const entry of entries) {

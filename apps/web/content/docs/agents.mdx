@@ -21,6 +21,7 @@ npx memctl hook-adapter --agent all --write
 | VS Code + Copilot | `.vscode/mcp.json`                    | `servers`         | `memctl init --vscode`   | `generate --copilot`           |
 | Windsurf          | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`      | `memctl init --windsurf` | `generate --windsurf`          |
 | Codex             | `.codex/config.toml`                  | `mcp_servers`     | `memctl init --codex`    | `generate --codex`             |
+| OpenCode          | `opencode.json`                       | `mcp`             | `memctl init --opencode` | `generate --opencode`          |
 | Cline             | Extension UI                          | `mcpServers`      | Manual                   | `generate --cline`             |
 | Roo Code          | `.roo/mcp.json`                       | `mcpServers`      | `memctl init --roo`      | `generate --roo`               |
 | Continue          | `.continue/config.yaml`               | `mcpServers`      | Manual                   | Manual (copy AGENTS.md)        |
@@ -164,6 +165,38 @@ Codex reads `AGENTS.md` and `codex.md` from the repo root (merged in order, 32 K
 ```bash
 npx memctl generate --codex
 ```
+
+</Accordion>
+
+<Accordion title="OpenCode" id="opencode">
+
+Create `opencode.json` in your project root:
+
+```json
+{
+  "mcp": {
+    "memctl": {
+      "type": "local",
+      "command": ["npx", "-y", "memctl@latest"],
+      "environment": {
+        "MEMCTL_ORG": "your-org",
+        "MEMCTL_PROJECT": "your-project"
+      }
+    }
+  }
+}
+```
+
+OpenCode's MCP format differs from most agents:
+
+- Top-level key is `"mcp"` (not `"mcpServers"`)
+- Each server entry needs `"type": "local"`
+- `"command"` is an array (not separate `command` + `args`)
+- Environment variables use `"environment"` (not `"env"`), and the schema is strict
+
+Or use the init wizard: `npx memctl init --opencode`
+
+OpenCode uses a TypeScript plugin system (`.opencode/plugins/`) instead of shell-based hooks for lifecycle events. Plugins export a default function that receives a `defineHook` helper.
 
 </Accordion>
 
