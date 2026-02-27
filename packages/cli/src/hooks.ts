@@ -100,6 +100,17 @@ function classifyCandidate(
 ): Pick<HookCandidate, "type" | "priority" | "tags" | "score"> | null {
   const text = content.toLowerCase();
 
+  // Reject short conversational messages that lack actionable detail.
+  // Real project knowledge has specifics (file names, error messages, steps).
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  if (wordCount < 8) return null;
+
+  // Reject messages that are clearly questions or complaints without detail
+  if (
+    wordCount < 15 &&
+    /^(what|why|how|is |are |do |does |can |could |where |when |any )/i.test(text.trim())
+  ) return null;
+
   const hasDecision =
     /\b(decided|decision|chose|chosen|opted|selected|tradeoff|trade-off|approach)\b/.test(
       text,
@@ -188,9 +199,9 @@ function classifyCandidate(
   }
 
   if (hasProjectSignal) score += 3;
-  if (content.length > 90) score += 1;
+  if (content.length > 150) score += 1;
 
-  if (score < 4) return null;
+  if (score < 5) return null;
   return { type, priority, tags, score };
 }
 
