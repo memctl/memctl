@@ -19,8 +19,10 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/memctl"><img src="https://img.shields.io/npm/v/memctl?style=flat&color=F97316&label=npm" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/memctl"><img src="https://img.shields.io/npm/dm/memctl?style=flat&color=F97316&label=downloads" alt="npm downloads" /></a>
+  <a href="https://github.com/memctl/memctl/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/memctl/memctl/ci.yml?branch=main&style=flat&label=CI" alt="CI" /></a>
   <a href="https://github.com/memctl/memctl/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat" alt="License" /></a>
-  <a href="https://github.com/memctl/memctl/actions"><img src="https://img.shields.io/github/actions/workflow/status/memctl/memctl/ci.yml?branch=main&style=flat&label=CI" alt="CI" /></a>
+  <a href="https://github.com/memctl/memctl"><img src="https://img.shields.io/github/stars/memctl/memctl?style=flat&color=F97316" alt="GitHub stars" /></a>
 </p>
 
 ---
@@ -47,7 +49,6 @@ The init wizard detects your IDE and writes the MCP config automatically. Or con
       "command": "npx",
       "args": ["-y", "memctl@latest"],
       "env": {
-        "MEMCTL_TOKEN": "<your-token>",
         "MEMCTL_ORG": "<org-slug>",
         "MEMCTL_PROJECT": "<project-slug>"
       }
@@ -95,13 +96,6 @@ mem/ctl exposes 11 tools to connected agents:
 Plus 7 resources and 3 prompts for richer agent integration.
 
 ## How it works
-
-```
-Agent (Claude, Cursor, ...) <--MCP--> memctl CLI <--HTTPS--> memctl Cloud
-                                                                  |
-                                                          Turso (libSQL)
-                                                         FTS5 + Vectors
-```
 
 1. Agent connects to `memctl` via MCP (stdio transport)
 2. On startup, the agent bootstraps project context (conventions, architecture, constraints)
