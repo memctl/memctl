@@ -28,4 +28,5 @@ export default defineConfig({
     url,
     ...(authToken ? { authToken } : {}),
   },
+  tablesFilter: ["!memories_fts*"],
 });
