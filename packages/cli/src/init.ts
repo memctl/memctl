@@ -409,6 +409,16 @@ async function writeIdeConfigs(
       config,
       options,
     );
+    const instructionsDir = join(process.cwd(), ".opencode");
+    await mkdir(instructionsDir, { recursive: true });
+    const instructionsPath = join(instructionsDir, "instructions.md");
+    try {
+      await readFile(instructionsPath, "utf-8");
+      console.log(`  .opencode/instructions.md already exists, skipping`);
+    } catch {
+      await writeFile(instructionsPath, DEFAULT_AGENTS_MD_TEMPLATE);
+      console.log(`  OpenCode agents: .opencode/instructions.md`);
+    }
   }
 }
 

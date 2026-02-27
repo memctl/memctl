@@ -15,7 +15,7 @@ export function registerMemoryTool(
   server: McpServer,
   client: ApiClient,
   rl: RateLimitState,
-  onToolCall: (tool: string, action: string) => void,
+  onToolCall: (tool: string, action: string) => string | undefined,
 ) {
   server.tool(
     "memory",
@@ -162,11 +162,8 @@ function isGenericCapabilityNoise(content: string): boolean {
   const normalized = content.trim().toLowerCase();
   if (!normalized) return true;
 
+  const lines = normalized.split("\n");
   const wordCount = normalized.split(/\s+/).filter(Boolean).length;
-  const hasGenericCapabilityPhrase =
-    /(scan(ning)? files?|search(ing)? (for )?patterns?|use (rg|ripgrep|grep)|read files?|find files?)/.test(
-      normalized,
-    );
 
   const hasProjectSpecificSignal =
     /[/_-]/.test(normalized) ||
@@ -175,7 +172,40 @@ function isGenericCapabilityNoise(content: string): boolean {
       normalized,
     );
 
+  const hasGenericCapabilityPhrase =
+    /(scan(ning)? files?|search(ing)? (for )?patterns?|use (rg|ripgrep|grep)|read files?|find files?)/.test(
+      normalized,
+    );
   if (hasGenericCapabilityPhrase && wordCount <= 40 && !hasProjectSpecificSignal)
+    return true;
+
+  // Shell output dumps (>50% lines are shell prompts)
+  if (lines.length > 3) {
+    const shellLines = lines.filter((l) => /^\s*[\$>] /.test(l)).length;
+    if (shellLines / lines.length > 0.5 && !hasProjectSpecificSignal)
+      return true;
+  }
+
+  // Git diff/patch content with no surrounding insight
+  if (
+    /^diff --git /m.test(normalized) &&
+    !/(decision|reason|because|lesson|note|fix|workaround)/m.test(normalized)
+  )
+    return true;
+
+  // Mostly fenced code blocks with little explanatory text
+  const withoutCodeBlocks = normalized.replace(/```[\s\S]*?```/g, "").trim();
+  const explanatoryWords = withoutCodeBlocks.split(/\s+/).filter(Boolean).length;
+  if (wordCount > 30 && explanatoryWords < 10 && !hasProjectSpecificSignal)
+    return true;
+
+  // Large JSON blob (starts with [ or {, ends with ] or })
+  if (
+    /^\s*[\[{]/.test(normalized) &&
+    /[\]}]\s*$/.test(normalized) &&
+    wordCount > 50 &&
+    !hasProjectSpecificSignal
+  )
     return true;
 
   return false;

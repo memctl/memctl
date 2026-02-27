@@ -27,6 +27,8 @@ export type SessionTracker = {
   closed: boolean;
   startedAt: number;
   endedExplicitly: boolean;
+  bootstrapped: boolean;
+  bootstrapHintShown: boolean;
 };
 
 export function createSessionTracker(): SessionTracker {
@@ -45,6 +47,8 @@ export function createSessionTracker(): SessionTracker {
     closed: false,
     startedAt: now,
     endedExplicitly: false,
+    bootstrapped: false,
+    bootstrapHintShown: false,
   };
 }
 
@@ -160,10 +164,16 @@ export function trackApiCall(
 
 // ── Summary building ────────────────────────────────────────────────
 
-export function buildSummary(tracker: SessionTracker): string {
+export function buildSummary(
+  tracker: SessionTracker,
+  options?: { autoClose?: boolean },
+): string {
   const durationMs = Math.max(0, Date.now() - tracker.startedAt);
   const minutes = Math.max(1, Math.round(durationMs / 60_000));
-  const parts: string[] = [`Auto-captured: ${minutes} min, ${tracker.apiCallCount} API calls.`];
+  const prefix = options?.autoClose ? "[auto-closed] " : "";
+  const parts: string[] = [
+    `${prefix}Auto-captured: ${minutes} min, ${tracker.apiCallCount} API calls.`,
+  ];
 
   const written = [...tracker.writtenKeys].sort();
   if (written.length > 0) {
@@ -178,6 +188,10 @@ export function buildSummary(tracker: SessionTracker): string {
   const tools = [...tracker.toolActions].sort();
   if (tools.length > 0) {
     parts.push(`Tools: ${tools.join(", ")}.`);
+  }
+
+  if (!tracker.bootstrapped) {
+    parts.push("Note: bootstrap was not run this session.");
   }
 
   return parts.join("\n");
@@ -201,7 +215,7 @@ export async function finalizeSession(
   try {
     await client.upsertSessionLog({
       sessionId: tracker.sessionId,
-      summary: buildSummary(tracker),
+      summary: buildSummary(tracker, { autoClose: true }),
       keysRead: [...tracker.readKeys],
       keysWritten: [...tracker.writtenKeys],
       toolsUsed: [...tracker.toolActions],

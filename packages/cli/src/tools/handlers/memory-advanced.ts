@@ -18,7 +18,7 @@ export function registerMemoryAdvancedTool(
   server: McpServer,
   client: ApiClient,
   rl: RateLimitState,
-  onToolCall: (tool: string, action: string) => void,
+  onToolCall: (tool: string, action: string) => string | undefined,
 ) {
   server.tool(
     "memory_advanced",

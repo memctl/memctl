@@ -18,7 +18,7 @@ export function registerBranchTool(
   server: McpServer,
   client: ApiClient,
   _rl: RateLimitState,
-  onToolCall: (tool: string, action: string) => void,
+  onToolCall: (tool: string, action: string) => string | undefined,
 ) {
   server.tool(
     "branch",
