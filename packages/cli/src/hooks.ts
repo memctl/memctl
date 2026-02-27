@@ -95,21 +95,52 @@ function isGenericCapabilityNoise(content: string): boolean {
   return hasGenericCapabilityPhrase && !hasProjectSpecificSignal;
 }
 
+/**
+ * Check whether content is self-contained knowledge that makes sense
+ * to someone reading it without the original conversation.
+ * Conversational fragments that rely on context ("it", "that thing",
+ * "what you did") are useless as stored project knowledge.
+ */
+function isSelfContainedKnowledge(text: string): boolean {
+  // Must reference at least one concrete specific: a file path, dotted name,
+  // slash-separated path, error code, technical noun, or named feature.
+  const lower = text.toLowerCase();
+  const hasConcreteSpecific =
+    /[a-z0-9_-]+\.[a-z]{1,5}\b/.test(text) || // file extension (game.ts, route.ts)
+    /[a-z0-9_-]+\/[a-z0-9_-]+/.test(text) || // path segment (src/party)
+    /\b[A-Z][a-z]+[A-Z]/.test(text) || // PascalCase/camelCase identifier
+    /\b[a-z]+_[a-z]+\b/.test(text) || // snake_case identifier
+    /\b(0x[0-9a-f]+|E[A-Z]{2,}|[A-Z_]{4,})\b/.test(text) || // error codes, CONSTANTS
+    /`[^`]+`/.test(text) || // inline code reference
+    /\b[a-z]+-[a-z]+-[a-z]+\b/.test(lower) || // multi-hyphen term (cursor-based-pagination)
+    /\b(api|endpoint|schema|migration|component|middleware|database|dockerfile|webhook|cron|pipeline|queue|cache)\b/.test(lower); // named technical concepts
+
+  if (!hasConcreteSpecific) return false;
+
+  // Reject if it's mostly vague pronouns/references with no substance.
+  // Count vague words vs concrete words.
+  const vagueRefs = (
+    text.match(
+      /\b(it|this|that|these|those|something|stuff|thing|things|what you|recently|somehow)\b/gi,
+    ) ?? []
+  ).length;
+  const words = text.split(/\s+/).filter(Boolean).length;
+  if (words > 0 && vagueRefs / words > 0.2) return false;
+
+  return true;
+}
+
 function classifyCandidate(
   content: string,
 ): Pick<HookCandidate, "type" | "priority" | "tags" | "score"> | null {
   const text = content.toLowerCase();
+  const words = text.split(/\s+/).filter(Boolean).length;
 
-  // Reject short conversational messages that lack actionable detail.
-  // Real project knowledge has specifics (file names, error messages, steps).
-  const wordCount = text.split(/\s+/).filter(Boolean).length;
-  if (wordCount < 8) return null;
+  // Too short to be useful knowledge
+  if (words < 8) return null;
 
-  // Reject messages that are clearly questions or complaints without detail
-  if (
-    wordCount < 15 &&
-    /^(what|why|how|is |are |do |does |can |could |where |when |any )/i.test(text.trim())
-  ) return null;
+  // Must be self-contained (readable without conversation context)
+  if (!isSelfContainedKnowledge(content)) return null;
 
   const hasDecision =
     /\b(decided|decision|chose|chosen|opted|selected|tradeoff|trade-off|approach)\b/.test(
@@ -137,14 +168,16 @@ function classifyCandidate(
       text,
     );
 
-  const hasProjectSignal =
-    /[/_-]/.test(text) ||
-    /\b[a-z0-9_-]+\.[a-z0-9_-]+\b/.test(text) ||
-    /\b(api|route|schema|table|component|hook|migration|branch|mcp|build|ci|file|function|module|config|page|layout|server|client|database|endpoint|query|type|interface|class|method|middleware|handler|service|model|controller|template|style|store|provider)\b/.test(
-      text,
-    );
-
-  if (!hasProjectSignal && !hasIssue) {
+  // At least one semantic signal is required (not just project keywords)
+  if (
+    !hasDecision &&
+    !hasConstraint &&
+    !hasOutcome &&
+    !hasIssue &&
+    !hasTesting &&
+    !hasIdea &&
+    !hasKnownIssue
+  ) {
     return null;
   }
 
@@ -198,10 +231,6 @@ function classifyCandidate(
     tags.push("signal:issue");
   }
 
-  if (hasProjectSignal) score += 3;
-  if (content.length > 150) score += 1;
-
-  if (score < 5) return null;
   return { type, priority, tags, score };
 }
 
