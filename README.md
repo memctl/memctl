@@ -179,17 +179,6 @@ docker build --build-arg NEXT_PUBLIC_APP_URL=https://your-domain.com -t memctl-w
 
 See [DOCKER.md](DOCKER.md) for the full self-hosting guide.
 
-## Plans
-
-| Plan | Projects | Members | Memory / project | Price |
-| --- | --- | --- | --- | --- |
-| Free | 3 | 1 | 400 | $0 |
-| Lite | 10 | 3 | 1,200 | $5/mo |
-| Pro | 25 | 10 | 5,000 | $20/mo |
-| Business | 100 | 30 | 10,000 | $59/mo |
-| Scale | 150 | 100 | 25,000 | $149/mo |
-| Enterprise | Unlimited | Unlimited | Unlimited | Custom |
-
 ## Documentation
 
 - [Docs](https://memctl.com/docs) -- full documentation
