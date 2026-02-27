@@ -22,7 +22,7 @@ export function registerMemoryAdvancedTool(
 ) {
   server.tool(
     "memory_advanced",
-    "Advanced memory operations. Actions: batch_mutate, snapshot_create, snapshot_list, diff, history, restore, link, traverse, graph, contradictions, quality, freshness, size_audit, sunset, undo, compile, change_digest, impact, watch, check_duplicates, auto_tag, validate_schema, branch_filter, branch_merge, batch_ops, consolidate",
+    "Advanced memory operations. Actions: batch_mutate, snapshot_create, snapshot_list, diff, history, restore, link (connect related memories to build the knowledge graph), traverse (walk relations), graph (get full graph), contradictions, quality, freshness, size_audit, sunset, undo, compile, change_digest, impact, watch, check_duplicates, auto_tag, validate_schema, branch_filter, branch_merge, batch_ops, consolidate. TIP: After storing related memories, use link to connect them so the graph stays useful.",
     {
       action: z
         .enum([

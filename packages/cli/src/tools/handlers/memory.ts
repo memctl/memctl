@@ -329,6 +329,21 @@ async function handleStore(
       }
     }
 
+    // Find related memories to suggest linking (builds the knowledge graph)
+    let linkHint = "";
+    try {
+      const related = await client.findSimilar(content, key, 0.4);
+      const linkable = related.similar
+        .filter((m) => m.similarity < 0.7) // Not duplicates, just related
+        .slice(0, 3);
+      if (linkable.length > 0) {
+        const keys = linkable.map((m) => `"${m.key}"`).join(", ");
+        linkHint = ` Related memories found: ${keys}. Use memory_advanced action=link to connect them.`;
+      }
+    } catch {
+      /* ignore */
+    }
+
     // Auto-eviction: if near capacity, archive lowest-health non-pinned memories
     let evictionMsg = "";
     try {
@@ -359,7 +374,7 @@ async function handleStore(
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
     const writeWarn = rl.getSessionWriteWarning() ?? "";
     return textResponse(
-      `Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${sizeWarning}${evictionMsg}${rateWarn}${writeWarn}`,
+      `Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${sizeWarning}${evictionMsg}${linkHint}${rateWarn}${writeWarn}`,
     );
   } catch (error) {
     if (hasMemoryFullError(error)) {
