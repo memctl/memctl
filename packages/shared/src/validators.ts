@@ -27,9 +27,12 @@ export const projectUpdateSchema = z.object({
   description: z.string().max(512).optional(),
 });
 
+export const MEMORY_CONTENT_HARD_LIMIT = 16384;
+export const MEMORY_CONTENT_SOFT_LIMIT = 4096;
+
 export const memoryStoreSchema = z.object({
   key: z.string().min(1).max(256),
-  content: z.string().min(1).max(65536),
+  content: z.string().min(1).max(MEMORY_CONTENT_HARD_LIMIT),
   metadata: z.record(z.unknown()).optional(),
   scope: z.enum(["project", "shared"]).default("project"),
   priority: z.number().int().min(0).max(100).optional(),
@@ -38,7 +41,7 @@ export const memoryStoreSchema = z.object({
 });
 
 export const memoryUpdateSchema = z.object({
-  content: z.string().min(1).max(65536).optional(),
+  content: z.string().min(1).max(MEMORY_CONTENT_HARD_LIMIT).optional(),
   metadata: z.record(z.unknown()).optional(),
   priority: z.number().int().min(0).max(100).optional(),
   tags: z.array(z.string().min(1).max(64)).max(20).optional(),

@@ -481,6 +481,7 @@ export class ApiClient {
         toolsUsed: string | null;
         startedAt: unknown;
         endedAt: unknown;
+        lastActivityAt: unknown;
       }>;
     }>("GET", `/session-logs?${params}`);
   }
@@ -493,6 +494,7 @@ export class ApiClient {
     keysWritten?: string[];
     toolsUsed?: string[];
     endedAt?: number;
+    lastActivityAt?: number;
   }) {
     return this.request("POST", "/session-logs", data);
   }

@@ -26,6 +26,7 @@ export type SessionTracker = {
   dirty: boolean;
   closed: boolean;
   startedAt: number;
+  lastActivityAt: number;
   endedExplicitly: boolean;
   bootstrapped: boolean;
   bootstrapHintShown: boolean;
@@ -46,6 +47,7 @@ export function createSessionTracker(): SessionTracker {
     dirty: false,
     closed: false,
     startedAt: now,
+    lastActivityAt: now,
     endedExplicitly: false,
     bootstrapped: false,
     bootstrapHintShown: false,
@@ -151,6 +153,7 @@ export function trackApiCall(
   if (area === "health" || area === "session-logs") return;
 
   tracker.apiCallCount += 1;
+  tracker.lastActivityAt = Date.now();
   if (area) tracker.areas.add(area);
 
   const fromPath = extractKeyFromPath(method, path);
@@ -160,6 +163,15 @@ export function trackApiCall(
   if (readKey) tracker.readKeys.add(readKey);
   if (writtenKey) tracker.writtenKeys.add(writtenKey);
   tracker.dirty = true;
+}
+
+function parseTimestamp(value: unknown): number | null {
+  if (typeof value === "number" && value > 0) return value;
+  if (typeof value === "string") {
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  return null;
 }
 
 // ── Summary building ────────────────────────────────────────────────
@@ -220,6 +232,7 @@ export async function finalizeSession(
       keysWritten: [...tracker.writtenKeys],
       toolsUsed: [...tracker.toolActions],
       endedAt: Date.now(),
+      lastActivityAt: tracker.lastActivityAt,
     });
   } catch {
     // Best effort only.
@@ -246,6 +259,7 @@ export async function flushSession(
       keysRead: [...tracker.readKeys],
       keysWritten: [...tracker.writtenKeys],
       toolsUsed: [...tracker.toolActions],
+      lastActivityAt: tracker.lastActivityAt,
     });
     tracker.dirty = false;
   } catch {
@@ -286,25 +300,23 @@ export function startSessionLifecycle(
       await client.upsertSessionLog({
         sessionId: tracker.sessionId,
         branch: branch ?? undefined,
+        lastActivityAt: tracker.lastActivityAt,
       });
 
       const recentSessions = await client
         .getSessionLogs(5)
         .catch(() => ({ sessionLogs: [] }));
 
-      // Auto-close stale sessions (open > 2 hours)
+      // Auto-close stale sessions (inactive > 2 hours)
       const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
       const now = Date.now();
       for (const log of recentSessions.sessionLogs) {
         if (log.endedAt) continue;
         if (log.sessionId === tracker.sessionId) continue;
-        const startedAt =
-          typeof log.startedAt === "number"
-            ? log.startedAt
-            : typeof log.startedAt === "string"
-              ? new Date(log.startedAt).getTime()
-              : 0;
-        if (!startedAt || now - startedAt < TWO_HOURS_MS) continue;
+        const lastActivity = parseTimestamp(log.lastActivityAt)
+          || parseTimestamp(log.startedAt)
+          || 0;
+        if (!lastActivity || now - lastActivity < TWO_HOURS_MS) continue;
         try {
           await client.upsertSessionLog({
             sessionId: log.sessionId,

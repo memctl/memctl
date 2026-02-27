@@ -11,6 +11,9 @@ import {
 import { getBranchInfo, listAllMemories } from "../../agent-context.js";
 import { classifySearchIntent } from "../../intent.js";
 
+const MEMORY_CONTENT_HARD_LIMIT = 16_384;
+const MEMORY_CONTENT_SOFT_LIMIT = 4_096;
+
 export function registerMemoryTool(
   server: McpServer,
   client: ApiClient,
@@ -237,11 +240,23 @@ async function handleStore(
         "key and content are required for store",
       );
 
+    if (content.length > MEMORY_CONTENT_HARD_LIMIT) {
+      return errorResponse(
+        "Content too large",
+        `${content.length} chars exceeds ${MEMORY_CONTENT_HARD_LIMIT} char limit. Summarize before storing.`,
+      );
+    }
+
     if (!forceStore && isGenericCapabilityNoise(content)) {
       return textResponse(
         `Skipped low-signal memory for key: ${key}. Store only project-specific decisions, constraints, and outcomes.`,
       );
     }
+
+    const sizeWarning =
+      content.length > MEMORY_CONTENT_SOFT_LIMIT
+        ? ` Warning: content is ${content.length} chars. Consider summarizing large entries for faster bootstrap.`
+        : "";
 
     let resolvedTags = tags ?? [];
     if (autoBranch) {
@@ -302,6 +317,16 @@ async function handleStore(
       } catch {
         /* ignore */
       }
+    } else if (dedupAction === "warn") {
+      try {
+        const similar = await client.findSimilar(content, key, 0.7);
+        if (similar.similar.length > 0) {
+          const top = similar.similar[0]!;
+          dedupWarning = ` Warning: similar memory "${top.key}" exists (${Math.round(top.similarity * 100)}% match). Consider using dedupAction=merge or updating the existing key.`;
+        }
+      } catch {
+        /* ignore */
+      }
     }
 
     // Auto-eviction: if near capacity, archive lowest-health non-pinned memories
@@ -334,7 +359,7 @@ async function handleStore(
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
     const writeWarn = rl.getSessionWriteWarning() ?? "";
     return textResponse(
-      `Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${evictionMsg}${rateWarn}${writeWarn}`,
+      `Memory stored with key: ${key}${scopeMsg}${ttlMsg}${dedupWarning}${sizeWarning}${evictionMsg}${rateWarn}${writeWarn}`,
     );
   } catch (error) {
     if (hasMemoryFullError(error)) {
@@ -511,11 +536,23 @@ async function handleUpdate(
         "key is required for update",
       );
 
+    if (content && content.length > MEMORY_CONTENT_HARD_LIMIT) {
+      return errorResponse(
+        "Content too large",
+        `${content.length} chars exceeds ${MEMORY_CONTENT_HARD_LIMIT} char limit. Summarize before storing.`,
+      );
+    }
+
     if (content && !forceStore && isGenericCapabilityNoise(content)) {
       return textResponse(
         `Skipped low-signal update for key: ${key}. Store only project-specific decisions, constraints, and outcomes.`,
       );
     }
+
+    const sizeWarning =
+      content && content.length > MEMORY_CONTENT_SOFT_LIMIT
+        ? ` Warning: content is ${content.length} chars. Consider summarizing large entries for faster bootstrap.`
+        : "";
 
     await client.updateMemory(
       key,
@@ -556,7 +593,7 @@ async function handleUpdate(
     const rateWarn = rateCheck.warning ? ` ${rateCheck.warning}` : "";
     const writeWarn = rl.getSessionWriteWarning() ?? "";
     return textResponse(
-      `Memory updated: ${key}${impactWarning}${rateWarn}${writeWarn}`,
+      `Memory updated: ${key}${impactWarning}${sizeWarning}${rateWarn}${writeWarn}`,
     );
   } catch (error) {
     return errorResponse("Error updating memory", error);
@@ -636,6 +673,12 @@ async function handleStoreSafe(
         "Missing required params",
         "key and content are required for store_safe",
       );
+    if (content.length > MEMORY_CONTENT_HARD_LIMIT) {
+      return errorResponse(
+        "Content too large",
+        `${content.length} chars exceeds ${MEMORY_CONTENT_HARD_LIMIT} char limit. Summarize before storing.`,
+      );
+    }
     if (ifUnmodifiedSince === undefined)
       return errorResponse(
         "Missing required param",

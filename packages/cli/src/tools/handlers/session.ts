@@ -97,6 +97,7 @@ export function registerSessionTool(
               keysWritten: mergedKeysWritten,
               toolsUsed: mergedToolsUsed,
               endedAt: Date.now(),
+              lastActivityAt: tracker.lastActivityAt,
             });
             tracker.endedExplicitly = true;
             return textResponse(
