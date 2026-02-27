@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
+  buildSummary,
   createSessionTracker,
   startSessionLifecycle,
 } from "../session-tracker";
@@ -157,5 +158,48 @@ describe("startSessionLifecycle – auto-close stale sessions", () => {
     expect(tracker.branch).toBe("feature/test");
 
     cleanup();
+  });
+});
+
+describe("buildSummary", () => {
+  it("includes auto-closed prefix when autoClose is true", () => {
+    const tracker = createSessionTracker();
+    tracker.apiCallCount = 5;
+    const summary = buildSummary(tracker, { autoClose: true });
+    expect(summary).toMatch(/^\[auto-closed\]/);
+  });
+
+  it("omits auto-closed prefix by default", () => {
+    const tracker = createSessionTracker();
+    const summary = buildSummary(tracker);
+    expect(summary).not.toContain("[auto-closed]");
+  });
+
+  it("includes bootstrap warning when bootstrap was not run", () => {
+    const tracker = createSessionTracker();
+    tracker.bootstrapped = false;
+    const summary = buildSummary(tracker);
+    expect(summary).toContain("bootstrap was not run");
+  });
+
+  it("omits bootstrap warning when bootstrap was run", () => {
+    const tracker = createSessionTracker();
+    tracker.bootstrapped = true;
+    const summary = buildSummary(tracker);
+    expect(summary).not.toContain("bootstrap");
+  });
+
+  it("includes keys written and tools used", () => {
+    const tracker = createSessionTracker();
+    tracker.writtenKeys.add("config/style");
+    tracker.readKeys.add("config/arch");
+    tracker.toolActions.add("memory.store");
+    tracker.apiCallCount = 3;
+    tracker.bootstrapped = true;
+    const summary = buildSummary(tracker);
+    expect(summary).toContain("Keys written: config/style");
+    expect(summary).toContain("Keys read: config/arch");
+    expect(summary).toContain("Tools: memory.store");
+    expect(summary).toContain("3 API calls");
   });
 });

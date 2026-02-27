@@ -158,7 +158,7 @@ export function registerMemoryTool(
   );
 }
 
-function isGenericCapabilityNoise(content: string): boolean {
+export function isGenericCapabilityNoise(content: string): boolean {
   const normalized = content.trim().toLowerCase();
   if (!normalized) return true;
 
@@ -182,8 +182,7 @@ function isGenericCapabilityNoise(content: string): boolean {
   // Shell output dumps (>50% lines are shell prompts)
   if (lines.length > 3) {
     const shellLines = lines.filter((l) => /^\s*[\$>] /.test(l)).length;
-    if (shellLines / lines.length > 0.5 && !hasProjectSpecificSignal)
-      return true;
+    if (shellLines / lines.length > 0.5) return true;
   }
 
   // Git diff/patch content with no surrounding insight
@@ -196,15 +195,13 @@ function isGenericCapabilityNoise(content: string): boolean {
   // Mostly fenced code blocks with little explanatory text
   const withoutCodeBlocks = normalized.replace(/```[\s\S]*?```/g, "").trim();
   const explanatoryWords = withoutCodeBlocks.split(/\s+/).filter(Boolean).length;
-  if (wordCount > 30 && explanatoryWords < 10 && !hasProjectSpecificSignal)
-    return true;
+  if (wordCount > 20 && explanatoryWords < 10) return true;
 
   // Large JSON blob (starts with [ or {, ends with ] or })
   if (
     /^\s*[\[{]/.test(normalized) &&
     /[\]}]\s*$/.test(normalized) &&
-    wordCount > 50 &&
-    !hasProjectSpecificSignal
+    wordCount > 50
   )
     return true;
 
