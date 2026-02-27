@@ -213,9 +213,14 @@ exit 0
                 };
               });
 
-            const blockers = items.filter((m) => m.urgency === "blocker");
-            const warnings = items.filter((m) => m.urgency === "warning");
-            const infos = items.filter((m) => m.urgency === "info");
+            const byNewest = (a: { createdAt?: unknown }, b: { createdAt?: unknown }) => {
+              const ta = typeof a.createdAt === "string" ? new Date(a.createdAt).getTime() : 0;
+              const tb = typeof b.createdAt === "string" ? new Date(b.createdAt).getTime() : 0;
+              return tb - ta;
+            };
+            const blockers = items.filter((m) => m.urgency === "blocker").sort(byNewest);
+            const warnings = items.filter((m) => m.urgency === "warning").sort(byNewest);
+            const infos = items.filter((m) => m.urgency === "info").sort(byNewest);
 
             return textResponse(
               JSON.stringify(
