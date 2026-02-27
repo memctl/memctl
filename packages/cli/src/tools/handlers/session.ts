@@ -14,7 +14,7 @@ export function registerSessionTool(
 ) {
   server.tool(
     "session",
-    "Session management. Actions: end, history, claims_check, claim, rate_status",
+    "Session lifecycle and conflict management. Actions: end (save summary when done), history (list recent sessions), claims_check (REQUIRES keys[] param, check if specific memory keys are claimed by other sessions before writing), claim (REQUIRES keys[] param, reserve memory keys for this session), rate_status (check write rate limit usage). Do NOT call claims_check or claim without keys.",
     {
       action: z
         .enum([
@@ -47,7 +47,7 @@ export function registerSessionTool(
       keys: z
         .array(z.string())
         .optional()
-        .describe("[claims_check,claim] Memory keys"),
+        .describe("[claims_check,claim] REQUIRED for these actions. Memory keys to check or claim."),
       excludeSession: z
         .string()
         .optional()
