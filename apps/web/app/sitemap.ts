@@ -74,16 +74,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries = await db
     .select({
       version: changelogEntries.version,
-      publishedAt: changelogEntries.publishedAt,
+      releaseDate: changelogEntries.releaseDate,
     })
     .from(changelogEntries)
     .where(eq(changelogEntries.status, "published"))
-    .orderBy(desc(changelogEntries.publishedAt));
+    .orderBy(desc(changelogEntries.releaseDate));
 
   const changelogPages: MetadataRoute.Sitemap = entries.map((entry) => ({
     url: `${siteUrl}/changelog/${entry.version}`,
-    lastModified: entry.publishedAt
-      ? new Date(entry.publishedAt)
+    lastModified: entry.releaseDate
+      ? new Date(entry.releaseDate)
       : new Date(),
     changeFrequency: "monthly" as const,
     priority: 0.5,
