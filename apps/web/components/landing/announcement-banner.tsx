@@ -12,7 +12,7 @@ export function AnnouncementBanner() {
   return (
     <div className="animate-slide-down relative z-50 flex items-center justify-center border-b border-[#F97316]/20 bg-gradient-to-r from-[#F97316] via-[#EA580C] to-[#F97316] px-12 py-2.5">
       <p className="text-[13px] font-medium text-white">
-        {"memctl v1.0 \u2014 Public Beta is live. "}
+        {"memctl v0.1.0 Public Beta is live. "}
         <Link
           href="/login"
           className="group inline-flex items-center font-semibold text-white underline decoration-white/40 underline-offset-2 transition-all hover:decoration-white"

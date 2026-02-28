@@ -926,13 +926,14 @@ body {
   color: #f97316;
 }
 
-@media (width >= 80rem) {
+/* Docs: hide TOC progress bar on desktop (sidebar TOC is sufficient) */
+@media (min-width: 768px) {
   #nd-tocnav {
-    display: block !important;
+    display: none !important;
   }
 
   :root:has(#nd-tocnav) {
-    --fd-tocnav-height: 40px;
+    --fd-tocnav-height: 0px;
   }
 }
 

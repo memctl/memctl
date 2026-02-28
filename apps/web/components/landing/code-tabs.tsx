@@ -62,6 +62,8 @@ $ memctl serve --mcp`,
 
 type Lang = keyof typeof LANGUAGES;
 
+const SOON_LANGS = new Set<Lang>(["TypeScript", "Python", "Go"]);
+
 function highlightLine(line: string, lang: Lang): ReactNode[] {
   const parts: ReactNode[] = [];
   let remaining = line;
@@ -187,6 +189,11 @@ export function CodeTabs() {
             }`}
           >
             {lang}
+            {SOON_LANGS.has(lang) && (
+              <span className="ml-1.5 inline-flex items-center rounded-full bg-[#F97316]/10 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wider text-[#F97316]">
+                soon
+              </span>
+            )}
             {active === lang && (
               <span className="absolute bottom-0 left-2 right-2 h-px bg-[#F97316]" />
             )}

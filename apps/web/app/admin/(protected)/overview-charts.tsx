@@ -52,7 +52,7 @@ const PERIODS: { value: Period; label: string }[] = [
 const PLAN_PRICES: Record<string, number> = {
   free: 0,
   lite: 500,
-  pro: 2000,
+  pro: 1800,
   business: 5900,
   scale: 14900,
 };

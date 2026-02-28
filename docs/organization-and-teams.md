@@ -72,7 +72,7 @@ Defined in `packages/shared/src/constants.ts` (`PLANS` and `EXTRA_SEAT_PRICE`).
 | ---------- | ------- | --------- | ------------------ | ---------- | -------------- | ---------- | -------- |
 | Free       | $0      | 3         | 1                  | N/A        | 200            | 500        | 60       |
 | Lite       | $5/mo   | 10        | 3                  | +$8/mo     | 1,000          | 10,000     | 100      |
-| Pro        | $20/mo  | 25        | 10                 | +$8/mo     | 5,000          | 100,000    | 150      |
+| Pro        | $18/mo  | 25        | 10                 | +$8/mo     | 5,000          | 100,000    | 150      |
 | Business   | $59/mo  | 100       | 30                 | +$8/mo     | 10,000         | 500,000    | 150      |
 | Scale      | $149/mo | 500       | 100                | +$8/mo     | 25,000         | 2,000,000  | 150      |
 | Enterprise | Custom  | Unlimited | Unlimited          | Included   | Unlimited      | Unlimited  | 150      |
