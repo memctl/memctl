@@ -4,6 +4,8 @@ import { blogPosts, changelogEntries } from "@memctl/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { source } from "@/lib/source";
 
+export const dynamic = "force-dynamic";
+
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://memctl.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
