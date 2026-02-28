@@ -58,14 +58,32 @@ export async function POST(
     );
   }
 
-  if (!org.stripeCustomerId) {
-    return NextResponse.json({ error: "No Stripe customer" }, { status: 400 });
+  let customerId = org.stripeCustomerId;
+  if (!customerId) {
+    try {
+      const { getStripe } = await import("@/lib/stripe");
+      const customer = await getStripe().customers.create({
+        email: session.user.email,
+        name: org.name,
+        metadata: { orgSlug: slug, orgId: org.id },
+      });
+      customerId = customer.id;
+      await db
+        .update(organizations)
+        .set({ stripeCustomerId: customerId })
+        .where(eq(organizations.id, org.id));
+    } catch {
+      return NextResponse.json(
+        { error: "Failed to create billing customer" },
+        { status: 500 },
+      );
+    }
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
   const portalSession = await createCustomerPortalSession({
-    customerId: org.stripeCustomerId,
+    customerId,
     returnUrl: `${appUrl}/org/${slug}/billing`,
   });
 

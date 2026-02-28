@@ -72,8 +72,26 @@ export async function POST(
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   }
 
-  if (!org.stripeCustomerId) {
-    return NextResponse.json({ error: "No Stripe customer" }, { status: 400 });
+  let customerId = org.stripeCustomerId;
+  if (!customerId) {
+    try {
+      const { getStripe } = await import("@/lib/stripe");
+      const customer = await getStripe().customers.create({
+        email: session.user.email,
+        name: org.name,
+        metadata: { orgSlug: slug, orgId: org.id },
+      });
+      customerId = customer.id;
+      await db
+        .update(organizations)
+        .set({ stripeCustomerId: customerId })
+        .where(eq(organizations.id, org.id));
+    } catch {
+      return NextResponse.json(
+        { error: "Failed to create billing customer" },
+        { status: 500 },
+      );
+    }
   }
 
   // Resolve promo code to Stripe promotion code ID
@@ -111,7 +129,7 @@ export async function POST(
   );
 
   const checkoutSession = await createCheckoutSession({
-    customerId: org.stripeCustomerId,
+    customerId,
     priceId: STRIPE_PLANS[planId].priceId,
     planId: planId as PlanId,
     orgSlug: slug,
