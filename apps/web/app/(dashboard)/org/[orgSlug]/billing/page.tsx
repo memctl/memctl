@@ -11,7 +11,13 @@ import { PLANS } from "@memctl/shared/constants";
 import type { PlanId } from "@memctl/shared/constants";
 import { PageHeader } from "@/components/dashboard/shared/page-header";
 import { BillingClient } from "@/components/dashboard/billing-client";
-import { isSelfHosted, getOrgLimits, isUnlimited } from "@/lib/plans";
+import {
+  isSelfHosted,
+  isBillingEnabled,
+  getOrgLimits,
+  isUnlimited,
+  clampLimit,
+} from "@/lib/plans";
 import {
   Server,
   Infinity as InfinityIcon,
@@ -78,6 +84,72 @@ export default async function BillingPage({
         </div>
       </div>
     );
+  }
+
+  // Self-heal: if org has a Stripe customer but no subscription in DB,
+  // check Stripe directly and sync. Covers webhook failures.
+  if (isBillingEnabled() && org.stripeCustomerId && !org.stripeSubscriptionId) {
+    try {
+      const { getStripe } = await import("@/lib/stripe");
+      const { STRIPE_PLANS } = await import("@/lib/stripe");
+      const subs = await getStripe().subscriptions.list({
+        customer: org.stripeCustomerId,
+        status: "active",
+        limit: 1,
+      });
+      const activeSub = subs.data[0];
+      if (activeSub) {
+        // Determine plan from subscription price
+        let detectedPlan: PlanId | null = null;
+        for (const item of activeSub.items.data) {
+          for (const [key, val] of Object.entries(STRIPE_PLANS)) {
+            if (val.priceId === item.price.id) {
+              detectedPlan = key as PlanId;
+              break;
+            }
+          }
+          if (detectedPlan) break;
+        }
+        // Fall back to metadata
+        if (!detectedPlan) {
+          const metaPlan = activeSub.metadata?.entitlementPlanId;
+          if (
+            metaPlan &&
+            (Object.keys(PLANS) as string[]).includes(metaPlan)
+          ) {
+            detectedPlan = metaPlan as PlanId;
+          }
+        }
+        const updateValues: Record<string, unknown> = {
+          stripeSubscriptionId: activeSub.id,
+          updatedAt: new Date(),
+        };
+        if (detectedPlan) {
+          updateValues.planId = detectedPlan;
+          if (!org.customLimits) {
+            const plan = PLANS[detectedPlan];
+            updateValues.projectLimit = clampLimit(plan.projectLimit);
+            updateValues.memberLimit = clampLimit(plan.memberLimit);
+          }
+        }
+        await db
+          .update(organizations)
+          .set(updateValues)
+          .where(eq(organizations.id, org.id));
+        // Re-read org after sync
+        org.stripeSubscriptionId = activeSub.id;
+        if (detectedPlan) {
+          org.planId = detectedPlan;
+          if (!org.customLimits) {
+            const plan = PLANS[detectedPlan];
+            org.projectLimit = clampLimit(plan.projectLimit);
+            org.memberLimit = clampLimit(plan.memberLimit);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to self-heal subscription state:", err);
+    }
   }
 
   const planId = (org.planId as PlanId) ?? "free";

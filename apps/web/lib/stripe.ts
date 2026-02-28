@@ -153,7 +153,32 @@ export async function reactivateStripePromoCode(promoCodeId: string) {
 export async function createCustomerPortalSession(params: {
   customerId: string;
   returnUrl: string;
+  switchToPlan?: {
+    subscriptionId: string;
+    subscriptionItemId: string;
+    newPriceId: string;
+  };
 }) {
+  if (params.switchToPlan) {
+    return getStripe().billingPortal.sessions.create({
+      customer: params.customerId,
+      return_url: params.returnUrl,
+      flow_data: {
+        type: "subscription_update_confirm",
+        subscription_update_confirm: {
+          subscription: params.switchToPlan.subscriptionId,
+          items: [
+            {
+              id: params.switchToPlan.subscriptionItemId,
+              price: params.switchToPlan.newPriceId,
+              quantity: 1,
+            },
+          ],
+        },
+      },
+    });
+  }
+
   return getStripe().billingPortal.sessions.create({
     customer: params.customerId,
     return_url: params.returnUrl,
