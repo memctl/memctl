@@ -4,11 +4,15 @@ import { db } from "@/lib/db";
 import { organizations, organizationMembers } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
-import { createCustomerPortalSession } from "@/lib/stripe";
+import {
+  createCustomerPortalSession,
+  getStripe,
+  STRIPE_PLANS,
+} from "@/lib/stripe";
 import { isBillingEnabled } from "@/lib/plans";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   if (!isBillingEnabled()) {
@@ -82,9 +86,39 @@ export async function POST(
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+  const body = await req.json().catch(() => null);
+  const targetPlanId = body?.planId;
+
+  let switchToPlan:
+    | { subscriptionId: string; subscriptionItemId: string; newPriceId: string }
+    | undefined;
+
+  if (
+    targetPlanId &&
+    STRIPE_PLANS[targetPlanId] &&
+    org.stripeSubscriptionId
+  ) {
+    const subscription = await getStripe().subscriptions.retrieve(
+      org.stripeSubscriptionId,
+    );
+    const mainItem = subscription.items.data.find(
+      (item) =>
+        Object.values(STRIPE_PLANS).some((p) => p.priceId === item.price.id) ||
+        item.price.id !== (process.env.STRIPE_EXTRA_SEAT_PRICE_ID ?? ""),
+    );
+    if (mainItem) {
+      switchToPlan = {
+        subscriptionId: org.stripeSubscriptionId,
+        subscriptionItemId: mainItem.id,
+        newPriceId: STRIPE_PLANS[targetPlanId].priceId,
+      };
+    }
+  }
+
   const portalSession = await createCustomerPortalSession({
     customerId,
     returnUrl: `${appUrl}/org/${slug}/billing`,
+    switchToPlan,
   });
 
   return NextResponse.json({ url: portalSession.url });

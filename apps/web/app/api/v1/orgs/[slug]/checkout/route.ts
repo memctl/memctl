@@ -72,6 +72,34 @@ export async function POST(
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   }
 
+  // Prevent duplicate subscriptions: check Stripe directly in case the webhook
+  // hasn't updated the DB yet.
+  if (org.stripeSubscriptionId) {
+    return NextResponse.json(
+      { error: "Organization already has an active subscription. Use the billing portal to switch plans." },
+      { status: 400 },
+    );
+  }
+  if (org.stripeCustomerId) {
+    const { getStripe } = await import("@/lib/stripe");
+    const existing = await getStripe().subscriptions.list({
+      customer: org.stripeCustomerId,
+      status: "active",
+      limit: 1,
+    });
+    if (existing.data.length > 0) {
+      // Sync the subscription ID the webhook missed
+      await db
+        .update(organizations)
+        .set({ stripeSubscriptionId: existing.data[0].id })
+        .where(eq(organizations.id, org.id));
+      return NextResponse.json(
+        { error: "Organization already has an active subscription. Use the billing portal to switch plans." },
+        { status: 400 },
+      );
+    }
+  }
+
   let customerId = org.stripeCustomerId;
   if (!customerId) {
     try {

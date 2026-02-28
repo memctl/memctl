@@ -168,11 +168,13 @@ export function BillingClient({
     }
   };
 
-  const handlePortal = async () => {
+  const handlePortal = async (planId?: string) => {
     setLoading("portal");
     try {
       const res = await fetch(`/api/v1/orgs/${orgSlug}/portal`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -226,7 +228,7 @@ export function BillingClient({
           className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
           asChild
         >
-          <a href="mailto:sales@memctl.com">Contact Sales</a>
+          <a href="mailto:team@memctl.com">Contact Sales</a>
         </Button>
       );
     }
@@ -248,11 +250,11 @@ export function BillingClient({
       );
     }
 
-    // Paid user viewing other plan → Switch plan (portal)
+    // Paid user viewing other plan → Switch plan (portal with deep link)
     return (
       <Button
         variant="outline"
-        onClick={handlePortal}
+        onClick={() => handlePortal(planId)}
         disabled={loading !== null}
         className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
       >
@@ -419,7 +421,7 @@ export function BillingClient({
               </div>
               <Button
                 variant="outline"
-                onClick={handlePortal}
+                onClick={() => handlePortal()}
                 disabled={loading !== null || !hasSubscription}
                 className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
               >
