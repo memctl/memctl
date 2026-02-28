@@ -43,7 +43,7 @@ export const PLANS: Record<
   },
   pro: {
     name: "Pro",
-    price: 20,
+    price: 18,
     projectLimit: 25,
     memberLimit: 10,
     memoryLimitPerProject: 5_000,

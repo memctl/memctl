@@ -1616,18 +1616,24 @@ export default async function HomePage() {
                   </span>
                 </div>
 
-                {/* Mini heatmap - empty state for private repos */}
+                {/* Commit activity heatmap */}
                 <div className="mb-4">
                   <div className="mb-2 text-xs text-[var(--landing-text-tertiary)]">
                     Commit activity
                   </div>
                   <div className="flex gap-1">
-                    {Array.from({ length: 24 }, (_, i) => (
+                    {[3,1,2,4,2,3,1,0,2,3,4,2,1,3,2,4,3,1,2,0,3,4,2,3].map((level, i) => (
                       <div
                         key={i}
                         className="h-3 flex-1 rounded-sm"
                         style={{
-                          backgroundColor: "var(--landing-surface-2)",
+                          backgroundColor: [
+                            "var(--landing-surface-2)",
+                            "rgba(34,197,94,0.2)",
+                            "rgba(34,197,94,0.4)",
+                            "rgba(34,197,94,0.6)",
+                            "rgba(34,197,94,0.85)",
+                          ][level],
                         }}
                       />
                     ))}

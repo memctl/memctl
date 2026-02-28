@@ -480,7 +480,7 @@ export function PromoCodesManager({ stats, orgList }: PromoCodesManagerProps) {
 
   const previewPriceExample = () => {
     const amt = parseInt(form.discountAmount) || 0;
-    const basePrice = 2000; // Pro plan $20
+    const basePrice = 1800; // Pro plan $18
     let discounted: number;
     if (form.discountType === "percent") {
       discounted = basePrice - Math.round(basePrice * (amt / 100));

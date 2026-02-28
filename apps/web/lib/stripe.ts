@@ -30,7 +30,7 @@ export const STRIPE_PLANS: Record<
   pro: {
     priceId: process.env.STRIPE_PRO_PRICE_ID ?? "",
     name: "Pro",
-    price: 2000,
+    price: 1800,
   },
   business: {
     priceId: process.env.STRIPE_BUSINESS_PRICE_ID ?? "",
