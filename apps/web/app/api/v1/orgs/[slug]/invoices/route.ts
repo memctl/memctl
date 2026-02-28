@@ -4,18 +4,15 @@ import { db } from "@/lib/db";
 import { organizations, organizationMembers } from "@memctl/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
-import { createCustomerPortalSession } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { isBillingEnabled } from "@/lib/plans";
 
-export async function POST(
+export async function GET(
   _req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   if (!isBillingEnabled()) {
-    return NextResponse.json(
-      { error: "Billing is not enabled" },
-      { status: 400 },
-    );
+    return NextResponse.json({ invoices: [] });
   }
 
   const session = await auth.api.getSession({
@@ -58,34 +55,27 @@ export async function POST(
     );
   }
 
-  let customerId = org.stripeCustomerId;
-  if (!customerId) {
-    try {
-      const { getStripe } = await import("@/lib/stripe");
-      const customer = await getStripe().customers.create({
-        email: session.user.email,
-        name: org.name,
-        metadata: { orgSlug: slug, orgId: org.id },
-      });
-      customerId = customer.id;
-      await db
-        .update(organizations)
-        .set({ stripeCustomerId: customerId })
-        .where(eq(organizations.id, org.id));
-    } catch {
-      return NextResponse.json(
-        { error: "Failed to create billing customer" },
-        { status: 500 },
-      );
-    }
+  if (!org.stripeCustomerId) {
+    return NextResponse.json({ invoices: [] });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-  const portalSession = await createCustomerPortalSession({
-    customerId,
-    returnUrl: `${appUrl}/org/${slug}/billing`,
+  const stripeInvoices = await getStripe().invoices.list({
+    customer: org.stripeCustomerId,
+    limit: 50,
   });
 
-  return NextResponse.json({ url: portalSession.url });
+  const invoices = stripeInvoices.data.map((inv) => ({
+    id: inv.id,
+    number: inv.number,
+    status: inv.status,
+    amountDue: inv.amount_due,
+    amountPaid: inv.amount_paid,
+    currency: inv.currency,
+    created: inv.created,
+    hostedInvoiceUrl: inv.hosted_invoice_url,
+    invoicePdf: inv.invoice_pdf,
+    lines: inv.lines.data.map((line) => line.description).filter(Boolean),
+  }));
+
+  return NextResponse.json({ invoices });
 }

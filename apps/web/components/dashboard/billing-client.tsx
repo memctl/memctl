@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import {
   Check,
   CreditCard,
-  FileText,
+  Loader2,
   Ticket,
   X,
   ChevronDown,
 } from "lucide-react";
+import { InvoiceHistory } from "./invoice-history";
 import type { PlanId } from "@memctl/shared/constants";
 
 interface PlanInfo {
@@ -242,7 +243,7 @@ export function BillingClient({
           disabled={loading !== null}
           className="mt-4 w-full bg-[#F97316] text-white hover:bg-[#EA580C]"
         >
-          {loading === planId ? "..." : "Upgrade"}
+          {loading === planId ? <Loader2 className="h-3 w-3 animate-spin" /> : "Upgrade"}
         </Button>
       );
     }
@@ -255,7 +256,7 @@ export function BillingClient({
         disabled={loading !== null}
         className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
       >
-        {loading === "portal" ? "..." : "Switch plan"}
+        {loading === "portal" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Switch plan"}
       </Button>
     );
   };
@@ -317,7 +318,7 @@ export function BillingClient({
                     variant="outline"
                     className="border-[var(--landing-border)]"
                   >
-                    {promoValidating ? "..." : "Apply"}
+                    {promoValidating ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply"}
                   </Button>
                 </div>
               )}
@@ -403,7 +404,7 @@ export function BillingClient({
           <h2 className="text-sm font-medium text-[var(--landing-text)]">
             Billing management
           </h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4">
             <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
               <div className="flex items-center gap-3">
                 <CreditCard className="size-5 text-[var(--landing-text-tertiary)]" />
@@ -422,32 +423,12 @@ export function BillingClient({
                 disabled={loading !== null || !hasSubscription}
                 className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
               >
-                {loading === "portal" ? "..." : "Manage payment"}
-              </Button>
-            </div>
-
-            <div className="rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6">
-              <div className="flex items-center gap-3">
-                <FileText className="size-5 text-[var(--landing-text-tertiary)]" />
-                <div>
-                  <p className="text-sm font-medium text-[var(--landing-text)]">
-                    Invoices
-                  </p>
-                  <p className="text-xs text-[var(--landing-text-tertiary)]">
-                    View and download past invoices
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handlePortal}
-                disabled={loading !== null || !hasSubscription}
-                className="mt-4 w-full border-[var(--landing-border)] text-[var(--landing-text-secondary)]"
-              >
-                {loading === "portal" ? "..." : "View invoices"}
+                {loading === "portal" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Manage payment"}
               </Button>
             </div>
           </div>
+
+          <InvoiceHistory orgSlug={orgSlug} />
         </div>
       )}
     </>
